@@ -94,9 +94,8 @@
     body.innerHTML =
       `<p class="modal-group">${esc(f.group)}</p>` +
       `<h2 id="modalTitle">${esc(f.title)}</h2>` +
-      `<p class="modal-cvar"><code>${esc(f.cvar)}</code></p>` +
+      (f.cvar ? `<p class="modal-cvar"><code>${esc(f.cvar)}</code></p>` : '') +
       mediaHtml(f.media) +
-      (f.how ? `<div class="how"><h3>How it works</h3><p>${f.how}</p></div>` : '') +
       `<div class="doc">${f.sections.map(s => `<section>${multi ? `<h3>${esc(s.title)}</h3>` : ''}${s.html}</section>`).join('')}</div>`;
     modal.hidden = false;
     document.body.classList.add('modal-open');
@@ -133,7 +132,7 @@
   });
 
   const fromHash = () => {
-    const m = location.hash.match(/^#f\/([\w-]+)$/);
+    const m = location.hash.match(/^#f\/([\w\/-]+)$/);
     if (m) open(m[1], document.querySelector(`[data-feature="${m[1]}"]`));
   };
   addEventListener('hashchange', fromHash);

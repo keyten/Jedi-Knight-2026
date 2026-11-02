@@ -1,548 +1,1100 @@
 window.FEATURES = {
- "tonemap": {
-  "group": "Color and post-processing",
+ "post-processing/tone-mapping": {
+  "group": "Image and camera",
   "title": "Tone mapping",
-  "cvar": "r_toneMapMode 0|1|2",
-  "how": "The scene is rendered into a 16-bit floating-point buffer. Auto exposure measures the logarithmic average luminance of that buffer and smooths it over time. A single fullscreen pass then applies exposure, the selected curve and the display encoding; refractive surfaces use the same output transform, so both always agree.",
+  "cvar": "r_toneMapMode",
   "sections": [
    {
     "title": "Tone mapping",
-    "html": "<p>Changes how the HDR scene is compressed into the display range. The difference is easiest to see in bright skies, lamps, sabers, explosions and dark-to-bright transitions. ACES gives stronger cinematic contrast and highlight rolloff; AgX-like is more neutral while keeping bright detail.</p>\n<p class=\"req\"><strong>Requirements.</strong> Works only with HDR enabled (<code>r_hdr 1</code>) and tone mapping enabled. Auto exposure is recommended with HDR (<code>r_autoExposure 1</code>); exposure can also be adjusted with the existing <code>r_exposureCompensation</code> / <code>r_cameraExposure</code> controls.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_toneMapMode 0 | 1 | 2</code> — 0 legacy Rend2 filmic, 1 ACES fitted, 2 AgX-like.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_toneMapDebug 1</code> — legacy vs selected tone mapper split.</li><li><code>r_toneMapDebug 2</code> — legacy / ACES / AgX comparison.</li><li><code>r_toneMapDebug 3..5</code> — raw HDR, exposure-adjusted and exposure false-color views.</li></ul>\n<p>No measurable effect on frame performance.</p>"
+    "html": "<p>The renderer computes light far brighter than a monitor can show: sky, lamps, saber blades. The tone mapper squeezes that range onto your screen and decides how contrasty the image looks and what happens to very bright colors. Pick the look you like; every curve costs the same. Needs <code>r_hdr 1</code> and <code>r_toneMap 1</code>.</p>\n<ul><li><code>r_toneMapMode 0</code> — <strong>0</strong> Rend2's original filmic curve. <strong>1</strong> ACES, the film look of many modern games: stronger contrast; very bright colored lights can shift hue. <strong>2</strong> AgX-like: gentler contrast; bright colored lights fade to white without changing hue.</li></ul>\n<p><code>r_toneMapDebug 2</code> shows legacy / ACES / AgX side by side.</p>\n<h4>Debug</h4>\n<ul><li><code>r_toneMapDebug 1</code> — left legacy, right the current <code>r_toneMapMode</code>.</li><li><code>r_toneMapDebug 2</code> — legacy / ACES / AgX strips.</li><li><code>r_toneMapDebug 3..5</code> — raw HDR image, image after exposure, exposure in false color.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-tonemapping.md\" target=\"_blank\" rel=\"noopener\">rend2-tonemapping.md</a>.</p>"
    }
   ],
   "media": []
  },
- "grading": {
-  "group": "Color and post-processing",
+ "post-processing/brightness-and-exposure": {
+  "group": "Image and camera",
+  "title": "Brightness and exposure",
+  "cvar": "r_autoExposure",
+  "sections": [
+   {
+    "title": "Brightness and exposure",
+    "html": "<p>Like your eyes, the renderer adapts to the scene: dark rooms are brightened, sunny exteriors darkened. This is on by default. Everything in this section needs <code>r_hdr 1</code> and <code>r_toneMap 1</code>; without them brightness is fixed.</p>\n<ul><li><code>r_autoExposure 1</code> — 0 fixed brightness, 1 adapt to the scene.</li><li><code>r_exposureCompensation 0</code> — the simplest brightness control, in stops: <code>1</code> is twice as bright, <code>-1</code> half. Works in every mode below.</li></ul>\n<h3 class=\"sub\">Physical camera (optional)</h3>\n<p>Instead of the original adaptation you can use real camera settings, mostly useful for screenshots and fixed shots.</p>\n<ul><li><code>r_cameraMode 0</code> — <strong>0</strong> original exposure (above). <strong>1</strong> manual camera: brightness comes from ISO, aperture and shutter time. <strong>2</strong> automatic camera: meters the scene and adapts within the limits below.</li><li><code>r_cameraISO 100</code>, <code>r_cameraAperture 16</code>, <code>r_cameraShutterSeconds 0.008</code> — mode 1. Higher ISO, a smaller f-number or a longer shutter make the image brighter. The aperture does not blur anything: there is no depth of field yet.</li><li><code>r_cameraAutoEVMin -6</code> — mode 2: the darkest scene it fully adapts to. Raise it to keep dark areas dark.</li><li><code>r_cameraAutoEVMax 20</code> — mode 2: the brightest scene it fully adapts to. Lower it to keep bright areas bright.</li><li><code>r_motionBlurPhysicalShutter 0</code> — 1: in modes 1–2, <a href=\"#f/post-processing/motion-blur\">motion blur</a> length follows <code>r_cameraShutterSeconds</code> instead of the shutter angle.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Manual mode converts ISO, aperture and shutter into an exposure value (EV100), as a light meter would. Automatic mode measures the average scene brightness and moves toward it, clamped to the EV range. Exposure compensation is applied on top.</p></div>\n<ul><li><code>r_cameraExposure 0</code> — mode 0 only: a fixed gain in stops.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_cameraDebug 1</code> — print the camera and meter state once per second.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-physical-camera.md\" target=\"_blank\" rel=\"noopener\">rend2-physical-camera.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "post-processing/bloom": {
+  "group": "Image and camera",
+  "title": "Bloom",
+  "cvar": "r_bloom",
+  "sections": [
+   {
+    "title": "Bloom",
+    "html": "<p>A soft halo around sabers, lamps and glowing panels. The original JKA \"dynamic glow\" blurs only surfaces whose shader is marked as glowing, with the same strength whatever their brightness. HDR bloom works from actual brightness: a brighter light glows more, and the halo is wider and smoother.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_bloom -1</code> — <strong>-1</strong> original dynamic glow (switched by the original <code>r_dynamicGlow</code>). <strong>0</strong> off. <strong>1</strong> HDR bloom; needs <code>r_hdr 1</code> and <code>r_toneMap 1</code>.</li></ul>\n<p>HDR bloom (<code>r_bloom 1</code>):</p>\n<ul><li><code>r_bloomIntensity 0.15</code> — strength of the halo.</li><li><code>r_bloomScatter 0.7</code> — how wide it spreads.</li><li><code>r_bloomSceneIntensity 0</code> — by default only glowing materials bloom. Raise it to let any very bright pixel bloom too: sun glints, bright sky, lit fog.</li></ul>\n<p>Original glow (<code>r_bloom -1</code>):</p>\n<ul><li><code>r_dynamicGlowBloom 0.0</code> — also let bright parts of the scene glow, not only glow-marked surfaces.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>HDR bloom takes the image before tone mapping, blurs progressively smaller copies of its bright parts and adds them back. Glowing materials always contribute; other pixels contribute only above a brightness threshold, scaled by <code>r_bloomSceneIntensity</code>.</p></div>\n<ul><li><code>r_bloomThreshold 2.0</code> — brightness where scene bloom starts.</li><li><code>r_bloomKnee 0.5</code> — how softly it fades in around the threshold.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-bloom.md\" target=\"_blank\" rel=\"noopener\">rend2-bloom.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "post-processing/color-grading": {
+  "group": "Image and camera",
   "title": "Color grading",
-  "cvar": "r_colorGrading 1",
-  "how": "The <code>.cube</code> file is loaded into a 3D texture. After tone mapping, each pixel's color is used as a coordinate into that texture, and the looked-up color is blended with the original by the intensity setting.",
+  "cvar": "r_colorGrading",
   "sections": [
    {
-    "title": "Color grading LUTs",
-    "html": "<p>Applies a 3D color lookup table after rendering, allowing different maps to have different palettes, contrast and mood. A map can automatically use <code>maps/&lt;map&gt;.cube</code>, while a user can override it with another <code>.cube</code> LUT.</p>\n<p class=\"req\"><strong>Requirements.</strong> No special rendering mode is required. LUT files use the common <code>.cube</code> format.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_colorGrading 0 | 1</code> — disable / enable color grading.</li><li><code>r_colorGradingLUT \"&lt;file&gt;.cube\"</code> — select a LUT manually; empty uses <code>maps/&lt;map&gt;.cube</code> if present; <code>*identity</code> is neutral.</li><li><code>r_colorGradingIntensity 0..1</code> — blend between the original image and the LUT.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_colorGradingCompare 0 | 1</code> — disable / enable split-screen comparison, original on the left.</li></ul>\n<p>May slightly affect performance.</p>"
+    "title": "Color grading",
+    "html": "<p>Applies a color filter to the whole image — warmer, colder, faded, more contrast — from a LUT file (<code>.cube</code>), the format photo and video editors export. Stock maps have no LUT, so nothing changes until you provide one. Needs <code>r_hdr 1</code> and <code>r_toneMap 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_colorGrading 1</code> — on; does nothing without a LUT.</li><li><code>r_colorGradingLUT \"\"</code> — a <code>.cube</code> file in the game data, for example <code>luts/warm.cube</code> in <code>base/</code> or a pk3. Empty uses the map's own LUT if it has one; <code>*identity</code> is neutral.</li><li><code>r_colorGradingIntensity 1</code> — 0 original colors … 1 the full LUT.</li><li><code>r_colorGradingCompare 0</code> — 1: original on the left, graded on the right.</li></ul>\n<p class=\"mod\"><strong>Mod authors:</strong> put <code>maps/&lt;map&gt;.cube</code> next to the <code>.bsp</code>; it loads with the map unless the player sets <code>r_colorGradingLUT</code>.</p>\n<div class=\"how\"><h3>How it works</h3><p>A 3D LUT is a table that gives an output color for every input color. The renderer looks up each pixel of the final image in it and blends the result with the original by <code>r_colorGradingIntensity</code>.</p></div>"
    }
   ],
   "media": []
  },
- "linear": {
-  "group": "Color and post-processing",
-  "title": "Linear lighting",
-  "cvar": "r_linearLighting 1",
-  "how": "Textures and lightmaps are decoded from sRGB into linear values before lighting, so light is added and multiplied in physically proportional units. The result is encoded for the display only once, at the end of the frame, by the tone mapper.",
-  "sections": [
-   {
-    "title": "Linear lighting",
-    "html": "<p>Calculates lighting in linear light instead of directly in display-encoded sRGB. It mainly changes how lightmaps, dark gradients and bright lighting combine, and makes the pipeline more physically consistent with HDR.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires HDR (<code>r_hdr 1</code>) and tone mapping (<code>r_toneMap 1</code>).</p>\n<h4>Main controls</h4>\n<ul><li><code>r_linearLighting 0 | 1</code> — legacy / linear-light handling of non-HDR lightmaps. Requires <code>vid_restart</code>.</li></ul>\n<p>No measurable effect on frame performance.</p>"
-   }
-  ],
-  "media": []
- },
- "bloom": {
-  "group": "Color and post-processing",
-  "title": "HDR bloom",
-  "cvar": "r_bloom 1",
-  "how": "Glow and emissive surfaces write into a dedicated target next to the HDR scene. That target, optionally with the brightest scene pixels, is downsampled into a resolution pyramid and blurred on the way back up. The blurred light is added to the linear HDR image before exposure and tone mapping, so bloom follows the real brightness of its source.",
-  "sections": [
-   {
-    "title": "HDR bloom",
-    "html": "<p>Adds soft glow around genuinely bright HDR sources such as sabers, emissive panels, explosions and intense lights. Unlike the legacy LDR glow path, it works from scene-linear brightness before tone mapping.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires HDR (<code>r_hdr 1</code>) and tone mapping (<code>r_toneMap</code> or <code>r_forceToneMap</code>).</p>\n<h4>Main controls</h4>\n<ul><li><code>r_bloom -1 | 0 | 1</code> — legacy glow / off / HDR bloom.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_bloomIntensity &lt;value&gt;</code> — bloom strength.</li><li><code>r_bloomThreshold &lt;value&gt;</code> — scene-linear brightness where optional scene bloom begins.</li><li><code>r_bloomKnee &lt;value&gt;</code> — softness around the threshold.</li><li><code>r_bloomScatter &lt;value&gt;</code> — how widely the bloom pyramid spreads.</li><li><code>r_bloomSceneIntensity &lt;value&gt;</code> — contribution from bright non-emissive scene pixels; <code>0</code> keeps bloom emissive-only.</li></ul>\n<p>May slightly affect performance.</p>"
-   }
-  ],
-  "media": []
- },
- "motionblur": {
-  "group": "Color and post-processing",
+ "post-processing/motion-blur": {
+  "group": "Image and camera",
   "title": "Motion blur",
-  "cvar": "r_motionBlur 1",
-  "how": "It reuses the temporal data rend2 keeps for SMAA T2x: a per-pixel velocity buffer, the previous frame's view projection and the previous entity matrices and bones. Each pixel is blurred along its own motion vector, scaled by the shutter angle and clamped; very large one-frame jumps are treated as camera cuts and not blurred.",
+  "cvar": "r_motionBlur",
   "sections": [
    {
-    "title": "Velocity motion blur",
-    "html": "<p>Adds camera and object motion streaks while keeping HUD and menus sharp. It uses per-pixel motion rather than simply blurring the whole frame, so rotating, running and moving characters produce different vectors.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires HDR (<code>r_hdr 1</code>).</p>\n<h4>Main controls</h4>\n<ul><li><code>r_motionBlur 0 | 1</code> — disable / enable velocity motion blur. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_motionBlurShutterAngle &lt;degrees&gt;</code> — exposure length.</li><li><code>r_motionBlurReferenceFps &lt;fps&gt;</code> — FPS the shutter angle refers to; <code>0</code> uses the current frame interval.</li><li><code>r_motionBlurMaxPixels &lt;pixels&gt;</code> — maximum streak length at 1080p.</li><li><code>r_motionBlurQuality 0 | 1 | 2</code> — low / medium / high.</li><li><code>r_motionBlurSamples &lt;count&gt;</code> — sample override; <code>0</code> uses the quality preset.</li><li><code>r_motionBlurViewModelScale &lt;value&gt;</code> — blur strength for first-person hands, weapons and saber.</li><li><code>r_motionBlurCutDistance &lt;units&gt;</code> — one-frame translation treated as a camera cut.</li><li><code>r_motionBlurCutAngle &lt;degrees&gt;</code> — one-frame rotation treated as a camera cut.</li><li><code>r_motionBlurShutterScale &lt;value&gt;</code> — gameplay exposure multiplier, used by effects such as Force Speed.</li><li><code>r_motionBlurReset 1</code> — gameplay hook that clears motion history after a cut.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_motionBlurDebug 1..5</code> — velocity, camera/object velocity, sample count and blur contribution.</li></ul>\n<p>Moderate GPU cost, increasing with quality and screen resolution.</p>"
+    "title": "Motion blur",
+    "html": "<p>Fast camera turns and moving characters or sabers leave short streaks, like film. The HUD and menus stay sharp. The original game has no motion blur. Needs <code>r_hdr 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium; grows with resolution and sample count.</p>\n<ul><li><code>r_motionBlur 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_motionBlurShutterAngle 180</code> — streak length. 180° blurs half a frame of motion (the film standard); 360 is longer, 90 shorter.</li><li><code>r_motionBlurReferenceFps 60</code> — the frame rate the shutter angle refers to, so the blur looks the same at 60 and 144 fps. 0 uses your real frame time: blur gets shorter as fps rises.</li><li><code>r_motionBlurMaxPixels 32</code> — longest streak, in pixels at 1080p.</li><li><code>r_motionBlurQuality 1</code> — 0 low, 1 medium, 2 high. Higher removes graininess in long streaks.</li><li><code>r_motionBlurViewModelScale 0.5</code> — blur on your own hands, weapon and saber in first person.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Every pixel stores how far its surface moved since the last frame. The blur samples along that movement. A camera cut or teleport would produce a huge false streak, so a jump bigger than the limits below resets the history instead.</p></div>\n<ul><li><code>r_motionBlurSamples 0</code> — exact samples per pixel; 0 takes them from the quality.</li><li><code>r_motionBlurCutDistance 256</code>, <code>r_motionBlurCutAngle 75</code> — camera movement (units) or rotation (degrees) in one frame treated as a cut.</li><li><code>r_motionBlurShutterScale 1</code>, <code>r_motionBlurReset 0</code> — set by the game (longer exposure during Force Speed, reset after cuts). Don't change them.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_motionBlurDebug 1..5</code> — velocity, camera velocity, object velocity, sample count, blur contribution.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-motion-blur.md\" target=\"_blank\" rel=\"noopener\">rend2-motion-blur.md</a>.</p>"
    }
   ],
   "media": []
  },
- "gtao": {
-  "group": "Lighting and shadows",
-  "title": "GTAO and contact shadows",
-  "cvar": "r_aoMode 2",
-  "how": "Right after the depth prepass, fullscreen passes reconstruct positions from depth, search the horizon in several directions around each pixel and integrate the visible part of the hemisphere. The result is denoised and read by the main lighting pass. Contact shadows march a short ray toward the sun through the depth buffer to catch small occluders that shadow maps miss.",
+ "post-processing/anti-aliasing-smaa": {
+  "group": "Image and camera",
+  "title": "Anti-aliasing (SMAA)",
+  "cvar": "r_smaa",
   "sections": [
    {
-    "title": "GTAO",
-    "html": "<p>Adds stronger and more stable ambient occlusion in corners, wall/floor contacts, around props and under nearby geometry. The newer path also stores a bent normal so indirect diffuse and environment specular can prefer directions that are actually open.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires the depth prepass (<code>r_depthPrepass 1</code>). Starting the renderer with AO completely disabled and enabling it later requires <code>vid_restart</code> so the required buffers exist.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_aoMode -1 | 0 | 1 | 2</code> — follow legacy <code>r_ssao</code> / off / legacy SSAO / GTAO.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_aoApply -1 | 0 | 1</code> — automatic / legacy application / indirect-light-only application.</li><li><code>r_aoMultiBounce 0 | 1</code> — preserve more indirect light on bright surfaces.</li><li><code>r_aoLightmapFraction &lt;value&gt;</code> — share of baked light treated as indirect.</li><li><code>r_aoSpecOcclusion -1 | 0 | 1 | 2</code> — auto / scalar / Lagarde / bent-normal cone specular occlusion.</li><li><code>r_gtaoQuality 0..3</code> — low / medium / high / ultra.</li><li><code>r_gtaoHalfRes 0 | 1</code> — full / half resolution. Requires <code>vid_restart</code>.</li><li><code>r_gtaoRadius &lt;units&gt;</code> — world-space radius.</li><li><code>r_gtaoFalloff &lt;value&gt;</code> — distance falloff.</li><li><code>r_gtaoThickness &lt;value&gt;</code> — thin-occluder compensation.</li><li><code>r_gtaoPower &lt;value&gt;</code> — visibility contrast.</li><li><code>r_gtaoDenoise 0..3</code> — edge-aware denoise passes.</li><li><code>r_gtaoBentNormals 0..1</code> — bent-normal strength for indirect lighting.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_aoCompare 0 | 1</code> — split-screen legacy SSAO vs GTAO.</li><li><code>r_aoDebug 1..10</code> — AO, depth, normal, contact and bent-normal views.</li></ul>\n<p>Moderate GPU cost; half-resolution GTAO is substantially cheaper than full resolution.</p>"
-   },
-   {
-    "title": "Screen-space contact shadows",
-    "html": "<p>Adds short sun shadows that cascaded shadow maps often miss, such as feet touching the floor, thin edges and small gaps.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires realtime sunlight and the depth prepass. Enabling the feature after starting without its screen-space buffers requires <code>vid_restart</code>.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_contactShadows 0 | 1</code> — disable / enable sun contact shadows.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_contactShadowLength &lt;units&gt;</code> — maximum ray length.</li><li><code>r_contactShadowSteps &lt;count&gt;</code> — ray samples.</li><li><code>r_contactShadowThickness &lt;units&gt;</code> — assumed blocker thickness.</li><li><code>r_contactShadowStrength &lt;value&gt;</code> — shadow strength.</li><li><code>r_contactShadowSoft 0 | 1</code> — first-hit / softer depth-weighted result.</li></ul>\n<p>Moderate GPU cost, mostly proportional to screen coverage and ray steps.</p>"
+    "title": "Anti-aliasing (SMAA)",
+    "html": "<p>Smooths jagged geometry edges.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_smaa 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_smaa_quality 2</code> <em>(restart)</em> — 0 low, 1 medium, 2 high, 3 ultra.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>SMAA finds edges in the finished image and blends pixels along them. It does not fix shimmering of very thin moving details, such as distant fences or grass.</p></div>"
    }
   ],
   "media": []
  },
- "forwardplus": {
-  "group": "Lighting and shadows",
-  "title": "Forward+",
-  "cvar": "r_forwardPlus 1",
-  "how": "The view frustum is split into clusters: screen tiles times logarithmic depth slices. Every frame the dynamic lights are assigned to the clusters they touch (with a compute shader on OpenGL 4.3), and the material shader reads the light list of its pixel's cluster. Shading stays forward; there is no G-buffer.",
+ "post-processing/linear-lighting-experimental": {
+  "group": "Image and camera",
+  "title": "Linear lighting (experimental)",
+  "cvar": "r_linearLighting",
   "sections": [
    {
-    "title": "Forward+ dynamic lighting",
-    "html": "<p>Replaces per-surface 32-light masks with clustered light lists, allowing many sabers, blasters and explosions to coexist without dropping lights. The view is divided into screen tiles and logarithmic depth slices, and each cluster keeps only relevant lights.</p>\n<p class=\"req\"><strong>Requirements.</strong> No other new feature is required. Features such as LTC area lights use Forward+ as a dependency.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_forwardPlus 0 | 1</code> — legacy dynamic-light masks / clustered Forward+.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_forwardPlusTileSize &lt;pixels&gt;</code> — screen tile size.</li><li><code>r_forwardPlusSlices &lt;count&gt;</code> — logarithmic depth slices.</li><li><code>r_forwardPlusNearSlice &lt;units&gt;</code> — depth covered by the first slice.</li><li><code>r_forwardPlusMaxLightsPerCluster &lt;count&gt;</code> — light cap per cluster.</li><li><code>r_forwardPlusMaxShadowLights &lt;count&gt;</code> — strongest dynamic lights allowed shadow cubes when <code>r_dlightMode 2</code> is active.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_forwardPlusDebug 1..9</code> — tiles, slices, clusters, light counts, overflow, shadows and selected light. Requires <code>vid_restart</code>.</li><li><code>r_forwardPlusDebugLight &lt;index&gt;</code> — selected light for debug mode 9.</li><li><code>r_forwardPlusStats</code> — print cluster statistics.</li><li><code>r_forwardPlusBenchmark [frames]</code> — benchmark the lighting path.</li><li><code>r_forwardPlusSpawnTestLights &lt;count&gt; [spread]</code> — spawn test lights.</li></ul>\n<p>Usually inexpensive and can improve many-light scenes; very dense light clusters still increase shading cost.</p>"
+    "title": "Linear lighting (experimental)",
+    "html": "<p>Every stock map stores its lighting in screen color values, and the game mixes textures and light in those values. Linear lighting converts everything to real light amounts first, as on HDR-lit maps. Overlapping lights, dynamic lights on lightmapped walls and soft gradients add up more naturally, but stock maps can look noticeably different.</p>\n<p>Known side effects: sabers, blaster bolts, explosions and other effects drawn by game code look brighter and paler; the original dynamic glow gets weaker; 3D models in menus look darker.</p>\n<ul><li><code>r_linearLighting 0</code> <em>(restart)</em> — 1 on. Needs <code>r_hdr 1</code>, <code>r_toneMap 1</code> and <code>r_overBrightBits 0</code>; otherwise it is ignored.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-tonemapping.md#linear-lighting-r_linearlighting-experimental\" target=\"_blank\" rel=\"noopener\">rend2-tonemapping.md</a>.</p>"
    }
   ],
   "media": []
  },
- "ssgi": {
-  "group": "Lighting and shadows",
-  "title": "Screen-space GI",
-  "cvar": "r_ssgi 1",
-  "how": "Dynamic lights and emissive surfaces write their outgoing light into a separate screen buffer. Rays are marched from each pixel through the depth buffer, gather that light where they hit, are accumulated over frames and denoised, and the result is added as diffuse indirect light. Baked lighting is not bounced again because the lightmaps already contain it.",
+ "post-processing/distortion-color-fringes": {
+  "group": "Image and camera",
+  "title": "Distortion color fringes",
+  "cvar": "r_refractionChromaticAberration",
   "sections": [
    {
-    "title": "Screen-space global illumination",
-    "html": "<p>Bounces nearby <strong>dynamic diffuse light and physical emission</strong> through visible surfaces. A saber can light a wall directly and that wall can then cast a weaker colored bounce onto the floor. By default it does not bounce the already-baked map lighting a second time.</p>\n<p class=\"req\"><strong>Requirements.</strong> Does not require Forward+ or SSR. A depth prepass is strongly recommended for correct temporal reprojection of moving geometry.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_ssgi 0 | 1</code> — disable / enable SSGI. Requires <code>vid_restart</code>.</li><li><code>r_ssgiSource 0 | 1 | 2</code> — dynamic + emissive / emissive only / full scene, with mode 2 experimental.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_ssgiIntensity &lt;value&gt;</code> — indirect-light strength.</li><li><code>r_ssgiQuality 0..3</code> — low / medium / high / ultra.</li><li><code>r_ssgiRays &lt;count&gt;</code> — rays per traced pixel; <code>0</code> uses the quality preset.</li><li><code>r_ssgiSteps &lt;count&gt;</code> — ray-march steps; <code>0</code> uses the preset.</li><li><code>r_ssgiMaxDistance &lt;units&gt;</code> — bounce distance.</li><li><code>r_ssgiThickness &lt;units&gt;</code> — assumed depth-buffer surface thickness.</li><li><code>r_ssgiTemporal 0 | 1</code> — temporal accumulation.</li><li><code>r_ssgiHistoryWeight &lt;value&gt;</code> — history weight.</li><li><code>r_ssgiDenoise -1..4</code> — denoise passes; <code>-1</code> uses the preset.</li><li><code>r_ssgiHalfRes -1 | 0 | 1</code> — preset / full / half-resolution tracing; changing trace resolution takes effect after <code>vid_restart</code>.</li><li><code>r_ssgiHiZ -1 | 0 | 1</code> — preset / linear / hierarchical tracing.</li><li><code>r_ssgiEmissiveScale &lt;value&gt;</code> — physical emissive contribution.</li><li><code>r_ssgiGlowScale &lt;value&gt;</code> — legacy glow/auto-emissive contribution.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_ssgiCompare 0 | 1</code> — split screen without / with SSGI.</li><li><code>r_ssgiDebug 1..10</code> — hit, distance, raw GI, history, denoise, source and final GI views.</li><li><code>r_ssgiFreezeHistory 0 | 1</code> — freeze temporal history.</li></ul>\n<p>Can significantly affect performance, especially at high/ultra quality.</p>"
+    "title": "Distortion color fringes",
+    "html": "<p>Screen-distortion effects (Force push, some weapon shots, refractive shaders) split red, green and blue slightly, like a cheap lens.</p>\n<ul><li><code>r_refractionChromaticAberration 0.05</code> — fringe width; 0 turns it off.</li></ul>"
    }
   ],
   "media": []
  },
- "ambient": {
-  "group": "Lighting and shadows",
-  "title": "Ambient light on models",
-  "cvar": "r_entityLightGrid 2",
-  "how": "The stock renderer lights a whole model from one light-grid sample at its origin. Here the grid is sampled at several body positions on the CPU, or per fragment on the GPU, so a character standing half in shadow is lit accordingly. Diffuse IBL derives directional irradiance from the runtime cubemaps and uses it to modulate the ambient term per direction.",
+ "materials/automatic-materials-from-stock-textures-auto-pbr": {
+  "group": "Materials and surface detail",
+  "title": "Automatic materials from stock textures (Auto PBR)",
+  "cvar": "r_autoPBR",
   "sections": [
    {
-    "title": "Entity light-grid lighting",
-    "html": "<p>Improves lighting across characters and entities. Instead of sampling one point for the whole model, Jedi Academy 2026 can sample several body positions or sample the BSP light grid per fragment.</p>\n<p class=\"req\"><strong>Requirements.</strong> Uses the map's existing BSP light grid.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_entityLightGrid 0 | 1 | 2</code> — legacy / three CPU samples / per-fragment GPU samples. Requires <code>vid_restart</code>.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_entityLightGridDebug 1..9</code> — ambient, direct, direction, validity, cell, old/new modes and difference. Requires <code>vid_restart</code>.</li></ul>\n<p>Mode 1 has little cost; mode 2 has moderate per-pixel cost on lit entities.</p>"
-   },
-   {
-    "title": "Diffuse IBL / directional ambient",
-    "html": "<p>Makes BSP light-grid ambient less flat by modulating it with directional irradiance derived from runtime cubemap probes. Opposite sides of a character can receive different ambient energy even where no direct light is present.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires usable runtime cubemap probes.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_diffuseIBL 0 | 1</code> — disable / enable directional probe ambient. Requires <code>vid_restart</code>.</li><li><code>r_diffuseIBLStrength &lt;value&gt;</code> — modulation strength.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_diffuseIBLDebug 1..5</code> — irradiance, modulation, legacy/new ambient and selected probe.</li></ul>\n<p>May slightly affect performance.</p>"
+    "title": "Automatic materials from stock textures (Auto PBR)",
+    "html": "<p>Stock JKA textures are only color pictures: nothing tells the renderer whether a surface is metal, leather or cloth. Rend2 therefore lights them all as the same fully matte, non-metallic material. Auto PBR guesses the material from texture and model names — <code>metal</code>, <code>leather</code>, <code>cloth</code>, <code>helmet</code>, droids, stormtroopers, weapons and so on — and gives each kind its own glossiness and metalness. Armor then shines differently from a robe under the same lamp.</p>\n<p>Textures that already come with material maps (PBR texture packs) are never changed.</p>\n<ul><li><code>r_autoPBR 0</code> — <strong>0</strong> original Rend2: everything fully matte, non-metal. <strong>1</strong> everything slightly less matte, still non-metal. <strong>2</strong> guess the material per texture.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>When a material loads, its shader and texture names are split into words and matched against lists: material words (<code>steel</code>, <code>leather</code>, <code>robe</code>…), <code>models/weapons2</code> (metal), whole characters (droids → metal, troopers and vehicles → painted plastic, Wookiees → fur) and body parts (<code>head</code>, <code>hands</code> → skin; <code>torso</code>, <code>legs</code> → cloth). Each class has a fixed roughness and metalness. Nothing is computed per frame.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_autoPBRDebug 1</code> — color by guessed class: yellow metal, salmon skin, blue cloth, brown leather, green plastic, purple hair, grey generic, white authored.</li><li><code>r_autoPBRDebug 2</code> — where the values came from: authored map, automatic guess, converted legacy shine. Red means the surface is still drawn with the old vertex lighting (see <a href=\"#f/materials/shiny-stock-models-troopers-droids-weapons\">shiny models</a>).</li><li><code>r_pbrDumpMaterials [used|all|auto|authored|gouraud|&lt;class&gt;]</code> — list materials with their class and values.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-auto-pbr.md\" target=\"_blank\" rel=\"noopener\">rend2-auto-pbr.md</a>.</p>"
    }
   ],
   "media": []
  },
- "arealights": {
-  "group": "Lighting and shadows",
-  "title": "Area lights",
-  "cvar": "r_ltcAreaLights 1",
-  "how": "Linearly Transformed Cosines turn the integral of a rectangle or line light over the GGX lobe into a lookup in two small precomputed tables plus a closed-form polygon integral. Area lights live in the Forward+ cluster lists. Lamp detection scans glowing surfaces at map load and fits rectangles to bright connected regions.",
+ "materials/shiny-stock-models-troopers-droids-weapons": {
+  "group": "Materials and surface detail",
+  "title": "Shiny stock models (troopers, droids, weapons)",
+  "cvar": "r_autoPBRConvert",
   "sections": [
    {
-    "title": "LTC area lights",
-    "html": "<p><strong>For mod authors.</strong> Rectangular and line emitters can produce correctly shaped direct-light highlights instead of behaving like point lights. Static map lamps can add only specular while leaving their baked diffuse lightmap intact.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires <code>r_forwardPlus 1</code> and <code>r_ltcAreaLights 1</code>.</p>\n<p>A map can define <code>maps/&lt;map&gt;.arealights.json</code>:</p>\n<pre><code>{\n  &quot;lights&quot;: [\n    {\n      &quot;type&quot;: &quot;rect&quot;,\n      &quot;center&quot;: [0, 0, 128],\n      &quot;right&quot;: [1, 0, 0],\n      &quot;up&quot;: [0, 1, 0],\n      &quot;halfWidth&quot;: 64,\n      &quot;halfHeight&quot;: 8,\n      &quot;color&quot;: [1.0, 0.85, 0.7],\n      &quot;intensity&quot;: 4.0,\n      &quot;mode&quot;: &quot;static_specular&quot;\n    }\n  ]\n}</code></pre>\n<p>Rectangle lights use <code>center</code>, <code>right</code>, <code>up</code>, <code>halfWidth</code> and <code>halfHeight</code>. Line lights use <code>start</code>, <code>end</code> and <code>radius</code>. <code>mode</code> can be <code>static_specular</code>, <code>static_full</code> or <code>dynamic</code>.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_ltcAreaLights 0 | 1</code> — disable / enable LTC rectangle and line lights. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_ltcIntensityScale &lt;value&gt;</code> — global radiance multiplier.</li><li><code>r_ltcStaticDiffuse 0 | 1</code> — also add diffuse for <code>static_specular</code> lights.</li><li><code>r_ltcMaxLights &lt;count&gt;</code> — maximum map area lights used per scene.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_ltcDebug 1..8</code> — specular/diffuse, source mode, cluster counts, bounds, outlines, axes and strongest ID. Requires <code>vid_restart</code>.</li><li><code>r_ltcDebugLight &lt;id&gt;</code> — choose the highlighted map light; <code>-1</code> chooses the nearest.</li><li><code>r_ltcReloadLights</code> — reload the map file.</li><li><code>r_ltcList</code> — list loaded lights.</li><li><code>r_ltcNearest</code> — print the nearest light.</li></ul>\n<p>Moderate GPU cost where area lights affect many pixels.</p>"
-   },
-   {
-    "title": "Automatic LTC lamp detection",
-    "html": "<p>Makes LTC useful on stock maps without authoring an area-light JSON file. At map load the renderer scans glow, emissive and surfacelight surfaces, finds bright connected regions and fits rectangles to them.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires LTC area lights. An authored <code>maps/&lt;map&gt;.arealights.json</code> always overrides automatic detection.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_ltcAutoAreaLights 0 | 1 | 2</code> — off / confident lamp shapes / also looser candidates.</li></ul>\n<h4>Debug / authoring tools</h4>\n<ul><li><code>r_ltcReloadLights</code> — rerun automatic conversion when no authored file exists.</li><li><code>r_ltcExtractLights</code> — write detected candidates to <code>maps/&lt;map&gt;.arealights.generated.json</code> for review.</li></ul>\n<p>Detection costs time only at map load; per-frame cost is the same as the area lights that were selected.</p>"
-   },
-   {
-    "title": "Saber line area lights",
-    "html": "<p>Makes the actual saber blade a line emitter instead of representing the whole blade with one point light, producing longer and more naturally shaped highlights.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires <code>r_ltcAreaLights 1</code> and Forward+.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_ltcSaberAreaLights 0 | 1</code> — point-light sabers / LTC line-light sabers.</li></ul>\n<p><strong>Binary note.</strong> This is not renderer-only: saber geometry is submitted by cgame through a new optional renderer API. Full support needs the rebuilt engine and game/cgame modules together with the renderer.</p>\n<p>Moderate additional cost around visible sabers.</p>"
+    "title": "Shiny stock models (troopers, droids, weapons)",
+    "html": "<p>In Rend2, about 130 stock shaders that use the original \"shiny\" effect are still drawn the old way, with lighting computed only at mesh vertices: every stormtrooper and droid, Boba Fett, most weapons, vehicles and some map objects. They get no normal maps, no sun shadows on themselves and no reflections, which is why they look flat next to everything else. This option converts them to the modern per-pixel path, and their old highlight mask decides which parts are glossy or metallic.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_autoPBRConvert 0</code> <em>(restart)</em> — 1 convert.</li></ul>\n<p>Combine it with <code>r_autoPBR 2</code> so the converted parts get the right material class.</p>\n<div class=\"how\"><h3>How it works</h3><p>The old shaders draw a lit color layer plus an additive \"specular\" layer masked by a <code>_spec</code> texture, and sometimes a fake chrome layer. The conversion removes those layers and turns the <code>_spec</code> mask into a per-pixel glossiness/metal map: bright areas of the mask become glossier and, on metal classes, metallic. With <code>r_cubeMapping 1</code>, the fake chrome layer is dropped because real reflections replace it.</p></div>"
    }
   ],
   "media": []
  },
- "spotlights": {
-  "group": "Lighting and shadows",
-  "title": "Spot lights",
-  "cvar": "r_spotLights 1",
-  "how": "A dynamic light can be limited to a cone. It lights surfaces through the legacy dynamic light loop and through Forward+, renders one perspective shadow map, and is injected into the froxel fog with the same attenuation. A cookie is projected through the same frustum as the shadow and multiplies with it.",
+ "materials/roughness-variation": {
+  "group": "Materials and surface detail",
+  "title": "Roughness variation",
+  "cvar": "r_autoPBRRoughness",
   "sections": [
    {
-    "title": "Spot lights",
-    "html": "<p><strong>For mod authors.</strong> EFX lights can now be true spot lights instead of point lights. The same cone can light opaque surfaces, cast a projected shadow and become a visible volumetric cone in froxel fog.</p>\n<p class=\"req\"><strong>Requirements.</strong> Existing point lights are unchanged. Spot shadows require <code>r_dlightMode 2</code>. Volumetric cones additionally require froxel fog (<code>r_volumetricFog 2</code>).</p>\n<pre><code>Light\n{\n    size { start 700 }\n    rgb  { start 1 0.92 0.8 }\n    spot\n    {\n        innerAngle 16\n        outerAngle 26\n        direction 1 0 0\n        shadows 1\n    }\n}</code></pre>\n<h4>Main controls</h4>\n<ul><li><code>r_spotLights 0 | 1</code> — submit authored spots as ordinary point lights / as spot lights.</li><li><code>r_spotLightShadows 0 | 1</code> — disable / enable spot shadows.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_spotLightDebug 1..4</code> — cone list, shadow frustums, spot-only surface lighting and spot-only fog lighting.</li><li><code>r_spot add|attach|spin|noshadow|list|clear</code> — renderer-side test spots.</li><li><code>fxplay &lt;efx&gt; [distance|muzzle]</code> — developer test command for authored EFX spots.</li></ul>\n<p><strong>Binary note.</strong> Full EFX support is not renderer-only. SP adds renderer/cgame plumbing for spot lights; MP parses/submits them from the client FX system. Use the updated engine/client and game module together with the renderer.</p>\n<p>The cone itself is inexpensive; shadows and volumetric lighting can make spot lights moderately expensive.</p>"
-   },
-   {
-    "title": "Spot-light cookies / gobos",
-    "html": "<p><strong>For mod authors.</strong> A spot light can project a texture through its cone. The same pattern appears on surfaces and inside volumetric fog, while geometry shadows still multiply with the cookie rather than being replaced by it.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires an authored spot light. Point lights do not have a projection and cannot use cookies.</p>\n<pre><code>spot\n{\n    innerAngle 22\n    outerAngle 26\n    cookie textures/imperial/grate02\n    cookieRoll 0\n}</code></pre>\n<h4>Main controls</h4>\n<ul><li><code>r_spotLightCookies 0 | 1 | 2</code> — off / intensity-only cookie / colored cookie.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_spotLightCookieDebug 1..3</code> — projected UV, cookie factor, cookie multiplied by geometry shadow.</li><li><code>r_spot cookie &lt;index&gt; &lt;image|none&gt;</code> — assign a cookie to a renderer-side test spot.</li></ul>\n<p><strong>Binary note.</strong> SP cookie registration uses new engine/cgame plumbing, so authored EFX cookies need the updated engine and game module as well as the renderer.</p>\n<p>Adds a texture lookup to affected spot lights and may slightly affect performance.</p>"
+    "title": "Roughness variation",
+    "html": "<p>With Auto PBR, a whole texture gets one glossiness value, so a wall or armor plate shines evenly. This adds subtle dull and glossy patches derived from the texture's own detail. It does not turn bright pixels into metal.</p>\n<ul><li><code>r_autoPBRRoughness 0</code> — 1 on. Turning it on needs <code>vid_restart</code>; needs <code>r_autoPBR 1</code> or <code>2</code>.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>At load time the renderer measures local contrast in each color texture — creases, scratches, painted detail — and turns it into a glossiness map that varies about ±0.1 around the class value. Materials with authored maps or converted shine are left alone. This adds loading time, not frame time.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_autoPBRDebug 3</code> — final roughness in grey; blue means the surface doesn't use auto roughness.</li></ul>"
    }
   ],
   "media": []
  },
- "sunshadows": {
-  "group": "Lighting and shadows",
+ "materials/glowing-surfaces": {
+  "group": "Materials and surface detail",
+  "title": "Glowing surfaces",
+  "cvar": "r_autoEmissive",
+  "sections": [
+   {
+    "title": "Glowing surfaces",
+    "html": "<p>Stock lamps, screens, lava and control panels are drawn with \"glow\" layers that the newer features don't see as light. This option marks them as light-emitting surfaces, so HDR <a href=\"#f/post-processing/bloom\">bloom</a>, <a href=\"#f/lighting/bounced-light-ssgi\">bounced light</a> and <a href=\"#f/lighting/lamp-shaped-lights-ltc\">area lights</a> can use them.</p>\n<p class=\"cost\"><strong>Cost:</strong> light, on glowing surfaces only.</p>\n<ul><li><code>r_autoEmissive 0</code> — 1 on.</li></ul>\n<p class=\"mod\"><strong>Mod authors:</strong> give a stage its own glow map; black parts don't glow.</p>\n<pre><code>emissiveMap textures/example/panel_e\nemissiveColor 1 0.25 0.05\nemissiveScale 4</code></pre>\n<p><code>emissiveMap</code> is the glow image, <code>emissiveColor</code> tints it, <code>emissiveScale</code> sets brightness (or <code>emissiveNits</code> for real units with <code>r_pbrPhysical 1</code>).</p>\n<div class=\"how\"><h3>How it works</h3><p>Shader stages with the legacy <code>glow</code> keyword, and standalone unlit additive stages, are exported as emission instead of plain added color. Emission is a brightness of its own, added after lighting and shadows, and written to the bloom buffer.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_emissiveDebug 1..3</code> — where the emission comes from, its brightness in false color, and classification confidence.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-emissive-materials.md\" target=\"_blank\" rel=\"noopener\">rend2-emissive-materials.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "materials/stable-highlights": {
+  "group": "Materials and surface detail",
+  "title": "Stable highlights",
+  "cvar": "r_specularAA",
+  "sections": [
+   {
+    "title": "Stable highlights",
+    "html": "<p>Fine normal-map detail on glossy surfaces makes highlights sparkle and crawl when you move. Specular anti-aliasing widens highlights that are too small for a pixel, so armor and polished floors stay calm. Energy compensation keeps rough metal from looking too dark. Both are on by default.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_specularAA 1</code> <em>(restart)</em> — 0 off.</li><li><code>r_brdfEnergyCompensation 1</code> — 0 off: rough metal gets darker.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The renderer estimates how much the surface normal varies inside one pixel (from screen derivatives and the normal map's mip levels) and raises the roughness of that pixel to match. The simple reflection model loses light on rough surfaces that would really bounce more than once inside the surface; energy compensation adds that light back.</p></div>\n<ul><li><code>r_specularAAStrength 0.15</code> — how much normal variation widens highlights.</li><li><code>r_specularAAMaxAdded 0.25</code> — limit on the added roughness.</li><li><code>r_pbrLegacyRoughness 1</code> — convert older glossiness conventions (Auto PBR, spec-gloss maps) to one roughness scale; 0 is a comparison mode.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_specularAADebug 1..6</code> — material roughness, material alpha, effective roughness, added roughness, normal variation, effective alpha.</li><li><code>r_pbrEnergyDebug 1..5</code> — diffuse, specular and total energy, lost energy, split legacy/compensated.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-specular-aa.md\" target=\"_blank\" rel=\"noopener\">rend2-specular-aa.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "materials/matte-surfaces": {
+  "group": "Materials and surface detail",
+  "title": "Matte surfaces",
+  "cvar": "r_diffuseBRDF",
+  "sections": [
+   {
+    "title": "Matte surfaces",
+    "html": "<p>Changes how rough matte surfaces — cloth, plaster, stone — catch light. With the Burley model rough surfaces brighten a little toward grazing angles and smooth ones darken slightly at their edges, which looks less like plastic. The difference is subtle.</p>\n<ul><li><code>r_diffuseBRDF 0</code> — 0 Lambert (the classic model), 1 Burley/Disney.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "materials/physical-light-units": {
+  "group": "Materials and surface detail",
+  "title": "Physical light units",
+  "cvar": "r_pbrPhysical",
+  "sections": [
+   {
+    "title": "Physical light units",
+    "html": "<p>Mostly for mod authors. Normally every light, the sun and glowing surfaces use the game's own unrelated brightness scales. This mode puts them on one real-world scale (lux, candela, nits), so authored lights and materials can be given real values. Stock content is converted to keep its look, but the image can change a little. Leave it at 0 if you only play stock content.</p>\n<ul><li><code>r_pbrPhysical 0</code> <em>(restart)</em> — 1 physical units.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Game distances are converted to metres and legacy light values to physical units around a reference brightness, then scaled to the renderer's internal range. These are calibration settings; they don't recover the real brightness of the lamps the original mappers imagined.</p></div>\n<ul><li><code>r_pbrWorldUnitsPerMeter 33.333333</code> <em>(restart)</em> — game units per metre, used for light falloff and emitter size.</li><li><code>r_pbrLegacyReference 1</code> <em>(restart)</em> — reference brightness for converting legacy lights.</li><li><code>r_pbrPhysicalToScene 0.0001</code> <em>(restart)</em> — physical units to internal brightness.</li><li><code>r_pbrSunIlluminance 0</code> — sun brightness in lux; 0 converts the map's own sun.</li><li><code>r_emissiveLegacyNits 1000</code> <em>(restart)</em> — nits labelled for a legacy <code>emissiveScale 1</code> in debug views.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_pbrInfo</code> — print the calibration.</li><li><code>r_pbrLight</code> — inspect or test calibrated lights; run without arguments for syntax.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-physical-pbr.md\" target=\"_blank\" rel=\"noopener\">rend2-physical-pbr.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "materials/relief-detail-pom": {
+  "group": "Materials and surface detail",
+  "title": "Relief detail (POM)",
+  "cvar": "r_parallaxMapping",
+  "sections": [
+   {
+    "title": "Relief detail (POM)",
+    "html": "<p>Makes cracks, brick joints and panel grooves look recessed instead of painted on, and shift correctly as you move. It only works on textures that come with a height map (<code>_nh</code> images from texture packs, or the <code>heightMap</code> shader keyword). Stock JKA textures have none, so without such a pack nothing changes.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium on large surfaces close to the camera.</p>\n<ul><li><code>r_parallaxMapping 0</code> — 1 on.</li><li><code>r_pomAdaptiveSteps 0</code> — 1: spend fewer samples when looking straight at a surface and more at shallow angles, where steps would show. Usually better quality for the same cost.</li><li><code>r_pomFadeStart 0</code>, <code>r_pomFadeEnd 0</code> — distances where relief starts to flatten and where it switches off (plain normal mapping). 0 = never.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>For each pixel the shader walks a short ray into the texture's height map until it hits the surface, then draws the texture from that point. More steps remove stair-step artifacts at shallow angles.</p></div>\n<ul><li><code>r_pomMinSteps 8</code>, <code>r_pomMaxSteps 32</code> — ray steps when looking straight at a surface / along it (adaptive mode).</li><li><code>r_pomBinarySteps 8</code> — final refinement of the hit point.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_pomDebug 1..8</code> — height, displaced texture coordinates, ray depth, sun / local-light self-shadow, view steps, shadow steps, distance fade. Turning it on needs <code>vid_restart</code>.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-pom.md\" target=\"_blank\" rel=\"noopener\">rend2-pom.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "materials/shadows-inside-relief": {
+  "group": "Materials and surface detail",
+  "title": "Shadows inside relief",
+  "cvar": "r_pomSelfShadow",
+  "sections": [
+   {
+    "title": "Shadows inside relief",
+    "html": "<p>Raised parts of a POM texture cast shadows into its grooves, so brick and carved stone show depth when a light moves across them. Needs <code>r_parallaxMapping 1</code> and height-mapped textures, as above.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium to heavy with many local lights.</p>\n<ul><li><code>r_pomSelfShadow 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_pomSelfShadowLightMode 1</code> — which lights cast relief shadows: <strong>0</strong> sun only, <strong>1</strong> sun + the strongest nearby light, <strong>2</strong> sun + the strongest few (<code>r_pomSelfShadowMaxLocalLights</code>), <strong>3</strong> all lights.</li><li><code>r_pomSelfShadowStrength 1</code> — 0 none … 1 full.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>After finding the visible point in the height map, the shader walks a second short ray toward each light and checks whether higher relief blocks it. Every extra light costs another ray.</p></div>\n<ul><li><code>r_pomSelfShadowMaxLocalLights 2</code> — lights for mode 2.</li><li><code>r_pomSelfShadowSteps 12</code> — samples per shadow ray.</li><li><code>r_pomSelfShadowSoftness 4</code> — edge hardness; higher is harder.</li><li><code>r_pomSelfShadowBias 0.02</code> — start offset of the shadow ray; raise it if grooves get speckled shadow.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_pomDebug 4</code>, <code>5</code> — sun / local-light self-shadow.</li><li><code>r_pomDebugFreezeLight 1</code> — freeze the sun direction for comparisons.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "materials/relief-silhouettes": {
+  "group": "Materials and surface detail",
+  "title": "Relief silhouettes",
+  "cvar": "r_pomSilhouette",
+  "sections": [
+   {
+    "title": "Relief silhouettes",
+    "html": "<p>Ordinary POM only fakes depth inside a surface; its outline stays flat. This draws the relief as a thin shell, so rocks and broken panels look uneven at their edges too, and the shell casts sun shadows. Far away it falls back to ordinary POM. Needs <code>r_parallaxMapping 1</code> and height-mapped textures.</p>\n<p class=\"cost\"><strong>Cost:</strong> heavy on large surfaces close to the camera.</p>\n<ul><li><code>r_pomSilhouette 0</code> <em>(restart)</em> — 1 on, for materials that ask for it (<code>pomSilhouette</code> keyword).</li><li><code>r_autoPOMSilhouette 1</code> — console command: also use it on every material that has an ordinary POM height map. Run after <code>r_pomSilhouette 1</code> and a map load; saved in <code>r_autoPOMSilhouetteMode</code>.</li><li><code>r_pomSilhouetteDistance 512</code> — shells are drawn this close; farther surfaces use ordinary POM.</li></ul>\n<p class=\"mod\"><strong>Mod authors:</strong> add the shader keyword <code>pomSilhouette</code> and a stage with <code>normalHeightMap</code>, <code>parallaxDepth</code> and <code>parallaxBias</code>. Optional <code>pomSilhouetteDistance</code> and <code>pomSilhouetteSteps</code> override range and quality per shader. Use it for deep edge relief and keep ordinary POM for flat detail.</p>\n<div class=\"how\"><h3>How it works</h3><p>The renderer extrudes a shell above the mesh, traces the height map through it and discards empty parts. Unlike ordinary POM this can change the visible outline.</p></div>\n<ul><li><code>r_pomSilhouetteFade 96</code> — width of the crossfade to ordinary POM.</li><li><code>r_pomSilhouetteSteps 12</code>, <code>r_pomSilhouetteMaxSteps 48</code> — ray steps looking straight / along the surface.</li><li><code>r_pomSilhouetteViewDependence 1</code> — how fast steps grow toward shallow angles.</li><li><code>r_pomSilhouetteBinarySteps 6</code> — hit refinement.</li><li><code>r_pomSilhouetteShadows 1</code> — shells cast into the sun shadows.</li><li><code>r_pomSilhouetteContactShadows 0</code> — 1: apply contact shadows to shell pixels (tends to blacken grooves).</li><li><code>r_autoPOMSilhouette &lt;shader&gt; 0|1|default</code>, <code>r_autoPOMSilhouette clear</code> — per-shader override (a trailing <code>*</code> matches a prefix) and clearing them.</li><li><code>r_autoPOMSilhouetteMode 0</code> — stores the global choice of <code>r_autoPOMSilhouette</code>; set it with the command.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_pomSilhouetteDebug 1..11</code> — shell, wireframes, walls, discarded pixels, hit depth, step count, split POM / silhouette, depth, normal.</li><li><code>r_pomSilhouetteInfo</code> — shell counts, memory, fallbacks, last-frame statistics.</li><li><code>r_autoPOMSilhouette list</code> — candidates and why others were rejected; <code>r_autoPOMSilhouette &lt;shader&gt;</code> — one shader's state.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-silhouette-pom.md\" target=\"_blank\" rel=\"noopener\">rend2-silhouette-pom.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "lighting/ambient-occlusion-gtao": {
+  "group": "Lighting",
+  "title": "Ambient occlusion (GTAO)",
+  "cvar": "r_aoMode",
+  "sections": [
+   {
+    "title": "Ambient occlusion (GTAO)",
+    "html": "<p>Darkens corners, wall joints, the ground under feet and crates, and small recesses, so objects look grounded instead of evenly lit. The map's baked lighting already has some of this, but it can't follow moving characters or props. GTAO is a more accurate replacement for Rend2's original SSAO, with fewer halos.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium.</p>\n<ul><li><code>r_aoMode -1</code> — <strong>-1</strong> follow the original <code>r_ssao</code> setting (off unless <code>r_ssao 1</code>). <strong>0</strong> off. <strong>1</strong> original SSAO. <strong>2</strong> GTAO. Turning it on from off needs <code>vid_restart</code>.</li><li><code>r_gtaoQuality 2</code> — 0 low, 1 medium, 2 high, 3 ultra.</li><li><code>r_gtaoRadius 32</code> — how far an object reaches to darken its surroundings, in world units (a player is about 64 tall).</li><li><code>r_gtaoPower 1.5</code> — strength; higher is darker.</li></ul>\n<p><code>r_aoCompare 1</code> shows original SSAO on the left and GTAO on the right.</p>\n<div class=\"how\"><h3>How it works</h3><p>For each pixel the shader looks around in the depth image to estimate how much of the surrounding sky of light is blocked by nearby geometry. It only knows what is on screen, so occlusion from objects just outside the view is missing. GTAO darkens only indirect light (ambient light, the indirect share of baked light and reflections), not direct sun or lamps, as in reality.</p></div>\n<ul><li><code>r_gtaoHalfRes 1</code> <em>(restart)</em> — compute at half resolution; 0 full resolution, sharper and slower.</li><li><code>r_gtaoFalloff 0.6</code> — how quickly occlusion fades toward the radius.</li><li><code>r_gtaoThickness 0.2</code> — treat objects as thin, so things in front of a wall don't darken it as much (fewer dark halos around characters).</li><li><code>r_gtaoDenoise 2</code> — smoothing passes, 0–3.</li><li><code>r_gtaoBentNormals 1</code> — also tilt ambient light toward the open direction; 0 off, up to 1 full.</li><li><code>r_aoApply -1</code> — <strong>-1</strong> automatic. <strong>0</strong> original: darken ambient light and reflections. <strong>1</strong> physically based: darken only indirect light.</li><li><code>r_aoMultiBounce 1</code> — bright surfaces keep more light in creases, as light bounces inside them.</li><li><code>r_aoLightmapFraction 0.5</code> — share of baked lighting treated as indirect and therefore darkened by AO.</li><li><code>r_aoSpecOcclusion -1</code> — how AO darkens reflections: <strong>-1</strong> automatic, <strong>0</strong> plain AO, <strong>1</strong> from AO, roughness and view angle, <strong>2</strong> from the bent-normal cone.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_aoDebug 1..12</code> — original SSAO, raw / denoised GTAO, normals, depth, contact shadows, cascade shadows, sun visibility, ambient visibility, final AO, bent normals, reflection occlusion.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-ambient-occlusion.md\" target=\"_blank\" rel=\"noopener\">rend2-ambient-occlusion.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "lighting/many-dynamic-lights-forward": {
+  "group": "Lighting",
+  "title": "Many dynamic lights (Forward+)",
+  "cvar": "r_forwardPlus",
+  "sections": [
+   {
+    "title": "Many dynamic lights (Forward+)",
+    "html": "<p>Rend2 allows at most 32 dynamic lights per frame — sabers, blaster bolts, explosions, muzzle flashes. In big fights the extra lights are simply dropped. Forward+ raises the limit to 256 and makes every pixel check only the lights that actually reach it. <a href=\"#f/lighting/lamp-shaped-lights-ltc\">Lamp-shaped lights</a> and <a href=\"#f/lighting/saber-light-along-the-blade\">blade-shaped saber light</a> need it.</p>\n<p class=\"cost\"><strong>Cost:</strong> light; it can be faster than the original in busy scenes.</p>\n<ul><li><code>r_forwardPlus 0</code> — 1 on.</li><li><code>r_forwardPlusMaxShadowLights 4</code> — with dynamic-light shadows (<code>r_dlightMode 2</code>, see <a href=\"#f/shadows/dynamic-light-shadows\">Shadows</a>), how many of the strongest lights cast them.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The view is split into screen tiles and depth slices (clusters). Each frame every light is added to the clusters it touches, and each pixel loops only over its cluster's list.</p></div>\n<ul><li><code>r_forwardPlusTileSize 64</code> — tile size in pixels.</li><li><code>r_forwardPlusSlices 16</code> — depth slices.</li><li><code>r_forwardPlusNearSlice 48</code> — depth covered by the first slice.</li><li><code>r_forwardPlusMaxLightsPerCluster 64</code> — lights kept per cluster; the least important ones are dropped.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_forwardPlusDebug 1..9</code> <em>(restart)</em> — tiles, slices, clusters, lights per cluster, overflow, shadowed and unshadowed lights, light spheres, one light (<code>r_forwardPlusDebugLight &lt;index&gt;</code>).</li><li><code>r_forwardPlusStats</code> — print cluster statistics.</li><li><code>r_forwardPlusBenchmark [frames]</code> — time the lighting path.</li><li><code>r_forwardPlusSpawnTestLights &lt;count&gt; [spread]</code> — spawn test lights.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-forward-plus.md\" target=\"_blank\" rel=\"noopener\">rend2-forward-plus.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "lighting/bounced-light-ssgi": {
+  "group": "Lighting",
+  "title": "Bounced light (SSGI)",
+  "cvar": "r_ssgi",
+  "sections": [
+   {
+    "title": "Bounced light (SSGI)",
+    "html": "<p>A saber or explosion near a wall lights the wall — and with this, the wall also throws a weaker, colored glow onto the floor and characters next to it. Glowing materials can light their surroundings the same way. The map's own baked lighting already contains bounced light, so by default only dynamic lights and glowing surfaces bounce. Works best with <code>r_hdr 1</code>; without it bright sources are clipped.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium to heavy.</p>\n<ul><li><code>r_ssgi 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_ssgiIntensity 1</code> — strength of the bounce.</li><li><code>r_ssgiQuality 1</code> — 0 low, 1 medium, 2 high, 3 ultra.</li><li><code>r_ssgiSource 0</code> — what bounces: <strong>0</strong> dynamic lights and glowing materials, <strong>1</strong> glowing materials only, <strong>2</strong> everything, including baked lighting (experimental: baked bounce is counted twice).</li></ul>\n<p><code>r_ssgiCompare 1</code> shows the screen without SSGI on the left and with it on the right.</p>\n<div class=\"how\"><h3>How it works</h3><p>For each pixel the shader traces a few short rays through the on-screen depth image and picks up the light of the surfaces they hit. It only sees what is on screen, and the noisy result is averaged over several frames and smoothed.</p></div>\n<ul><li><code>r_ssgiMaxDistance 256</code> — how far light bounces, in world units.</li><li><code>r_ssgiEmissiveScale 1</code> — strength of materials with their own glow maps as sources.</li><li><code>r_ssgiGlowScale 0</code> — strength of stock glow layers (and <a href=\"#f/materials/glowing-surfaces\">auto-emissive</a>) as sources; 0 ignores them.</li><li><code>r_ssgiRays 0</code>, <code>r_ssgiSteps 0</code> — rays per pixel and steps per ray; 0 takes them from the quality.</li><li><code>r_ssgiThickness 12</code> — assumed thickness of surfaces on screen.</li><li><code>r_ssgiTemporal 1</code>, <code>r_ssgiHistoryWeight 0.9</code> — averaging over frames and how much history to keep.</li><li><code>r_ssgiDenoise -1</code> — smoothing passes 0–4; -1 from the quality.</li><li><code>r_ssgiHalfRes -1</code> — trace at half resolution: -1 from the quality, 0 full, 1 half (applied at <code>vid_restart</code>).</li><li><code>r_ssgiHiZ -1</code> — faster hierarchical tracing: -1 from the quality, 0 off, 1 on.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_ssgiDebug 1..10</code> — hit mask, hit distance, raw / averaged / smoothed GI, history weight, dynamic and glow sources, final light, receiver color.</li><li><code>r_ssgiFreezeHistory 1</code> — stop updating the frame history.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-ssgi.md\" target=\"_blank\" rel=\"noopener\">rend2-ssgi.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "lighting/lamp-shaped-lights-ltc": {
+  "group": "Lighting",
+  "title": "Lamp-shaped lights (LTC)",
+  "cvar": "r_ltcAreaLights",
+  "sections": [
+   {
+    "title": "Lamp-shaped lights (LTC)",
+    "html": "<p>A dynamic light in JKA is a point. Real lamps have size and shape: a long ceiling strip should leave a long highlight on a glossy floor, not a round spot. Area lights give lights a rectangle or line shape. On stock maps, glowing lamp surfaces are detected automatically and turned into rectangle lights that add only highlights, since the lightmap already has their light. Needs <code>r_forwardPlus 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium where many shaped lights overlap.</p>\n<ul><li><code>r_ltcAreaLights 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_ltcAutoAreaLights 1</code> — find lamps on maps without a light file: <strong>0</strong> off, <strong>1</strong> clear lamp shapes, <strong>2</strong> also doubtful ones (more lamps, more mistakes). Applied at map load.</li><li><code>r_ltcIntensityScale 1</code> — brightness of map area lights.</li><li><code>r_ltcStaticShadows 0</code> — shadows of map area lights: <strong>0</strong> off, <strong>1</strong> world shadows (cached), <strong>2</strong> also characters near up to four lights.</li></ul>\n<p class=\"mod\"><strong>Mod authors:</strong> a map's own <code>maps/&lt;map&gt;.arealights.json</code> replaces auto-detection. A warm rectangle lamp:</p>\n<pre><code>{&quot;lights&quot;:[{&quot;type&quot;:&quot;rect&quot;,&quot;center&quot;:[0,0,128],&quot;right&quot;:[1,0,0],&quot;up&quot;:[0,1,0],\n&quot;halfWidth&quot;:64,&quot;halfHeight&quot;:8,&quot;color&quot;:[1,0.85,0.7],&quot;intensity&quot;:4,&quot;mode&quot;:&quot;static_specular&quot;}]}</code></pre>\n<p>A line light uses <code>start</code>, <code>end</code> and <code>radius</code>. <code>static_specular</code> adds only highlights over the baked light; <code>static_full</code> and <code>dynamic</code> also light surfaces. <code>r_ltcExtractLights</code> writes the auto-detected lamps to <code>maps/&lt;map&gt;.arealights.generated.json</code> as a starting point.</p>\n<div class=\"how\"><h3>How it works</h3><p>LTC (linearly transformed cosines) computes the light from a whole polygon exactly in one step, instead of summing many point lights, so there is no quality setting.</p></div>\n<ul><li><code>r_ltcMaxLights 64</code> — map lights used per scene, most important first.</li><li><code>r_ltcStaticDiffuse 0</code> — 1: auto-detected and <code>static_specular</code> lamps also light surfaces, although the lightmap usually contains that light already.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_ltcDebug 1..14</code> <em>(restart)</em> — specular/diffuse, light source, cluster counts, bounds, outlines, axes, strongest light, shadow and saber views. <code>r_ltcDebugLight &lt;id&gt;</code> picks the highlighted light; -1 the nearest.</li><li><code>r_ltcList</code>, <code>r_ltcNearest</code> — list loaded lights / print the nearest.</li><li><code>r_ltcReloadLights</code> — reload the light file or rerun detection.</li><li><code>r_ltcShadowStats</code> — shadow selection and cache statistics.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-ltc-area-lights.md\" target=\"_blank\" rel=\"noopener\">rend2-ltc-area-lights.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "lighting/saber-light-along-the-blade": {
+  "group": "Lighting",
+  "title": "Saber light along the blade",
+  "cvar": "r_ltcSaberAreaLights",
+  "sections": [
+   {
+    "title": "Saber light along the blade",
+    "html": "<p>The saber light normally comes from one point at the middle of the blade, so floors and walls get a round spot. With this, the whole blade lights its surroundings: a long, even glow along the floor and long reflections in armor. Works with stock sabers. Needs <code>r_forwardPlus 1</code> and <code>r_ltcAreaLights 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium near lit surfaces.</p>\n<ul><li><code>r_ltcSaberAreaLights 0</code> — <strong>0</strong> point light (original). <strong>1</strong> blade-shaped light on surfaces and in fog. <strong>2</strong> blade-shaped light on surfaces, point light with shadow in fog.</li><li><code>r_ltcSaberShadows -1</code> — saber shadows: <strong>-1</strong> from a point at the blade middle (original), <strong>0</strong> off, <strong>1</strong> stretched along the blade, <strong>2</strong> plus screen-space blade visibility, <strong>3</strong> precise three-point shadows for up to two sabers (slow).</li><li><code>r_ltcSaberIntensityScale 1</code> — brightness.</li><li><code>r_ltcSaberLuminance 40000</code> — blade brightness in nits with <code>r_pbrPhysical 1</code>.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "lighting/spot-lights-mod-authors": {
+  "group": "Lighting",
+  "title": "Spot lights (mod authors)",
+  "cvar": "r_spotLights",
+  "sections": [
+   {
+    "title": "Spot lights (mod authors)",
+    "html": "<p>Flashlight-like cones instead of lights that shine in every direction. Stock effects have no cones; a mod adds them in EFX files. Cones can cast shadows (<code>r_dlightMode 2</code>) and show a beam in <a href=\"#topic-fog\">volumetric fog</a>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light; shadows and fog beams medium.</p>\n<ul><li><code>r_spotLights 1</code> — 0 draws authored spots as ordinary point lights.</li><li><code>r_spotLightShadows 1</code> — 0 no spot shadows.</li></ul>\n<p>Add a <code>spot</code> block inside an EFX <code>Light</code>; its size and color still set range and color:</p>\n<pre><code>spot\n{\n    innerAngle 16\n    outerAngle 26\n    direction 1 0 0\n    shadows 1\n}</code></pre>\n<h4>Debug</h4>\n<ul><li><code>r_spotLightDebug 1..4</code> — cones, shadow frustums, surfaces lit by spots only, fog lit by spots only.</li><li><code>r_spot add|attach|spin|noshadow|list|clear</code> — place test spots.</li><li><code>fxplay &lt;efx&gt; [distance|muzzle]</code> — play an EFX for testing (developer).</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-spot-lights.md\" target=\"_blank\" rel=\"noopener\">rend2-spot-lights.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "lighting/projected-patterns-mod-authors": {
+  "group": "Lighting",
+  "title": "Projected patterns (mod authors)",
+  "cvar": "r_spotLightCookies",
+  "sections": [
+   {
+    "title": "Projected patterns (mod authors)",
+    "html": "<p>A spot light can project an image — a grate, a window frame, colored glass — onto walls and through fog. Needs an authored spot.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_spotLightCookies 1</code> — <strong>0</strong> off, <strong>1</strong> pattern brightness only, <strong>2</strong> in color.</li></ul>\n<p>Inside the EFX <code>spot</code> block add <code>cookie textures/imperial/grate02</code>; <code>cookieRoll &lt;degrees&gt;</code> rotates it.</p>\n<h4>Debug</h4>\n<ul><li><code>r_spotLightCookieDebug 1..3</code> — projected coordinates, pattern, pattern × shadow.</li><li><code>r_spot cookie &lt;index&gt; &lt;image|none&gt;</code> — put a pattern on a test spot.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "shadows/sun-shadows": {
+  "group": "Shadows",
   "title": "Sun shadows",
-  "cvar": "r_sunShadowMode 1",
-  "how": "Cascades are fitted to bounding spheres and snapped to texels, so shadows don't shimmer when the camera moves, and neighbouring cascades blend across an overlap. PCSS estimates the blocker distance to widen the penumbra away from the contact point. The cache reuses static world depth between frames and only redraws moving casters.",
+  "cvar": "r_forceSun",
   "sections": [
    {
-    "title": "Sun Shadows 2.0",
-    "html": "<p>Improves cascaded sun shadows with stabilized cascade fitting, blended cascade transitions, better receiver bias and optional PCSS contact-hardening softness.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires the existing realtime sun-shadow path.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_sunShadowMode 0 | 1</code> — legacy / Shadows 2.0. Requires <code>vid_restart</code>.</li><li><code>r_shadowPCSS 0 | 1</code> — disable / enable PCSS.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_sunShadowCache 0..3</code> — off / exact static BSP depth reuse / scrolling cascade clipmaps / clipmaps plus persistent world-space disk pages. Requires <code>vid_restart</code>.</li><li><code>r_sunShadowAlphaCasters 0 | 1</code> — alpha-tested foliage/cutout casters and receivers. Requires <code>vid_restart</code>.</li><li><code>r_shadowCascadeBlend &lt;value&gt;</code> — cascade overlap.</li><li><code>r_shadowDepthBias &lt;units&gt;</code> — constant receiver bias.</li><li><code>r_shadowNormalBias &lt;value&gt;</code> — normal offset.</li><li><code>r_shadowSlopeBias &lt;value&gt;</code> — slope-dependent bias.</li><li><code>r_shadowReceiverBiasClamp &lt;units&gt;</code> — maximum receiver correction.</li><li><code>r_shadowPCSSQuality 0..2</code> — low / high / ultra.</li><li><code>r_shadowSunAngularDiameter &lt;degrees&gt;</code> — apparent sun size.</li><li><code>r_shadowPCSSMaxPenumbra &lt;units&gt;</code> — maximum penumbra size.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_shadowDebug 1..11</code> — cascades, depth, PCSS, contact shadows, bias, point shadows and Ghoul2 receivers.</li></ul>\n<p>Moderate GPU cost; high-quality PCSS on large shadowed screen areas can be expensive.</p>"
-   },
-   {
-    "title": "Character shadow improvements",
-    "html": "<p>Improves Ghoul2 self-shadowing consistency by controlling caster LOD, using a better dynamic-light cube bias and optionally softening screen-space contact shadows.</p>\n<p class=\"req\"><strong>Requirements.</strong> The corresponding sun, dynamic-light or contact-shadow feature must already be active.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_shadowCasterLod 0 | 1</code> — shadow-view LOD / camera-view LOD for Ghoul2 shadow casters.</li><li><code>r_dlightShadowBias 0 | 1</code> — legacy / texel-scaled dynamic-light shadow bias.</li><li><code>r_contactShadowSoft 0 | 1</code> — binary / soft contact-shadow sampling.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_shadowCasterStats 0 | 1</code> — print Ghoul2 caster and LOD statistics.</li><li><code>r_shadowDebug 10</code> — point-light shadow visibility.</li><li><code>r_shadowDebug 11</code> — Ghoul2 receiver/caster view.</li></ul>\n<p>Usually a small performance difference.</p>"
+    "title": "Sun shadows",
+    "html": "<p>Characters, props and the world cast realtime sun shadows that move with them. Shadows are sharp where an object touches the ground and soften with distance, like real sunlight, and they no longer crawl and flicker when the camera moves.</p>\n<p class=\"req\"><strong>Stock maps don't get realtime sun shadows by default.</strong> Rend2 only draws them on maps whose sky shader has the Rend2 keyword <code>q3gl2_sun</code>, and stock JKA maps don't. <code>r_forceSun 1</code> turns them on with the map's own sun direction. Many other features use the sun too — character sun lighting, sun light in fog, atmosphere, clouds — and need the same.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium; wide, high-quality soft shadows can be heavy.</p>\n<ul><li><code>r_forceSun 0</code> — 1 realtime sun on maps without <code>q3gl2_sun</code>. (2 is a test mode: the sun circles the sky.)</li><li><code>r_forceSunAmbientScale 0.5</code> — with <code>r_forceSun</code>: brightness left in shadow; 0 black shadows, 1 no shadows.</li><li><code>r_sunShadowMode 1</code> <em>(restart)</em> — <strong>0</strong> Rend2's original shadows, <strong>1</strong> the improved ones described here.</li><li><code>r_shadowPCSS 1</code> — soft shadows that harden near contact; 0 uniformly soft edges.</li><li><code>r_shadowPCSSQuality 1</code> — 0 low, 1 high, 2 ultra.</li><li><code>r_sunShadowAlphaCasters 1</code> <em>(restart)</em> — leaves, grates, grass and other see-through textures cast shadows with holes, not solid blocks.</li><li><code>r_sunShadowCache 0</code> <em>(restart)</em> — reuse static world shadows instead of redrawing them every frame: <strong>0</strong> off, <strong>1</strong> exact reuse (safe), <strong>2</strong> scrolling cache, <strong>3</strong> scrolling cache with saved pages. 2 and 3 are experimental.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The sun's view is rendered into several shadow maps (cascades), each covering a larger area farther from the camera. Their position is snapped so the shadow texels don't swim, and neighbouring cascades are blended. PCSS (percentage-closer soft shadows) finds how far each shadowed point is from its blocker and widens the blur accordingly.</p></div>\n<ul><li><code>r_shadowSunAngularDiameter 0.53</code> — apparent size of the sun in degrees; larger gives softer shadows.</li><li><code>r_shadowPCSSMaxPenumbra 32</code> — upper limit of the softness, in world units.</li><li><code>r_shadowCascadeBlend 0.10</code> — width of the blend between cascades.</li><li><code>r_forceSunLightScale 1.0</code>, <code>r_forceSunMapLightScale 1.0</code> — with <code>r_forceSun</code>: sun and lightmap brightness.</li></ul>\n<p>Bias settings fix two opposite artifacts: dark speckles on lit surfaces (\"acne\") when too low, and shadows detached from their objects (\"peter-panning\") when too high.</p>\n<ul><li><code>r_shadowDepthBias 0.15</code> — constant offset, in world units.</li><li><code>r_shadowNormalBias 0.75</code> — offset along the surface normal, in shadow-map texels.</li><li><code>r_shadowSlopeBias 1.0</code> — extra offset on surfaces at a steep angle to the sun.</li><li><code>r_shadowReceiverBiasClamp 4.0</code> — limit on that slope correction.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_shadowDebug 1..13</code> — cascades, depth, filtering, blockers, penumbra, PCSS, contact, final, bias, point shadows, character receivers, model sun split, character layers.</li><li><code>r_sunShadowVerify 1</code> — compare cached sun shadows with a full redraw on the next frame; 2 every frame (slow).</li><li><code>r_sunShadowBenchmark &lt;frames&gt;</code> — time that many frames without debug readbacks.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-shadows2.md\" target=\"_blank\" rel=\"noopener\">rend2-shadows2.md</a>, <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-sun-shadow-cache-validation.md\" target=\"_blank\" rel=\"noopener\">cache validation</a>.</p>"
    }
   ],
   "media": []
  },
- "autopbr": {
-  "group": "Materials and reflections",
-  "title": "Automatic PBR",
-  "cvar": "r_autoPBR 0|1|2",
-  "how": "At material registration, legacy stages without authored PBR data are classified from shader and texture names into classes such as metal, cloth, leather, skin and plastic, each with its own constant parameters. Roughness variation is derived from local detail of the diffuse texture and stored as a generated map. Authored material data always wins.",
+ "shadows/character-sun-shadows": {
+  "group": "Shadows",
+  "title": "Character sun shadows",
+  "cvar": "r_sunShadowSplit",
   "sections": [
    {
-    "title": "Auto PBR material classification",
-    "html": "<p>Makes legacy materials without authored PBR maps react more plausibly to lights and reflections. Jedi Academy 2026 can either apply one generic dielectric fallback or classify common materials such as metal, cloth, leather, skin and plastic from asset names.</p>\n<p class=\"req\"><strong>Requirements.</strong> Applies only to legacy lit materials without authored specular/ORM data. Authored material data always wins.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_autoPBR 0 | 1 | 2</code> — legacy fallback / generic dielectric / heuristic material classes.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_autoPBRDebug 1</code> — material classes.</li><li><code>r_autoPBRDebug 2</code> — source of the PBR parameters.</li><li><code>r_pbrDumpMaterials [used|all|auto|authored|gouraud|&lt;class&gt;]</code> — list registered material sources and values.</li></ul>\n<p>No meaningful frame-time cost; classification happens during material registration.</p>"
-   },
-   {
-    "title": "Automatic roughness variation",
-    "html": "<p>Adds subtle spatial roughness variation to diffuse-only materials instead of giving every pixel one constant class roughness. It derives small-scale variation from local diffuse detail while avoiding brightness-based “fake metal” or AO generation.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires <code>r_autoPBR 1</code> or <code>2</code>. Only legacy diffuse-only materials are modified; authored specular/ORM maps, explicit scalar material values and converted legacy specular shaders are left untouched.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_autoPBRRoughness 0 | 1</code> — constant class roughness / generate an automatic roughness map. Turning it on requires <code>vid_restart</code>.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_autoPBRDebug 3</code> — final generated roughness in grey; blue means the material is not using auto roughness.</li><li><code>r_pbrDumpMaterials</code> — also reports generated roughness maps and generation time.</li></ul>\n<p>The generated maps add some loading work and texture memory, but little additional frame-time cost.</p>"
-   },
-   {
-    "title": "Legacy shiny material conversion",
-    "html": "<p>Converts old <code>alphaGen lightingSpecular</code> / fake <code>tcGen environment</code> materials from the vertex-lit path to the per-pixel PBR path. Their existing specular mask is reused as spatial PBR information, reducing characteristic Gouraud-style highlights on old shiny assets.</p>\n<p class=\"req\"><strong>Requirements.</strong> Intended for legacy shaders using those old shine techniques.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_autoPBRConvert 0 | 1</code> — keep the old vertex-lit path / convert compatible shaders to per-pixel PBR. Requires <code>vid_restart</code>.</li></ul>\n<p>May slightly increase GPU cost on converted surfaces because they move to per-pixel lighting.</p>"
-   },
-   {
-    "title": "Diffuse BRDF",
-    "html": "<p>Changes the diffuse reflection model of standard PBR materials. Burley/Disney accounts for roughness and viewing/light angles while Lambert is the simpler legacy-style diffuse response.</p>\n<p class=\"req\"><strong>Requirements.</strong> Affects standard PBR diffuse lighting; cloth uses its own BRDF path.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_diffuseBRDF 0 | 1</code> — Lambert / Burley-Disney diffuse.</li></ul>\n<p>No measurable effect on frame performance.</p>"
+    "title": "Character sun shadows",
+    "html": "<p>A soft shadow that suits a building makes a character's shadow look blurry and detached, and broad scenery shadows wash out a character's own contact shadow. By default characters and other models are drawn into a separate sharp shadow layer and combined with the softer scenery shadows.</p>\n<ul><li><code>r_sunShadowSplit 1</code> <em>(restart)</em> — 1 separate sharp layer for models (characters, NPCs, MD3 props); 0 one shared shadow.</li><li><code>r_shadowPCSSCharacterLayers 1</code> <em>(restart)</em> — older variant: harder edges where character shadows meet scenery. Used only with <code>r_sunShadowSplit 0</code>.</li><li><code>r_shadowCasterLod 0</code> — 1: characters cast shadows with the same detail level you see. By default the shadow uses the detail level for its own distance, which can make it look simpler than the model.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_shadowDebug 11</code>, <code>12</code>, <code>13</code> — character receivers and casters, model sun split, character layers.</li><li><code>r_shadowCasterStats 1</code> — print character shadow casters and their detail levels once per second.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-character-shadows.md\" target=\"_blank\" rel=\"noopener\">rend2-character-shadows.md</a>.</p>"
    }
   ],
   "media": []
  },
- "pom": {
-  "group": "Materials and reflections",
-  "title": "Parallax occlusion",
-  "cvar": "r_pomSilhouette 1",
-  "how": "POM marches the view ray through the height field in texture space; the step count now depends on the view angle and fades out with distance. Self-shadowing marches a second ray from the hit point toward each light. Silhouette POM builds a thin shell of prisms over the surface, so the ray can leave the base polygon, change the outline and write displaced depth.",
+ "shadows/contact-shadows": {
+  "group": "Shadows",
+  "title": "Contact shadows",
+  "cvar": "r_contactShadows",
   "sections": [
    {
-    "title": "Adaptive POM traversal",
-    "html": "<p>Improves ordinary Parallax Occlusion Mapping by using fewer samples when looking straight at a surface and more at grazing angles. It can also fade POM into normal mapping with distance.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires ordinary POM (<code>r_parallaxMapping 1</code>), normal mapping and a height source such as <code>normalHeightMap</code>, a discovered <code>_nh</code> texture or <code>heightMap</code>.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_pomAdaptiveSteps 0 | 1</code> — legacy fixed traversal / angle-adaptive traversal.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_pomMinSteps &lt;count&gt;</code> — linear samples at normal incidence.</li><li><code>r_pomMaxSteps &lt;count&gt;</code> — linear samples at grazing angles.</li><li><code>r_pomBinarySteps &lt;count&gt;</code> — final hit refinement.</li><li><code>r_pomFadeStart &lt;distance&gt;</code> — distance where relief begins flattening.</li><li><code>r_pomFadeEnd &lt;distance&gt;</code> — distance where POM becomes normal mapping only.</li></ul>\n<p>This can reduce POM cost at easy angles and long distances, but grazing views may use more samples.</p>"
-   },
-   {
-    "title": "POM self-shadowing",
-    "html": "<p>Adds shadows inside POM relief. Brick grooves, cracks and raised panels can shadow themselves under the sun and nearby dynamic lights instead of looking like unshadowed texture displacement.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires <code>r_parallaxMapping 1</code>, normal mapping and height data. Sun self-shadowing also needs realtime sunlight (<code>r_sunlightMode 1</code> or <code>2</code>).</p>\n<h4>Main controls</h4>\n<ul><li><code>r_pomSelfShadow 0 | 1</code> — disable / enable relief self-shadowing. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_pomSelfShadowLightMode 0..3</code> — sun only / sun + strongest local / sun + limited local lights / all local lights.</li><li><code>r_pomSelfShadowMaxLocalLights &lt;count&gt;</code> — local-light budget for mode 2.</li><li><code>r_pomSelfShadowSteps &lt;count&gt;</code> — samples per shadow ray.</li><li><code>r_pomSelfShadowStrength &lt;value&gt;</code> — global shadow strength.</li><li><code>r_pomSelfShadowBias &lt;value&gt;</code> — ray-start bias inside the height field.</li><li><code>r_pomSelfShadowSoftness &lt;value&gt;</code> — penetration-to-shadow scale.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_pomDebug 1..8</code> — height, displaced UV, hit depth, sun/local self-shadow, sample counts and distance fade. Requires <code>vid_restart</code> when enabling the debug permutation.</li><li><code>r_pomDebugFreezeLight 0 | 1</code> — freeze the sun direction for comparison.</li></ul>\n<p><strong>Mod author override.</strong> A material can use <code>pomSelfShadow &lt;0..1&gt;</code> and an explicit <code>heightMap</code>:</p>\n<pre><code>{\n    map textures/test/bricks\n    normalMap textures/test/bricks_n\n    heightMap textures/test/bricks_h\n    parallaxDepth 0.06\n    pomSelfShadow 0.8\n}</code></pre>\n<p>Can significantly affect performance on POM-heavy scenes, especially with several self-shadowed local lights.</p>"
-   },
-   {
-    "title": "Silhouette POM",
-    "html": "<p><strong>For mod authors.</strong> Ordinary POM cannot change the edge of a triangle. Silhouette POM builds a small shell around selected surfaces so deep relief can carve or extend the actual visible silhouette and write displaced depth.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires <code>r_pomSilhouette 1</code>, <code>r_parallaxMapping 1</code>, normal mapping, a height field, and a compatible opaque surface. It is best for rocks, broken stone, chunky panels and strong edge relief rather than ordinary floors.</p>\n<pre><code>textures/test/rock_edge\n{\n    pomSilhouette\n    pomSilhouetteDistance 384\n    pomSilhouetteSteps 32\n    {\n        map textures/test/rock_edge\n        normalHeightMap textures/test/rock_edge_nh\n        parallaxDepth 0.06\n        parallaxBias 0.5\n        rgbGen identity\n    }\n}</code></pre>\n<h4>Main controls</h4>\n<ul><li><code>r_pomSilhouette 0 | 1</code> — disable / enable shell rendering. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_pomSilhouetteDistance &lt;units&gt;</code> — shell range; farther surfaces use ordinary POM.</li><li><code>r_pomSilhouetteFade &lt;units&gt;</code> — crossfade width.</li><li><code>r_pomSilhouetteSteps &lt;count&gt;</code> — normal-angle ray samples.</li><li><code>r_pomSilhouetteMaxSteps &lt;count&gt;</code> — grazing-angle ray samples.</li><li><code>r_pomSilhouetteBinarySteps &lt;count&gt;</code> — hit refinement.</li><li><code>r_pomSilhouetteViewDependence &lt;value&gt;</code> — how quickly samples increase toward grazing angles.</li><li><code>r_pomSilhouetteShadows 0 | 1</code> — displaced shells cast into sun cascades.</li><li><code>r_pomSilhouetteContactShadows 0 | 1</code> — apply screen-space sun contact shadows to shell pixels.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_pomSilhouetteDebug 1..11</code> — shell, wireframe, walls, discarded pixels, virtual depth, sample count and comparison views.</li><li><code>r_pomSilhouetteInfo</code> — print shell counts, memory, fallbacks and last-frame statistics.</li></ul>\n<p>Can significantly affect performance because every visible shell pixel ray-traces the height field and writes displaced depth.</p>"
-   },
-   {
-    "title": "Automatic silhouette POM",
-    "html": "<p>Automatically enables silhouette POM for compatible materials that already have ordinary POM height data, so stock <code>_nh</code> assets can be tested without editing shader files.</p>\n<p class=\"req\"><strong>Requirements.</strong> <code>r_pomSilhouette 1</code> must already be active when the map is loaded. Materials still need ordinary POM-compatible height data and eligible geometry.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_autoPOMSilhouette 0 | 1</code> — disable / enable automatic mode globally.</li><li><code>r_autoPOMSilhouette &lt;shader&gt; 0 | 1 | default</code> — per-shader override; a trailing <code>*</code> acts as a prefix.</li><li><code>r_autoPOMSilhouette clear</code> — remove per-shader overrides.</li></ul>\n<h4>Debug / inspection</h4>\n<ul><li><code>r_autoPOMSilhouette list</code> — list active candidates and fallback reasons.</li><li><code>r_autoPOMSilhouette &lt;shader&gt;</code> — print matching shader state.</li></ul>\n<p>Per-shader switches are live, but shell data is prepared at map load. Performance is the same as explicit silhouette POM for surfaces that are actually enabled.</p>"
+    "title": "Contact shadows",
+    "html": "<p>Adds small sun shadows where the shadow maps are too coarse: under feet, behind small props, in carved detail. Needs realtime sun (see above).</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium.</p>\n<ul><li><code>r_contactShadows 0</code> — 1 on. Turning it on from off needs <code>vid_restart</code>.</li><li><code>r_contactShadowLength 16</code> — how far a contact shadow reaches, in world units.</li><li><code>r_contactShadowStrength 0.85</code> — darkness.</li><li><code>r_contactShadowSoft 0</code> — 1 softer edges.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>For each pixel the shader steps a short way toward the sun through the on-screen depth image and checks whether something is in front. It can't see objects outside the screen.</p></div>\n<ul><li><code>r_contactShadowSteps 12</code> — steps per ray.</li><li><code>r_contactShadowThickness 6</code> — assumed thickness of what blocks the ray.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_aoDebug 6</code> — contact shadows only.</li></ul>"
    }
   ],
   "media": []
  },
- "skin": {
-  "group": "Materials and reflections",
-  "title": "Skin",
-  "cvar": "r_skinSSS 1|2",
-  "how": "Skin surfaces are classified automatically and only their diffuse lighting is affected; specular, eyes and metal stay sharp. Mode 1 wraps the diffuse term around the terminator. Mode 2 writes skin diffuse into a separate buffer and blurs it in two separable passes with a kernel whose width follows depth, stopping at depth and normal edges.",
+ "shadows/dynamic-light-shadows": {
+  "group": "Shadows",
+  "title": "Dynamic light shadows",
+  "cvar": "r_dlightMode",
   "sections": [
    {
-    "title": "Skin subsurface scattering",
-    "html": "<p>Softens diffuse light across skin and optionally adds back-light transmission through thin areas. Mode 1 is a cheap wrapped-diffuse approximation; mode 2 is real screen-space diffusion of the skin diffuse term.</p>\n<p class=\"req\"><strong>Requirements.</strong> Mode 2 requires HDR (<code>r_hdr 1</code>). Skin is automatically classified, with optional shader overrides for mods.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_skinSSS 0 | 1 | 2</code> — off / wrapped diffuse / screen-space diffusion. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_skinSSSMixedHeads 0 | 1</code> — also process mixed <code>*_head</code> textures. Requires <code>vid_restart</code>.</li><li><code>r_skinSSSStrength 0..1</code> — share of skin diffuse replaced by the diffused copy.</li><li><code>r_skinSSSWidth &lt;mm&gt;</code> — diffusion radius.</li><li><code>r_skinSSSQuality 0..2</code> — 11 / 17 / 25 taps.</li><li><code>r_skinSSSWrap &lt;value&gt;</code> — mode-1 wrap width.</li><li><code>r_skinSSSFollowSurface &lt;value&gt;</code> — depth/normal edge stopping.</li><li><code>r_skinSSSTransmission &lt;value&gt;</code> — optional back-light term.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_skinSSSCompare 0 | 1</code> — split screen without / with SSS.</li><li><code>r_skinSSSDebug 1..8</code> — classification, mask, raw diffuse, blur passes, delta and radius.</li><li><code>r_skinSSSList</code> — print skin classification.</li><li><code>r_skinSSSKernel</code> — print the diffusion kernel.</li></ul>\n<p><strong>Mod author overrides.</strong> <code>skinScatter &lt;0..1&gt;</code> changes scattering strength and <code>skinMask &lt;image&gt;</code> supplies a per-pixel mask.</p>\n<p>Mode 1 has a small cost; mode 2 has moderate GPU cost from the two diffusion passes.</p>"
+    "title": "Dynamic light shadows",
+    "html": "<p>Sabers, explosions and other dynamic lights can cast realtime shadows. This is an original Rend2 setting; several features here build on it.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium to heavy, depending on how many lights cast shadows.</p>\n<ul><li><code>r_dlightMode 1</code> <em>(restart)</em> — 2 dynamic lights cast shadows. With <a href=\"#f/lighting/many-dynamic-lights-forward\">Forward+</a>, <code>r_forwardPlusMaxShadowLights</code> limits how many.</li><li><code>r_dlightShadowBias 0</code> — 1 a more consistent offset, with less shadow acne and fewer detached shadows.</li></ul>\n<p>These keep the same shadows but redraw less. All are on by default:</p>\n<ul><li><code>r_shadowCache 1</code> — reuse a light's shadow while nothing in it changes.</li><li><code>r_shadowStaticCache 1</code> — keep the static world part and redraw only moving objects over it. Needs OpenGL 4.3 or <code>ARB_copy_image</code>.</li><li><code>r_shadowSinglePass 1</code> — walk the scene once per light instead of once per cube face.</li><li><code>r_shadowLayered 1</code> — draw all six cube faces in one call where supported.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Each shadowed light renders the scene into a cube of six depth images. The caches above skip redrawing parts that haven't changed.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_shadowDebug 10</code> — point-light shadow visibility.</li><li><code>r_shadowStaticCache 2</code> — compare one frame with a full redraw (slow).</li><li><code>r_shadowVerify 1</code> — draw every cube both ways on the next frame and print differences.</li><li><code>r_shadowStats 1</code> — CPU cost of shadow and camera views, once per second.</li></ul>"
    }
   ],
   "media": []
  },
- "emissive": {
-  "group": "Materials and reflections",
-  "title": "Emissive surfaces",
-  "cvar": "r_autoEmissive 1",
-  "how": "Emission is a separate material channel, added after reflected light, AO and shadows, and written to the glow target used by bloom. Compatible stock glow and unlit additive stages are recognized on the CPU and exposed as emission sources, so SSGI and bloom see them without shader edits.",
+ "characters/light-across-the-body": {
+  "group": "Characters and animation",
+  "title": "Light across the body",
+  "cvar": "r_entityLightGrid",
   "sections": [
    {
-    "title": "Emissive materials",
-    "html": "<p><strong>For mod authors.</strong> Materials can now emit linear HDR radiance independently from reflected light. This is useful for lamps, screens, control panels and other surfaces that should feed HDR bloom and SSGI without making an entire diffuse stage glow.</p>\n<p class=\"req\"><strong>Requirements.</strong> No global enable cvar is required. HDR is recommended for intensities above 1.</p>\n<pre><code>{\n    map textures/example/panel_d\n    emissiveMap textures/example/panel_e\n    emissiveColor 1.0 0.25 0.05\n    emissiveScale 4.0\n}</code></pre>\n<ul><li><code>emissiveMap &lt;image&gt;</code> — emission texture; black texels do not emit.</li><li><code>emissiveColor &lt;r g b&gt;</code> — linear emission color.</li><li><code>emissiveScale &lt;value&gt;</code> — scalar HDR intensity.</li><li><code>emissiveScale &lt;r g b&gt;</code> — RGB intensity shorthand.</li></ul>\n<p>No meaningful cost on materials that do not use the keywords; emissive materials add only a small amount of shading work.</p>"
-   },
-   {
-    "title": "Automatic emissive compatibility",
-    "html": "<p>Lets existing stock-style glow and safe unlit additive stages act as physical emission sources without editing their shader files. This is useful for SSGI and HDR bloom on existing maps.</p>\n<p class=\"req\"><strong>Requirements.</strong> Works on compatible legacy <code>glow</code> stages and standalone unlit additive stages. The renderer deliberately rejects ambiguous lit/additive stages to avoid double lighting.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_autoEmissive 0 | 1</code> — legacy behavior / expose compatible legacy glow stages as emissive sources.</li></ul>\n<p>No meaningful effect on performance.</p>"
+    "title": "Light across the body",
+    "html": "<p>Characters aren't lit by the map's lightmaps. Instead the map stores a 3D grid of light samples (the light grid), each with an ambient color, a main light color and that light's direction. The original game picks <strong>one</strong> sample at the character's position and lights the whole body with it, so a character walking through a doorway changes brightness all at once, and an arm in a beam of light is no brighter than the rest.</p>\n<p class=\"cost\"><strong>Cost:</strong> light for mode 1, medium for mode 2.</p>\n<ul><li><code>r_entityLightGrid 0</code> <em>(restart)</em> — <strong>0</strong> one sample per character (original). <strong>1</strong> three samples at feet, waist and head height, blended up the body: a character standing in a shaft of light gets a lit head and dark legs. <strong>2</strong> every pixel takes its own smoothly interpolated grid sample: light changes across the body and along outstretched limbs.</li><li><code>r_entityLightProbes 1</code> <em>(restart)</em> — mode 2 only. The grid stores one main light direction plus flat ambient; this turns each sample into a smooth directional light, so the lit side wraps naturally around the body and the shadowed side isn't uniformly flat.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_entityLightGridDebug 1..11</code> <em>(restart)</em> — ambient, main light, direction, validity, grid cell, the three modes, the difference between them, probe brightness and direction.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-grid-reconstruction-removal.md\" target=\"_blank\" rel=\"noopener\">rend2-grid-reconstruction-removal.md</a>.</p>"
    }
   ],
   "media": []
  },
- "ssr": {
-  "group": "Materials and reflections",
-  "title": "Screen-space reflections",
-  "cvar": "r_ssr 1",
-  "how": "A hierarchical depth buffer is built from the scene, and reflection rays are traced through it at full or half resolution, then resolved by roughness and accumulated over frames. Where a ray finds the reflected surface on screen, SSR replaces part of the parallax-corrected cubemap reflection; elsewhere the cubemap stays. Sabers and effects are added analytically, so they reflect even when they are off screen.",
+ "characters/sun-on-characters": {
+  "group": "Characters and animation",
+  "title": "Sun on characters",
+  "cvar": "r_entitySunSplit",
   "sections": [
    {
-    "title": "Screen-space reflections",
-    "html": "<p>Adds real scene reflections to glossy PBR surfaces while retaining cubemaps as the fallback for off-screen, rough or unreliable rays. Sabers and additive effects can also appear as analytic reflected emitters even when the source itself is outside the screen.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires specular mapping (<code>r_specularMapping 1</code>). HDR is strongly recommended; the non-HDR scene buffer clamps reflection energy.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_ssr 0 | 1</code> — disable / enable hybrid SSR + cubemap reflections. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_ssrQuality 0..3</code> — low / medium / high / ultra.</li><li><code>r_ssrSteps &lt;count&gt;</code> — ray-march override; <code>0</code> uses the preset.</li><li><code>r_ssrRefineSteps &lt;count&gt;</code> — hit-refinement override.</li><li><code>r_ssrMaxDistance &lt;units&gt;</code> — maximum ray length.</li><li><code>r_ssrThickness &lt;units&gt;</code> — assumed depth-buffer thickness.</li><li><code>r_ssrMaxRoughness &lt;value&gt;</code> — roughness where SSR fully fades to cubemap.</li><li><code>r_ssrRoughOcclusion 0|1</code> — latched; 1 (default) applies the cubemap's reflection occlusion (lightmap scale, specular occlusion) to SSR on rough surfaces, removing light ghosts on shadowed walls.</li><li><code>r_ssrEdgeFade &lt;value&gt;</code> — screen-edge fade.</li><li><code>r_ssrHalfRes -1 | 0 | 1</code> — preset / full / half-resolution tracing.</li><li><code>r_ssrHiZ -1 | 0 | 1</code> — preset / linear / hierarchical tracing.</li><li><code>r_ssrTemporal 0 | 1</code> — temporal accumulation. Requires <code>vid_restart</code>.</li><li><code>r_ssrTemporalWeight &lt;value&gt;</code> — history weight.</li><li><code>r_ssrBlendStrength &lt;value&gt;</code> — confidence/replacement scale.</li><li><code>r_ssrHitCache 0 | 1</code> — reuse still-valid previous-frame ray hits; pixels are periodically retraced.</li><li><code>r_ssrReceiverCull 0 | 1</code> — skip ray marching on pixels that cannot use SSR.</li><li><code>r_ssrEmitters 0 | 1</code> — analytic saber/blaster/effect reflections.</li><li><code>r_ssrEmitterIntensity &lt;value&gt;</code> — analytic emitter brightness.</li><li><code>r_ssrEmitterMaxRoughness &lt;value&gt;</code> — roughness limit for analytic emitters.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_ssrCompare 0 | 1</code> — cubemap-only / hybrid split screen.</li><li><code>r_ssrDebug 1..12</code> — material, hit, confidence, raw/cubemap/hybrid reflection, emitter and hit-cache views.</li></ul>\n<p>Moderate GPU cost at low/medium settings and potentially significant cost at high/ultra. Hit caching and early culling reduce the tracing cost.</p>"
+    "title": "Sun on characters",
+    "html": "<p class=\"req\">Needs realtime sun shadows (<a href=\"#f/shadows/sun-shadows\"><code>r_forceSun 1</code></a> on stock maps).</p>\n<p>The light grid merges the sun and every lamp into one main light whose direction is an average, rarely where the sun really is. When a character steps into a sun shadow, Rend2 just darkens that merged light, so the shading still comes from the wrong side and doesn't match the shadow on the ground.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_entitySunSplit 0</code> <em>(restart)</em> — 1: take the sun out of the grid light and light models from the real sun direction, with per-pixel sun shadows. Only with <code>r_entityLightGrid 0</code>.</li><li><code>r_entityShadowAmbient 0</code> — in sun shadow the world loses its ambient light too, but characters keep theirs and look too bright. 0 darkens only the main light (original), 1 also the whole ambient, like the world, values in between partly.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_shadowDebug 12</code> — model sun split.</li></ul>"
    }
   ],
   "media": []
  },
- "vfog": {
-  "group": "Volumetrics and sky",
+ "characters/ambient-light-from-the-surroundings": {
+  "group": "Characters and animation",
+  "title": "Ambient light from the surroundings",
+  "cvar": "r_diffuseIBL",
+  "sections": [
+   {
+    "title": "Ambient light from the surroundings",
+    "html": "<p>A character's ambient light from the grid is one color from every side. With this, the side facing a bright wall or an open door gets more light and the side facing a dark corridor less. Uses the map's cubemaps, which are built at map load.</p>\n<p class=\"cost\"><strong>Cost:</strong> light; longer map loading.</p>\n<ul><li><code>r_diffuseIBL 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_diffuseIBLStrength 1</code> — how strongly the direction modulates the ambient.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>For each cubemap the renderer computes how much light arrives from each direction. Models use that to vary the original grid ambient around the body; it modulates, rather than replaces, the map's lighting.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_diffuseIBLDebug 1..5</code> — incoming light, modulation, old and new ambient, selected cubemap.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "characters/skin-subsurface-scattering": {
+  "group": "Characters and animation",
+  "title": "Skin (subsurface scattering)",
+  "cvar": "r_skinSSS",
+  "sections": [
+   {
+    "title": "Skin (subsurface scattering)",
+    "html": "<p>In real life light enters skin, scatters under it and comes out a few millimetres away, often reddened by blood. That's why faces have soft light-to-shadow transitions, and why ears and fingers glow red against a bright light. Without it skin looks like painted plastic. This works on existing characters: faces and hands of organic characters are recognized automatically. Droids, armor and fur are left alone.</p>\n<p class=\"cost\"><strong>Cost:</strong> light for mode 1, medium for mode 2.</p>\n<ul><li><code>r_skinSSS 0</code> <em>(restart)</em> — <strong>0</strong> off. <strong>1</strong> cheap soft falloff: light wraps a little further around the face, reds more than blues. An approximation, not real scattering. <strong>2</strong> real screen-space scattering: the skin's lighting is blurred over a few millimetres around each pixel, so pores and hard shadow edges soften while highlights stay sharp. Needs <code>r_hdr 1</code>.</li><li><code>r_skinSSSStrength 1</code> — mode 2: how much of the skin lighting is replaced by the scattered version.</li><li><code>r_skinSSSWidth 8</code> — mode 2: scattering distance in millimetres; 8 matches real skin.</li><li><code>r_skinSSSTransmission 0</code> — light shining through thin parts (ears, fingers) from behind; 0 off.</li><li><code>r_skinSSSMixedHeads 0</code> <em>(restart)</em> — 1: also scatter <code>*_head</code> textures, which mix face, hair and ears in one image. Eyes and hair may then blur.</li></ul>\n<p><code>r_skinSSSCompare 1</code> shows the left half without and the right half with skin scattering.</p>\n<p class=\"mod\"><strong>Mod authors:</strong> <code>skinScatter &lt;0..1&gt;</code> sets a material's scattering strength (0 turns it off); <code>skinMask &lt;image&gt;</code> limits it to skin on a mixed texture (red channel).</p>\n<div class=\"how\"><h3>How it works</h3><p>Mode 2 renders the scene, then blurs only the diffuse light of skin pixels with a skin-shaped profile, in two passes, stopping at depth and normal edges so the blur doesn't leak onto the background. Mode 1 just changes the shading falloff per color channel.</p></div>\n<ul><li><code>r_skinSSSQuality 1</code> — blur taps per pass: 0 = 11, 1 = 17, 2 = 25.</li><li><code>r_skinSSSFollowSurface 1</code> — how strongly depth and normal edges stop the blur.</li><li><code>r_skinSSSWrap 0.3</code> — mode 1: how far light wraps.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_skinSSSDebug 1..8</code> — classification, skin mask, raw skin lighting, blur passes, final change, everything but skin, blur radius.</li><li><code>r_skinSSSList [used|all|skin]</code> — which materials scatter and why.</li><li><code>r_skinSSSKernel</code> — print the blur profile.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-skin-sss.md\" target=\"_blank\" rel=\"noopener\">rend2-skin-sss.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "characters/hair-and-eyes": {
+  "group": "Characters and animation",
+  "title": "Hair and eyes",
+  "cvar": "",
+  "sections": [
+   {
+    "title": "Hair and eyes",
+    "html": "<p>Hair gets a stretched highlight shaped by the strand direction, like real hair, and eyes a smooth wet shine. There is no switch: it is always on where a material supports it. On stock models that is only the few hair surfaces named exactly <code>hair</code>/<code>hairs</code> (some Jedi, Ugnaught and Weequay heads). Most stock hair is painted into the head texture, and eyes share textures with the face, so they need modded assets.</p>\n<p class=\"cost\"><strong>Cost:</strong> light, on these materials only.</p>\n<p class=\"mod\"><strong>Mod authors:</strong> declare <code>materialType hair</code> or <code>materialType eye</code> inside a lit stage; <code>materialType standard</code> opts out. <code>materialMap</code> holds hair direction in RG and coverage in B. On a mixed skin/eye texture use the same image as <code>skinMask</code>.</p>\n<div class=\"how\"><h3>How it works</h3><p>Hair reflects light differently along and across the strand direction, which stretches the highlight. Eyes use a smooth, non-metallic surface — a wet highlight, not a simulated eyeball.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_materialModelDebug 1..7</code> — type, tangent, bitangent, hair direction, hair highlight, eye highlight, mask.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-hair-eye-materials.md\" target=\"_blank\" rel=\"noopener\">rend2-hair-eye-materials.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "characters/softer-ragdolls": {
+  "group": "Characters and animation",
+  "title": "Softer ragdolls",
+  "cvar": "r_ragSoftLimits",
+  "sections": [
+   {
+    "title": "Softer ragdolls",
+    "html": "<p>When a character dies, the ragdoll swings its limbs until each joint hits its hard limit and stops dead, so bodies look stiff and snap. With soft limits a limb slows down as it nears the end of its range and springs back a little. Works in SP and MP.</p>\n<p class=\"cost\"><strong>Cost:</strong> light (CPU), only while ragdolls are active.</p>\n<ul><li><code>r_ragSoftLimits 0</code> — 1 on.</li><li><code>r_ragSoftLimitZone 0.18</code> — how much of the end of each joint range is springy.</li><li><code>r_ragSoftLimitStiffness 0.25</code> — spring strength.</li><li><code>r_ragNeutralPull 0.0002</code> — weak pull toward the joint's middle position.</li></ul>\n<p>The original hard limit stays as the final stop.</p>"
+   }
+  ],
+  "media": []
+ },
+ "characters/softer-animation-sp": {
+  "group": "Characters and animation",
+  "title": "Softer animation (SP)",
+  "cvar": "r_animSoftLimits",
+  "sections": [
+   {
+    "title": "Softer animation (SP)",
+    "html": "<p>Animated limbs ease in and rebound slightly when they reach the end of their usual movement, instead of stopping abruptly. Works with the existing animations; single player only.</p>\n<p class=\"cost\"><strong>Cost:</strong> light (CPU), plus a one-time scan of the animation files.</p>\n<ul><li><code>r_animSoftLimits 0</code> — <strong>0</strong> off, <strong>1</strong> all characters, <strong>2</strong> everyone except the player.</li><li><code>r_animSoftLimitBounce 0.35</code> — how much a stopped motion bounces back.</li><li><code>r_animSoftLimitZone 0.18</code> — width of the soft zone at each end of the range.</li><li><code>r_animSoftLimitMargin 0.1</code> — extra range allowed beyond the measured motion; applied when the animations are scanned.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The renderer scans each animation file once to measure how far every joint moves, then eases motion near those limits. Only the displayed pose changes; gameplay and animation choice don't.</p></div>\n<h4>Debug</h4>\n<ul><li><code>developer 1</code> — print the range-scan results.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "reflections/screen-space-reflections-ssr": {
+  "group": "Reflections",
+  "title": "Screen-space reflections (SSR)",
+  "cvar": "r_ssr",
+  "sections": [
+   {
+    "title": "Screen-space reflections (SSR)",
+    "html": "<p>Rend2's reflections come from cubemaps: 360° snapshots taken at a few points of the map when it loads (only with <code>r_cubeMapping 1</code>, which is off by default). They never show characters, sabers or anything that moves, and they are often misplaced. SSR reflects what is actually on screen: a polished floor mirrors the duelists standing on it, and a lit corridor shows in a wet wall. What SSR can't see — things off screen or behind other objects — falls back to the cubemap, or to no reflection without cubemaps. Works best with <code>r_hdr 1</code>; without it bright reflections are clipped.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium; high quality and rough-surface rays can be heavy.</p>\n<ul><li><code>r_ssr 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_ssrQuality 1</code> — 0 low, 1 medium, 2 high, 3 ultra.</li><li><code>r_ssrTemporal 0</code> <em>(restart)</em> — 1: average reflections over frames. Smoother and less noisy, with slight ghosting when things move fast. Needed for <a href=\"#f/reflections/rough-reflections\">rough reflections</a>.</li><li><code>r_ssrMaxRoughness 0.6</code> — surfaces rougher than this use only the cubemap; lower it if blurry reflections look wrong.</li><li><code>r_ssrEmitters 1</code> — sabers, blaster bolts and other glowing effects are reflected even when off screen.</li><li><code>r_ssrEmitterIntensity 1</code> — their brightness.</li></ul>\n<p><code>r_ssrCompare 1</code> shows cubemap-only reflections on the left and SSR on the right.</p>\n<div class=\"how\"><h3>How it works</h3><p>For each glossy pixel the shader marches a ray through the on-screen depth image until it hits a surface, and uses that pixel's color as the reflection. A confidence value fades SSR out near screen edges and where the ray misses, so it blends into the cubemap without a seam. Sabers and effects are added separately as analytic light sources, which is why they reflect from off screen too.</p></div>\n<ul><li><code>r_ssrMaxDistance 1024</code> — longest reflection ray, in world units.</li><li><code>r_ssrThickness 8</code> — how thick on-screen surfaces are assumed to be; too low lets rays pass behind thin objects.</li><li><code>r_ssrEdgeFade 0.1</code> — fade band at screen edges.</li><li><code>r_ssrBlendStrength 1</code> — 0 cubemap only … 1 full SSR where reliable.</li><li><code>r_ssrRoughOcclusion 1</code> <em>(restart)</em> — on rough surfaces SSR keeps the cubemap's darkening in baked shadow; 0 lets light reflections \"ghost\" on shadowed walls.</li><li><code>r_ssrEmitterMaxRoughness 0.35</code> — rougher surfaces don't reflect sabers and effects (their dynamic light already makes a highlight there).</li><li><code>r_ssrSteps 0</code>, <code>r_ssrRefineSteps 0</code> — march and refinement steps; 0 from the quality.</li><li><code>r_ssrHalfRes -1</code> — trace at half resolution: -1 from the quality, 0 full, 1 half.</li><li><code>r_ssrHiZ -1</code> — faster hierarchical tracing: -1 from the quality, 0 off, 1 on.</li><li><code>r_ssrTemporalWeight 0.9</code> — how much history frame averaging keeps.</li><li><code>r_depthPrepass 1</code> — the depth pre-pass SSR, AO and contact shadows rely on; keep it on.</li></ul>\n<p>Speed options. Defaults are measured to be fastest; change only to compare.</p>\n<ul><li><code>r_ssrReceiverCull -1</code> — skip pixels that need no reflection early: -1 automatic, 0 off, 1 always.</li><li><code>r_ssrResolveCache 1</code> — turn half-resolution hits into colors once per frame, then upsample.</li><li><code>r_ssrFusedResolve 1</code> — without frame averaging, resolve reflections inside the final blend instead of a separate pass.</li><li><code>r_ssrHitCache 0</code> — 1: reuse still-valid hits from previous frames. Checking an old hit costs about as much as tracing a new one, so it is off.</li><li><code>r_ssrFootprintDepth 1</code> — blurry reflections don't smear a foreground object into the background. Needs hierarchical tracing.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_ssrDebug 1..12</code> — normal, roughness, reflectance, hit/miss, hit distance, confidence, raw SSR, cubemap, combined, replaced part, saber/effect reflections, reused hits.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-ssr.md\" target=\"_blank\" rel=\"noopener\">rend2-ssr.md</a>, <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-ssr-validation.md\" target=\"_blank\" rel=\"noopener\">validation</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "reflections/rough-reflections": {
+  "group": "Reflections",
+  "title": "Rough reflections",
+  "cvar": "r_ssrStochastic",
+  "sections": [
+   {
+    "title": "Rough reflections",
+    "html": "<p>On a rough floor, a lamp's reflection should stretch into a long streak toward you at shallow angles. Ordinary SSR traces one mirror ray and blurs it, which gives a round smudge instead. This mode traces rays scattered the way a rough surface really scatters light, so reflections take the right shape. It looks grainy for a moment after fast movement, until the frame history settles. Needs <code>r_ssr 1</code> and <code>r_ssrTemporal 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> heavy compared with ordinary SSR.</p>\n<ul><li><code>r_ssrStochastic 0</code> <em>(restart)</em> — 1 on.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Each pixel traces one ray in a random direction drawn from its surface's roughness, shares results with its neighbours, and averages over frames.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_ssrDebug 7</code> — raw reflection before blending.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "reflections/fog-in-reflections": {
+  "group": "Reflections",
+  "title": "Fog in reflections",
+  "cvar": "r_ssrReflectedFog",
+  "sections": [
+   {
+    "title": "Fog in reflections",
+    "html": "<p>With volumetric fog, a distant object seen in a reflection should be as hazy as when you look at it directly. This makes the reflected ray pass through the fog too. On by default; also used by water reflections. Needs <code>r_volumetricFog 2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium.</p>\n<ul><li><code>r_ssrReflectedFog 1</code> <em>(restart)</em> — 0 off.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The fog between the reflecting surface and the reflected hit is sampled along the ray and applied to the reflection. Cubemap fallback and saber/effect reflections don't get it.</p></div>"
+   }
+  ],
+  "media": []
+ },
+ "fog/volumetric-fog": {
+  "group": "Fog and light beams",
   "title": "Volumetric fog",
-  "cvar": "r_volumetricFog 2",
-  "how": "Fog is stored in a 3D grid aligned with the camera frustum (froxels). Each froxel gets density from the BSP fog volumes and other media, and in-scattered light from the light grid, the sun with its cascaded shadows and the dynamic lights with their shadows, weighted by a Henyey-Greenstein phase function. The grid is reprojected and blended with the previous frame, then integrated front to back; surfaces read the result as a 3D texture.",
+  "cvar": "r_volumetricFog",
   "sections": [
    {
-    "title": "Froxel volumetric fog",
-    "html": "<p>Replaces the old light-grid ray march with a camera-aligned 3D volume. Sunlight, baked light and dynamic lights illuminate fog spatially, shadows affect the medium, and the result is temporally accumulated before being integrated toward the camera.</p>\n<p class=\"req\"><strong>Requirements.</strong> Mode 2 requires the depth prepass (<code>r_depthPrepass 1</code>); otherwise the renderer falls back to the legacy fog path.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_volumetricFog 0 | 1 | 2</code> — off / legacy light-grid ray march / froxel volumetric fog. Requires <code>vid_restart</code>.</li><li><code>r_volumetricFogQuality 0..2</code> — low / medium / high. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_volumetricFogGridScale &lt;pixels&gt;</code> — manual screen pixels per froxel; <code>0</code> uses the preset. Requires <code>vid_restart</code>.</li><li><code>r_volumetricFogSlices &lt;count&gt;</code> — manual depth slices; <code>0</code> uses the preset. Requires <code>vid_restart</code>.</li><li><code>r_volumetricFogFar &lt;units&gt;</code> — froxel range; <code>0</code> uses the automatic default.</li><li><code>r_volumetricFogAnisotropy &lt;g&gt;</code> — fallback Henyey-Greenstein phase asymmetry.</li><li><code>r_volumetricFogTemporal 0 | 1</code> — temporal accumulation.</li><li><code>r_volumetricFogHistoryWeight &lt;value&gt;</code> — history weight.</li><li><code>r_volumetricFogSunScale &lt;value&gt;</code> — sun scattering multiplier.</li><li><code>r_volumetricFogDlightScale &lt;value&gt;</code> — dynamic-light scattering multiplier.</li><li><code>r_volumetricFogStaticScale &lt;value&gt;</code> — baked-light scattering multiplier.</li><li><code>r_volumetricFogDlightShadows 0 | 1</code> — dynamic-light shadows inside fog; needs <code>r_dlightMode 2</code>.</li><li><code>r_volumetricFogBloom &lt;value&gt;</code> — add bright in-scattering to bloom.</li><li><code>r_volumetricFogReset 1</code> — gameplay hook to clear temporal history after a camera cut.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 1..56</code> — density, lighting, history, media, particle, self-shadow, multiple-scattering and RGB-extinction views.</li><li><code>r_volumetricFogFreeze 0 | 1</code> — freeze the current volume and camera.</li><li><code>r_vfog</code> — inspect/control the active volumetric fog state.</li></ul>\n<p>Can significantly affect performance. Cost scales with froxel resolution, slice count, active lights and the optional effects below.</p>"
-   },
-   {
-    "title": "Height fog",
-    "html": "<p>Adds procedural ground haze to maps without requiring a BSP fog volume. Density is strongest around a base world height and falls exponentially upward.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires froxel fog (<code>r_volumetricFog 2</code>).</p>\n<h4>Main controls</h4>\n<ul><li><code>r_volumetricFogHeight 0 | 1</code> — disable / enable height fog.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_volumetricFogHeightOpaqueDistance &lt;units&gt;</code> — opaque distance at the base height.</li><li><code>r_volumetricFogHeightBase &lt;z&gt;</code> — base world height.</li><li><code>r_volumetricFogHeightFalloff &lt;units&gt;</code> — exponential scale height.</li><li><code>r_volumetricFogHeightMaxDensity &lt;value&gt;</code> — density cap below the base.</li><li><code>r_volumetricFogHeightTopHeight &lt;units&gt;</code> — optional soft upper cutoff.</li><li><code>r_volumetricFogHeightColor \"r g b\"</code> — scattering color.</li></ul>\n<p>Adds little overhead beyond the froxel fog pass itself.</p>"
-   },
-   {
-    "title": "Volumetric density noise",
-    "html": "<p>Breaks uniform fog into world-space patches, clouds and drifting mist. A macro layer controls broad density variation and an optional detail layer adds smaller structure.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires froxel fog (<code>r_volumetricFog 2</code>).</p>\n<h4>Main controls</h4>\n<ul><li><code>r_volumetricFogNoise &lt;bits&gt;</code> — 1 height fog, 2 BSP fog, 4 global fog, 8 noise-enabled local volumes; bits can be combined.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_volumetricFogNoiseScale &lt;units&gt;</code> — macro-noise period.</li><li><code>r_volumetricFogNoiseContrast &lt;value&gt;</code> — macro contrast.</li><li><code>r_volumetricFogNoiseDetailScale &lt;units&gt;</code> — detail-noise period.</li><li><code>r_volumetricFogNoiseDetailContrast &lt;value&gt;</code> — detail strength; <code>0</code> avoids the second fetch.</li><li><code>r_volumetricFogNoiseWind \"x y z\"</code> — world-space drift speed.</li></ul>\n<p>May slightly to moderately affect performance depending on how much of the froxel volume contains noisy media.</p>"
-   },
-   {
-    "title": "Directional baked light in volumetrics",
-    "html": "<p>Recovers where the baked (non-sun) light of the BSP light grid appears to come from, once at map load, so fog subtly brightens towards the lamps it is lit by instead of glowing uniformly. Red and blue lamps keep their own directions; where the light grid gives no confident answer the fog stays isotropic. It only redistributes the existing baked light over view directions, never adds light, and never changes the fog density. Stock maps need no changes; static emissive surfaces and <code>maps/&lt;map&gt;.arealights.json</code> lamps help it.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires froxel fog (<code>r_volumetricFog 2</code>). Changing the mode needs <code>vid_restart</code>.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_vfogStaticStats [proxies]</code> — what the reconstruction found on the loaded map.</li></ul>\n<p>Mode 0 costs nothing. Modes 1 and 2 add three small 3D texture fetches per participating froxel and a short map load step (a fraction of a second on large maps).</p>"
-   },
-   {
-    "title": "Rain suspension in froxel fog",
-    "html": "<p>Adds rain haze as another participating medium of the existing froxel volume. It uses the resolved rain subtype and intensity, and samples the top-down weather depth for every froxel: outdoor courtyards receive haze while rooms and the air below roofs do not. Sun, baked and dynamic lights (including saber, flashlight-like spot lights and explosions), shadows, HG phase and temporal reprojection are the normal froxel paths; there is no separate rain lighting pass. Acid rain uses the opt-in coherent renderer profile described in <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-acid-rain-profile.md\" target=\"_blank\" rel=\"noopener\"><code>docs/rend2-acid-rain-profile.md</code></a>.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires active rain, its weather depth map and froxel fog (<code>r_volumetricFog 2</code>). The feature is off by default.</p>\n<ul><li><code>r_rainVolume 0 | 1</code> — disable / enable the rain medium.</li><li><code>r_rainVolumeStrength &lt;value&gt;</code> — normal-rain extinction per world unit at full normalized intensity.</li><li><code>r_rainVolumeHeavyMultiplier &lt;value&gt;</code> — additional heavy-rain density multiplier.</li><li><code>r_rainVolumeAnisotropy &lt;g&gt;</code> — rain medium HG anisotropy; default <code>0.72</code>.</li><li><code>r_rainVolumeGroundStrength &lt;value&gt;</code> — optional heavy-rain splash-mist extinction; <code>0</code> disables it.</li><li><code>r_rainVolumeGroundHeight &lt;units&gt;</code> — height of that layer above the exposed surface.</li><li><code>r_rainVolumeMaxDistance &lt;units&gt;</code> — camera range with a soft fade over the outer 15%.</li><li><code>r_volumetricFogDebug 71..74</code> — rain-only density, weather exposure, unattenuated in-scattering source and final integrated rain contribution.</li></ul>"
+    "title": "Volumetric fog",
+    "html": "<p>The original fog only fades surfaces toward a color with distance. Volumetric fog fills the space itself: sun beams fall through windows and are cut by shadows, sabers and blaster bolts glow in the haze around them, and lamps light the fog near them.</p>\n<p>It lights the fog a map already has (its fog volumes). <strong>A map without fog shows nothing new</strong> until you add a fog source: <a href=\"#f/fog/ground-haze\">ground haze</a>, <a href=\"#f/weather/rain-haze\">rain haze</a> or authored <a href=\"#f/fog/local-fog-volumes-mod-authors\">local fog</a>. Sun beams need realtime sun (<a href=\"#f/shadows/sun-shadows\"><code>r_forceSun 1</code></a> on stock maps).</p>\n<p class=\"cost\"><strong>Cost:</strong> medium; fine grids and the extra options below can make it heavy.</p>\n<ul><li><code>r_volumetricFog 0</code> <em>(restart)</em> — <strong>0</strong> off. <strong>1</strong> Rend2's original volumetric fog: fog lit only by the map's baked light, no sun beams or dynamic lights (see <a href=\"#f/fog/original-rend2-volumetric-fog\">the end of this page</a>). <strong>2</strong> the volumetric fog described here.</li><li><code>r_volumetricFogQuality 1</code> <em>(restart)</em> — 0 low, 1 medium, 2 high: the size of the 3D grid the fog is computed in.</li><li><code>r_volumetricFogSunScale 1</code> — strength of sunlight in fog (beams).</li><li><code>r_volumetricFogDlightScale 1</code> — strength of dynamic lights in fog.</li><li><code>r_volumetricFogStaticScale 1</code> — strength of the map's baked light in fog.</li><li><code>r_volumetricFogAnisotropy 0.2</code> — how much fog glows when you look toward a light: 0 the same from every side, higher brighter toward the light (stronger beams against the sun), negative brighter with the light behind you.</li><li><code>r_volumetricFogDlightShadows 1</code> — dynamic lights cast shadows into fog (needs <code>r_dlightMode 2</code>).</li><li><code>r_volumetricFogBloom 0</code> — let bright fog glow add to bloom.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The space in front of the camera is divided into a 3D grid of small cells shaped to the view (froxels: frustum voxels). Every frame each cell gets its fog density and the light that reaches it — baked light from the map's light grid, the sun with its shadow maps, dynamic lights with theirs — and then light and fog are summed along each view ray. Where the map's baked light includes the sun, that part is replaced by the realtime sun, so it can cast beams. The grid is coarse, so results are jittered and averaged over frames.</p></div>\n<ul><li><code>r_volumetricFogGridScale 0</code> <em>(restart)</em> — screen pixels per cell; 0 from the quality.</li><li><code>r_volumetricFogSlices 0</code> <em>(restart)</em> — depth slices; 0 from the quality.</li><li><code>r_volumetricFogFar 0</code> — how far the grid reaches; 0 automatic (4096). Beyond it, the last slice is extended.</li><li><code>r_volumetricFogTemporal 1</code> — jitter and average over frames; 0 is noisier but reacts instantly.</li><li><code>r_volumetricFogHistoryWeight 0.9</code> — how much history to keep.</li><li><code>r_volumetricFogReset 0</code> — set by the game to clear history after a camera cut.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 1..29</code> — density, sun (unshadowed / shadowed), dynamic lights, baked light, scattering, transmittance, history, slices, density by source (map fog, ground haze, noise, local volumes, effects), dynamic lights per cell. Later numbers are listed in the sections below.</li><li><code>r_volumetricFogFreeze 1</code> — freeze the current fog volume and camera.</li><li><code>r_vfog</code> — inspect or change the fog state.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-volumetric-fog.md\" target=\"_blank\" rel=\"noopener\">rend2-volumetric-fog.md</a>.</p>"
    }
   ],
   "media": []
  },
- "media": {
-  "group": "Volumetrics and sky",
-  "title": "Fog volumes and FX media",
-  "cvar": "r_volumetricParticles 1",
-  "how": "Fog volumes and opted-in effect particles are analytic shapes (spheres, ellipsoids, boxes) that are culled per depth slice and add their density, color and emission to the froxels they overlap. From there they are lit and shadowed exactly like the rest of the fog. Ordinary smoke sprites sample the same light field instead of using a fixed color.",
+ "fog/ground-haze": {
+  "group": "Fog and light beams",
+  "title": "Ground haze",
+  "cvar": "r_volumetricFogHeight",
   "sections": [
    {
-    "title": "Local fog volumes",
-    "html": "<p><strong>For mod authors.</strong> Small analytic spheres, ellipsoids and boxes can add smoke pockets, steam clouds or local haze without changing the BSP.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires froxel fog (<code>r_volumetricFog 2</code>). The easiest persistent authoring route is the existing environment file <code>cubemaps/&lt;map&gt;/env.json</code>.</p>\n<pre><code>{\n  &quot;FogVolumes&quot;: [\n    {\n      &quot;Shape&quot;: &quot;sphere&quot;,\n      &quot;Origin&quot;: [0, 0, 128],\n      &quot;Radius&quot;: 96,\n      &quot;Opaque&quot;: 250,\n      &quot;Color&quot;: [0.55, 0.55, 0.58],\n      &quot;Softness&quot;: 0.6\n    }\n  ]\n}</code></pre>\n<p>Useful keys include <code>Shape</code>, <code>Origin</code>, <code>Radius</code> or <code>Size</code>, <code>Angles</code>, <code>Opaque</code>, <code>Color</code>, <code>Softness</code> and <code>Noise</code>. A runtime <code>GetRefFogVolumeAPI</code> is also available for engine/mod code.</p>\n<h4>Debug / authoring tools</h4>\n<ul><li><code>r_fogvol</code> — print volume state and statistics.</li><li><code>r_fogvol add ...</code> — spawn a test volume.</li><li><code>r_fogvol test &lt;count&gt; [spread]</code> — deterministic stress test.</li><li><code>r_fogvol remove &lt;index&gt; | clear</code> — remove test volumes.</li><li><code>r_fogvol slices</code> — inspect per-slice lists.</li><li><code>r_fogvol dump</code> — print test volumes as an env.json <code>FogVolumes</code> array.</li></ul>\n<p>Cost depends on how many volumes overlap the visible froxel slices; isolated volumes are relatively inexpensive.</p>"
-   },
-   {
-    "title": "Volumetric FX particles",
-    "html": "<p><strong>For mod authors.</strong> Smoke, steam, dust and explosion-cloud particles can become real participating media instead of only transparent sprites. They then receive baked light, sun, dynamic lights, volumetric shadows and phase scattering naturally.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires froxel fog (<code>r_volumetricFog 2</code>) and <code>r_volumetricParticles 1</code>. Nothing is detected automatically: a Particle or OrientedParticle must opt in.</p>\n<pre><code>Particle\n{\n    ...\n    volumetricMedia\n    {\n        extinction 0.04 0.06\n        albedo 0.07 0.07 0.07\n        radiusScale 1.0\n        aspect 1 1 0.8\n        softness 0.7\n    }\n}</code></pre>\n<h4>Main controls</h4>\n<ul><li><code>r_volumetricParticles 0 | 1</code> — disable / submit authored volumetric FX media.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_volumetricParticlesMax &lt;count&gt;</code> — maximum important particles uploaded per frame.</li><li><code>r_volumetricParticlesScale &lt;value&gt;</code> — extinction multiplier.</li><li><code>r_volumetricParticlesHistory &lt;value&gt;</code> — temporal-history retention where particle density changes.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricParticlesDebug 0 | 1</code> — print culling statistics periodically.</li><li><code>r_volumetricFogDebug 26..28</code> — particle density, temporal-history reduction and proxy bounds.</li></ul>\n<p><strong>Binary note.</strong> This is not renderer-only. SP adds a new cgame trap for volumetric particles and the engine forwards it to the renderer; MP submits them from the client FX system. Use the matching updated engine/client and game module.</p>\n<p>Can moderately or significantly affect performance when many large volumetric particles overlap the view.</p>"
-   },
-   {
-    "title": "Volumetric emission",
-    "html": "<p><strong>For mod authors.</strong> Fog volumes and volumetric particles can emit light themselves, enabling glowing gas, fireballs and luminous smoke. Emission is added to the HDR volumetric result and can naturally enter bloom.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires froxel fog. EFX particle emission additionally uses the volumetric-particle path.</p>\n<p>For local <code>env.json</code> volumes, use <code>\"Emissive\": [r,g,b]</code> and optionally <code>\"EmissiveDensity\": d</code>. <code>\"Opaque\": 0</code> with an explicit emissive density creates a pure glowing volume.</p>\n<pre><code>volumetricMedia\n{\n    extinction      0.004 0.006\n    emissive        6 3 1.2\n    emissiveDensity 0.02\n    emissiveTint    1\n}</code></pre>\n<h4>Main controls</h4>\n<ul><li><code>r_volumetricEmission &lt;value&gt;</code> — global volumetric emission scale; <code>0</code> disables it.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 30..34</code> — scattering source, emissive source, combined source, integrated emission and history/emission separation.</li></ul>\n<p>Adds little overhead when no medium emits; active emitting media add extra injection work.</p>"
-   },
-   {
-    "title": "Sprite particle lighting",
-    "html": "<p>Lights ordinary alpha-blended smoke and dust sprites from the same local light field used by froxel fog, so a smoke sprite in a dark room is dark and one beside a saber or lamp receives that color. Additive sprites remain unlit.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires froxel fog (<code>r_volumetricFog 2</code>).</p>\n<h4>Main controls</h4>\n<ul><li><code>r_particleLighting 0 | 1</code> — authored sprite color / volumetric-light-field lighting. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_particleLightingingMix 0..1</code> — blend between authored and lit color.</li><li><code>r_particleLightingingScale &lt;value&gt;</code> — light-field gain.</li><li><code>r_particleLightingingFloor &lt;value&gt;</code> — minimum light factor.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_particleLightingingDebug 1..5</code> — field, baked-only, sun-only, dynamic-only and sprite classification.</li></ul>\n<p>Moderate additional cost because the volumetric light field must exist and lit sprites sample it.</p>"
+    "title": "Ground haze",
+    "html": "<p>Low mist that is thick near the ground and thins with height, on any map, without fog brushes. A simple way to get visible beams on maps without fog. Needs <code>r_volumetricFog 2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_volumetricFogHeight 0</code> — 1 on.</li><li><code>r_volumetricFogHeightOpaqueDistance 3000</code> — at ground level, the distance where the haze becomes opaque. Lower is thicker.</li><li><code>r_volumetricFogHeightFalloff 256</code> — how quickly it thins with height; larger means a taller layer.</li><li><code>r_volumetricFogHeightColor \"0.7 0.75 0.8\"</code> — haze color.</li><li><code>r_volumetricFogHeightBase auto</code> — world height of the ground; auto picks the lowest floor (a map's <code>env.json</code> can override it).</li><li><code>r_volumetricFogHeightMaxDensity 1</code> — density cap below the base height.</li><li><code>r_volumetricFogHeightTopHeight 0</code> — height where the haze fades out completely; 0 never.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 12</code> — ground-haze density.</li></ul>"
    }
   ],
   "media": []
  },
- "scattering": {
-  "group": "Volumetrics and sky",
-  "title": "Scattering in dense media",
-  "cvar": "r_volumetricSelfShadow 1",
-  "how": "Media density is first written into its own volume. For each lit froxel a short ray is marched toward the sun (and the strongest dynamic lights) through that volume to compute how much light the medium itself absorbs. Multiple scattering adds back a few weaker, wider octaves of that light, following Oz 2013. RGB extinction stores optical depth and transmittance per color channel.",
+ "fog/uneven-fog": {
+  "group": "Fog and light beams",
+  "title": "Uneven fog",
+  "cvar": "r_volumetricFogNoise",
   "sections": [
    {
-    "title": "Per-medium albedo and anisotropy",
-    "html": "<p><strong>For mod authors.</strong> Different fog media can now have their own scattering color and phase anisotropy instead of sharing one global <code>g</code> value. Smoke, steam and atmospheric haze can therefore behave differently even when they overlap.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires froxel fog.</p>\n<p>BSP fog shaders can opt in:</p>\n<pre><code>textures/test/medium_fog\n{\n    surfaceparm fog\n    fogParms ( 0.6 0.6 0.65 ) 800\n    fogAnisotropy 0.6\n    fogAlbedo 0.9 0.4 0.3\n}</code></pre>\n<p>Local fog volumes can use <code>\"Anisotropy\": 0.6</code> in env.json. EFX <code>volumetricMedia</code> can use <code>anisotropy 0.6</code>. Media without an override continue to use the global <code>r_volumetricFogAnisotropy</code> fallback.</p>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 35..39</code> — extinction, albedo, phase-lobe slots, mixed anisotropy and sun phase.</li></ul>\n<p>May slightly affect performance when several different media overlap.</p>"
-   },
-   {
-    "title": "Volumetric self-shadowing",
-    "html": "<p>Makes dense fog, smoke and clouds attenuate light <strong>inside the medium itself</strong>. The far side of a dense cloud can therefore be darker than the side facing the sun even when no solid geometry blocks it.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires froxel fog.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_volumetricSelfShadow 0 | 1 | 2</code> — off / sun / sun + strongest dynamic lights. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_volumetricSelfShadowSamples &lt;count&gt;</code> — density samples along the sun ray.</li><li><code>r_volumetricSelfShadowDistance &lt;units&gt;</code> — maximum light-ray march.</li><li><code>r_volumetricSelfShadowOutsideHeightFog 0 | 1</code> — ignore / analytically include height fog beyond the march.</li><li><code>r_volumetricSelfShadowMaxLights &lt;count&gt;</code> — strongest dynamic lights self-shadowed in mode 2.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 40..45</code> — density, optical depth, media transmittance and geometry/media shadow separation.</li></ul>\n<p>Can significantly affect performance because participating froxels trace additional rays through the media.</p>"
-   },
-   {
-    "title": "Approximate multiple scattering",
-    "html": "<p>Returns part of the light removed by volumetric self-shadowing in dense high-albedo media. It prevents white steam or cloud interiors from becoming unrealistically black while keeping absorptive smoke much darker.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires <code>r_volumetricSelfShadow 1</code> or <code>2</code>. Without a media shadow there is no lost light to recover.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_volumetricMultiScatter 0 | 1 | 2</code> — off / sun / sun + self-shadowed dynamic lights.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_volumetricMultiScatterOctaves 1..3</code> — scattering orders beyond single scattering.</li><li><code>r_volumetricMultiScatterAttenuation &lt;value&gt;</code> — optical-depth scale per octave.</li><li><code>r_volumetricMultiScatterContribution &lt;value&gt;</code> — returned energy per octave.</li><li><code>r_volumetricMultiScatterPhase &lt;value&gt;</code> — anisotropy reduction per octave.</li><li><code>r_volumetricMultiScatterLength &lt;units&gt;</code> — characteristic dense-medium size.</li><li><code>r_volumetricMultiScatterShadowFill &lt;value&gt;</code> — limited fill into geometry shadows.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 46..50</code> — single scattering, multiple scattering, combined result, ratio and optical depth.</li></ul>\n<p>Adds no extra pass or texture, but adds substantial math to self-shadowed froxels. The incremental cost is moderate and grows with octave count and dynamic-light mode.</p>"
-   },
-   {
-    "title": "RGB extinction / wavelength-dependent absorption",
-    "html": "<p><strong>For mod authors.</strong> Participating media can absorb red, green and blue light at different rates. This can model effects such as water losing red light with depth or colored smoke tinting transmitted backgrounds.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires froxel fog. <code>r_volumetricFogRGBExtinction 1</code> also needs enough texture units; unsupported hardware falls back to scalar extinction.</p>\n<p>BSP fog shaders can use:</p>\n<pre><code>fogExtinctionColor 3 0.5 0.5</code></pre>\n<p>Local env.json volumes can use <code>\"Extinction\": [r,g,b]</code>. Height fog uses <code>r_volumetricFogHeightExtinction \"r g b\"</code>. FX particle media currently remain neutral.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_volumetricFogRGBExtinction 0 | 1</code> — scalar / per-channel extinction and transmittance. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_volumetricFogHeightExtinction \"r g b\"</code> — relative RGB extinction for procedural height fog.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 51..56</code> — RGB extinction, transmittance, color shift, difference heat, chroma and tail transmittance.</li></ul>\n<p>This is one of the heavier volumetric options: it adds about 24 bytes per froxel, extra 3D buffers and a second composite draw.</p>"
+    "title": "Uneven fog",
+    "html": "<p>Breaks uniform fog into drifting patches and wisps, so mist looks less like a smooth wall. Choose which fog sources get it.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium.</p>\n<ul><li><code>r_volumetricFogNoise 0</code> — add bits: <strong>1</strong> ground haze, <strong>2</strong> map fog volumes, <strong>4</strong> whole-map fog, <strong>8</strong> local volumes marked for noise. Example: <code>3</code> for ground haze and map fog.</li><li><code>r_volumetricFogNoiseScale 4096</code> — size of the large patches, in world units.</li><li><code>r_volumetricFogNoiseContrast 1</code> — patchiness: 0 uniform, 1 between none and double density, higher sparser clumps. Average density stays the same.</li><li><code>r_volumetricFogNoiseWind \"0 0 0\"</code> — drift speed and direction, world units per second.</li><li><code>r_volumetricFogNoiseDetailScale 900</code>, <code>r_volumetricFogNoiseDetailContrast 0</code> — a second, finer noise layer; 0 contrast turns it off (cheaper).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 13..15</code> — noise, density without and with noise.</li></ul>"
    }
   ],
   "media": []
  },
- "atmosphere": {
-  "group": "Volumetrics and sky",
+ "fog/shadows-inside-thick-fog": {
+  "group": "Fog and light beams",
+  "title": "Shadows inside thick fog",
+  "cvar": "r_volumetricSelfShadow",
+  "sections": [
+   {
+    "title": "Shadows inside thick fog",
+    "html": "<p>In thick smoke or dense mist, the side facing the light should be bright and the far side dark, because the fog itself blocks light. Plain volumetric fog lets light through every cell unhindered, so dense clouds glow evenly. This makes the fog shadow itself.</p>\n<p class=\"cost\"><strong>Cost:</strong> heavy.</p>\n<ul><li><code>r_volumetricSelfShadow 0</code> <em>(restart)</em> — <strong>0</strong> off, <strong>1</strong> from the sun, <strong>2</strong> from the sun and the strongest dynamic lights.</li><li><code>r_volumetricSelfShadowMaxLights 2</code> — dynamic lights for mode 2 (0–4).</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>For each fog cell the renderer samples density along a short ray toward the light and dims the light by what it passes through. More samples, longer rays and more lights cost more.</p></div>\n<ul><li><code>r_volumetricSelfShadowSamples 6</code> — samples along the sun ray (dynamic lights use half).</li><li><code>r_volumetricSelfShadowDistance 768</code> — length of that ray, in world units.</li><li><code>r_volumetricSelfShadowOutsideHeightFog 1</code> — beyond the ray, count ground haze analytically; 0 ignore it.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 40..45</code> — density, optical depth toward the sun, fog shadow, geometry shadow, both.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "fog/light-bouncing-inside-fog": {
+  "group": "Fog and light beams",
+  "title": "Light bouncing inside fog",
+  "cvar": "r_volumetricMultiScatter",
+  "sections": [
+   {
+    "title": "Light bouncing inside fog",
+    "html": "<p>Real clouds and steam are white inside because light bounces around in them many times. With self-shadowing alone thick white fog gets unnaturally dark at its core. This adds back the light those bounces would bring, while dark smoke stays dark. Needs <code>r_volumetricSelfShadow 1</code> or <code>2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium.</p>\n<ul><li><code>r_volumetricMultiScatter 0</code> — <strong>0</strong> off, <strong>1</strong> for the sun, <strong>2</strong> for the sun and self-shadowed dynamic lights.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>A few cheap extra scattering steps (\"octaves\") each let light penetrate deeper, with less energy and more evenly in all directions — an approximation of many bounces without tracing them.</p></div>\n<ul><li><code>r_volumetricMultiScatterOctaves 2</code> — extra steps, 1–3.</li><li><code>r_volumetricMultiScatterAttenuation 0.25</code> — how much deeper each step reaches; lower is deeper.</li><li><code>r_volumetricMultiScatterContribution 0.5</code> — light returned per step.</li><li><code>r_volumetricMultiScatterPhase 0.5</code> — how quickly the steps lose their direction.</li><li><code>r_volumetricMultiScatterLength 64</code> — typical size of a dense cloud; thin fog gets almost none.</li><li><code>r_volumetricMultiScatterShadowFill 0.25</code> — how far it may brighten geometry shadows inside thick fog (0–0.5).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 46..50</code> — single, multiple and combined scattering, their ratio, optical depth.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "fog/colored-fog-absorption": {
+  "group": "Fog and light beams",
+  "title": "Colored fog absorption",
+  "cvar": "r_volumetricFogRGBExtinction",
+  "sections": [
+   {
+    "title": "Colored fog absorption",
+    "html": "<p>Normally fog dims everything behind it evenly, so it can only darken or tint by its own glow. With this, fog can absorb colors differently: deep water swallows red first and turns things blue-green, colored smoke tints the scene behind it.</p>\n<p class=\"cost\"><strong>Cost:</strong> heavy (memory and time).</p>\n<ul><li><code>r_volumetricFogRGBExtinction 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_volumetricFogHeightExtinction \"1 1 1\"</code> — ground haze: relative absorption of red, green and blue.</li></ul>\n<p>Underwater fog and water/slime/lava already define their colors; this lets the fog keep them. Effect smoke stays neutral.</p>\n<p class=\"mod\"><strong>Mod authors:</strong> <code>fogExtinctionColor 3 0.5 0.5</code> in a map fog shader, <code>\"Extinction\": [3,0.5,0.5]</code> in a local volume.</p>\n<div class=\"how\"><h3>How it works</h3><p>Each fog cell stores three transparencies, one per color channel, instead of one; compositing then needs two draws.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 51..56</code> — absorption, transparency, color shift, difference, chroma, far transparency.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "fog/local-fog-volumes-mod-authors": {
+  "group": "Fog and light beams",
+  "title": "Local fog volumes (mod authors)",
+  "cvar": "",
+  "sections": [
+   {
+    "title": "Local fog volumes (mod authors)",
+    "html": "<p>Place a pocket of steam, a low smoke bank or a box of dusty air on a map without recompiling it. Volumes are lit and shadowed like any other fog. Needs <code>r_volumetricFog 2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light for a few small volumes; many overlapping ones medium.</p>\n<p>Add a <code>FogVolumes</code> array to <code>cubemaps/&lt;map&gt;/env.json</code>:</p>\n<pre><code>{&quot;FogVolumes&quot;:[{&quot;Shape&quot;:&quot;sphere&quot;,&quot;Origin&quot;:[0,0,128],&quot;Radius&quot;:96,\n&quot;Opaque&quot;:250,&quot;Color&quot;:[0.55,0.55,0.58],&quot;Softness&quot;:0.6}]}</code></pre>\n<p><code>Origin</code> and <code>Radius</code> place it, <code>Opaque</code> is the distance at which it becomes opaque, <code>Color</code> its color. Boxes use <code>Size</code> and optional <code>Angles</code>; ellipsoids are also supported.</p>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 16..19</code> — local density, share, bounds, volumes per slice.</li><li><code>r_fogvol</code> — print volumes and statistics. <code>r_fogvol add ...</code> adds a test volume, <code>r_fogvol test &lt;count&gt; [spread]</code> a stress test, <code>r_fogvol remove &lt;index&gt; | clear</code> removes them, <code>r_fogvol slices</code> shows per-slice lists, <code>r_fogvol dump</code> prints test volumes as a <code>FogVolumes</code> array to paste into <code>env.json</code>.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "fog/different-kinds-of-fog-mod-authors": {
+  "group": "Fog and light beams",
+  "title": "Different kinds of fog (mod authors)",
+  "cvar": "",
+  "sections": [
+   {
+    "title": "Different kinds of fog (mod authors)",
+    "html": "<p>Steam, dust and dark smoke scatter light differently: steam is bright and glows toward the light, smoke absorbs. Fog sources can set this individually; without it the global <code>r_volumetricFogAnisotropy</code> applies.</p>\n<ul><li>Map fog shaders: <code>fogAlbedo 0.9 0.4 0.3</code> (share of light scattered rather than absorbed, per color) and <code>fogAnisotropy 0.6</code> (how strongly it glows toward the light), next to <code>fogParms</code>.</li><li>Local volumes: <code>\"Anisotropy\": 0.6</code>. Effect media: <code>anisotropy 0.6</code>.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 35..39</code> — absorption, albedo, scattering lobes, mixed anisotropy, sun phase.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "fog/original-rend2-volumetric-fog": {
+  "group": "Fog and light beams",
+  "title": "Original Rend2 volumetric fog",
+  "cvar": "r_volumetricFog 1",
+  "sections": [
+   {
+    "title": "Original Rend2 volumetric fog",
+    "html": "<p><code>r_volumetricFog 1</code> keeps Rend2's original volumetric fog: the map's fog volumes are lit by its baked light only, with no sun beams, shadows or dynamic lights. It is still used for views without the new fog grid (portals, mirrors, sky portals).</p>\n<p class=\"cost\"><strong>Cost:</strong> medium.</p>\n<ul><li><code>r_volumetricFogSamples 48</code> <em>(restart)</em> — samples per ray; fewer is faster but banded.</li><li><code>r_volumetricFogDefaultScale 1.0</code> <em>(restart)</em> — density of fog volumes that don't set their own scale.</li><li><code>r_volumetricFogScale 1.0</code> — temporary density multiplier (not saved).</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "effects/volumetric-smoke": {
+  "group": "Smoke and effects",
+  "title": "Volumetric smoke",
+  "cvar": "r_volumetricParticles",
+  "sections": [
+   {
+    "title": "Volumetric smoke",
+    "html": "<p>Original smoke is a stack of flat transparent pictures. It doesn't block what is behind it in proportion to its thickness, lamps don't color it, and sun beams don't enter it. With this, smoke from effects also becomes real fog in the volumetric fog grid: it is lit and shadowed like the rest of the fog, hides the background according to its depth, and sabers glow inside it. The original sprites are still drawn on top.</p>\n<p>Stock effects have no volume data, so the game recognizes known smoke effects automatically. Mods can also give their effects volume directly.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium; heavy when large clouds overlap.</p>\n<ul><li><code>r_volumetricParticles 0</code> — 1 on. Without it nothing below is shown.</li><li><code>fx_physicalization 0</code> — automatic volume for stock smoke: <strong>0</strong> off, <strong>1</strong> every recognized effect, <strong>2</strong> only effects in <code>fx_physicalizationOptIn</code>, <strong>3</strong> every recognized effect except <code>fx_physicalizationOptOut</code>.</li><li><code>fx_physicalizationStrength 1</code> — density of the automatic smoke, 0–16.</li><li><code>fx_physicalizationOptIn \"\"</code>, <code>fx_physicalizationOptOut \"\"</code> — effect names for modes 2 and 3, separated by spaces, commas or semicolons, e.g. <code>\"volumetric/black_smoke;rocket/explosion\"</code>. A list only picks among recognized effects; it can't turn an unknown effect into smoke.</li><li><code>fx_physicalizationComposite 0</code> — 1: also smoke inside composite explosions.</li><li><code>fx_physicalizationEmission 0</code> — 1: known stock flames and fireballs <a href=\"#f/effects/glowing-gas\">glow</a>.</li><li><code>fx_physicalizationAdaptive 0</code> — 1: fit size, softness and density of automatic smoke to each effect.</li></ul>\n<p class=\"mod\"><strong>Mod authors:</strong> add this to an EFX <code>Particle</code> or <code>OrientedParticle</code>; it works even with <code>fx_physicalization 0</code>:</p>\n<pre><code>volumetricMedia\n{\n    extinction 0.04 0.06\n    albedo 0.07 0.07 0.07\n    radiusScale 1\n    aspect 1 1 0.8\n    softness 0.7\n}</code></pre>\n<p><code>extinction</code> sets how much light the smoke blocks, <code>albedo</code> its color (dark here), the rest its shape.</p>\n<div class=\"how\"><h3>How it works</h3><p>Each accepted particle adds a soft 3D blob of density to the fog cells it covers, every frame. Authored data wins; automatic matching is conservative and only accepts effects it recognizes. The most important particles are uploaded first, up to a limit.</p></div>\n<ul><li><code>r_volumetricParticlesMax 128</code> — particles uploaded per frame.</li><li><code>r_volumetricParticlesScale 1</code> — density multiplier.</li><li><code>r_volumetricParticlesHistory 0.3</code> — how much frame averaging is kept where smoke changes; lower reduces smearing behind moving smoke.</li><li><code>fx_physicalizationAggregate 0</code> — experimental: merge exactly overlapping automatic clouds.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 26..28</code> — particle density, history reduction, bounds.</li><li><code>r_volumetricParticlesDebug 1</code> — print culling statistics.</li><li><code>r_volparticles</code> — submission, culling and upload limits.</li><li><code>fx_physicalizationDebug 1</code> — classification and submitted smoke.</li><li><code>fxaudit &lt;efx&gt;</code> — whether an effect qualifies (SP, <code>developer 1</code>).</li><li><code>fx_physicalizationSources 0</code> — 1: track which effect each particle belongs to, for <code>fxsources</code> (SP/MP, <code>developer 1</code>). No visual change.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/legacy-fx-physicalization.md\" target=\"_blank\" rel=\"noopener\">legacy-fx-physicalization.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "effects/lit-smoke-sprites": {
+  "group": "Smoke and effects",
+  "title": "Lit smoke sprites",
+  "cvar": "r_particleLighting",
+  "sections": [
+   {
+    "title": "Lit smoke sprites",
+    "html": "<p>Ordinary smoke sprites keep their painted color everywhere: bright white smoke in a dark room. With this, they take the light around them: dark in the dark, orange next to fire, blue next to a saber. Glowing additive effects (sparks, flames) stay unlit. Works on stock effects.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium.</p>\n<ul><li><code>r_particleLighting 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_particleLightingMix 1</code> — 0 the painted color … 1 fully lit.</li><li><code>r_particleLightingScale 1</code> — brightness of the light; 1 leaves smoke in average map light unchanged.</li><li><code>r_particleLightingFloor 0.03</code> — minimum brightness, so smoke never goes fully black.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Each sprite samples baked, sun and dynamic light from the volumetric fog's light grid at its position. Only the color changes, not shape or motion.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_particleLightingDebug 1..5</code> — light field, baked only, sun only, dynamic only, which sprites are lit.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "effects/glowing-gas": {
+  "group": "Smoke and effects",
+  "title": "Glowing gas",
+  "cvar": "r_volumetricEmission",
+  "sections": [
+   {
+    "title": "Glowing gas",
+    "html": "<p>Lets fog and smoke glow by themselves: luminous gas, a fireball volume, hot smoke. It glows even with no lamp nearby, and adds to bloom, but doesn't light the surfaces around it. Stock content doesn't glow unless <code>fx_physicalizationEmission 1</code>; mods can author it.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_volumetricEmission 1</code> — global glow strength; 0 off.</li></ul>\n<p class=\"mod\"><strong>Mod authors:</strong> local fog volumes take <code>\"Emissive\": [r,g,b]</code> and <code>\"EmissiveDensity\": value</code>. In EFX <code>volumetricMedia</code> add <code>emissive 6 3 1.2</code>, <code>emissiveDensity 0.02</code> and optionally <code>emissiveTint 1</code>.</p>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 30..34</code> — scattered light, glow, both, integrated glow, history.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "sky/atmosphere": {
+  "group": "Sky, atmosphere and clouds",
   "title": "Atmosphere",
-  "cvar": "r_atmosphere 1",
-  "how": "Following Hillaire's model, small lookup textures are precomputed for transmittance and multiple scattering, and a sky-view texture is built each frame from the sun direction. The composite pass reads depth, computes the air path from the camera to each surface and applies transmittance and in-scattering analytically, before the froxel fog is composited.",
+  "cvar": "r_atmosphere",
   "sections": [
    {
     "title": "Atmosphere",
-    "html": "<p>Adds the air between the camera and distant surfaces, and optionally the sky itself. Distant terrain fades into haze and the sky gets a physically based color around the sun. The froxel fog keeps the local media; the atmosphere covers the long range beyond it.</p>\n<p class=\"req\"><strong>Requirements.</strong> Works with or without froxel fog. A map sun direction is needed for the sun glow.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_atmosphere 0 | 1</code> — off / on.</li><li><code>r_atmosphereSky 0 | 1 | 2</code> — overlay on the skybox / blend with it / analytic sky.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_atmosphereSkyBlend &lt;value&gt;</code> — share of the analytic sky in mode 1.</li><li><code>r_atmosphereUnitScale &lt;value&gt;</code> — metres per world unit.</li><li><code>r_atmosphereAerialScale &lt;value&gt;</code> — aerial path length multiplier (8–30 for visible haze).</li><li><code>r_atmosphereAltitude &lt;metres&gt;</code> — ground altitude above sea level.</li><li><code>r_atmosphereGroundZ &lt;z&gt;</code> — world height of the ground; automatic by default.</li><li><code>r_atmosphereRayleigh</code>, <code>r_atmosphereMie</code>, <code>r_atmosphereOzone &lt;value&gt;</code> — density multipliers.</li><li><code>r_atmosphereMieG &lt;g&gt;</code> — haze anisotropy.</li><li><code>r_atmosphereSunColor 0 | 1 | 2</code> — map sun at the top of the atmosphere / at the ground / white.</li><li><code>r_atmosphereSunIntensity &lt;value&gt;</code>, <code>r_atmosphereSunSize &lt;degrees&gt;</code>, <code>r_atmosphereSunGlow &lt;value&gt;</code> — sun.</li><li><code>r_atmosphereStart &lt;units&gt;</code> — distance before which there is no aerial perspective.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_atmosphereDebug</code> — debug views.</li><li><code>r_atmosphereInfo</code> — print the current state.</li></ul>"
+    "html": "<p>In real air distant mountains and buildings turn pale and bluish, and the sky is brighter near the horizon. JKA draws the far distance as crisp as the near one. This adds that haze, and optionally replaces the painted skybox with a computed sky that matches the sun.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium.</p>\n<ul><li><code>r_atmosphere 0</code> — 1 on.</li><li><code>r_atmosphereAerialScale 1</code> — <strong>the main look setting.</strong> 1 is physically correct, but JKA views span only a few hundred metres of air, so the haze is barely visible. 8–30 makes it clearly visible.</li><li><code>r_atmosphereSky 0</code> — <strong>0</strong> keep the skybox, add horizon haze and sun glow. <strong>1</strong> blend skybox and computed sky. <strong>2</strong> computed sky only. Maps with sky portals always use 0.</li><li><code>r_atmosphereSkyBlend 0.5</code> — mode 1: share of the computed sky.</li><li><code>r_atmosphereStart 0</code> — no haze closer than this distance (world units).</li><li><code>r_atmosphereSunGlow 1</code> — mode 0: glow around the sun over the skybox. Lower it if the skybox's painted sun is elsewhere.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The renderer models two kinds of scattering along long view paths: air molecules (Rayleigh), which make the sky blue and distances bluish, and dust/haze (Mie), which makes a whitish glow around the sun. The result is applied to distant surfaces and the sky before volumetric fog.</p></div>\n<ul><li><code>r_atmosphereRayleigh 1</code>, <code>r_atmosphereMie 1</code>, <code>r_atmosphereOzone 1</code> — density of air, of haze, and of ozone (sky color only).</li><li><code>r_atmosphereMieG 0.8</code> — how tightly the haze glow hugs the sun.</li><li><code>r_atmosphereSunIntensity 1</code> — sun brightness.</li><li><code>r_atmosphereSunColor 1</code> — sun color: <strong>0</strong> the map's sun as seen above the atmosphere, <strong>1</strong> as seen on the ground, <strong>2</strong> white.</li><li><code>r_atmosphereSunSize 0.53</code> — sun disc size in degrees.</li><li><code>r_atmosphereUnitScale 0.03</code> — metres per world unit (a 64-unit player is about 1.8 m).</li><li><code>r_atmosphereGroundZ auto</code> — world height of the ground; auto picks the lowest floor.</li><li><code>r_atmosphereAltitude 0</code> — ground altitude above sea level, in metres.</li></ul>\n<p>The original <code>r_drawSun</code> still decides whether a sun disc is drawn, so it isn't drawn twice.</p>\n<h4>Debug</h4>\n<ul><li><code>r_atmosphereDebug 1..8</code> — air glow, haze glow, transparency, distance haze, computed sky alone, overlap with fog, lookup tables, distance bands.</li><li><code>r_atmosphereInfo</code> — configuration and status.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-atmosphere.md\" target=\"_blank\" rel=\"noopener\">rend2-atmosphere.md</a>.</p>"
    }
   ],
   "media": []
  },
- "clouds": {
-  "group": "Volumetrics and sky",
-  "title": "Clouds",
-  "cvar": "r_clouds 1",
-  "how": "Clouds live in a spherical shell between two altitudes. The shell is ray marched only on sky pixels, at reduced resolution, with a light march toward the sun at each sample and an approximation of multiple scattering; the result is upscaled with a temporal history of its own. Cloud shadows are a top-down transmittance map that surfaces and fog sample.",
+ "sky/volumetric-clouds": {
+  "group": "Sky, atmosphere and clouds",
+  "title": "Volumetric clouds",
+  "cvar": "r_clouds",
   "sections": [
    {
-    "title": "Clouds",
-    "html": "<p>Draws volumetric clouds in a layer high above the map, lit by the sun, moving with the wind, and optionally casting their shadows on the ground and into the fog. All noise is generated by the renderer; no assets are needed.</p>\n<p class=\"req\"><strong>Requirements.</strong> Needs an outdoor map with a sky. Works best together with <code>r_atmosphere 1</code>.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_clouds 0 | 1</code> — off / on. Requires <code>vid_restart</code>.</li><li><code>r_cloudShadows 0 | 1</code> — cloud shadows on surfaces and fog.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_cloudScale 1 | 2 | 4</code> — march resolution divisor. Requires <code>vid_restart</code>.</li><li><code>r_cloudBase</code>, <code>r_cloudTop &lt;metres&gt;</code> — layer altitude above the ground.</li><li><code>r_cloudCoverage 0..1</code> — clear / weather map / overcast.</li><li><code>r_cloudDensity &lt;value&gt;</code> — extinction multiplier.</li><li><code>r_cloudAnisotropy &lt;g&gt;</code> — forward scattering lobe.</li><li><code>r_cloudWindSpeed &lt;m/s&gt;</code>, <code>r_cloudWindDir &lt;degrees&gt;</code> — wind.</li><li><code>r_cloudSteps &lt;count&gt;</code>, <code>r_cloudStepLength &lt;metres&gt;</code> — ray march.</li><li><code>r_cloudShadowSteps &lt;count&gt;</code> — light march taps.</li><li><code>r_cloudMSOctaves &lt;count&gt;</code> — multiple scattering octaves.</li><li><code>r_cloudDetail &lt;value&gt;</code> — erosion strength; <code>0</code> disables it.</li><li><code>r_cloudAmbient &lt;value&gt;</code> — sky ambient.</li><li><code>r_cloudTemporal &lt;value&gt;</code> — history weight; <code>0</code> disables it.</li><li><code>r_cloudMaxDistance &lt;km&gt;</code> — draw distance.</li><li><code>r_cloudShapeScale</code>, <code>r_cloudDetailScale</code>, <code>r_cloudWeatherScale &lt;km&gt;</code> — noise tile sizes.</li><li><code>r_cloudLegacy 0 | 1 | 2</code> — use of the map's legacy cloud layer.</li><li><code>r_cloudSkyPortal 0 | 1</code> — clouds on sky portal maps.</li><li><code>r_cloudShadowExtent &lt;km&gt;</code>, <code>r_cloudShadowInterval &lt;frames&gt;</code> — shadow map size and update rate.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_cloudDebug</code> — debug views.</li></ul>\n<p>For lower cost use <code>r_cloudScale 4</code>, <code>r_cloudSteps 32</code> and <code>r_cloudDetail 0</code>.</p>"
+    "title": "Volumetric clouds",
+    "html": "<p>Real 3D clouds above the map, with shaded undersides and bright edges toward the sun, drifting with the wind. Optional cloud shadows move across the ground and through fog.</p>\n<p class=\"cost\"><strong>Cost:</strong> heavy.</p>\n<ul><li><code>r_clouds 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_cloudCoverage 0.5</code> — 0 clear sky, 0.5 scattered clouds, 1 overcast.</li><li><code>r_cloudShadows 0</code> — 1: clouds shade the sunlit world and the sun in fog.</li><li><code>r_cloudWindSpeed 10</code>, <code>r_cloudWindDir 45</code> — wind in m/s and its direction in degrees.</li><li><code>r_cloudBase 1500</code>, <code>r_cloudTop 4000</code> — cloud layer height, in metres above the ground.</li><li><code>r_cloudDensity 1</code> — how thick the clouds are.</li><li><code>r_cloudScale 2</code> <em>(restart)</em> — render resolution divisor: 1 full, 2 half, 4 quarter. Lower numbers look sharper and cost much more.</li><li><code>r_cloudSkyPortal 0</code> — 1: also draw clouds on maps with sky portals (approximate).</li><li><code>r_cloudLegacy 1</code> — SP <code>fx_cloudlayer</code> entities: <strong>0</strong> ignored (their old haze is drawn), <strong>1</strong> used as a hint for the cloud style, <strong>2</strong> drawn as a literal ring (testing).</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>For each pixel a ray is marched through a layer of noise-shaped cloud density, checking light toward the sun at each step. The result is rendered at reduced resolution and averaged over frames.</p></div>\n<ul><li><code>r_cloudSteps 64</code>, <code>r_cloudStepLength 150</code> — maximum steps per ray and step length in metres.</li><li><code>r_cloudMaxDistance 60</code> — how far clouds are drawn, in km.</li><li><code>r_cloudShadowSteps 5</code> — light steps toward the sun.</li><li><code>r_cloudMSOctaves 3</code> — approximated multiple scattering; 1 single scattering only (darker clouds).</li><li><code>r_cloudAmbient 1</code> — sky light on clouds.</li><li><code>r_cloudAnisotropy 0.6</code> — strength of the bright edge toward the sun.</li><li><code>r_cloudDetail 1</code> — 0 skip the fine erosion noise (cheaper, blobbier).</li><li><code>r_cloudShapeScale 12</code>, <code>r_cloudDetailScale 1.5</code>, <code>r_cloudWeatherScale 40</code> — sizes (km) of the shape noise, detail noise and coverage map.</li><li><code>r_cloudTemporal 0.9</code> — frame averaging; 0 off.</li><li><code>r_cloudShadowExtent 8</code> — size of the cloud-shadow area around the camera, in km.</li><li><code>r_cloudShadowInterval 1</code> — frames between cloud-shadow updates.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_cloudDebug 1..11</code> — ray interval, density, noises, sun light, scattering, history, radiance, legacy mask, coverage map, shadow map.</li><li><code>r_cloudInfo</code> — configuration and status.</li><li><code>r_cloudLayerTest</code> — test cloud-layer entity handling.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-volumetric-clouds.md\" target=\"_blank\" rel=\"noopener\">rend2-volumetric-clouds.md</a>.</p>"
    }
   ],
   "media": []
  },
- "water": {
-  "group": "Water and weather",
-  "title": "Water surface",
-  "cvar": "r_waterSurface 1",
-  "how": "The surface normal comes from a deterministic sum of directional waves plus a tiled slope texture filtered so that unresolved waves raise roughness instead of aliasing; near the camera the mesh is tessellated. Reflection uses water SSR, then the cubemap. Refraction offsets the scene behind the surface, rejects foreground objects by depth, and attenuates color along the refracted path through the liquid.",
+ "sky/sky-portal-speed-up": {
+  "group": "Sky, atmosphere and clouds",
+  "title": "Sky portal speed-up",
+  "cvar": "r_skyPortalCull",
   "sections": [
    {
-    "title": "Water surface",
-    "html": "<p>Replaces the stock water of the maps with a physically based surface: Fresnel reflection, depth-aware refraction, absorption and scattering in the liquid, sun and light glints. Water is found from the map's BSP data; no map is rebuilt.</p>\n<p class=\"req\"><strong>Requirements.</strong> HDR is recommended.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_waterSurface 0 | 1</code> — stock / modern water. Requires <code>vid_restart</code>.</li><li><code>r_waterSnell 0 | 1</code> — Snell's window and total internal reflection when looking up from under water.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_waterSurfaceIOR &lt;value&gt;</code> — index of refraction.</li><li><code>r_waterSurfaceRoughness &lt;value&gt;</code> — base roughness; unresolved waves add to it.</li><li><code>r_waterSurfaceNormal &lt;value&gt;</code> — wave normal strength.</li><li><code>r_waterWind 0 | 1</code>, <code>r_waterWindScale &lt;value&gt;</code>, <code>r_waterWindTransition &lt;seconds&gt;</code> — wave response to wind and weather.</li><li><code>r_waterSurfaceRefraction &lt;value&gt;</code> — refraction offset scale.</li><li><code>r_waterSurfaceDepthReject 0 | 1</code> — reject foreground objects from the refraction.</li><li><code>r_waterSurfaceReflection &lt;value&gt;</code> — reflection scale.</li><li><code>r_waterSurfaceSSR &lt;value&gt;</code> — weight of water reflections over the cubemap.</li><li><code>r_waterSurfaceAbsorption &lt;value&gt;</code>, <code>r_waterSurfaceDepthScale &lt;value&gt;</code> — absorption and path length.</li><li><code>r_waterSnellOptics 0 | 1 | 2</code> — sun transport through the surface; 2 also shows the atmosphere through Snell's window.</li><li><code>r_waterSurfaceExperimental 0 | 1</code> — name-based water detection.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterSurfaceDebug</code>, <code>r_waterSnellDebug</code>, <code>r_waterWindDebug</code> — debug views.</li><li><code>r_waterInfo [surfaces]</code> — print liquid brushes and water shader decisions.</li></ul>"
+    "title": "Sky portal speed-up",
+    "html": "<p>On maps with a sky portal (a separate scene shown through the sky), the portal scene is shaded only where the main view leaves the sky visible. The image is unchanged; on by default.</p>\n<ul><li><code>r_skyPortalCull 1</code> — 0 always shade the whole portal view.</li></ul>"
    }
   ],
   "media": []
  },
- "waterparticles": {
-  "group": "Water and weather",
-  "title": "Underwater particles",
-  "cvar": "r_waterParticles 1",
-  "how": "Particles are simulated on the CPU in a sphere around the camera and only spawn where they are inside the water body and visible. They are drawn as small billboards lit from the light grid, after the other transparent surfaces, and fogged by the water medium like any other transparent draw.",
+ "weather/rain-streaks": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Rain streaks",
+  "cvar": "r_rainStreaks",
   "sections": [
    {
-    "title": "Underwater particles",
-    "html": "<p>Adds a few dozen to a few hundred tiny specks and small bubbles around the camera while it is under water. Near specks read as particles, far ones fade into the water color, which gives a sense of depth.</p>\n<p class=\"req\"><strong>Requirements.</strong> The camera must be inside a water or slime volume.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_waterParticles 0 | 1</code> — off / on.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_waterParticlesDensity 0..8</code> — density scale.</li><li><code>r_waterParticlesSize 0.25..4</code> — size scale.</li><li><code>r_waterParticlesSpeed 0..4</code> — drift and rise speed.</li><li><code>r_waterParticlesBubbles 0..1</code> — share of bubbles; <code>-1</code> uses the water profile.</li><li><code>r_waterParticlesDistance &lt;units&gt;</code> — radius around the camera.</li><li><code>r_waterParticlesProfile -1..3</code> — auto / clean / murky / dirty water.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterParticlesDebug 1..3</code> — placement, no medium in front, statistics.</li></ul>\n<p>With <code>r_waterParticles 0</code> nothing is simulated or drawn.</p>"
+    "title": "Rain streaks",
+    "html": "<p>Original rain is thin bright lines that look the same in a lit street and a dark alley. Modern streaks are shaped by fall speed and wind, lit by the sun and the map's light, fade naturally up close and in the distance, and stop at roofs.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium in rain.</p>\n<ul><li><code>r_rainStreaks 0</code> — 1 modern streaks.</li><li><code>r_rainStreakOpacity 1</code>, <code>r_rainStreakWidth 1</code>, <code>r_rainStreakLength 1</code> — opacity and size multipliers.</li><li><code>r_rainStreakLighting 1</code> — 0 fixed brightness, as originally; 1 lit by the sun and the map.</li><li><code>r_rainDynamicLighting 1</code> — dynamic lights (sabers, blasters) on drops and splashes: <strong>0</strong> none, <strong>1</strong> the strongest nearby light, <strong>2</strong> several nearby lights.</li><li><code>r_rainDynamicMaxLights 4</code> — lights per drop in mode 2, 1–8.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_rainStreakDebug 1..5</code> — coverage, distance fade, lighting, roof contact, variation.</li><li><code>r_rainDynamicDebug 1..3</code> — static light only, dynamic light only, number of lights used.</li></ul>"
    }
   ],
   "media": []
  },
- "rain": {
-  "group": "Water and weather",
-  "title": "Rain",
-  "cvar": "r_rainStreaks 1",
-  "how": "Drops are simulated on the GPU. Each one is drawn as a premultiplied streak stretched along its velocity and lit from the light grid, the sun and nearby lights. A splash is created in the frame when a drop crosses the top-down weather depth map, the first rain-exposed surface below it, without CPU traces or readbacks. Far away, streaks hand over to rain haze in the froxel fog.",
+ "weather/rain-haze": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Rain haze",
+  "cvar": "r_rainVolume",
   "sections": [
    {
-    "title": "Modern rain streaks",
-    "html": "<p>Replaces simple additive rain particles with lit, premultiplied streaks whose length follows velocity and wind. The streaks also fade near surfaces and at very small screen sizes.</p>\n<p class=\"req\"><strong>Requirements.</strong> Visible only while the map's rain weather system is active.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_rainStreaks 0 | 1</code> — legacy / modern rain streaks.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_rainStreakWidth &lt;value&gt;</code> — streak width.</li><li><code>r_rainStreakLength &lt;value&gt;</code> — length multiplier.</li><li><code>r_rainStreakOpacity &lt;value&gt;</code> — opacity.</li><li><code>r_rainStreakLighting 0 | 1</code> — fixed brightness / light-grid + sun lighting.</li><li><code>r_rainDynamicLighting 0 | 1 | 2</code> — current grid/sun only / strongest nearby dynamic light / up to the limited nearby Forward+ cluster lights. This also lights impact splashes and keeps <code>r_rainStreakLighting</code>'s existing meaning.</li><li><code>r_rainDynamicMaxLights 1..8</code> — accepted dynamic lights per streak or splash in mode 2 (default 4). At most eight importance-ordered cluster/UBO candidates are examined; finite-radius attenuation and a contribution cutoff reject distant or negligible lights.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_rainStreakDebug 1..5</code> — coverage, distance, lighting, contact and variation views.</li><li><code>r_rainDynamicDebug 1 | 2 | 3</code> — show the static/grid contribution, dynamic contribution, or normalized selected-light count.</li></ul>\n<p>Forward+ point/spot lights, saber line lights, blaster lights and explosion lights are read directly from the current renderer light data; rain has no separate light submission. Without an available cluster list, the same bounded loop reads the <code>Lights</code> UBO. Mode 0 returns the previous static result before evaluating any light. Use <code>r_speeds 100</code> and compare the existing <strong>Weather draw</strong> and <strong>Weather splashes</strong> GPU timers with mode 0/1/2 on both a light-rain and a heavy-rain map.</p>\n<p>Mode 1 is intended for heavy rain. Mode 2 costs more per visible streak/splash but remains bounded independently of total scene-light count.</p>"
-   },
-   {
-    "title": "Rain streak distance LOD",
-    "html": "<p>Hands distant rain from real streak geometry to the weather-occluded froxel medium. The stock distribution is nine 2000-unit square chunks around the camera: light, normal and heavy rain simulate 9,000, 18,000 and 45,000 drops respectively. Before this LOD, every visible chunk submitted its full count and streaks faded from 900 to 6000 units.</p>\n<p>The near band keeps every streak. Across the middle band a stable per-particle hash reduces density to the configured floor and retained streaks receive inverse-density opacity compensation, capped at 4x to avoid saturated, aliased lines. Across that same wide band the streak contribution crossfades out while the rain medium reaches full weight. Beyond the middle distance no streak geometry is emitted.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires an actually active rain volume (<code>r_rainVolume 1</code>, <code>r_volumetricFog 2</code>, weather depth and supported texture-unit budget). If the volume cannot render, LOD automatically falls back to all existing streaks so distant rain never disappears.</p>\n<ul><li><code>r_rainLOD 0 | 1</code> — master switch; default <code>1</code>.</li><li><code>r_rainLODNear &lt;units&gt;</code> — full-density radius; default <code>1200</code>.</li><li><code>r_rainLODMid &lt;units&gt;</code> — end of the streak/volume handoff; default <code>3600</code>.</li><li><code>r_rainLODDensityFloor 0.05..1</code> — lowest stochastic density in the middle band; default <code>0.25</code>.</li><li><code>r_rainLODFarVolumeCoupling 0..1</code> — <code>0</code> keeps the original all-distance medium, <code>1</code> fades the medium in across the LOD handoff.</li><li><code>r_rainLODDebug 0 | 1</code> — show green near, yellow-to-blue middle and blue far bands. Debug deliberately restores far streak markers.</li><li><code>r_speeds 100</code> — prints the current LOD/fallback state and the existing weather submission counts.</li></ul>"
-   },
-   {
-    "title": "Rain impact splashes",
-    "html": "<p>Creates short splash rings/spray where GPU rain drops cross the weather depth surface. No CPU trace is performed for each drop.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires active rain and the weather depth map.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_rainSplashes 0 | 1</code> — disable / enable impact splashes.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_rainSplashSize &lt;units&gt;</code> — splash radius.</li><li><code>r_rainSplashLifetime &lt;ms&gt;</code> — lifetime.</li><li><code>r_rainSplashOpacity &lt;value&gt;</code> — opacity.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_rainSplashDebug 1..3</code> — impact points, accepted/rejected crossings and recent trajectories.</li></ul>\n<p>Usually moderate only in very heavy rain; normal rain has a much smaller cost.</p>"
-   },
-   {
-    "title": "Weather chunk culling",
-    "html": "<p>Skips rain/snow weather chunks that are outside the camera frustum. It is intended to produce exactly the same image while avoiding unnecessary weather work.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_weatherCull 0 | 1</code> — draw every weather chunk / cull invisible chunks.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherDebugChunks 1 | 2</code> — visualize chunk bounds; mode 2 also prints detailed bounds.</li></ul>\n<p>No visual cost and usually improves performance.</p>"
+    "title": "Rain haze",
+    "html": "<p>Heavy rain hides the distance: courtyards fade into grey, and lamps glow through the downpour. This adds that haze where rain falls; covered interiors stay clear instead of getting a screen-wide grey tint. Needs <code>r_volumetricFog 2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_rainVolume 0</code> — 1 on.</li><li><code>r_rainVolumeStrength 0.00018</code> — haze density in normal rain.</li><li><code>r_rainVolumeHeavyMultiplier 4</code> — extra density in heavy rain.</li><li><code>r_rainVolumeGroundStrength 0</code> — splash mist close to the ground in heavy rain; 0 off.</li><li><code>r_rainVolumeGroundHeight 96</code> — height of that mist layer.</li><li><code>r_rainVolumeMaxDistance 6000</code> — how far the haze reaches.</li><li><code>r_rainVolumeAnisotropy 0.72</code> — how strongly rain glows when you look toward a light.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 71..74</code> — rain density, weather exposure, unshadowed light, final rain haze.</li></ul>"
    }
   ],
   "media": []
  },
- "wetness": {
-  "group": "Water and weather",
+ "weather/distant-rain": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Distant rain",
+  "cvar": "r_rainLOD",
+  "sections": [
+   {
+    "title": "Distant rain",
+    "html": "<p>Nearby rain is drawn as individual drops; farther away the drops thin out and the <a href=\"#f/weather/rain-haze\">rain haze</a> takes over. This removes the wall of tiny distant lines and the cost of drawing them. On by default; without rain haze, the ordinary streaks stay.</p>\n<ul><li><code>r_rainLOD 1</code> — 0 off.</li><li><code>r_rainLODNear 1200</code> — full drop density up to this distance.</li><li><code>r_rainLODMid 3600</code> — drops are gone beyond this distance.</li><li><code>r_rainLODDensityFloor 0.25</code> — lowest drop density between the two.</li><li><code>r_rainLODFarVolumeCoupling 1</code> — 1 rain haze fades in as drops fade out; 0 haze at every distance (the earlier behaviour).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_rainLODDebug 1</code> — distance bands: green near, yellow middle, blue far.</li><li><code>r_speeds 100</code> — print the current rain distance state and weather counts.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "weather/wet-surfaces": {
+  "group": "Rain, wet surfaces and lens water",
   "title": "Wet surfaces",
-  "cvar": "r_weatherWetness 1",
-  "how": "Rain exposure is read per pixel from the same top-down weather depth map that occludes rain, so roofs keep the ground below them dry. Exposed surfaces get darker albedo, lower roughness and flatter normals by material class. Puddles, ripples and runoff are procedural and only change the normal and roughness, so direct light, cubemaps and SSR all react to them.",
+  "cvar": "r_weatherWetness",
   "sections": [
    {
     "title": "Wet surfaces",
-    "html": "<p>Makes rain-exposed PBR surfaces darker, smoother and more reflective while roofs and other occluders remain dry. The response is material-aware: cloth mainly darkens, while armor and metal can become substantially glossier.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires an active rain map. Uses the weather occlusion depth map.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_weatherWetness 0 | 1</code> — disable / enable wet materials. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_weatherWetnessStrength 0..1</code> — overall wetness.</li><li><code>r_weatherWetnessRoughness &lt;value&gt;</code> — scale of class-specific smoothing.</li><li><code>r_weatherWetnessDarkening &lt;value&gt;</code> — scale of class-specific albedo darkening.</li><li><code>r_weatherWetnessNormal &lt;value&gt;</code> — scale of class-specific normal flattening.</li><li><code>r_weatherWetnessEntityFacing &lt;value&gt;</code> — wetness of vertical character/prop faces.</li><li><code>r_weatherWetnessBias &lt;units&gt;</code> — rain-occlusion depth bias.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 1..4</code> — exposure, wetness, roughness and dry/wet split.</li><li><code>r_weatherSurfaceDebug 16</code> — detected wet material class.</li><li><code>r_weatherSurfaceDebug 21</code> — geometric normal.</li></ul>\n<p>May slightly affect performance on rain-exposed PBR surfaces.</p>"
-   },
-   {
-    "title": "Procedural puddles",
-    "html": "<p>Creates standing water on flat rain-exposed world surfaces without editing the BSP. World-space noise breaks the water into irregular patches, and the resulting low roughness is automatically visible in direct light, cubemaps and SSR.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires <code>r_weatherWetness 1</code> and active rain.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_weatherPuddles 0 | 1</code> — disable / enable procedural puddles.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_weatherPuddleCoverage 0..1</code> — approximate covered fraction.</li><li><code>r_weatherPuddleRoughness &lt;value&gt;</code> — water roughness.</li><li><code>r_weatherPuddleSlope \"min max\"</code> — geometric-normal range where puddles can form.</li><li><code>r_weatherPuddleScale &lt;units&gt;</code> — macro puddle pattern size.</li></ul>\n<h4>Layered edge response (opt-in)</h4>\n<ul><li><code>r_weatherPuddleEdgeModel 0 | 1</code> — legacy response / continuous dry, damp fringe, thin film and standing-water response. Default <code>0</code> preserves the existing puddle shader.</li><li><code>r_weatherPuddleFringeDarkening 0..1</code> — additional albedo darkening at the damp fringe (default <code>0.18</code>).</li><li><code>r_weatherPuddleFilmRoughness 0.02..1</code> — target roughness of the thin film (default <code>0.18</code>); standing water continues to use <code>r_weatherPuddleRoughness</code>.</li></ul>\n<p>This model only splits the existing <code>puddleEdge</code> and <code>puddle</code> masks; it does not create or expand puddle placement. The damp fringe keeps the underlying normal and receives only a mild roughness reduction. The thin film progressively smooths roughness and partially flattens the normal, allowing the existing dielectric Fresnel, cubemap and SSR response to appear. The standing-water core reaches the geometric macro normal and retains rain-ripple perturbation. Existing per-material <code>weatherResponse</code> scaling still gates the whole response.</p>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 5..10</code> — slope, noise, exposure, mask, roughness and eligibility.</li><li><code>r_weatherSurfaceDebug 13..15</code> — macro, micro and combined puddle masks.</li><li><code>r_weatherSurfaceDebug 33</code> — four continuous region weights: dry grey, damp brown, thin film cyan, standing water blue.</li><li><code>r_weatherSurfaceDebug 34..36</code> — final roughness, added puddle darkening and final normal for the layered edge model.</li></ul>\n<p>May slightly affect performance.</p>"
-   },
-   {
-    "title": "Height-aware puddles",
-    "html": "<p>Uses POM/material height data so water fills cracks and low regions before raised relief instead of simply applying one flat glossy mask.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires procedural puddles and a material with height data.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_weatherPuddleUseHeightMap 0 | 1</code> — ignore / use material height data.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_weatherPuddleHeightSoftness &lt;value&gt;</code> — water-line transition width.</li><li><code>r_weatherPuddleWaterLevelBias &lt;value&gt;</code> — bias the virtual water level.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 11..12</code> — material height and low/high regions.</li><li><code>r_weatherSurfaceDebug 15</code> — final combined puddle mask.</li></ul>\n<p>Adds little cost beyond puddles.</p>"
-   },
-   {
-    "title": "Puddle ripples",
-    "html": "<p>Adds procedural expanding rain rings to standing water. The rings perturb the puddle normal, so SSR, cubemap reflections and direct highlights all react to them.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires procedural puddles and active rain.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_weatherPuddleRipples 0 | 1</code> — disable / enable ripples.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_weatherPuddleRippleStrength &lt;value&gt;</code> — ring normal strength.</li><li><code>r_weatherPuddleRippleScale &lt;units&gt;</code> — cell/ring scale.</li><li><code>r_weatherPuddleRippleRate &lt;value&gt;</code> — ring cycles per second.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 17..20</code> — ripple height, normal offset, masking and final normal.</li></ul>\n<p>May slightly affect performance.</p>"
-   },
-   {
-    "title": "Water runoff",
-    "html": "<p>Adds a thin animated water film and streaks on rain-exposed slopes and walls. Flow follows gravity projected onto the surface, while puddles remain the preferred response on nearly horizontal faces.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires <code>r_weatherWetness 1</code> and active rain.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_weatherRunoff 0 | 1</code> — disable / enable runoff.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_weatherRunoffStrength &lt;value&gt;</code> — film/streak strength.</li><li><code>r_weatherRunoffSpeed &lt;units/s&gt;</code> — flow speed.</li><li><code>r_weatherRunoffScale &lt;units&gt;</code> — streak-cell size.</li><li><code>r_weatherRunoffProbe &lt;value&gt;</code> — small outward rain-exposure probe for steep walls; <code>0</code> disables it.</li><li><code>r_weatherRunoffEntities 0 | 1</code> — also apply runoff to characters, props and movers.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 22..26</code> — slope class, projected gravity, runoff mask, animated flow and final roughness.</li></ul>\n<p>May slightly affect performance. It is shading-only and has no fluid simulation or additional pass.</p>"
-   },
-   {
-    "title": "Per-material weather response",
-    "html": "<p><strong>For mod authors.</strong> Automatic rain response can be overridden for exceptional surfaces: a roof can get wet without holding puddles, cloth can avoid standing water, or an indoor decorative shader can stay completely dry.</p>\n<p class=\"req\"><strong>Requirements.</strong> The corresponding wetness, puddle or runoff feature still needs to be enabled globally.</p>\n<pre><code>textures/example/floor_tiles\n{\n    {\n        map textures/example/floor_tiles\n        weatherResponse 1 0\n    }\n}\n\ntextures/example/roof_slope\n{\n    weatherResponse 1.3 1 0.3\n}</code></pre>\n<p>Syntax:</p>\n<pre><code>weatherResponse &lt;wetness&gt; [&lt;puddle&gt; [&lt;runoff&gt;]]</code></pre>\n<p>Values are 0..4; 1 is the automatic response and 0 disables that channel. A single <code>weatherResponse 0</code> disables all weather response.</p>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 27..31</code> — enabled/excluded state, wetness/puddle/runoff scales and exclusion reason.</li><li><code>r_weatherMaterialList</code> — print drawn shaders with non-default response or automatic exclusion for one frame.</li></ul>\n<p>No meaningful performance cost.</p>"
+    "html": "<p>Rain-exposed surfaces darken and become glossy: armor and metal gain sharp reflections, stone darkens, fabric mostly just darkens. Areas under roofs stay dry. Each surface reacts according to its <a href=\"#f/materials/automatic-materials-from-stock-textures-auto-pbr\">material class</a>, so it works best with <code>r_autoPBR 2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_weatherWetness 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_weatherWetnessStrength 1</code> — overall wetness, 0–1.</li><li><code>r_weatherWetnessEntityFacing 0.85</code> — wetness of the vertical sides of characters and props.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The weather map tells how exposed each point is; the material class decides how much wetness darkens it, smooths it and flattens fine bumps.</p></div>\n<ul><li><code>r_weatherWetnessRoughness 1</code>, <code>r_weatherWetnessDarkening 1</code>, <code>r_weatherWetnessNormal 1</code> — scale the per-class smoothing, darkening and bump flattening.</li><li><code>r_weatherWetnessBias 2</code> — tolerance of the roof test; raise it if exposed edges stay dry.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 1..4</code> — exposure, wetness, roughness, dry/wet split.</li><li><code>r_weatherSurfaceDebug 16</code>, <code>21</code> — detected material class, surface normal.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-weather-material.md\" target=\"_blank\" rel=\"noopener\">rend2-weather-material.md</a>.</p>"
    }
   ],
   "media": []
  },
- "lenswater": {
-  "group": "Water and weather",
-  "title": "Lens water",
-  "cvar": "r_rainLens 1",
-  "how": "A small CPU simulation tracks drops that pin, merge and slide, plus a wetness film and trails. It is rasterized into a lens field that the composite pass uses to refract and defocus the scene, with reflections from the nearest cubemap and glints from the sun and lights.",
+ "weather/wet-after-the-rain": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Wet after the rain",
+  "cvar": "r_weatherWetnessPersistence",
   "sections": [
    {
-    "title": "Rain on the camera lens",
-    "html": "<p>Adds persistent water on the camera lens:</p>\n<ul><li>Beads that pin, merge and depin, sliding drops that leave translucent wet trails and residual beads, and rivulets and sheets in heavy rain.</li><li>A burst of water when leaving a pool.</li></ul>\n<p>Rain only adds water while the camera is outside. Under cover, existing water keeps moving and dries. Light, normal, heavy and acid rain use different profiles, so heavy rain means turnover, film and rivulets rather than just more drops. See <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-rain-lens.md\" target=\"_blank\" rel=\"noopener\"><code>docs/rend2-rain-lens.md</code></a>.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires HDR (<code>r_hdr 1</code>) and the main world view. New rain needs active rain weather and an outside camera position.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_rainLens 0 | 1</code> — disable / enable lens water. Requires <code>vid_restart</code>.</li><li><code>r_rainLensQuality 0..2</code> — field resolution, drop count and defocus samples. Requires <code>vid_restart</code>.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_rainLensDensity 0..2</code> — rain input multiplier (default 1).</li><li><code>r_rainLensRefraction 0..4</code> — refraction strength.</li><li><code>r_rainLensDropSize 0.25..4</code> — drop size (geometry only).</li><li><code>r_rainLensFilm 0..2</code> — thin film / trail visibility.</li><li><code>r_rainLensBlur 0..2</code> — drop defocus.</li><li><code>r_rainLensReflection 0..2</code> — reflection of the environment (nearest cubemap) with Fresnel, and glints of the sun and nearby lights; 0 = refraction only.</li><li><code>r_rainLensInertia 0..2</code> — water lags behind strong camera acceleration (default 0).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_rainLensDebug 1..9</code> — optical weight / blur, normal, UV offset, scene/final split, agents, film/wetness, pinning, transient state and controller panel; forces the pass on.</li><li><code>rainlens_event splash|spray|emerge</code>, <code>rainlens_profile light|rain|heavy|acid|auto</code>, <code>rainlens_clear</code>, <code>rainlens_stats</code>.</li><li>Tuning cvars (cheat): <code>r_rainLensFieldHeight</code>, <code>r_rainLensAgentLimit</code>, <code>r_rainLensPinning</code>, <code>r_rainLensMerge</code>, <code>r_rainLensFilmDecay</code>, <code>r_rainLensWetDecay</code>, <code>r_rainLensHeavyFlow</code>, <code>r_rainLensPeripheralBias</code>; profiling: <code>r_rainLensPBO</code>, <code>r_rainLensMipBlur</code>.</li></ul>\n<p><strong>Maps and effects.</strong> Waterfalls and spray: <code>LensWaterEmitters</code> in <code>cubemaps/&lt;map&gt;/env.json</code> or the efx <code>lensWater</code> primitive. Splashes of characters entering water nearby and leaving water yourself are automatic with the updated game modules. Scripts can use <code>r_we lenswater splash 1</code>.</p>\n<p>The CPU simulation is bounded: up to 128 drops, 256 micro drops and 8 sheets, about 0.2 ms at worst. The field is quality bounded, and the full-resolution composite only samples extra where there is water. A dry lens under cover costs nothing.</p>"
+    "title": "Wet after the rain",
+    "html": "<p>Surfaces get wet gradually when rain starts and dry slowly after it stops, instead of switching instantly. Steep surfaces dry faster. Needs <code>r_weatherWetness 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_weatherWetnessPersistence 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_weatherWetnessAccumulationRate 0.20</code> — how fast surfaces get wet.</li><li><code>r_weatherWetnessDryRate 0.02</code> — how fast they dry; 0.02 is about 50 seconds.</li><li><code>r_weatherWetnessSteepDryScale 2</code> — steep surfaces dry this much faster.</li><li><code>r_weatherWetnessAcidAccumulationScale 1</code>, <code>r_weatherWetnessAcidDryScale 1</code> — the same rates in acid rain.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>A world-space texture over the level stores how much water each spot holds; rain adds to it and time removes it.</p></div>\n<ul><li><code>r_weatherWetnessResolution 256</code> <em>(restart)</em> — resolution of that texture (64–1024).</li><li><code>r_weatherWetnessUpdateHz 10</code> — updates per second.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherWetnessPersistenceDebug 1</code> — stored water.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-weather-wetness-persistence.md\" target=\"_blank\" rel=\"noopener\">rend2-weather-wetness-persistence.md</a>.</p>"
    }
   ],
   "media": []
  },
- "grass": {
-  "group": "Foliage and loading",
-  "title": "Grass cards",
-  "cvar": "r_grassCardMode 3",
-  "how": "Stock surface-sprite grass is rebuilt at load into world-fixed crossed cards packed into static vertex buffers, instead of billboards that turn with the camera. In adaptive mode the third card fades out with distance.",
+ "weather/puddles": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Puddles",
+  "cvar": "r_weatherPuddles",
   "sections": [
    {
-    "title": "Grass card geometry",
-    "html": "<p>Turns camera-facing grass billboards into fixed world-space crossed cards, reducing the “rotates with the camera” look and preventing blades from disappearing edge-on. It is especially visible on Yavin grass.</p>\n<p class=\"req\"><strong>Requirements.</strong> Applies to existing surface-sprite grass.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_grassCardMode 0 | 1 | 2 | 3</code> — legacy / two-card cross / three-card tuft / adaptive three-to-two cards.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_grassCardLodDist &lt;units&gt;</code> — third-card fade distance in adaptive mode.</li><li><code>r_grassCardWidth &lt;value&gt;</code> — card width multiplier.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_grassCardDebug 1..6</code> — card ID/direction, forced card counts and LOD visualization.</li></ul>\n<p>Moderate cost in dense grass because two or three cards increase geometry and alpha overdraw.</p>"
-   },
-   {
-    "title": "Automatic foliage classification",
-    "html": "<p>Recognizes likely leaf and plant surfaces in stock models so later foliage features can target vegetation without changing assets.</p>\n<p class=\"req\"><strong>Requirements.</strong> No visual dependency; this is classification used by leaf flutter, plant wind and interaction.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_autoFoliage 0 | 1 | 2</code> — off / conservative stock-safe detection / broader experimental detection.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_autoFoliageDebug 1 | 2</code> — classified surfaces / classified plus uncertain candidates.</li><li><code>r_autoFoliageList [filter]</code> — print detected foliage.</li></ul>\n<p>No measurable frame-time cost.</p>"
+    "title": "Puddles",
+    "html": "<p>Glossy puddles form on flat exposed floors and ground, with no map changes. On textures with a height map (texture packs), water fills cracks and low spots first. Needs <code>r_weatherWetness 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_weatherPuddles 0</code> — 1 on.</li><li><code>r_weatherPuddleCoverage 0.35</code> — share of flat exposed ground covered.</li><li><code>r_weatherPuddleScale 192</code> — size of the puddle pattern.</li><li><code>r_weatherPuddleEdgeModel 0</code> — 1: realistic edges, going from dry ground through a dark damp fringe and a thin film to standing water.</li><li><code>r_weatherPuddleUseHeightMap 1</code> — follow texture height maps where available.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>A world-space noise pattern, limited to flat (<code>r_weatherPuddleSlope</code>) and rain-exposed surfaces, decides where water stands. With a height map, a virtual water level fills the relief from the bottom.</p></div>\n<ul><li><code>r_weatherPuddleRoughness 0.04</code> — smoothness of standing water.</li><li><code>r_weatherPuddleSlope \"0.90 0.98\"</code> — how flat a surface must be (surface normal Z where puddles begin and reach full size).</li><li><code>r_weatherPuddleHeightSoftness 0.08</code> — sharpness of the water line in relief.</li><li><code>r_weatherPuddleWaterLevelBias 0</code> — above 0 floods more of the relief, below 0 only the deepest cracks.</li><li><code>r_weatherPuddleFringeDarkening 0.18</code>, <code>r_weatherPuddleFilmRoughness 0.18</code> — edge model: darkening of the damp fringe, smoothness of the thin film.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 5..15</code> — slope, noise, exposure, mask, roughness, eligibility, height, low/high areas, pattern layers, final mask.</li><li><code>r_weatherSurfaceDebug 33..36</code> — edge model: zones (grey dry, brown damp, cyan film, blue water), roughness, darkening, normal.</li></ul>"
    }
   ],
   "media": []
  },
- "wind": {
-  "group": "Foliage and loading",
-  "title": "Wind",
-  "cvar": "r_foliageWind 1",
-  "how": "Grass offsets come from a world-space breeze field, so neighbouring plants move together in broad gusts with smaller local motion on top. Leaf flutter adds a small high-frequency displacement and normal wobble only to model surfaces classified as leaves; trunks and branches stay still.",
+ "weather/rain-rings-in-puddles": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Rain rings in puddles",
+  "cvar": "r_weatherPuddleRipples",
   "sections": [
    {
-    "title": "Coherent foliage wind",
-    "html": "<p>Replaces synchronized circular grass sway with a world-space breeze field. Nearby plants share broad gusts while retaining smaller local motion.</p>\n<p class=\"req\"><strong>Requirements.</strong> Applies to surface-sprite vegetation that already supports wind.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_foliageWind 0 | 1</code> — legacy sway / coherent breeze.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_foliageWindStrength &lt;value&gt;</code> — global strength.</li><li><code>r_foliageWindSpeed &lt;value&gt;</code> — time scale.</li><li><code>r_foliageWindDirection &lt;degrees&gt;</code> — world-space yaw.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_foliageWindDebug 1..4</code> — exaggerated motion, bend color, frozen time and large-gust visualization.</li></ul>\n<p>May slightly affect performance; work is vertex-side only.</p>"
-   },
+    "title": "Rain rings in puddles",
+    "html": "<p>Raindrops make spreading rings in puddles that distort reflections. On by default once puddles are on.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium.</p>\n<ul><li><code>r_weatherPuddleRipples 1</code> — <strong>0</strong> off. <strong>1</strong> a repeating pattern of rings. <strong>2</strong> rings where drops actually land. <strong>3</strong> real rings nearby, pattern farther away.</li><li><code>r_weatherPuddleRippleStrength 0.35</code> — how much rings bend reflections.</li><li><code>r_weatherPuddleRippleScale 20</code> — ring size.</li><li><code>r_weatherPuddleRippleRate 1.1</code> — rings per second (mode 1).</li><li><code>r_weatherPuddleRippleDistance 1500</code> — modes 2–3: how far real rings are drawn.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>In modes 2 and 3 every rain impact pushes a small water-height field, which spreads and settles like waves.</p></div>\n<ul><li><code>r_weatherPuddleRippleImpulse 0.45</code> — push per drop.</li><li><code>r_weatherPuddleRipplePropagation 10</code> — wave speed.</li><li><code>r_weatherPuddleRippleDamping 2.5</code> — how fast waves die out.</li><li><code>r_weatherPuddleRippleFieldScale 1</code> — area covered by the field.</li><li><code>r_weatherPuddleRippleResolution 256</code> <em>(restart)</em> — field resolution (64–1024).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 17..20</code> — ring height, normal offset, masking, final normal.</li><li><code>r_weatherPuddleRippleDebug 1..4</code> — impacts, height, velocity, final normal.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-puddle-ripples.md\" target=\"_blank\" rel=\"noopener\">rend2-puddle-ripples.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "weather/water-running-down-walls": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Water running down walls",
+  "cvar": "r_weatherRunoff",
+  "sections": [
+   {
+    "title": "Water running down walls",
+    "html": "<p>Thin streams of water run down exposed slopes and walls in the direction of gravity. Needs <code>r_weatherWetness 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_weatherRunoff 0</code> — 1 on.</li><li><code>r_weatherRunoffStrength 1</code> — visibility of the streaks.</li><li><code>r_weatherRunoffSpeed 24</code> — flow speed.</li><li><code>r_weatherRunoffScale 48</code> — streak size.</li><li><code>r_weatherRunoffEntities 0</code> — 1: also on characters, props and moving objects.</li><li><code>r_weatherRunoffTrailPersistence 0</code> — seconds that trails stay dark and glossy after the water passes; needs <a href=\"#f/weather/wet-after-the-rain\">wet after the rain</a>.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Gravity projected onto each surface gives the flow direction; an animated pattern of thin streaks moves along it and changes color and gloss. Walls check for rain a little in front of them.</p></div>\n<ul><li><code>r_weatherRunoffProbe 1.5</code> — that distance; 0 off.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 22..26</code> — slope class, gravity direction, mask, flow, roughness.</li><li><code>r_weatherRunoffTrailDebug 1..2</code> — stored trails, final trail mask.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-weather-runoff.md\" target=\"_blank\" rel=\"noopener\">rend2-weather-runoff.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "weather/rain-splashes": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Rain splashes",
+  "cvar": "r_rainSplashes",
+  "sections": [
+   {
+    "title": "Rain splashes",
+    "html": "<p>Small splashes where drops hit the ground, roofs and puddles.</p>\n<p class=\"cost\"><strong>Cost:</strong> light; medium in very heavy rain.</p>\n<ul><li><code>r_rainSplashes 0</code> — 1 on.</li><li><code>r_rainSplashSize 6</code>, <code>r_rainSplashLifetime 350</code>, <code>r_rainSplashOpacity 0.5</code> — radius, lifetime in ms, opacity.</li><li><code>r_rainSplashSurfaceResponse 0</code> <em>(restart)</em> — 1: splashes depend on the surface: metal, soil, plants, puddles and real water each react differently.</li><li><code>r_rainSplashHardDryStrength 1</code>, <code>r_rainSplashHardWetStrength 1</code>, <code>r_rainSplashMetalStrength 1</code>, <code>r_rainSplashSoilStrength 1</code>, <code>r_rainSplashVegetationStrength 1</code>, <code>r_rainSplashPuddleStrength 1</code>, <code>r_rainSplashWaterStrength 1</code> — splash strength per surface type.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The GPU follows the falling drops and detects where they cross the weather map's surface; each crossing spawns a short-lived splash.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_rainSplashDebug 1..3</code> — impact points, crossing test, drop paths.</li><li><code>r_rainSplashSurfaceDebug 1</code> — surface-type map.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-rain-splashes.md\" target=\"_blank\" rel=\"noopener\">rend2-rain-splashes.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "weather/water-on-the-camera-lens": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Water on the camera lens",
+  "cvar": "r_rainLens",
+  "sections": [
+   {
+    "title": "Water on the camera lens",
+    "html": "<p>Beads, running drops and a wet film on the screen when you stand in rain or come out of water. Under cover the water keeps running down and dries instead of vanishing. Needs <code>r_hdr 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light while wet; nothing when dry.</p>\n<ul><li><code>r_rainLens 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_rainLensQuality 1</code> <em>(restart)</em> — 0–2: resolution, number of drops, blur quality.</li><li><code>r_rainLensFilmModel 0</code> — <strong>0</strong> long-lived beads and drops. <strong>1</strong> mostly a draining film with short-lived small drops.</li><li><code>r_rainLensDensity 1.0</code> — how much rain reaches the lens.</li><li><code>r_rainLensDropSize 1.0</code> — drop size (not the amount of water).</li><li><code>r_rainLensRefraction 1.0</code> — how strongly drops bend the image.</li><li><code>r_rainLensBlur 1.0</code> — drop blur.</li><li><code>r_rainLensFilm 1.0</code> — visibility of the film and trails.</li><li><code>r_rainLensReflection 1.0</code> — reflections and glints of the sun and lights in drops; 0 bending only.</li><li><code>r_rainLensInertia 0</code> — water lags behind sharp camera movement.</li><li><code>r_rainLensPeripheralBias 1.0</code> — keep big drops and flows away from the screen center.</li></ul>\n<p>Film model (<code>r_rainLensFilmModel 1</code>):</p>\n<ul><li><code>r_rainLensEmergeTime 1.0</code>, <code>r_rainLensEmergeWater 1.0</code> — how long the lens drains and how much water stays after leaving water.</li><li><code>r_rainLensFilmMicro 1.0</code> — fine distortion in the film.</li><li><code>r_rainLensImpactSplat 0</code> — slanted drops splat and smear along their direction; 0 off.</li><li><code>r_rainLensMist 0.04</code> — mist reaching the lens when not facing the rain.</li></ul>\n<p class=\"mod\"><strong>Mod authors:</strong> add <code>LensWaterEmitters</code> to <code>cubemaps/&lt;map&gt;/env.json</code> or an EFX <code>lensWater</code> primitive to wet the lens near a waterfall or spray. Scripts can call <code>r_we lenswater splash 1</code>.</p>\n<div class=\"how\"><h3>How it works</h3><p>A small simulation of drops and film produces a distortion map, and the final image is bent, blurred and given reflections through it.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_rainLensDebug 1..9</code> — blur weight, normal, offset, before/after split, drops, film, sticking, transient state, control panel. Forces the effect on.</li><li><code>rainlens_event splash|spray|emerge</code>, <code>rainlens_profile light|rain|heavy|acid|auto</code>, <code>rainlens_clear</code>, <code>rainlens_stats</code> — test commands.</li><li><code>r_rainLensFieldHeight</code>, <code>r_rainLensAgentLimit</code>, <code>r_rainLensPinning</code>, <code>r_rainLensMerge</code>, <code>r_rainLensFilmDecay</code>, <code>r_rainLensWetDecay</code>, <code>r_rainLensHeavyFlow</code> — tuning of resolution, drop budget, sticking, merging, drying and flows.</li><li><code>r_rainLensPBO</code>, <code>r_rainLensMipBlur</code> — compare upload and blur methods for profiling.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-rain-lens.md\" target=\"_blank\" rel=\"noopener\">rend2-rain-lens.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "weather/acid-rain": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Acid rain",
+  "cvar": "r_acidRainVisuals",
+  "sections": [
+   {
+    "title": "Acid rain",
+    "html": "<p>Gives acid rain one consistent sickly tint across streaks, haze, puddles, runoff, wet surfaces and lens water, instead of each using its own color. Only affects looks, not damage.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_acidRainVisuals 0</code> — 1 on.</li><li><code>r_acidRainTint \"0.78 1.00 0.62\"</code> — the tint.</li><li><code>r_acidRainStrength 1</code> — its strength.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_precipitationInfo</code> — print the current precipitation type, intensity and what uses it.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-acid-rain-profile.md\" target=\"_blank\" rel=\"noopener\">rend2-acid-rain-profile.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "weather/weather-on-specific-materials-mod-authors": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Weather on specific materials (mod authors)",
+  "cvar": "",
+  "sections": [
+   {
+    "title": "Weather on specific materials (mod authors)",
+    "html": "<p>Keep a roof wet but free of puddles, a cloth dry of standing water, or an indoor shader completely dry. Without an override every material reacts automatically.</p>\n<p>Add <code>weatherResponse &lt;wetness&gt; [&lt;puddle&gt; [&lt;runoff&gt;]]</code> to a shader or stage, values 0–4, 1 normal:</p>\n<pre><code>weatherResponse 1.3 1 0.3</code></pre>\n<p>A single <code>weatherResponse 0</code> disables all three.</p>\n<h4>Debug</h4>\n<ul><li><code>r_weatherSurfaceDebug 27..31</code> — on/off, wetness, puddle and runoff scale, why a surface is excluded.</li><li><code>r_weatherMaterialList</code> — print the drawn shaders with an override or automatic exclusion.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "weather/rain-culling": {
+  "group": "Rain, wet surfaces and lens water",
+  "title": "Rain culling",
+  "cvar": "r_weatherCull",
+  "sections": [
+   {
+    "title": "Rain culling",
+    "html": "<p>Rain is drawn in chunks around the camera; chunks outside the view are skipped. The rain looks the same; on by default.</p>\n<ul><li><code>r_weatherCull 1</code> — 0 draw every chunk.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_weatherDebugChunks 1</code> — show chunk bounds; 2 also prints them.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "water/modern-water": {
+  "group": "Water, waves and waterfalls",
+  "title": "Modern water",
+  "cvar": "r_waterSurface",
+  "sections": [
+   {
+    "title": "Modern water",
+    "html": "<p>Stock water is a scrolling texture with a fixed tint. Modern water reflects its surroundings, bends the view of the bottom, is clear where shallow and darker where deep, and gets the brighter reflections at grazing angles that real water has. Stock water and slime are found automatically; nothing has to be edited.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium; high reflection quality can make it heavy.</p>\n<ul><li><code>r_waterSurface 0</code> <em>(restart)</em> — 1 on; 0 restores the original water.</li><li><code>r_waterSurfaceSSR 1</code> — weight of on-screen reflections over cubemap reflections; 0 cubemap only. Independent of <code>r_ssr</code>.</li><li><code>r_waterSurfaceRoughness 0.06</code> — smaller gives sharper highlights and reflections.</li><li><code>r_waterSurfaceAbsorption 1</code> — how fast water gets darker with depth (shared with <a href=\"#f/water/underwater-fog\">underwater fog</a>).</li><li><code>r_waterSurfaceReflection 1</code>, <code>r_waterSurfaceRefraction 1</code> — strength of reflection and of bending; 1 physically correct.</li><li><code>r_waterSurfaceNormal 1</code> — strength of small ripples; 0 removes them.</li><li><code>r_waterSurfaceExperimental 0</code> — 1: also treat surfaces with water-like shader names (<code>pool</code>, <code>lake</code>, <code>river</code>…) as water, for maps where detection misses some.</li></ul>\n<p><code>r_waterSurfaceDebug 9</code> compares old and new water side by side.</p>\n<p class=\"mod\"><strong>Mod authors:</strong> water-body and <code>Liquids</code> rules in <code>cubemaps/&lt;map&gt;/env.json</code> choose which surfaces form one body and its look and motion; see the design notes.</p>\n<div class=\"how\"><h3>How it works</h3><p>At map load water surfaces are found from map contents and grouped into bodies. When drawn, reflection (on-screen tracing, falling back to cubemaps) is mixed with refraction by the viewing angle (Fresnel); the depth image behind the water gives its thickness and so how much light it absorbs.</p></div>\n<ul><li><code>r_waterSurfaceIOR 1.333</code> — refractive index of the liquid.</li><li><code>r_waterSurfaceDepthScale 1</code> — scale of the measured water thickness.</li><li><code>r_waterSurfaceDepthReject 1</code> — refraction never shows objects in front of the water.</li><li><code>r_waterSSROptimize 7</code> — reflection speed-ups, add bits: <strong>1</strong> coarser geometry in the reflection pre-pass, <strong>2</strong> skip hidden water, <strong>4</strong> simpler pre-pass shader. 0 turns them off for comparison.</li><li><code>r_waterSSRWaveReprojection 0</code> <em>(restart)</em> — 1: use exact previous-frame wave geometry for frame-averaged reflections.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterSurfaceDebug 1..11</code> — classification, normals, reflection, depth, refraction, roughness; 9 old/new split at <code>r_waterSurfaceSplit 0.5</code>.</li><li><code>r_waterMotionDebug 1..10</code> — water motion and history validity.</li><li><code>r_waterInfo</code> — list modern-water surfaces. <code>r_waterBodies</code> — bodies and profiles. <code>r_waterOverride</code> — inspect or override classification (run without arguments for syntax).</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-water-bodies.md\" target=\"_blank\" rel=\"noopener\">rend2-water-bodies.md</a>, <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-water-surface.md\" target=\"_blank\" rel=\"noopener\">rend2-water-surface.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/underwater-fog": {
+  "group": "Water, waves and waterfalls",
+  "title": "Underwater fog",
+  "cvar": "r_volumetricWater",
+  "sections": [
+   {
+    "title": "Underwater fog",
+    "html": "<p>Underwater the original game tints the whole screen one color. With this, water, slime and lava are real fog inside <a href=\"#f/fog/volumetric-fog\">volumetric fog</a>: objects fade with their actual distance through the liquid, red light disappears first, sunlight dims with depth, and a moving light pattern (caustics) plays on the bottom. Needs <code>r_volumetricFog 2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium.</p>\n<ul><li><code>r_volumetricWater 0</code> <em>(restart)</em> — which liquids, add: <strong>1</strong> water, <strong>2</strong> slime, <strong>4</strong> lava. 7 for all.</li><li><code>r_volumetricWaterExtinction 0.0014</code> — how fast water hides distant objects.</li><li><code>r_volumetricWaterAlbedo \"0.10 0.45 0.75\"</code> — color of light scattered by water.</li><li><code>r_volumetricWaterColor</code> — relative absorption of red, green and blue; by default red goes first.</li><li><code>r_volumetricWaterCaustics 0.35</code> — strength of the caustic pattern from the sun; 0 off.</li><li><code>cg_underwaterTint 1</code> — the original full-screen tint; skipped automatically for liquids drawn as fog.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Liquid brushes add absorption and scattering to the fog cells inside them. Sun and dynamic light lose strength with the distance they travel through the liquid.</p></div>\n<ul><li><code>r_volumetricWaterAnisotropy 0.75</code> — how strongly water glows toward the light.</li><li><code>r_volumetricWaterSunPath 1</code> — dim sun and dynamic light by the path through the liquid.</li><li><code>r_volumetricWaterSurfaces 1</code> <em>(restart)</em> — also dim sunlight and add caustics on underwater surfaces.</li><li><code>r_volumetricWaterCausticScale 160</code>, <code>r_volumetricWaterCausticSpeed 0.06</code>, <code>r_volumetricWaterCausticFocus 48</code> — caustic size, drift speed, depth of full contrast.</li><li><code>r_volumetricSlimeExtinction 0.005</code>, <code>r_volumetricSlimeAlbedo \"0.25 0.7 0.2\"</code>, <code>r_volumetricSlimeColor \"1.6 0.5 0.9\"</code>, <code>r_volumetricSlimeAnisotropy 0.4</code> — the same for slime.</li><li><code>r_volumetricLavaExtinction 0.02</code>, <code>r_volumetricLavaAlbedo \"0.6 0.15 0.02\"</code>, <code>r_volumetricLavaColor \"0.6 1.2 1.2\"</code>, <code>r_volumetricLavaAnisotropy 0.3</code> — the same for lava (no glow).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 59..70</code> — liquid density, brushes, camera membership, boundaries, transparency, underwater sun, path length, scattering.</li><li><code>r_liquids</code> — list liquid brushes and profiles.</li><li><code>r_volumetricWaterActive</code> — set by the renderer: which liquids are drawn as fog on this map (read by the game).</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-volumetric-fog.md#underwater-medium-r_volumetricwater\" target=\"_blank\" rel=\"noopener\">rend2-volumetric-fog.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/looking-up-from-underwater": {
+  "group": "Water, waves and waterfalls",
+  "title": "Looking up from underwater",
+  "cvar": "r_waterSnell",
+  "sections": [
+   {
+    "title": "Looking up from underwater",
+    "html": "<p>From below, the world above is visible only through a bright circle overhead (Snell's window); at flatter angles the surface turns into a mirror reflecting the underwater scene. Needs modern water.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium.</p>\n<ul><li><code>r_waterSnell 0</code> — 1 on.</li><li><code>r_waterSnellOptics 0</code> <em>(restart)</em> — <strong>0</strong> basic, <strong>1</strong> sunlight passes through the surface, <strong>2</strong> also the atmosphere along the path above.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Light bends when crossing the water surface (Snell's law); beyond a critical angle it can't leave and reflects back (total internal reflection).</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_waterSnellDebug 1..6</code> — crossing direction, internal reflection, reflection strength, ray direction, source.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-water-realism-followup.md\" target=\"_blank\" rel=\"noopener\">rend2-water-realism-followup.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/waves": {
+  "group": "Water, waves and waterfalls",
+  "title": "Waves",
+  "cvar": "r_waterWaves",
+  "sections": [
+   {
+    "title": "Waves",
+    "html": "<p>Coherent waves roll across the water instead of a scrolling texture. Wind can turn and strengthen them outdoors, and shallow water moves less than deep pools. Without <a href=\"#f/water/wave-geometry\">wave geometry</a> the waves change lighting only; the surface itself stays flat.</p>\n<p class=\"cost\"><strong>Cost:</strong> light; medium with wave geometry.</p>\n<ul><li><code>r_waterWaves 0</code> — 1 on.</li><li><code>r_waterWaveAmplitude 1</code>, <code>r_waterWaveLength 1</code>, <code>r_waterWaveSpeed 1</code> — wave height, length and speed.</li><li><code>r_waterWind 0</code> — 1: outdoor waves follow the wind.</li><li><code>r_waterWaveQuality 1</code> — 0, 1, 2: 2, 4 or 8 wave layers.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>A few analytic wave trains are summed to give height and slope. Dispersion makes long waves faster than short ones and all waves slower in shallow water; wind changes are crossfaded.</p></div>\n<ul><li><code>r_waterWaveDispersion 1</code> — <strong>0</strong> all waves the same speed, <strong>1</strong> speed depends on wavelength and depth, <strong>2</strong> physically calibrated (still water only).</li><li><code>r_waterWaveGravity 313.6</code> — gravity for mode 2, in units/s².</li><li><code>r_waterWaveShallow 1</code> — damp waves in shallow bodies.</li><li><code>r_waterWaveMicro 1</code> — fine slope detail, on top of <code>r_waterSurfaceNormal</code>.</li><li><code>r_waterWindScale 1</code> — strength of the wind response.</li><li><code>r_waterWindTransition 4</code> — seconds to blend into a new wind.</li><li><code>r_waterWaveChoppiness 1</code> — reserved; no effect yet.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterWaveDebug 1..10</code> — height, normals, profile, depth mask, displacement, split, multiplier, legacy deform.</li><li><code>r_waterWaveTime -1</code> — freeze waves at a time in seconds; -1 running.</li><li><code>r_waterWindDebug 1..4</code> — wind, current and target direction, blend.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-water-waves.md\" target=\"_blank\" rel=\"noopener\">rend2-water-waves.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/wave-geometry": {
+  "group": "Water, waves and waterfalls",
+  "title": "Wave geometry",
+  "cvar": "r_waterGeometry",
+  "sections": [
+   {
+    "title": "Wave geometry",
+    "html": "<p>Lets waves actually move the water surface, so its outline rises and falls against shores and objects, and the camera crossing the surface follows the moving waterline. Needs modern water.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium; dense geometry can be heavy.</p>\n<ul><li><code>r_waterGeometry 0</code> <em>(restart)</em> — 1: split water into a fine mesh.</li><li><code>r_waterTessellation 0</code> <em>(restart)</em> — 1: let the GPU add detail near the camera and less far away (OpenGL 4.3). Faster and finer than the fixed mesh alone.</li><li><code>r_waterTessPixels 96</code> — tessellation: target edge length on screen; smaller is denser and slower.</li><li><code>r_waterGeometryEdge 64</code> <em>(restart)</em> — fixed mesh: longest edge in world units.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The water is subdivided within vertex budgets, and each vertex is moved by the wave height. Waves shorter than the mesh stay in shading only. The waterline uses a small tolerance band so the screen doesn't flicker between above and below water.</p></div>\n<ul><li><code>r_waterGeometryBodyVerts 250000</code>, <code>r_waterGeometryMapVerts 1000000</code> <em>(restart)</em> — vertex budgets per body and per map.</li><li><code>r_waterTessMax 16</code> <em>(restart)</em> — maximum tessellation level (8, 16, 32); the base mesh is that much coarser.</li><li><code>r_waterTessLodDistance 0</code> — distance with the finest detail.</li><li><code>r_waterTessMinEdge 0</code> — shortest edge in world units; 0 lets <code>r_waterTessMax</code> decide.</li><li><code>r_waterlineHysteresis 1.5</code> — the waterline tolerance band.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterGeometryDebug 1</code> — geometry view. <code>r_waterGeometryInfo</code> — meshes and budgets.</li><li><code>r_waterTessForce &lt;level&gt;</code> — force one tessellation level everywhere; 0 by distance.</li><li><code>r_waterlineDebug 1..2</code> — waterline state, and its height graph.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-water-geometry.md\" target=\"_blank\" rel=\"noopener\">rend2-water-geometry.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/ripples-from-movement-and-impacts": {
+  "group": "Water, waves and waterfalls",
+  "title": "Ripples from movement and impacts",
+  "cvar": "r_waterInteraction",
+  "sections": [
+   {
+    "title": "Ripples from movement and impacts",
+    "html": "<p>Shots, falling objects and characters send real ripples across a pool, which spread, reflect from edges and fade. Needs modern water.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium, within memory budgets.</p>\n<ul><li><code>r_waterInteraction 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_waterInteractionStrength 1</code> — strength of all disturbances.</li><li><code>r_waterInteractionQuality 1</code> <em>(restart)</em> — detail: 0 coarse, 1 medium, 2 fine.</li><li><code>r_waterBathymetry 0</code> <em>(restart)</em> — 1: measure the depth under each body, so that with <code>r_waterInteractionVariableDepth 1</code> ripples slow down in shallow water as real waves do.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Each body gets a small grid of water height and vertical speed that is simulated every frame.</p></div>\n<ul><li><code>r_waterInteractionSpeed 1</code>, <code>r_waterInteractionDamping 1</code> — spread speed and damping.</li><li><code>r_waterInteractionMaxBodies 8</code>, <code>r_waterInteractionMaxTexels 524288</code>, <code>r_waterInteractionMemoryMB 16</code> <em>(restart)</em> — budgets.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterInteractionDebug 1..9</code> — domain, mask, height, velocity, slope, sources, foam, sleep, mapping.</li><li><code>r_waterInteractionInfo</code> — fields and budgets. <code>r_waterBathymetryDebug 1</code> — depth-measurement audit.</li><li><code>r_waterImpulse [strength] [radius]</code> — poke the water you are aiming at.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-water-interaction.md\" target=\"_blank\" rel=\"noopener\">rend2-water-interaction.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/splashes-wakes-and-rain-on-water": {
+  "group": "Water, waves and waterfalls",
+  "title": "Splashes, wakes and rain on water",
+  "cvar": "r_waterSplashes",
+  "sections": [
+   {
+    "title": "Splashes, wakes and rain on water",
+    "html": "<p>Jumping in or climbing out throws spray, shots raise splashes, characters leave wakes, and rain dimples pools. Wakes and rain need <a href=\"#f/water/ripples-from-movement-and-impacts\">ripples</a> (<code>r_waterInteraction 1</code>) to show.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium while active.</p>\n<ul><li><code>r_waterSplashes 0</code> — 1: entry, exit and projectile splashes.</li><li><code>r_waterSplashStrength 1</code>, <code>r_waterSplashQuality 1</code> — strength and particle quality (0–2).</li><li><code>r_waterSplashProjectiles 1</code> — splashes from shots and thrown sabers.</li><li><code>r_waterSplashFoam 1</code> — foam left by splashes.</li><li><code>r_waterWakes 1</code> — wakes behind moving characters.</li><li><code>r_waterWakeStrength 1</code> — wake strength.</li><li><code>r_waterRainRipples 1</code> — rain on real water bodies.</li><li><code>r_waterRainRippleQuality 1</code> <em>(restart)</em> — 0, 1, 2.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Game events push impulses into the body's ripple grid and spawn spray particles. Rain adds a statistical sample of its impacts plus fine disturbance.</p></div>\n<ul><li><code>r_waterWakeMinSpeed 35</code>, <code>r_waterWakeFoamSpeed 260</code> — speed where wakes start and where wake foam is full.</li><li><code>r_waterWakeMaxEntities 16</code> — characters making wakes per frame.</li><li><code>r_waterRainRippleDensity 0.22</code> — share of rain drops turned into individual ripples.</li><li><code>r_waterRainRippleImpulse 0.55</code>, <code>r_waterRainRippleMicro 1</code> — their strength and the fine rain roughness.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterSplashDebug 1</code>, <code>r_waterWakeDebug 1</code> — show and print events.</li><li><code>r_waterRainRippleDebug 1..4</code> — impact mask, source, field, energy.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-physical-water-splashes.md\" target=\"_blank\" rel=\"noopener\">rend2-physical-water-splashes.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/flowing-water": {
+  "group": "Water, waves and waterfalls",
+  "title": "Flowing water",
+  "cvar": "r_waterFlow",
+  "sections": [
+   {
+    "title": "Flowing water",
+    "html": "<p>Rivers and streams move along their channel, carrying ripples and foam with them. With the flow field, water slows near banks and turns along walls; with impact, it piles up and foams where it runs into a wall. Needs modern water.</p>\n<p class=\"cost\"><strong>Cost:</strong> light; medium with the field and wall impact.</p>\n<ul><li><code>r_waterFlow 0</code> — 1: flowing water on streams the renderer recognizes.</li><li><code>r_waterFlowField 0</code> <em>(restart)</em> — 1: compute flow around banks and obstacles at map load.</li><li><code>r_waterFlowImpact 0</code> <em>(restart)</em> — 1: water piles up, sloshes, foams and wets walls it runs into. Needs the flow field.</li><li><code>r_waterFlowSpeed 1</code> — flow speed.</li><li><code>r_waterFlowDetail 1</code> — how strongly small detail is carried by the flow.</li></ul>\n<p class=\"mod\"><strong>Mod authors:</strong> set flow direction and speed in the water-body data when the automatic guess is wrong; <code>r_waterFlowOverride</code> helps while testing.</p>\n<div class=\"how\"><h3>How it works</h3><p>Each body gets a flow direction, or a flow map computed at load, that moves its surface detail, ripples and foam. Wall impact adds local disturbance and wetness; it is not a full fluid simulation.</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_waterFlowDebug 1..7</code> — direction, speed, confidence, carried detail, field speed, wall impact, distance to shore.</li><li><code>r_waterFlowOverride</code> — inspect or set flow per body.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-water-flow.md\" target=\"_blank\" rel=\"noopener\">rend2-water-flow.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/foam": {
+  "group": "Water, waves and waterfalls",
+  "title": "Foam",
+  "cvar": "r_waterFoamField",
+  "sections": [
+   {
+    "title": "Foam",
+    "html": "<p>White foam where water meets objects, along shores, behind wakes and under waterfalls. It drifts with the flow and fades over time. Needs modern water.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium.</p>\n<ul><li><code>r_waterFoamField 0</code> <em>(restart)</em> — 1: foam that persists and moves.</li><li><code>r_waterIntersectionFoam 0</code> — 1: a foam ring where objects stand in shallow water.</li><li><code>r_waterFoamDecay 0.55</code> — how fast foam fades.</li><li><code>r_waterFoamShoreline 1</code>, <code>r_waterFoamWaterfall 1</code>, <code>r_waterFoamImpact 1</code>, <code>r_waterFoamIntersection 1</code>, <code>r_waterFoamSteepness 0</code> — foam from shores, waterfalls, splashes and wakes, objects, steep waves; 0 turns a source off.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Each body has a small foam texture: sources add foam, flow moves it, and it decays. Objects are found where their depth meets the water surface.</p></div>\n<ul><li><code>r_waterFoamResolution 128</code> <em>(restart)</em> — foam texture size.</li><li><code>r_waterFoamAdvection 1</code>, <code>r_waterFoamDiffusion 0.12</code> — drift with the flow, spreading.</li><li><code>r_waterIntersectionFoamStrength 1</code>, <code>r_waterIntersectionFoamWidth 8</code>, <code>r_waterIntersectionFoamPersistence 1.5</code> — object foam strength, width and fade time.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterFoamDebug 1..3</code> — amount, velocity, sources.</li><li><code>r_waterIntersectionFoamDebug 1</code> — raw object mask. <code>r_waterIntersectionVerify</code> — check object detection.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-water-intersection-foam.md\" target=\"_blank\" rel=\"noopener\">rend2-water-intersection-foam.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/shorelines": {
+  "group": "Water, waves and waterfalls",
+  "title": "Shorelines",
+  "cvar": "r_waterShoreline",
+  "sections": [
+   {
+    "title": "Shorelines",
+    "html": "<p>With wave geometry, the water edge moves up and down the shore. This softens the hard line where water meets ground, calms waves near rigid banks, and leaves a wet band that dries as the water pulls back. Needs <code>r_waterGeometry 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium.</p>\n<ul><li><code>r_waterShoreline 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_waterShoreWetStrength 0.8</code>, <code>r_waterShoreWetPersistence 8</code> — wet band strength and drying time in seconds.</li><li><code>r_waterShoreFoam 1</code> — shore foam (needs the foam field).</li><li><code>r_waterShoreAttenuation 96</code> — distance over which waves recover from a bank.</li><li><code>r_waterShoreContactSoftness 6</code> — width of the soft water edge.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterShoreDebug 1..9</code> — depth, shore distance, wave reduction, contact, wet edges, foam.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-water-shoreline.md\" target=\"_blank\" rel=\"noopener\">rend2-water-shoreline.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/underwater-light-patterns-caustics": {
+  "group": "Water, waves and waterfalls",
+  "title": "Underwater light patterns (caustics)",
+  "cvar": "r_waterCausticsMode",
+  "sections": [
+   {
+    "title": "Underwater light patterns (caustics)",
+    "html": "<p>Rippling bright lines on the bottom of pools, made by waves focusing sunlight. By default a generic pattern is used; mode 2 derives it from the actual waves above. Needs <a href=\"#f/water/underwater-fog\">underwater fog</a> with <code>r_volumetricWaterSurfaces 1</code>; mode 2 also modern water.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium; more light sources cost more.</p>\n<ul><li><code>r_waterCausticsMode 1</code> — <strong>0</strong> off, <strong>1</strong> generic pattern, <strong>2</strong> from the real water surface.</li><li><code>r_waterCausticsLightMask 1</code> <em>(restart)</em> — light sources, add: <strong>1</strong> sun, <strong>2</strong> dynamic lights, <strong>4</strong> baked light.</li><li><code>r_waterCausticsQuality 1</code> — mode 2 detail: 0, 1, 2.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>A curved water surface bends sunlight into bright lines and dark gaps. Mode 2 estimates that from the wave slopes above each underwater point.</p></div>\n<ul><li><code>r_waterCausticsSlope 1</code> — influence of wave slope.</li><li><code>r_waterCausticsFilter 1</code> — blur deeper patterns.</li><li><code>r_waterCausticsMaxDepth 2048</code> — depth where caustics fade out.</li><li><code>r_waterCausticsLocalMaxLights 1</code> — dynamic lights per point.</li><li><code>r_waterCausticsBakedMode 0</code> — baked light: <strong>0</strong> none, <strong>1</strong> from the surface, <strong>2</strong> generic pattern.</li><li><code>r_waterCausticsBakedStrength 0.35</code> — strength on baked light.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterCausticsDebug 1..7</code> — slope, refracted ray, focus, result, projection, attenuation, interaction.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-surface-caustics.md\" target=\"_blank\" rel=\"noopener\">rend2-surface-caustics.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/waterfalls-and-rapids": {
+  "group": "Water, waves and waterfalls",
+  "title": "Waterfalls and rapids",
+  "cvar": "r_waterfall",
+  "sections": [
+   {
+    "title": "Waterfalls and rapids",
+    "html": "<p>Falling water breaks up into streaks, turns white where it is aerated, throws mist at the base and churns the pool it falls into. Rapids carry white water downstream. Supported stock waterfalls are recognized automatically; others keep their original look. Needs modern water.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium to heavy with all layers on.</p>\n<ul><li><code>r_waterfall 0</code> <em>(restart)</em> — 1 modern waterfall sheets.</li><li><code>r_waterfallMist 0</code> — 1 spray and mist at the base (best with volumetric fog).</li><li><code>r_waterfallImpact 0</code> — 1 ripples, turbulence and foam where it lands (needs ripples or the foam field).</li><li><code>r_waterWhitewater 0</code> <em>(restart)</em> — 1 white water in rapids and turbulent streams.</li><li><code>r_waterfallQuality 1</code> — 0–2.</li></ul>\n<p class=\"mod\"><strong>Mod authors:</strong> <code>Waterfalls</code> data in <code>cubemaps/&lt;map&gt;/env.json</code> selects sheets and places mist and impact points.</p>\n<div class=\"how\"><h3>How it works</h3><p>Each waterfall gets a profile (small, medium, heavy) that drives its breakup, spray and pool disturbance. White water is carried by the flow and decays.</p></div>\n<ul><li><code>r_waterfallSmallStrength 1</code>, <code>r_waterfallMediumStrength 1</code>, <code>r_waterfallHeavyStrength 1</code> — strength per profile.</li><li><code>r_waterfallWhitewater 1</code>, <code>r_waterfallRefraction 1</code> — aeration brightness, sheet refraction.</li><li><code>r_waterfallGeometry 1</code> <em>(restart)</em> — finer waterfall mesh (visual only).</li><li><code>r_waterfallMistBalance 0.65</code> — 0 spray particles only, 1 full fog mist.</li><li><code>r_waterfallMistDensity 1</code>, <code>r_waterfallMistRadius 1</code> — mist density and size.</li><li><code>r_waterfallMistLens 0</code> — 1: nearby spray wets the <a href=\"#f/weather/water-on-the-camera-lens\">camera lens</a>.</li><li><code>r_waterfallImpactImpulse 1</code>, <code>r_waterfallImpactTurbulence 1</code>, <code>r_waterfallImpactFoam 1</code>, <code>r_waterfallImpactRadius 1</code> — pool push, turbulence, foam, area.</li><li><code>r_waterWhitewaterStrength 1</code>, <code>r_waterWhitewaterThreshold 0.45</code>, <code>r_waterWhitewaterDecay 1.1</code>, <code>r_waterWhitewaterFoam 0.35</code> — white water look, how much turbulence starts it, fade speed, foam left behind.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterfallDebug 1..12</code> — classification, flow, motion, refraction, foam, spray, impacts, wireframe.</li><li><code>r_waterfallMistDebug 1</code>, <code>r_waterfallImpactDebug 1</code> — mist emitters, impact areas.</li><li><code>r_waterWhitewaterDebug 1..4</code> — flow, turbulence, white water, foam sources.</li><li><code>r_waterfalls</code> — list waterfall sheets.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-waterfalls.md\" target=\"_blank\" rel=\"noopener\">rend2-waterfalls.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "water/underwater-specks-and-bubbles": {
+  "group": "Water, waves and waterfalls",
+  "title": "Underwater specks and bubbles",
+  "cvar": "r_waterParticles",
+  "sections": [
+   {
+    "title": "Underwater specks and bubbles",
+    "html": "<p>Drifting specks and tiny rising bubbles around the camera underwater, so clear and murky water feel different. Decorative only.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_waterParticles 0</code> — 1 on.</li><li><code>r_waterParticlesProfile 0</code> — <strong>0</strong> automatic (from the map, else clean), <strong>1</strong> clean, <strong>2</strong> murky, <strong>3</strong> dirty, <strong>-1</strong> none.</li><li><code>r_waterParticlesDensity 1</code>, <code>r_waterParticlesSize 1</code>, <code>r_waterParticlesSpeed 1</code> — amount, size, drift and rise speed.</li><li><code>r_waterParticlesBubbles -1</code> — share of bubbles 0–1; -1 from the profile.</li><li><code>r_waterParticlesDistance 160</code> — radius of the particle cloud around the camera.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterParticlesDebug 1..3</code> — placement, without fog in front, statistics.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-water-particles.md\" target=\"_blank\" rel=\"noopener\">rend2-water-particles.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "foliage/recognizing-stock-plants": {
+  "group": "Grass, plants and wind",
+  "title": "Recognizing stock plants",
+  "cvar": "r_autoFoliage",
+  "sections": [
+   {
+    "title": "Recognizing stock plants",
+    "html": "<p>Stock plant models aren't marked as plants, so the renderer guesses from their names and structure which parts are leaves, fronds or stems. On its own this changes nothing visible, but <a href=\"#f/foliage/leaf-flutter\">leaf flutter</a>, <a href=\"#f/foliage/ferns-and-fronds\">frond motion</a>, <a href=\"#f/foliage/walking-through-vegetation\">walking through plants</a> and <a href=\"#f/foliage/cutting-plants-with-a-saber\">saber cuts</a> need it.</p>\n<ul><li><code>r_autoFoliage 0</code> — <strong>0</strong> off, <strong>1</strong> only safe matches, <strong>2</strong> also uncertain ones (experimental; may move things that shouldn't).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_autoFoliageDebug 1</code>, <code>2</code> — color recognized surfaces; 2 also uncertain candidates.</li><li><code>r_autoFoliageList [filter]</code> — print recognized plants and their frond skeletons.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-auto-grass.md\" target=\"_blank\" rel=\"noopener\">rend2-auto-grass.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "foliage/fuller-grass": {
+  "group": "Grass, plants and wind",
+  "title": "Fuller grass",
+  "cvar": "r_grassCardMode",
+  "sections": [
+   {
+    "title": "Fuller grass",
+    "html": "<p>Original grass sprites always turn to face the camera, so they swivel as you walk and look thin from above. This draws each tuft as two or three fixed, crossing cards, so grass stays put and looks like a clump of blades from every angle.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium in dense grass (more geometry and overdraw).</p>\n<ul><li><code>r_grassCardMode 0</code> — <strong>0</strong> original camera-facing sprites, <strong>1</strong> two crossed cards, <strong>2</strong> three cards, <strong>3</strong> three near, two far.</li><li><code>r_grassCardWidth 1</code> — card width.</li><li><code>r_grassCardLodDist 600</code> — mode 3: distance where the third card fades out.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_grassCardDebug 1..6</code> — color by card or direction, force 1/2/3 cards, distance level.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "foliage/wind-through-grass": {
+  "group": "Grass, plants and wind",
+  "title": "Wind through grass",
+  "cvar": "r_foliageWind",
+  "sections": [
+   {
+    "title": "Wind through grass",
+    "html": "<p>Original grass sways each tuft in its own small circle, all in step. With this, gusts roll across a field: neighbouring grass leans together and waves of wind travel downwind. Works on stock grass.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_foliageWind 0</code> — 1 on.</li><li><code>r_foliageWindStrength 1</code> — sway strength.</li><li><code>r_foliageWindSpeed 1</code> — gust speed.</li><li><code>r_foliageWindDirection 30</code> — wind direction in degrees (0 = world +X). Plants use the same direction and speed.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_foliageWindDebug 1..4</code> — exaggerated motion, color by bend, freeze time, show large gusts.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-foliage-wind.md\" target=\"_blank\" rel=\"noopener\">rend2-foliage-wind.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "foliage/leaf-flutter": {
+  "group": "Grass, plants and wind",
+  "title": "Leaf flutter",
+  "cvar": "r_leafFlutter",
+  "sections": [
    {
     "title": "Leaf flutter",
-    "html": "<p>Adds small high-frequency rustling to surfaces classified as leaves while leaving trunks and branches still. Stock Yavin leaf/vine cards are the main intended use.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires <code>r_autoFoliage 1</code> or <code>2</code>.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_leafFlutter 0 | 1</code> — disable / enable leaf flutter.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_leafFlutterStrength &lt;value&gt;</code> — position amplitude.</li><li><code>r_leafFlutterSpeed &lt;value&gt;</code> — animation speed.</li><li><code>r_leafFlutterNormal &lt;value&gt;</code> — lighting-normal wobble.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_leafFlutterDebug &lt;bits&gt;</code> — exaggerate, freeze, highlight fluttering surfaces and visualize displacement.</li></ul>\n<p>May slightly affect performance; it is small vertex work.</p>"
+    "html": "<p>Leaves and vines on plant models tremble slightly in the air while trunks and branches stay still. Needs <code>r_autoFoliage 1</code> or <code>2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_leafFlutter 0</code> — 1 on.</li><li><code>r_leafFlutterStrength 1</code> — amplitude; 1 is about 1.5 units.</li><li><code>r_leafFlutterSpeed 1</code> — speed.</li><li><code>r_leafFlutterNormal 0.25</code> — let lighting flicker with the motion; 0 motion only.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_leafFlutterDebug &lt;bits&gt;</code> — 1 exaggerate, 2 freeze, 4 highlight fluttering surfaces, 8 color by displacement.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-leaf-flutter.md\" target=\"_blank\" rel=\"noopener\">rend2-leaf-flutter.md</a>.</p>"
    }
   ],
   "media": []
  },
- "interaction": {
-  "group": "Foliage and loading",
-  "title": "Interaction",
-  "cvar": "r_foliageInteraction 1",
-  "how": "The game passes a few vertical capsules per character to the renderer. Grass reads a small state texture around the player that stores contact and recovery, and curves from the root. Fern and bush fronds are chains of rigid segments solved on the CPU for nearby plants, so a frond swings around its base as a whole instead of stretching.",
+ "foliage/ferns-and-fronds": {
+  "group": "Grass, plants and wind",
+  "title": "Ferns and fronds",
+  "cvar": "r_plantWind",
   "sections": [
    {
-    "title": "Plant fronds (wind and contact)",
-    "html": "<p>Fern, bush and grass-card models bend frond by frond. Each frond (found automatically from the model) is a chain of rigid segments that keeps its length: stiff at the base, soft at the tip, and much stiffer across the leaf than out of its plane, so a frond pushed sideways swings around its base instead of stretching. Wind bends every frond, and a character pushes a frond to one side as a whole (it never wraps around a leg). The fronds swing back with one small overshoot after a character leaves. The simulation runs on the CPU for the nearby plants, and every pass (shadows, fog, motion vectors) draws the same pose.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires automatic foliage classification. Wind direction and speed come from the foliage wind controls; contact needs <code>r_foliageInteraction 1</code>.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_plantWind 0 | 1</code> — disable / enable the breeze on the fronds.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_plantWindStrength 0..4</code> — breeze strength.</li><li><code>r_plantStiffness &lt;value&gt;</code> — frond stiffness (1 = default).</li><li><code>r_plantSimDistance &lt;units&gt;</code> / <code>r_plantWindDistance &lt;units&gt;</code> — full simulation / coarse simulation / at rest.</li><li><code>r_plantSimMaxPlants &lt;count&gt;</code> — plants simulated per frame.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_plantDebug &lt;bits&gt;</code> — frond centerlines, segment or bone colors, contact sides, CPU cost.</li><li><code>r_plantSimInfo</code> — print the simulated plants; <code>r_autoFoliageList</code> also prints the frond skeletons.</li></ul>\n<p>Small CPU cost for the plants near the camera; the skinning is cheap vertex work.</p>"
-   },
-   {
-    "title": "Character / foliage interaction",
-    "html": "<p>Characters push grass and ferns away as they move through them. The renderer receives a few vertical body capsules. Only what a body actually touches moves: grass at the legs is pushed exactly out of the body, ferns are pushed frond by frond (see Plant fronds). Grass blades curve from the root (a stiff base, a soft tip) instead of tilting as flat cards, spring back after the character left, and keep a faint trampled trail for a few seconds.</p>\n<p class=\"req\"><strong>Requirements.</strong> Fern interaction requires automatic foliage classification; grass interaction works on supported grass surfaces.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_foliageInteraction 0 | 1</code> — disable / enable character interaction.</li></ul>\n<h4>Other controls</h4>\n<ul><li><code>r_foliageInteractionStrength &lt;value&gt;</code> — contact depth scale.</li><li><code>r_foliageInteractionRadius &lt;value&gt;</code> — character capsule radius scale.</li><li><code>r_foliageInteractionMaxInteractors &lt;count&gt;</code> — uploaded character limit.</li><li><code>r_foliageInteractionNPCs 0 | 1</code> — player only / player + nearby NPCs and players.</li><li><code>r_grassTrample 0..1</code> — how much of the bend trampled grass keeps; <code>r_grassTrampleRecovery &lt;seconds&gt;</code> — its recovery.</li><li><code>r_grassBendSegments 1..8</code> — segments of a near grass sprite (1 = flat cards); <code>r_grassBendLodDist &lt;units&gt;</code> — how far the curved strips are used.</li><li><code>r_foliageBendFieldSize 64 | 128 | 256</code> — grass state texture size. Requires <code>vid_restart</code>.</li><li><code>r_foliageBendFieldExtent &lt;units&gt;</code> — world size of the grass state around the player.</li><li><code>r_foliageBendFieldStrength &lt;value&gt;</code> — grass displacement scale.</li><li><code>r_foliageBendFieldRecoveryTime &lt;seconds&gt;</code> / <code>r_foliageBendFieldDamping &lt;value&gt;</code> / <code>r_foliageBendFieldImpulse &lt;value&gt;</code> — grass spring back.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_foliageInteractionDebug &lt;bits&gt;</code> — capsules, exaggerated interaction, interaction-only view, grass contact heat, freeze and player-only modes.</li><li><code>r_foliageBendFieldDebug &lt;bits&gt;</code> — grass state overlay, covered square, freeze, exaggeration.</li><li><code>r_foliageBendFieldClear</code> — clear the grass state.</li><li><code>r_foliageInteractionList</code> — print submitted/uploaded interactors and the grass state.</li></ul>\n<p><strong>Binary note.</strong> This is not renderer-only: cgame supplies character capsules through a new optional renderer interface. SP needs the updated <code>openjk_sp</code> executable and game/cgame module; MP needs the matching updated client/cgame path.</p>\n<p>Small vertex cost in dense grass (one texture fetch per vertex and a short curve), the near grass strips add vertices; the grass state is one small pass per frame (256x256 texels, 1.5 MB).</p>"
+    "title": "Ferns and fronds",
+    "html": "<p>Ferns and similar plants bend frond by frond in the wind and swing back naturally after being pushed, instead of moving as one rigid model. Needs <code>r_autoFoliage 1</code> or <code>2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium (CPU) near many plants.</p>\n<ul><li><code>r_plantWind 0</code> — 1 wind on fronds.</li><li><code>r_plantWindStrength 1</code> — wind strength, 0–4.</li><li><code>r_plantStiffness 1</code> — higher is stiffer, with a faster swing.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>Each recognized plant gets a short chain of segments per frond, simulated on the CPU like a springy rod and used to bend the model and its shadow. Near plants get a full simulation, farther ones a coarse one, distant ones stay still.</p></div>\n<ul><li><code>r_plantSimDistance 1500</code> — full simulation within this distance.</li><li><code>r_plantWindDistance 3000</code> — beyond this, plants don't move.</li><li><code>r_plantSimMaxPlants 96</code> — plants simulated per frame (touched plants always are).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_plantDebug &lt;bits&gt;</code> — 1 frond lines, 2 color by segment, 4 by bone, 8 by contact side, 16 print cost, 32 saber cut steps.</li><li><code>r_plantSimInfo</code> — list simulated plants, cut plants and fallen pieces.</li></ul>"
    }
   ],
   "media": []
  },
- "shadercache": {
-  "group": "Foliage and loading",
-  "title": "Shader cache",
-  "cvar": "r_shaderProgramCache 1",
-  "how": "Linked GLSL programs are saved with <code>GL_ARB_get_program_binary</code> and loaded on the next start instead of being compiled. Per-draw shader permutations are built only when a level actually needs them. Entries for a different driver or changed shaders are discarded automatically.",
+ "foliage/walking-through-vegetation": {
+  "group": "Grass, plants and wind",
+  "title": "Walking through vegetation",
+  "cvar": "r_foliageInteraction",
   "sections": [
    {
-    "title": "Shader program cache",
-    "html": "<p>Caches linked Rend2 shader programs on disk so later starts and <code>vid_restart</code> operations can load driver binaries instead of recompiling every permutation.</p>\n<p class=\"req\"><strong>Requirements.</strong> Requires driver support for <code>GL_ARB_get_program_binary</code> and at least one supported program-binary format. Unsupported drivers simply fall back to normal compilation.</p>\n<h4>Main controls</h4>\n<ul><li><code>r_shaderProgramCache 0 | 1</code> — compile every time / use the on-disk program cache. Requires <code>vid_restart</code>.</li><li><code>r_shaderProgramCacheMaxMB &lt;MB&gt;</code> — maximum cache size; least-recently-used entries are evicted first.</li></ul>\n<p>The cache has no effect on frame performance. It can substantially reduce warm startup and <code>vid_restart</code> time. Driver or shader changes automatically invalidate incompatible entries.</p>"
+    "title": "Walking through vegetation",
+    "html": "<p>Grass and ferns bend where your body or an NPC touches them and spring back after you pass. Grass you stood on stays a little flattened for a few seconds. Plants need <code>r_autoFoliage</code>; grass works as is.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium in dense nearby vegetation.</p>\n<ul><li><code>r_foliageInteraction 0</code> — 1 on.</li><li><code>r_foliageInteractionStrength 1</code> — how far stems bend; 1 is about 45° at full contact.</li><li><code>r_foliageInteractionNPCs 1</code> — 0 only you, 1 also nearby NPCs and players.</li><li><code>r_grassTrample 0.25</code> — how much bend trampled grass keeps; 0 none.</li><li><code>r_grassTrampleRecovery 6</code> — seconds for trampled grass to stand up.</li></ul>\n<div class=\"how\"><h3>How it works</h3><p>The game sends simple capsule shapes for nearby characters. Plants push their frond chains away from them. Grass uses a small texture around the player that stores how far each spot is bent and lets it spring back; near grass is split into curved blades so it can bend smoothly.</p></div>\n<ul><li><code>r_foliageInteractionRadius 1</code> — size of the character shapes.</li><li><code>r_foliageInteractionMaxInteractors 8</code> — characters per frame, you first.</li><li><code>r_grassBendSegments 4</code> — segments per nearby grass blade; 1 flat cards.</li><li><code>r_grassBendLodDist 800</code> — distance where curved blades become flat cards.</li><li><code>r_foliageBendFieldSize 256</code> <em>(restart)</em> — grass bend texture resolution (64, 128, 256).</li><li><code>r_foliageBendFieldExtent 1024</code> — area it covers around you.</li><li><code>r_foliageBendFieldStrength 1</code> — grass bend strength; 0 grass doesn't react.</li><li><code>r_foliageBendFieldRecoveryTime 0.8</code> — seconds for grass to come back.</li><li><code>r_foliageBendFieldDamping 0.6</code> — 1 no overshoot, lower more sway.</li><li><code>r_foliageBendFieldImpulse 1</code> — extra drag when running through.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_foliageInteractionDebug &lt;bits&gt;</code> — 1 shapes, 2 exaggerate, 4 interaction only, 8 contact heat, 16 freeze, 32 player only.</li><li><code>r_foliageBendFieldDebug &lt;bits&gt;</code> — 1 bend overlay, 2 covered area, 4 freeze, 8 exaggerate.</li><li><code>r_foliageBendFieldClear</code> — reset grass.</li><li><code>r_foliageInteractionList</code> — characters sent, grass state, active Force waves.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-foliage-interaction.md\" target=\"_blank\" rel=\"noopener\">rend2-foliage-interaction.md</a>.</p>"
    }
   ],
   "media": []
  },
- "telekinesis": {
+ "foliage/force-push-and-pull": {
+  "group": "Grass, plants and wind",
+  "title": "Force push and pull",
+  "cvar": "r_foliageForceWaves",
+  "sections": [
+   {
+    "title": "Force push and pull",
+    "html": "<p>A Force push or pull, by you or an NPC, sweeps a wave through plants, grass and leaves in front of the caster: away for push, toward for pull, then they settle. Plants behind the caster or out of reach don't move. On by default once <code>r_foliageInteraction 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_foliageForceWaves 1</code> — 0 off.</li><li><code>r_foliageForceWaveStrength 1</code> — strength, 0–4.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_foliageInteractionDebug 1</code> — wave front and reach: orange push, magenta pull.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "foliage/cutting-plants-with-a-saber": {
+  "group": "Grass, plants and wind",
+  "title": "Cutting plants with a saber",
+  "cvar": "r_foliageSaberCut",
+  "sections": [
+   {
+    "title": "Cutting plants with a saber",
+    "html": "<p>Attacking with a saber cuts fern fronds and plant cards it sweeps through. A partial cut stays attached; a severed piece falls, lies on the ground and sinks away. A blade simply resting in a plant doesn't cut. Cuts last until the map changes. On by default once plants move (<code>r_autoFoliage</code> with <code>r_plantWind 1</code> or <code>r_foliageInteraction 1</code>).</p>\n<p class=\"cost\"><strong>Cost:</strong> medium while cutting, limited by the piece count.</p>\n<ul><li><code>r_foliageSaberCut 1</code> — 0 off.</li><li><code>r_foliageSaberCutPieces 48</code> — fallen pieces at once; 0 makes cut parts vanish.</li><li><code>r_foliageSaberCutPieceTime 20</code> — seconds a piece lies on the ground.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_foliageSaberCutReset</code> — restore all cut plants.</li><li><code>r_foliageSaberCutTest [height] [partial]</code> — cut the nearest plant; height is a fraction, default 0.5.</li><li><code>r_plantDebug 32</code> — recent blade sweeps; red ones cut.</li></ul>"
+   }
+  ],
+  "media": []
+ },
+ "loading/shader-compilation": {
+  "group": "Loading, OpenGL and diagnostics",
+  "title": "Shader compilation",
+  "cvar": "r_shaderProgramCache",
+  "sections": [
+   {
+    "title": "Shader compilation",
+    "html": "<p>Rend2 builds hundreds of shader programs for the video driver. Compiling them all at startup is slow, so this build compiles them on first use, in parallel helper processes, and saves the results on disk for the next start.</p>\n<ul><li><code>r_shaderProgramCache 1</code> <em>(restart)</em> — save compiled programs in <code>glslcache/</code>; later starts and <code>vid_restart</code> skip compiling. Needs driver support; otherwise programs are just compiled.</li><li><code>r_shaderProgramCacheMaxMB 512</code> — cache size limit; least-recently-used programs go first.</li><li><code>r_shaderProgramLazy 1</code> <em>(restart)</em> — compile a program when a map or effect first needs it instead of all at startup. The first appearance of a new effect can hitch briefly until it is cached.</li><li><code>r_shaderCompileProcesses -1</code> — helper processes for compiling: -1 automatic (half the CPU threads, at most 8), 0 compile inside the game.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>glslusage</code> — print which shader variants are used.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-shader-cache.md\" target=\"_blank\" rel=\"noopener\">rend2-shader-cache.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "loading/map-loading": {
+  "group": "Loading, OpenGL and diagnostics",
+  "title": "Map loading",
+  "cvar": "r_loadPrefetch",
+  "sections": [
+   {
+    "title": "Map loading",
+    "html": "<p>Textures are decoded ahead of time on worker threads, prepared material textures are cached on disk, and several slow load steps are skipped or deferred.</p>\n<ul><li><code>r_loadPrefetch 1</code> — decode the textures a map will need on worker threads while it loads.</li><li><code>r_loadPrefetchMB 512</code> — memory for those textures.</li><li><code>r_loadThreads -1</code> — worker threads: -1 automatic, 0 none.</li><li><code>r_materialDDCObjects 1</code> — cache prepared textures of characters, objects and other models on disk.</li><li><code>r_materialDDCWorld 0</code> — 1: also cache the map's own surface textures.</li><li><code>r_uploadPBO 1</code> — upload textures through a staging buffer.</li><li><code>r_genNormalMapsLazy 0</code> — experimental: with <code>r_genNormalMaps 1</code>, generate normal maps only for surfaces that are actually lit by them.</li><li><code>fs_looseImageIndex 1</code> — Windows: remember which loose image files (outside pk3s) don't exist, so they aren't searched for again.</li><li><code>com_touchMemoryOnLoad 1</code> — SP: 0 skips the step that walks through all game memory at the end of loading.</li><li><code>ui_lazyMenuAssets 1</code> — load menu art only when a menu needs it.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_loadProfile 1</code> — print nested load timings from engine, renderer and game; nested times overlap, don't add them up.</li><li><code>r_imageChecksums 1</code>, <code>imagechecksums</code> — write a hash of every loaded texture to <code>imagechecksums/&lt;map&gt;.txt</code>, to compare loads.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-map-load.md\" target=\"_blank\" rel=\"noopener\">rend2-map-load.md</a>, <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-material-ddc.md\" target=\"_blank\" rel=\"noopener\">rend2-material-ddc.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "loading/modern-opengl": {
+  "group": "Loading, OpenGL and diagnostics",
+  "title": "Modern OpenGL",
+  "cvar": "r_gl43",
+  "sections": [
+   {
+    "title": "Modern OpenGL",
+    "html": "<p>On cards with OpenGL 4.3 some work moves to compute shaders: building light lists for <a href=\"#f/lighting/many-dynamic-lights-forward\">Forward+</a> and <a href=\"#f/fog/volumetric-fog\">volumetric fog</a>, and <a href=\"#f/water/wave-geometry\">water tessellation</a>. Features stay the same; older cards fall back automatically.</p>\n<ul><li><code>r_gl43 1</code> <em>(restart)</em> — 0 forces the older paths.</li><li><code>r_forwardPlusCompute 1</code> — build Forward+ light lists on the GPU; 0 on the CPU.</li><li><code>r_volumetricFogLightCompute 1</code> — build volumetric fog light lists on the GPU.</li><li><code>r_volumetricFogLightTile 8</code> — fog cells per side of a light tile (4, 8, 16).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_forwardPlusVerify</code>, <code>r_vfogLightVerify</code> — compare GPU and CPU light lists.</li><li><code>r_vfogLightStats</code> — fog light-list sizes and cost.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rend2-opengl43.md\" target=\"_blank\" rel=\"noopener\">rend2-opengl43.md</a>.</p>"
+   }
+  ],
+  "media": []
+ },
+ "force/telekinesis": {
   "group": "Force powers",
   "title": "Telekinesis",
   "cvar": "setForceTelekinesis 3",
-  "how": "",
   "sections": [
    {
     "title": "Telekinesis",
@@ -551,11 +1103,10 @@ window.FEATURES = {
   ],
   "media": []
  },
- "soar": {
+ "force/soar": {
   "group": "Force powers",
   "title": "Soar",
   "cvar": "setForceSoar 3",
-  "how": "",
   "sections": [
    {
     "title": "Soar",
@@ -564,11 +1115,10 @@ window.FEATURES = {
   ],
   "media": []
  },
- "deflect": {
+ "force/deflect": {
   "group": "Force powers",
   "title": "Deflect",
   "cvar": "setforcedeflect 3",
-  "how": "",
   "sections": [
    {
     "title": "Deflect",
@@ -577,11 +1127,10 @@ window.FEATURES = {
   ],
   "media": []
  },
- "chainlightning": {
+ "force/chain-lightning": {
   "group": "Force powers",
   "title": "Chain Lightning",
   "cvar": "setForceChainLightning 3",
-  "how": "",
   "sections": [
    {
     "title": "Chain Lightning",

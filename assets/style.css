@@ -195,9 +195,33 @@ body.modal-open { overflow: hidden; }
 }
 .media-slot svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; display: block; margin: 0 auto 6px; }
 
-.how { padding: 18px 20px; border-radius: 12px; background: rgba(76,195,255,.05); border: 1px solid rgba(76,195,255,.14); margin-bottom: 8px; }
-.how h3 { font: 600 13px var(--font); text-transform: uppercase; letter-spacing: .08em; color: var(--blue); margin: 0 0 8px; }
-.how p { margin: 0; color: #c3cde0; font-size: 15px; }
+/* graphics topics */
+.topics { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 0; }
+.topics a {
+  font-size: 14px; color: var(--muted); padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: rgba(255,255,255,.02); transition: color .2s, border-color .2s;
+}
+.topics a:hover { color: var(--text); border-color: var(--line-strong); text-decoration: none; }
+.before { margin-top: 28px; padding: 20px 22px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line); }
+.section .before h3 { margin: 0 0 10px; }
+.before ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
+.before li { margin-bottom: 6px; }
+.before li:last-child { margin-bottom: 0; }
+.before strong { color: var(--text); font-weight: 600; }
+.topic { padding-top: 24px; }
+.section .topic > h3 { font: 600 22px var(--display); color: var(--text); text-transform: none; letter-spacing: -0.01em; margin: 32px 0 8px; }
+.topic-intro { color: var(--muted); max-width: 70ch; margin: 0 0 18px; font-size: 15px; }
+
+/* modal doc */
+.doc .how { padding: 16px 18px; border-radius: 12px; background: rgba(76,195,255,.05); border: 1px solid rgba(76,195,255,.14); margin: 20px 0 12px; }
+.doc .how h3 { font: 600 13px var(--font); text-transform: uppercase; letter-spacing: .08em; color: var(--blue); margin: 0 0 8px; }
+.doc .how p { margin: 0; color: #c3cde0; }
+.doc p.cost { display: inline-block; font-size: 13.5px; color: var(--muted); padding: 3px 10px; border-radius: 7px; background: rgba(255,255,255,.04); }
+.doc p.cost strong { font-weight: 500; color: var(--muted); }
+.doc p.notes { font-size: 14px; color: var(--dim); margin-top: 18px; }
+.doc p.mod { padding-left: 12px; border-left: 2px solid var(--line-strong); }
+.doc h3.sub { font-size: 16px; margin: 22px 0 8px; }
+.doc em { color: var(--dim); font-style: normal; font-size: .92em; }
 
 .doc { color: var(--muted); font-size: 15px; }
 .doc > section { padding-top: 24px; }
@@ -263,6 +287,8 @@ body.modal-open { overflow: hidden; }
   .b-red { width: 64vw; left: 100%; top: 100%; }
   .section { padding: 64px 0; }
   .list dt code { display: inline-block; margin: 2px 0 0; }
+  .topics { gap: 6px; }
+  .topics a { font-size: 13px; padding: 4px 10px; }
   .modal { padding: 0; align-items: stretch; }
   .modal-panel { max-height: none; height: 100%; border-radius: 0; border: 0; }
   .modal-body { padding: 24px 18px 32px; }

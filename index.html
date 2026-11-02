@@ -45,62 +45,196 @@
   <section class="section" id="graphics">
     <div class="wrap">
       <h2>Graphics</h2>
-      <p class="sub">Short descriptions with the main cvar for each feature; open a card for its full description and settings. Requirements, all controls and debug views are listed in the <a href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rendering-features.md">rendering features reference</a>.</p>
+      <p class="sub">Nearly every feature is off by default, so the game looks like stock Rend2 until you enable it. Type the commands in the console (<code>~</code>) or put them in a <code>.cfg</code> file. Open a card for what it changes, its settings with their defaults, and how it works. The same text is in the <a href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rendering-features.md" target="_blank" rel="noopener">rendering settings</a> docs.</p>
 
       <!-- cards:graphics -->
-      <h3>Color and post-processing</h3>
-      <div class="grid">
-        <article class="card" data-feature="tonemap" tabindex="0" role="button" aria-haspopup="dialog"><h4>Tone mapping</h4><p>Legacy rend2 filmic, ACES fitted or AgX-like conversion from HDR to the display. <code>r_toneMapDebug</code> shows them side by side.</p><code>r_toneMapMode 0|1|2</code></article>
-        <article class="card" data-feature="grading" tabindex="0" role="button" aria-haspopup="dialog"><h4>Color grading</h4><p>Applies a <code>.cube</code> LUT. A map can provide <code>maps/&lt;map&gt;.cube</code>; <code>r_colorGradingLUT</code> overrides it.</p><code>r_colorGrading 1</code></article>
-        <article class="card" data-feature="linear" tabindex="0" role="button" aria-haspopup="dialog"><h4>Linear lighting</h4><p>Lighting is computed in linear space instead of sRGB.</p><code>r_linearLighting 1</code></article>
-        <article class="card" data-feature="bloom" tabindex="0" role="button" aria-haspopup="dialog"><h4>HDR bloom</h4><p>Soft glow around genuinely bright sources, computed from scene brightness before tone mapping.</p><code>r_bloom 1</code></article>
-        <article class="card" data-feature="motionblur" tabindex="0" role="button" aria-haspopup="dialog"><h4>Motion blur</h4><p>Per-pixel camera and object motion blur with a shutter-angle model. HUD and menus stay sharp.</p><code>r_motionBlur 1</code></article>
+      <nav class="topics" aria-label="Graphics topics">
+        <a href="#topic-post-processing">Image and camera</a>
+        <a href="#topic-materials">Materials and surface detail</a>
+        <a href="#topic-lighting">Lighting</a>
+        <a href="#topic-shadows">Shadows</a>
+        <a href="#topic-characters">Characters and animation</a>
+        <a href="#topic-reflections">Reflections</a>
+        <a href="#topic-fog">Fog and light beams</a>
+        <a href="#topic-effects">Smoke and effects</a>
+        <a href="#topic-sky">Sky, atmosphere and clouds</a>
+        <a href="#topic-weather">Rain, wet surfaces and lens water</a>
+        <a href="#topic-water">Water, waves and waterfalls</a>
+        <a href="#topic-foliage">Grass, plants and wind</a>
+        <a href="#topic-loading">Loading, OpenGL and diagnostics</a>
+      </nav>
+      <div class="before">
+        <h3>Before you start</h3>
+        <ul><li><strong>HDR</strong> (<code>r_hdr 1</code> and <code>r_toneMap 1</code>, both on by default) is needed for tone mapping, exposure, color grading, HDR bloom, motion blur, skin scattering and lens water. If you turned them off, these features do nothing.</li><li><strong>Realtime sun.</strong> Stock maps get no realtime sun shadows unless you set <code>r_forceSun 1</code>. Sun shadows, sun beams in fog and the sun on characters depend on it. See <a href="#f/shadows/sun-shadows">Shadows</a>.</li><li><strong>Forward+</strong> (<code>r_forwardPlus 1</code>) is needed for lamp-shaped lights and blade-shaped saber light.</li><li><strong>Volumetric fog</strong> (<code>r_volumetricFog 2</code>) is needed for ground haze, rain haze, volumetric smoke, underwater fog and fog in reflections.</li><li><strong>Modern water</strong> (<code>r_waterSurface 1</code>) is needed for almost everything on the water page.</li></ul>
       </div>
-
-      <h3>Lighting and shadows</h3>
-      <div class="grid">
-        <article class="card" data-feature="gtao" tabindex="0" role="button" aria-haspopup="dialog"><h4>GTAO and contact shadows</h4><p>Ground-truth ambient occlusion, with optional bent normals and specular occlusion, plus screen-space contact shadows.</p><code>r_aoMode 2</code></article>
-        <article class="card" data-feature="forwardplus" tabindex="0" role="button" aria-haspopup="dialog"><h4>Forward+</h4><p>Clustered dynamic lights instead of per-surface light lists.</p><code>r_forwardPlus 1</code></article>
-        <article class="card" data-feature="ssgi" tabindex="0" role="button" aria-haspopup="dialog"><h4>Screen-space GI</h4><p>One bounce of indirect light from what is on screen, mainly for dynamic lights.</p><code>r_ssgi 1</code></article>
-        <article class="card" data-feature="ambient" tabindex="0" role="button" aria-haspopup="dialog"><h4>Ambient light on models</h4><p>Light-grid lighting sampled across the body or per pixel, and directional ambient from cubemap probes.</p><code>r_entityLightGrid 2</code></article>
-        <article class="card" data-feature="arealights" tabindex="0" role="button" aria-haspopup="dialog"><h4>Area lights</h4><p>LTC area lights for lamps and panels, with automatic lamp detection, and line lights for sabers.</p><code>r_ltcAreaLights 1</code></article>
-        <article class="card" data-feature="spotlights" tabindex="0" role="button" aria-haspopup="dialog"><h4>Spot lights</h4><p>Shadowed spot lights from effects, optionally with projected cookie textures.</p><code>r_spotLights 1</code></article>
-        <article class="card" data-feature="sunshadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Sun shadows</h4><p>Stabilized, blended shadow cascades with better bias, optional PCSS softness and caching; fixes for character shadows.</p><code>r_sunShadowMode 1</code></article>
+      <div class="topic" id="topic-post-processing">
+        <h3>Image and camera</h3>
+        <p class="topic-intro">How the finished frame is turned into the picture on your screen: brightness, contrast, glow, color, blur and edge smoothing.</p>
+        <div class="grid">
+          <article class="card" data-feature="post-processing/tone-mapping" tabindex="0" role="button" aria-haspopup="dialog"><h4>Tone mapping</h4><p>How the bright HDR image is fitted to the screen: original filmic, ACES or AgX-like.</p><code>r_toneMapMode</code></article>
+          <article class="card" data-feature="post-processing/brightness-and-exposure" tabindex="0" role="button" aria-haspopup="dialog"><h4>Brightness and exposure</h4><p>Automatic adaptation to dark and bright scenes, or a physical camera with ISO, aperture and shutter.</p><code>r_autoExposure</code></article>
+          <article class="card" data-feature="post-processing/bloom" tabindex="0" role="button" aria-haspopup="dialog"><h4>Bloom</h4><p>A halo around sabers, lamps and glowing panels that grows with their real brightness.</p><code>r_bloom</code></article>
+          <article class="card" data-feature="post-processing/color-grading" tabindex="0" role="button" aria-haspopup="dialog"><h4>Color grading</h4><p>A color filter for the whole image from a <code>.cube</code> LUT, per map or chosen by the player.</p><code>r_colorGrading</code></article>
+          <article class="card" data-feature="post-processing/motion-blur" tabindex="0" role="button" aria-haspopup="dialog"><h4>Motion blur</h4><p>Short streaks behind fast camera turns and moving characters; the HUD stays sharp.</p><code>r_motionBlur</code></article>
+          <article class="card" data-feature="post-processing/anti-aliasing-smaa" tabindex="0" role="button" aria-haspopup="dialog"><h4>Anti-aliasing (SMAA)</h4><p>Smooths jagged geometry edges.</p><code>r_smaa</code></article>
+          <article class="card" data-feature="post-processing/linear-lighting-experimental" tabindex="0" role="button" aria-haspopup="dialog"><h4>Linear lighting (experimental)</h4><p>Textures and light are mixed in real light amounts instead of screen color values.</p><code>r_linearLighting</code></article>
+          <article class="card" data-feature="post-processing/distortion-color-fringes" tabindex="0" role="button" aria-haspopup="dialog"><h4>Distortion color fringes</h4><p>Force push and refractive effects split colors slightly at their edges.</p><code>r_refractionChromaticAberration</code></article>
+        </div>
       </div>
-
-      <h3>Materials and reflections</h3>
-      <div class="grid">
-        <article class="card" data-feature="autopbr" tabindex="0" role="button" aria-haspopup="dialog"><h4>Automatic PBR</h4><p>Classifies legacy shaders by material and generates roughness variation for them.</p><code>r_autoPBR 0|1|2</code></article>
-        <article class="card" data-feature="pom" tabindex="0" role="button" aria-haspopup="dialog"><h4>Parallax occlusion</h4><p>Adaptive POM with self-shadowing and silhouettes.</p><code>r_pomSilhouette 1</code></article>
-        <article class="card" data-feature="skin" tabindex="0" role="button" aria-haspopup="dialog"><h4>Skin</h4><p>Subsurface scattering approximation for skin.</p><code>r_skinSSS 1|2</code></article>
-        <article class="card" data-feature="emissive" tabindex="0" role="button" aria-haspopup="dialog"><h4>Emissive surfaces</h4><p>Glowing surfaces as light emitters, compatible with the original glow.</p><code>r_autoEmissive 1</code></article>
-        <article class="card" data-feature="ssr" tabindex="0" role="button" aria-haspopup="dialog"><h4>Screen-space reflections</h4><p>SSR combined with cubemaps; can include sabers and effects.</p><code>r_ssr 1</code></article>
+      <div class="topic" id="topic-materials">
+        <h3>Materials and surface detail</h3>
+        <p class="topic-intro">How surfaces reflect light: metal vs cloth vs plastic, glossy highlights, glowing parts and depth in flat textures.</p>
+        <div class="grid">
+          <article class="card" data-feature="materials/automatic-materials-from-stock-textures-auto-pbr" tabindex="0" role="button" aria-haspopup="dialog"><h4>Automatic materials from stock textures (Auto PBR)</h4><p>Guesses metal, leather, cloth, skin and other materials from stock texture names.</p><code>r_autoPBR</code></article>
+          <article class="card" data-feature="materials/shiny-stock-models-troopers-droids-weapons" tabindex="0" role="button" aria-haspopup="dialog"><h4>Shiny stock models (troopers, droids, weapons)</h4><p>Moves the old shiny effect of about 130 stock shaders to per-pixel lighting.</p><code>r_autoPBRConvert</code></article>
+          <article class="card" data-feature="materials/roughness-variation" tabindex="0" role="button" aria-haspopup="dialog"><h4>Roughness variation</h4><p>Glossiness that varies across a texture instead of one value per surface.</p><code>r_autoPBRRoughness</code></article>
+          <article class="card" data-feature="materials/glowing-surfaces" tabindex="0" role="button" aria-haspopup="dialog"><h4>Glowing surfaces</h4><p>Stock lamps, screens and lava become light sources for bloom and bounced light.</p><code>r_autoEmissive</code></article>
+          <article class="card" data-feature="materials/stable-highlights" tabindex="0" role="button" aria-haspopup="dialog"><h4>Stable highlights</h4><p>Less sparkle and crawling of highlights on fine normal-map detail.</p><code>r_specularAA</code></article>
+          <article class="card" data-feature="materials/matte-surfaces" tabindex="0" role="button" aria-haspopup="dialog"><h4>Matte surfaces</h4><p>How rough matte surfaces such as cloth, plaster and stone catch light.</p><code>r_diffuseBRDF</code></article>
+          <article class="card" data-feature="materials/physical-light-units" tabindex="0" role="button" aria-haspopup="dialog"><h4>Physical light units</h4><p>Light and emission in physical units, mostly for mod authors.</p><code>r_pbrPhysical</code></article>
+          <article class="card" data-feature="materials/relief-detail-pom" tabindex="0" role="button" aria-haspopup="dialog"><h4>Relief detail (POM)</h4><p>Cracks, joints and grooves look recessed and shift correctly as you move.</p><code>r_parallaxMapping</code></article>
+          <article class="card" data-feature="materials/shadows-inside-relief" tabindex="0" role="button" aria-haspopup="dialog"><h4>Shadows inside relief</h4><p>Raised parts of a relief texture cast shadows into its grooves.</p><code>r_pomSelfShadow</code></article>
+          <article class="card" data-feature="materials/relief-silhouettes" tabindex="0" role="button" aria-haspopup="dialog"><h4>Relief silhouettes</h4><p>Relief that changes the outline of a surface, not only its inside.</p><code>r_pomSilhouette</code></article>
+        </div>
       </div>
-
-      <h3>Volumetrics and sky</h3>
-      <div class="grid">
-        <article class="card" data-feature="vfog" tabindex="0" role="button" aria-haspopup="dialog"><h4>Volumetric fog</h4><p>Froxel fog lit by the sun, dynamic and spot lights. Has a compute path on OpenGL 4.3.</p><code>r_volumetricFog 2</code></article>
-        <article class="card" data-feature="media" tabindex="0" role="button" aria-haspopup="dialog"><h4>Fog volumes and FX media</h4><p>Local fog volumes, volumetric smoke from effects, glowing media and lit smoke sprites.</p><code>r_volumetricParticles 1</code></article>
-        <article class="card" data-feature="scattering" tabindex="0" role="button" aria-haspopup="dialog"><h4>Scattering in dense media</h4><p>Per-medium color and phase, self-shadowing, multiple scattering and colored absorption.</p><code>r_volumetricSelfShadow 1</code></article>
-        <article class="card" data-feature="atmosphere" tabindex="0" role="button" aria-haspopup="dialog"><h4>Atmosphere</h4><p>Physically based sky and aerial perspective.</p><code>r_atmosphere 1</code></article>
-        <article class="card" data-feature="clouds" tabindex="0" role="button" aria-haspopup="dialog"><h4>Clouds</h4><p>Ray-marched volumetric clouds and cloud shadows.</p><code>r_clouds 1</code></article>
+      <div class="topic" id="topic-lighting">
+        <h3>Lighting</h3>
+        <p class="topic-intro">Soft shading in corners, dynamic lights from sabers and blasters, bounced light, and lights with a real shape. How characters are lit is on <a href="#topic-characters">Characters</a>; shadows are on <a href="#topic-shadows">Shadows</a>.</p>
+        <div class="grid">
+          <article class="card" data-feature="lighting/ambient-occlusion-gtao" tabindex="0" role="button" aria-haspopup="dialog"><h4>Ambient occlusion (GTAO)</h4><p>Soft darkening in corners, joints and under objects, more accurate than the original SSAO.</p><code>r_aoMode</code></article>
+          <article class="card" data-feature="lighting/many-dynamic-lights-forward" tabindex="0" role="button" aria-haspopup="dialog"><h4>Many dynamic lights (Forward+)</h4><p>Up to 256 dynamic lights instead of 32, each pixel checking only the lights that reach it.</p><code>r_forwardPlus</code></article>
+          <article class="card" data-feature="lighting/bounced-light-ssgi" tabindex="0" role="button" aria-haspopup="dialog"><h4>Bounced light (SSGI)</h4><p>Sabers, explosions and glowing surfaces light nearby surfaces with a weaker colored bounce.</p><code>r_ssgi</code></article>
+          <article class="card" data-feature="lighting/lamp-shaped-lights-ltc" tabindex="0" role="button" aria-haspopup="dialog"><h4>Lamp-shaped lights (LTC)</h4><p>Rectangle and line lights; stock lamps are detected and give long highlights.</p><code>r_ltcAreaLights</code></article>
+          <article class="card" data-feature="lighting/saber-light-along-the-blade" tabindex="0" role="button" aria-haspopup="dialog"><h4>Saber light along the blade</h4><p>Saber light comes from the whole blade instead of one point.</p><code>r_ltcSaberAreaLights</code></article>
+          <article class="card" data-feature="lighting/spot-lights-mod-authors" tabindex="0" role="button" aria-haspopup="dialog"><h4>Spot lights (mod authors)</h4><p>Cone lights from effects, with shadows and beams in fog.</p><code>r_spotLights</code></article>
+          <article class="card" data-feature="lighting/projected-patterns-mod-authors" tabindex="0" role="button" aria-haspopup="dialog"><h4>Projected patterns (mod authors)</h4><p>A spot light projects an image, such as a grate or colored glass, onto walls and fog.</p><code>r_spotLightCookies</code></article>
+        </div>
       </div>
-
-      <h3>Water and weather</h3>
-      <div class="grid">
-        <article class="card" data-feature="water" tabindex="0" role="button" aria-haspopup="dialog"><h4>Water surface</h4><p>PBR water with waves, tessellation, foam, flow, caustics, Snell's window and an underwater medium.</p><code>r_waterSurface 1</code></article>
-        <article class="card" data-feature="waterparticles" tabindex="0" role="button" aria-haspopup="dialog"><h4>Underwater particles</h4><p>Specks and bubbles under water.</p><code>r_waterParticles 1</code></article>
-        <article class="card" data-feature="rain" tabindex="0" role="button" aria-haspopup="dialog"><h4>Rain</h4><p>Lit rain streaks, distance LOD and splashes where drops hit geometry.</p><code>r_rainStreaks 1</code></article>
-        <article class="card" data-feature="wetness" tabindex="0" role="button" aria-haspopup="dialog"><h4>Wet surfaces</h4><p>Surfaces exposed to rain get wet, with puddles, ripples and runoff.</p><code>r_weatherWetness 1</code></article>
-        <article class="card" data-feature="lenswater" tabindex="0" role="button" aria-haspopup="dialog"><h4>Lens water</h4><p>Drops and water film on the camera lens.</p><code>r_rainLens 1</code></article>
+      <div class="topic" id="topic-shadows">
+        <h3>Shadows</h3>
+        <p class="topic-intro">Realtime shadows from the sun and from dynamic lights, and the small contact shadows between them. The map's baked shadows are always there; these settings add shadows that move.</p>
+        <div class="grid">
+          <article class="card" data-feature="shadows/sun-shadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Sun shadows</h4><p>Realtime sun shadows, sharp at contact and softer with distance, without crawling as the camera moves.</p><code>r_forceSun</code></article>
+          <article class="card" data-feature="shadows/character-sun-shadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Character sun shadows</h4><p>Characters and models get their own sharp shadow layer, combined with softer scenery shadows.</p><code>r_sunShadowSplit</code></article>
+          <article class="card" data-feature="shadows/contact-shadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Contact shadows</h4><p>Small sun shadows under feet and behind small props, where shadow maps are too coarse.</p><code>r_contactShadows</code></article>
+          <article class="card" data-feature="shadows/dynamic-light-shadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Dynamic light shadows</h4><p>Sabers, explosions and other dynamic lights cast realtime shadows.</p><code>r_dlightMode</code></article>
+        </div>
       </div>
-
-      <h3>Foliage and loading</h3>
-      <div class="grid">
-        <article class="card" data-feature="grass" tabindex="0" role="button" aria-haspopup="dialog"><h4>Grass cards</h4><p>Surface sprite grass drawn as two- or three-card tufts.</p><code>r_grassCardMode 3</code></article>
-        <article class="card" data-feature="wind" tabindex="0" role="button" aria-haspopup="dialog"><h4>Wind</h4><p>A shared wind field for grass and plants; <code>r_leafFlutter</code> adds leaf motion on models.</p><code>r_foliageWind 1</code></article>
-        <article class="card" data-feature="interaction" tabindex="0" role="button" aria-haspopup="dialog"><h4>Interaction</h4><p>Characters bend grass and plants they walk through.</p><code>r_foliageInteraction 1</code></article>
-        <article class="card" data-feature="shadercache" tabindex="0" role="button" aria-haspopup="dialog"><h4>Shader cache</h4><p>Stores compiled shader programs on disk to shorten startup and <code>vid_restart</code>.</p><code>r_shaderProgramCache 1</code></article>
+      <div class="topic" id="topic-characters">
+        <h3>Characters and animation</h3>
+        <p class="topic-intro">How characters, NPCs and other models are lit, skin and hair materials, and how bodies move at joint limits.</p>
+        <div class="grid">
+          <article class="card" data-feature="characters/light-across-the-body" tabindex="0" role="button" aria-haspopup="dialog"><h4>Light across the body</h4><p>Characters are lit at several points of the body or per pixel instead of one point.</p><code>r_entityLightGrid</code></article>
+          <article class="card" data-feature="characters/sun-on-characters" tabindex="0" role="button" aria-haspopup="dialog"><h4>Sun on characters</h4><p>Characters are lit from the real sun direction, matching their shadow on the ground.</p><code>r_entitySunSplit</code></article>
+          <article class="card" data-feature="characters/ambient-light-from-the-surroundings" tabindex="0" role="button" aria-haspopup="dialog"><h4>Ambient light from the surroundings</h4><p>Ambient light on characters differs by side, taken from nearby reflections.</p><code>r_diffuseIBL</code></article>
+          <article class="card" data-feature="characters/skin-subsurface-scattering" tabindex="0" role="button" aria-haspopup="dialog"><h4>Skin (subsurface scattering)</h4><p>Light scatters under the skin, softening faces and hands.</p><code>r_skinSSS</code></article>
+          <article class="card" data-feature="characters/hair-and-eyes" tabindex="0" role="button" aria-haspopup="dialog"><h4>Hair and eyes</h4><p>Strand-shaped highlights on hair and a wet shine on eyes.</p></article>
+          <article class="card" data-feature="characters/softer-ragdolls" tabindex="0" role="button" aria-haspopup="dialog"><h4>Softer ragdolls</h4><p>Ragdoll joints slow down near their limits instead of stopping dead.</p><code>r_ragSoftLimits</code></article>
+          <article class="card" data-feature="characters/softer-animation-sp" tabindex="0" role="button" aria-haspopup="dialog"><h4>Softer animation (SP)</h4><p>Limbs ease in and rebound slightly at the end of their movement.</p><code>r_animSoftLimits</code></article>
+        </div>
+      </div>
+      <div class="topic" id="topic-reflections">
+        <h3>Reflections</h3>
+        <p class="topic-intro">Reflections in floors, armor and other glossy surfaces. Water reflections are on <a href="#topic-water">Water</a>.</p>
+        <div class="grid">
+          <article class="card" data-feature="reflections/screen-space-reflections-ssr" tabindex="0" role="button" aria-haspopup="dialog"><h4>Screen-space reflections (SSR)</h4><p>Reflections of what is on screen, combined with cubemaps for the rest.</p><code>r_ssr</code></article>
+          <article class="card" data-feature="reflections/rough-reflections" tabindex="0" role="button" aria-haspopup="dialog"><h4>Rough reflections</h4><p>Reflections on rough floors stretch into streaks at shallow angles.</p><code>r_ssrStochastic</code></article>
+          <article class="card" data-feature="reflections/fog-in-reflections" tabindex="0" role="button" aria-haspopup="dialog"><h4>Fog in reflections</h4><p>Reflected objects are as hazy as when you look at them directly.</p><code>r_ssrReflectedFog</code></article>
+        </div>
+      </div>
+      <div class="topic" id="topic-fog">
+        <h3>Fog and light beams</h3>
+        <p class="topic-intro">Fog that fills the air with light: sun beams through windows, glowing haze around sabers, mist on the ground, thick smoke. Smoke from effects is on <a href="#topic-effects">Smoke and effects</a>, rain haze on <a href="#f/weather/rain-haze">Weather</a>, underwater fog on <a href="#f/water/underwater-fog">Water</a>.</p>
+        <div class="grid">
+          <article class="card" data-feature="fog/volumetric-fog" tabindex="0" role="button" aria-haspopup="dialog"><h4>Volumetric fog</h4><p>Fog lit by the sun, lamps and sabers, with light beams and shadows in it.</p><code>r_volumetricFog</code></article>
+          <article class="card" data-feature="fog/ground-haze" tabindex="0" role="button" aria-haspopup="dialog"><h4>Ground haze</h4><p>Low mist near the ground that thins with height, on any map.</p><code>r_volumetricFogHeight</code></article>
+          <article class="card" data-feature="fog/uneven-fog" tabindex="0" role="button" aria-haspopup="dialog"><h4>Uneven fog</h4><p>Breaks uniform fog into drifting patches and wisps.</p><code>r_volumetricFogNoise</code></article>
+          <article class="card" data-feature="fog/shadows-inside-thick-fog" tabindex="0" role="button" aria-haspopup="dialog"><h4>Shadows inside thick fog</h4><p>Dense fog and smoke shade themselves: bright toward the light, dark behind.</p><code>r_volumetricSelfShadow</code></article>
+          <article class="card" data-feature="fog/light-bouncing-inside-fog" tabindex="0" role="button" aria-haspopup="dialog"><h4>Light bouncing inside fog</h4><p>Steam and clouds stay bright inside, as light bounces within them.</p><code>r_volumetricMultiScatter</code></article>
+          <article class="card" data-feature="fog/colored-fog-absorption" tabindex="0" role="button" aria-haspopup="dialog"><h4>Colored fog absorption</h4><p>Fog absorbs colors unevenly, so it can tint what is behind it.</p><code>r_volumetricFogRGBExtinction</code></article>
+          <article class="card" data-feature="fog/local-fog-volumes-mod-authors" tabindex="0" role="button" aria-haspopup="dialog"><h4>Local fog volumes (mod authors)</h4><p>Pockets of steam, smoke or dusty air placed on a map without recompiling it.</p></article>
+          <article class="card" data-feature="fog/different-kinds-of-fog-mod-authors" tabindex="0" role="button" aria-haspopup="dialog"><h4>Different kinds of fog (mod authors)</h4><p>Steam, dust and smoke each scatter light in their own way.</p></article>
+          <article class="card" data-feature="fog/original-rend2-volumetric-fog" tabindex="0" role="button" aria-haspopup="dialog"><h4>Original Rend2 volumetric fog</h4><p>The original Rend2 volumetric fog, lit by baked light only.</p><code>r_volumetricFog 1</code></article>
+        </div>
+      </div>
+      <div class="topic" id="topic-effects">
+        <h3>Smoke and effects</h3>
+        <p class="topic-intro">Smoke, dust and explosions from game effects: real 3D volume, lighting, and glowing gas. Everything here builds on <a href="#f/fog/volumetric-fog">volumetric fog</a> (<code>r_volumetricFog 2</code>).</p>
+        <div class="grid">
+          <article class="card" data-feature="effects/volumetric-smoke" tabindex="0" role="button" aria-haspopup="dialog"><h4>Volumetric smoke</h4><p>Smoke from effects becomes real volume in the fog, lit and shadowed by it.</p><code>r_volumetricParticles</code></article>
+          <article class="card" data-feature="effects/lit-smoke-sprites" tabindex="0" role="button" aria-haspopup="dialog"><h4>Lit smoke sprites</h4><p>Ordinary smoke sprites take the light of the place they are in.</p><code>r_particleLighting</code></article>
+          <article class="card" data-feature="effects/glowing-gas" tabindex="0" role="button" aria-haspopup="dialog"><h4>Glowing gas</h4><p>Fog and smoke that glow by themselves.</p><code>r_volumetricEmission</code></article>
+        </div>
+      </div>
+      <div class="topic" id="topic-sky">
+        <h3>Sky, atmosphere and clouds</h3>
+        <p class="topic-intro">Haze over long distances, a computed sky, and 3D clouds with shadows. Both need a sun: maps that define one in their sky shader work as they are; on others use <code>r_forceSun 1</code> (<a href="#f/shadows/sun-shadows">Shadows</a>). <code>r_atmosphereInfo</code> and <code>r_cloudInfo</code> say why nothing is drawn.</p>
+        <div class="grid">
+          <article class="card" data-feature="sky/atmosphere" tabindex="0" role="button" aria-haspopup="dialog"><h4>Atmosphere</h4><p>Distant scenery fades into bluish air, and the sky can be computed from the sun.</p><code>r_atmosphere</code></article>
+          <article class="card" data-feature="sky/volumetric-clouds" tabindex="0" role="button" aria-haspopup="dialog"><h4>Volumetric clouds</h4><p>3D clouds above the map, lit by the sun and drifting with the wind.</p><code>r_clouds</code></article>
+          <article class="card" data-feature="sky/sky-portal-speed-up" tabindex="0" role="button" aria-haspopup="dialog"><h4>Sky portal speed-up</h4><p>Sky portal scenes are shaded only where the sky is actually visible.</p><code>r_skyPortalCull</code></article>
+        </div>
+      </div>
+      <div class="topic" id="topic-weather">
+        <h3>Rain, wet surfaces and lens water</h3>
+        <p class="topic-intro">Better-looking rain, surfaces that get wet, puddles, splashes and drops on the camera. Everything here only shows while it rains. Rain comes from the map; to try it anywhere use <code>r_we rain</code> (or <code>lightrain</code>, <code>heavyrain</code>, <code>acidrain</code>) and <code>r_we clear</code> to stop.</p>
+        <div class="grid">
+          <article class="card" data-feature="weather/rain-streaks" tabindex="0" role="button" aria-haspopup="dialog"><h4>Rain streaks</h4><p>Rain lit by its surroundings, with streaks following speed and wind.</p><code>r_rainStreaks</code></article>
+          <article class="card" data-feature="weather/rain-haze" tabindex="0" role="button" aria-haspopup="dialog"><h4>Rain haze</h4><p>Heavy rain hides the distance; lamps glow through it.</p><code>r_rainVolume</code></article>
+          <article class="card" data-feature="weather/distant-rain" tabindex="0" role="button" aria-haspopup="dialog"><h4>Distant rain</h4><p>Far rain hands over from single drops to haze.</p><code>r_rainLOD</code></article>
+          <article class="card" data-feature="weather/wet-surfaces" tabindex="0" role="button" aria-haspopup="dialog"><h4>Wet surfaces</h4><p>Rain-exposed surfaces darken and turn glossy, each material in its own way.</p><code>r_weatherWetness</code></article>
+          <article class="card" data-feature="weather/wet-after-the-rain" tabindex="0" role="button" aria-haspopup="dialog"><h4>Wet after the rain</h4><p>Surfaces get wet gradually and dry slowly after the rain stops.</p><code>r_weatherWetnessPersistence</code></article>
+          <article class="card" data-feature="weather/puddles" tabindex="0" role="button" aria-haspopup="dialog"><h4>Puddles</h4><p>Puddles form on flat exposed ground, without map changes.</p><code>r_weatherPuddles</code></article>
+          <article class="card" data-feature="weather/rain-rings-in-puddles" tabindex="0" role="button" aria-haspopup="dialog"><h4>Rain rings in puddles</h4><p>Raindrops make spreading rings in puddles.</p><code>r_weatherPuddleRipples</code></article>
+          <article class="card" data-feature="weather/water-running-down-walls" tabindex="0" role="button" aria-haspopup="dialog"><h4>Water running down walls</h4><p>Thin streams run down exposed slopes and walls.</p><code>r_weatherRunoff</code></article>
+          <article class="card" data-feature="weather/rain-splashes" tabindex="0" role="button" aria-haspopup="dialog"><h4>Rain splashes</h4><p>Small splashes where drops hit the ground, roofs and puddles.</p><code>r_rainSplashes</code></article>
+          <article class="card" data-feature="weather/water-on-the-camera-lens" tabindex="0" role="button" aria-haspopup="dialog"><h4>Water on the camera lens</h4><p>Drops, trails and a wet film on the screen in rain or after leaving water.</p><code>r_rainLens</code></article>
+          <article class="card" data-feature="weather/acid-rain" tabindex="0" role="button" aria-haspopup="dialog"><h4>Acid rain</h4><p>One consistent tint for acid rain across streaks, haze, puddles and lens water.</p><code>r_acidRainVisuals</code></article>
+          <article class="card" data-feature="weather/weather-on-specific-materials-mod-authors" tabindex="0" role="button" aria-haspopup="dialog"><h4>Weather on specific materials (mod authors)</h4><p>Per-shader control over wetness, puddles and runoff.</p></article>
+          <article class="card" data-feature="weather/rain-culling" tabindex="0" role="button" aria-haspopup="dialog"><h4>Rain culling</h4><p>Rain chunks outside the view are skipped.</p><code>r_weatherCull</code></article>
+        </div>
+      </div>
+      <div class="topic" id="topic-water">
+        <h3>Water, waves and waterfalls</h3>
+        <p class="topic-intro">Pools, rivers and waterfalls that reflect, refract, move and react to you, and what you see underwater. Almost everything here builds on <strong>modern water</strong> (<code>r_waterSurface 1</code>), so start with the first section.</p>
+        <div class="grid">
+          <article class="card" data-feature="water/modern-water" tabindex="0" role="button" aria-haspopup="dialog"><h4>Modern water</h4><p>Water with reflections, refraction and depth-dependent color instead of a scrolling texture.</p><code>r_waterSurface</code></article>
+          <article class="card" data-feature="water/underwater-fog" tabindex="0" role="button" aria-haspopup="dialog"><h4>Underwater fog</h4><p>Water, slime and lava as real fog: haze by distance, red light lost first, light patterns on the bottom.</p><code>r_volumetricWater</code></article>
+          <article class="card" data-feature="water/looking-up-from-underwater" tabindex="0" role="button" aria-haspopup="dialog"><h4>Looking up from underwater</h4><p>Snell's window overhead and a mirror-like surface at flatter angles.</p><code>r_waterSnell</code></article>
+          <article class="card" data-feature="water/waves" tabindex="0" role="button" aria-haspopup="dialog"><h4>Waves</h4><p>Coherent waves across the water that respond to wind.</p><code>r_waterWaves</code></article>
+          <article class="card" data-feature="water/wave-geometry" tabindex="0" role="button" aria-haspopup="dialog"><h4>Wave geometry</h4><p>Waves move the actual surface, against shores, objects and the camera.</p><code>r_waterGeometry</code></article>
+          <article class="card" data-feature="water/ripples-from-movement-and-impacts" tabindex="0" role="button" aria-haspopup="dialog"><h4>Ripples from movement and impacts</h4><p>Shots, objects and characters send ripples that spread and reflect from edges.</p><code>r_waterInteraction</code></article>
+          <article class="card" data-feature="water/splashes-wakes-and-rain-on-water" tabindex="0" role="button" aria-haspopup="dialog"><h4>Splashes, wakes and rain on water</h4><p>Spray when entering or leaving water, splashes from shots, wakes and rain dimples.</p><code>r_waterSplashes</code></article>
+          <article class="card" data-feature="water/flowing-water" tabindex="0" role="button" aria-haspopup="dialog"><h4>Flowing water</h4><p>Rivers and streams move along their channel, carrying ripples and foam.</p><code>r_waterFlow</code></article>
+          <article class="card" data-feature="water/foam" tabindex="0" role="button" aria-haspopup="dialog"><h4>Foam</h4><p>Foam along shores, around objects, behind wakes and under waterfalls.</p><code>r_waterFoamField</code></article>
+          <article class="card" data-feature="water/shorelines" tabindex="0" role="button" aria-haspopup="dialog"><h4>Shorelines</h4><p>The water edge moves up and down the shore and wets it.</p><code>r_waterShoreline</code></article>
+          <article class="card" data-feature="water/underwater-light-patterns-caustics" tabindex="0" role="button" aria-haspopup="dialog"><h4>Underwater light patterns (caustics)</h4><p>Rippling light lines on the bottom, from the same waves as the surface.</p><code>r_waterCausticsMode</code></article>
+          <article class="card" data-feature="water/waterfalls-and-rapids" tabindex="0" role="button" aria-haspopup="dialog"><h4>Waterfalls and rapids</h4><p>Falling water with streaks, white aeration, mist and a churning pool.</p><code>r_waterfall</code></article>
+          <article class="card" data-feature="water/underwater-specks-and-bubbles" tabindex="0" role="button" aria-haspopup="dialog"><h4>Underwater specks and bubbles</h4><p>Drifting specks and small bubbles that make clear and murky water feel different.</p><code>r_waterParticles</code></article>
+        </div>
+      </div>
+      <div class="topic" id="topic-foliage">
+        <h3>Grass, plants and wind</h3>
+        <p class="topic-intro">Grass and plants that look fuller, sway in a shared breeze, bend when you walk through them, and react to the Force and to sabers. Two kinds of vegetation exist in JKA:</p>
+        <div class="grid">
+          <article class="card" data-feature="foliage/recognizing-stock-plants" tabindex="0" role="button" aria-haspopup="dialog"><h4>Recognizing stock plants</h4><p>Finds leaves, fronds and stems in stock plant models for the features below.</p><code>r_autoFoliage</code></article>
+          <article class="card" data-feature="foliage/fuller-grass" tabindex="0" role="button" aria-haspopup="dialog"><h4>Fuller grass</h4><p>Grass as fixed crossed cards that don't swivel with the camera.</p><code>r_grassCardMode</code></article>
+          <article class="card" data-feature="foliage/wind-through-grass" tabindex="0" role="button" aria-haspopup="dialog"><h4>Wind through grass</h4><p>A shared breeze moves grass in gusts instead of every tuft circling in step.</p><code>r_foliageWind</code></article>
+          <article class="card" data-feature="foliage/leaf-flutter" tabindex="0" role="button" aria-haspopup="dialog"><h4>Leaf flutter</h4><p>Leaves and vines tremble while trunks and branches stay still.</p><code>r_leafFlutter</code></article>
+          <article class="card" data-feature="foliage/ferns-and-fronds" tabindex="0" role="button" aria-haspopup="dialog"><h4>Ferns and fronds</h4><p>Ferns bend frond by frond in the wind and swing back after being pushed.</p><code>r_plantWind</code></article>
+          <article class="card" data-feature="foliage/walking-through-vegetation" tabindex="0" role="button" aria-haspopup="dialog"><h4>Walking through vegetation</h4><p>Grass and ferns bend where characters touch them and spring back.</p><code>r_foliageInteraction</code></article>
+          <article class="card" data-feature="foliage/force-push-and-pull" tabindex="0" role="button" aria-haspopup="dialog"><h4>Force push and pull</h4><p>Push and pull send a wave through plants, grass and leaves.</p><code>r_foliageForceWaves</code></article>
+          <article class="card" data-feature="foliage/cutting-plants-with-a-saber" tabindex="0" role="button" aria-haspopup="dialog"><h4>Cutting plants with a saber</h4><p>Saber attacks cut fern fronds and plant cards.</p><code>r_foliageSaberCut</code></article>
+        </div>
+      </div>
+      <div class="topic" id="topic-loading">
+        <h3>Loading, OpenGL and diagnostics</h3>
+        <p class="topic-intro">Settings that change how fast the game starts and loads maps, which OpenGL paths are used, and tools for testing. None of them change how a finished frame looks. The defaults are the recommended values.</p>
+        <div class="grid">
+          <article class="card" data-feature="loading/shader-compilation" tabindex="0" role="button" aria-haspopup="dialog"><h4>Shader compilation</h4><p>Shader programs are cached on disk and built only when a level needs them.</p><code>r_shaderProgramCache</code></article>
+          <article class="card" data-feature="loading/map-loading" tabindex="0" role="button" aria-haspopup="dialog"><h4>Map loading</h4><p>Textures are decoded ahead on worker threads, and slow load steps are cached or deferred.</p><code>r_loadPrefetch</code></article>
+          <article class="card" data-feature="loading/modern-opengl" tabindex="0" role="button" aria-haspopup="dialog"><h4>Modern OpenGL</h4><p>On OpenGL 4.3, light lists and water tessellation move to compute shaders; older cards fall back.</p><code>r_gl43</code></article>
+        </div>
       </div>
       <!-- /cards:graphics -->
     </div>
@@ -114,10 +248,10 @@
       <h3>New powers</h3>
       <div class="grid grid-2">
       <!-- cards:force -->
-        <article class="card force" data-feature="telekinesis" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--blue)"><h4>Telekinesis</h4><p>Hold an NPC or an object and move it in space, similar to Grip in The Force Unleashed but without damage. Releasing it while moving throws it. Movement keys move the held target.</p><code>setForceTelekinesis 3</code></article>
-        <article class="card force" data-feature="soar" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--green)"><h4>Soar</h4><p>Stick to walls, start wall runs and flips in mid-air, jump again after touching a wall, and stay in the air for a few attacks.</p><code>setForceSoar 3</code></article>
-        <article class="card force" data-feature="deflect" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--amber)"><h4>Deflect</h4><p>Stop blaster bolts without a saber. Level 1 freezes a bolt, level 2 lets you move while doing it, level 3 sends it back.</p><code>setforcedeflect 3</code></article>
-        <article class="card force" data-feature="chainlightning" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--purple)"><h4>Chain Lightning</h4><p>Lightning that passes from one NPC to the next: up to 2, 5 or any number of targets. Bind it with <code>+force_chain_lightning</code>.</p><code>setForceChainLightning 3</code></article>      <!-- /cards:force -->
+        <article class="card force" data-feature="force/telekinesis" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--blue)"><h4>Telekinesis</h4><p>Hold an NPC or an object and move it in space, similar to Grip in The Force Unleashed but without damage. Releasing it while moving throws it. Movement keys move the held target.</p><code>setForceTelekinesis 3</code></article>
+        <article class="card force" data-feature="force/soar" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--green)"><h4>Soar</h4><p>Stick to walls, start wall runs and flips in mid-air, jump again after touching a wall, and stay in the air for a few attacks.</p><code>setForceSoar 3</code></article>
+        <article class="card force" data-feature="force/deflect" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--amber)"><h4>Deflect</h4><p>Stop blaster bolts without a saber. Level 1 freezes a bolt, level 2 lets you move while doing it, level 3 sends it back.</p><code>setforcedeflect 3</code></article>
+        <article class="card force" data-feature="force/chain-lightning" tabindex="0" role="button" aria-haspopup="dialog" style="--c:var(--purple)"><h4>Chain Lightning</h4><p>Lightning that passes from one NPC to the next: up to 2, 5 or any number of targets. Bind it with <code>+force_chain_lightning</code>.</p><code>setForceChainLightning 3</code></article>      <!-- /cards:force -->
       </div>
 
       <h3>Levels 4 and 5</h3>
