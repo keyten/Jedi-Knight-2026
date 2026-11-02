@@ -1,0 +1,118 @@
+{
+  "schema": "org.openjk.contribution-benchmark.v1",
+  "protocol": "Owned fixed-source attribution receipts + actual native S13 production fitting",
+  "historical_stock_profile": "UnknownProfile",
+  "stock_exact_replacement": false,
+  "report": {
+    "schema": "org.openjk.contribution-tests.v1",
+    "checks": 497,
+    "failures": 0,
+    "cases": [
+      {
+        "name": "point_plane_query_roundtrip",
+        "value_lux": 6.25,
+        "safe_authored_receiver": true
+      },
+      {
+        "name": "sparse_zero_unknown_corruption",
+        "missing_is_zero": false
+      },
+      {
+        "name": "grid_total_without_source_reduction",
+        "total_available": true,
+        "source_attribution": "Unavailable"
+      },
+      {
+        "name": "root_order_alternative_composition",
+        "double_count_rejected": true
+      },
+      {
+        "name": "field_direct_bounce_total_unknown",
+        "unknown_roots_additive": false
+      },
+      {
+        "name": "unsafe_replacement_adversaries",
+        "negative_cases": 14,
+        "signed_discrepancy_becomes_GI": false
+      },
+      {
+        "name": "shared_peak_encoded_censoring",
+        "preencoding_r": 510,
+        "encoded_r": 255,
+        "encoded_g": 127.5,
+        "sum_encoded_sources_g": 255,
+        "replacement": false
+      },
+      {
+        "name": "point_opaque_wall",
+        "positive": false,
+        "predicted_r": 0,
+        "rays": 2
+      },
+      {
+        "name": "spot_opaque_wall",
+        "positive": false,
+        "predicted_r": 0,
+        "rays": 2
+      },
+      {
+        "name": "point_opening",
+        "positive": true,
+        "predicted_r": 9.24146,
+        "rays": 2
+      },
+      {
+        "name": "spot_opening",
+        "positive": true,
+        "predicted_r": 9.24146,
+        "rays": 2
+      },
+      {
+        "name": "spot_partial_aperture_footprint",
+        "partial_r": 3.94129,
+        "unoccluded_r": 8.12987,
+        "compiler_boundary_claim": false
+      },
+      {
+        "name": "unknown_alpha_path",
+        "known_zero_claimed": false
+      },
+      {
+        "name": "sun_sky_coloured_bounce_receipt",
+        "components_separate": true
+      },
+      {
+        "name": "same_colour_allocation_ambiguity",
+        "unique_allocation_claimed": false
+      },
+      {
+        "name": "production_two_colour_observation_attribution",
+        "observation_root_datasets": 2,
+        "exact_replacement": false,
+        "maximum_root_reference_error": 0,
+        "prepared_samples": 60,
+        "prepared_records": 120,
+        "prepared_accounted_bytes": 20584,
+        "decomposition_rays": 336,
+        "decomposition_forward_calls": 4
+      }
+    ]
+  },
+  "semantic_repeat": true,
+  "resources": [
+    {
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.5619999999180436,
+      "peak_process_rss_bytes": 6389760
+    },
+    {
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.20400000002700835,
+      "peak_process_rss_bytes": 6344704
+    }
+  ],
+  "native_sha256": "0730e5e2df588b5d7f361937a0505131312a1b48f733cfed369a6aa0a95d1869",
+  "base_commit": "e3c33365044e942e5f01c9ae0909b5b3695d85ee"
+}

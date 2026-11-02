@@ -49,6 +49,9 @@ struct Limits
 	uint32_t maxSections = 4096;
 	uint32_t maxStringBytes = 1024 * 1024;
 };
+// Publication-time immutable evaluator binding. Same canonical record codec,
+// no cache-completeness assertion, chunk copy, file access or query-time hashing.
+Error MetadataDigest(const ReconstructedLightingAsset &, Digest &out, const Limits & = Limits());
 
 // Each category must explicitly enumerate ALL resolved inputs, or explicitly
 // attest complete empty coverage. Missing/unhashed coverage is never cacheable.

@@ -11,7 +11,7 @@ namespace Core
 {
 namespace Producer
 {
-constexpr uint32_t kVersion = 3; // scene-level conditional alternatives in publication identity
+constexpr uint32_t kVersion = 4; // P06: observation-root attribution and membership contracts
 struct PreparedProviders; // opaque immutable provider leases, created only by PrepareModelRequests
 struct ProviderPolicy
 {
@@ -41,6 +41,7 @@ class FinalEvaluation
 struct Options
 {
 	uint64_t maxBytes = 128ull * 1024 * 1024, maxPayloadBytes = 64ull * 1024 * 1024;
+	uint64_t maxContributionPairs = 2000000;
 	size_t maxPatches = 8192, maxSources = 128, maxChunks = 32768, chunkRows = 128;
 	bool requireIndependentValidation = true, requireFinalEvaluation = true;
 	bool retainUnsupportedDiagnostic =
@@ -133,12 +134,32 @@ Error RebindProviders(const Request &original, Request &refitted);
 Error Run(const Request &, const ReadContext &, Result &, const Joint::Validation * = nullptr,
 		  const FinalEvaluation * = nullptr);
 
+enum class SampleKind
+{
+	TransportPatch,
+	SurfaceLuxel,
+	GridAmbient,
+	GridDirected,
+	GridDirection,
+	DeluxeDirection
+};
+enum class ObservationDomain
+{
+	Unknown,
+	EncodedSourceRGB,
+	LinearRec709Irradiance,
+	LegacyLinearChannels,
+	Direction,
+	LinearRec709Radiance
+};
 struct SampleRecord
 {
 	Id id = 0, patch = 0, region = 0, surface = 0, material = 0, block = 0;
 	Vec3 world, normal;
 	double area = 0;
 	uint32_t style = 0;
+	SampleKind kind = SampleKind::TransportPatch;
+	Vec3 shadingNormal;
 };
 struct ContributionRecord
 {
@@ -158,6 +179,13 @@ struct ObservationRecord
 	Vec3 prediction, direct, sun, sky, ambient, indirect, unresolved, signedIntervalDiscrepancy,
 		directionToSource;
 	bool directionKnown = false;
+	Id sampleDomain = 0;
+	ObservationDomain domain = ObservationDomain::Unknown;
+	uint8_t presentMask = 0, unboundedUpperMask = 0;
+	Vec3 observedLower, observedUpper; // finite endpoints; upper mask represents +infinity
+	PhotometricUnit unit =
+		PhotometricUnit::Relative; // TOTAL observation operator, not component unit
+	Id calibration = 0;
 };
 // Validates payload checksums, spans, IDs, domains, component sums and unit/
 // membership cross-references. Structural Validate(asset) alone is insufficient.
@@ -167,6 +195,14 @@ Error ReadContributions(const Artifact &, Id dataset, const ReadContext &,
 						std::vector<ContributionRecord> &);
 Error ReadObservations(const Artifact &, Id dataset, const ReadContext &,
 					   std::vector<ObservationRecord> &);
+// Bounded reusable S13 codecs for trusted sparse producers/test adapters. The
+// caller assigns a stable dataset ID; success atomically replaces descriptor/chunks.
+Error EncodeSamples(Id, const std::vector<SampleRecord> &, size_t chunkRows, const ReadContext &,
+					Dataset &, std::vector<Disk::Chunk> &);
+Error EncodeContributions(Id, const std::vector<ContributionRecord> &, size_t chunkRows,
+						  const ReadContext &, Dataset &, std::vector<Disk::Chunk> &);
+Error EncodeObservations(Id, const std::vector<ObservationRecord> &, size_t chunkRows,
+						 const ReadContext &, Dataset &, std::vector<Disk::Chunk> &);
 // Ticket/generation protects against publishing work from a replaced world.
 Status Publish(const Artifact &, Manager &, uint64_t expectedGeneration, const ReadContext &);
 Error Load(const Disk::Cache &, const Disk::Fingerprint &, const ReadContext &, Artifact &);

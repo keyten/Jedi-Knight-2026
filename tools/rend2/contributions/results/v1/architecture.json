@@ -1,0 +1,33 @@
+{
+  "schema": "org.openjk.solver-architecture-audit.v1",
+  "modules": [
+    "producer",
+    "joint",
+    "uncertainty",
+    "amplitude_fit",
+    "point_refine",
+    "emitter_shape",
+    "hidden_candidates",
+    "sun_fit",
+    "indirect",
+    "bake_forward",
+    "bake_integral",
+    "bake_trace",
+    "candidate_pool",
+    "shadow_evidence",
+    "transport_mesh",
+    "sampling",
+    "scene_schedule",
+    "contributions"
+  ],
+  "forbidden_runtime_dependencies": [],
+  "dependency_check_pass": true,
+  "boundary": "Producer::Run -> immutable ReconstructedLightingAsset plus data payloads",
+  "decoder_exception": "RendererSettings describes presentation parity; source decoding is independently tested invariant",
+  "physical_validity": "hard geometry/finite/nonnegative constraints; uncertain geometry is not certified free",
+  "ranking": "validation objective + complexity + geometry/material priors; required-block gate first",
+  "priority_qualification": "No independent stock physical-truth oracle; ranking is not a proof of physical configuration",
+  "uncertainty": "runs before publication; remains conditional/unknown without calibration",
+  "budgets": "CPU offline work/memory limits, not renderer resource limits",
+  "consumer_status": "Unavailable; independent consumer gates do not enable renderer features"
+}

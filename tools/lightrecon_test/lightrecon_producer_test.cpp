@@ -54,7 +54,8 @@ P::Result Run(Rig &rig, const char *name)
 	use.requested.fill(true);
 	for (unsigned c = 0; c < unsigned(Consumer::Count); ++c)
 		CHECK(!EvaluateConsumer(pinned, use, Consumer(c), {}).effective);
-	CHECK(pinned.GetCapability(Capability::ContributionSampling).status == Status::Unavailable);
+	CHECK(pinned.GetCapability(Capability::ContributionSampling).status ==
+		  (result.artifact.asset->contributions.empty() ? Status::Unavailable : Status::Ok));
 	auto corrupt = result.artifact;
 	corrupt.chunks[0].bytes.back() ^= 1;
 	CHECK(!P::ValidateArtifact(corrupt, Read()));

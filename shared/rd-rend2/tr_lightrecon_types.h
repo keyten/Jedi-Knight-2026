@@ -9,7 +9,7 @@
 namespace Rend2LightRecon {
 
 static constexpr const char* kSchema = "org.openjk.reconstructed-lighting";
-static constexpr uint32_t kSchemaVersion = 6;
+static constexpr uint32_t kSchemaVersion = 7; // P06: explicit composition/replacement contracts
 static constexpr float kUnitTolerance = 1.0e-4f;
 
 // Persistent producer-assigned identities, never vector indexes or addresses.
@@ -237,6 +237,32 @@ struct TransportRoot
 	Id source = 0; // zero only for an explicitly unknown root
 	TransportRootKind kind = TransportRootKind::Unknown;
 };
+enum class ContributionColour
+{
+	Unknown,
+	LinearRec709D65,
+	CompilerRelativeChannels,
+	EncodedSourceRGB
+};
+enum class CompositionRule
+{
+	Unknown,
+	Permitted,
+	Forbidden
+};
+enum AttributionIssue : uint32_t
+{
+	AttributionVisibilityUnknown = 1u << 0,
+	AttributionProfileUnknown = 1u << 1,
+	AttributionMaterialUnknown = 1u << 2,
+	AttributionSupportMissing = 1u << 3,
+	AttributionQuantized = 1u << 4,
+	AttributionCensored = 1u << 5,
+	AttributionRepresentationError = 1u << 6,
+	AttributionRootsUnknown = 1u << 7,
+	AttributionParametersUnknown = 1u << 8,
+	AttributionAlternative = 1u << 9
+};
 struct TransportMembership
 {
 	uint32_t version = 1;
@@ -248,6 +274,17 @@ struct TransportMembership
 	bool reflectionOrderKnown = false;
 	uint32_t minimumReflectionOrder = 0, maximumReflectionOrder = 0;
 	uint32_t style = 0; // canonical portable integer, 0..255
+	// v2 extends the existing descriptor. v1 remains readable but cannot prove
+	// safe composition. Parent records retain quantity/unit/calibration/provenance.
+	ContributionColour colour = ContributionColour::Unknown;
+	bool rootsComplete = false;
+	std::vector<uint32_t> reflectionOrders; // exact union; empty = unknown, not zero bounce
+	Id configuration = 0, alternativeGroup = 0;
+	std::string generation, geometry, profile, domain;
+	uint32_t uncertainty = 0;
+	Estimate numericalError; // same quantity/unit as parent, NOT total source uncertainty
+	CompositionRule addition = CompositionRule::Unknown;
+	CompositionRule replacement = CompositionRule::Unknown; // requires separate scoped proofs
 };
 struct TransportField
 {
@@ -272,6 +309,27 @@ struct VisibilityReference
 };
 enum class ContributionComponent { Direct, Indirect, Unresolved };
 enum class ContributionQuantity { IrradianceRGB, RadianceRGB, AttributionFraction, LegacyRelativeChannels };
+enum ReplacementProof : uint32_t
+{
+	ReplacementIdentity = 1u << 0,
+	ReplacementLocalized = 1u << 1,
+	ReplacementAllocation = 1u << 2,
+	ReplacementVisibility = 1u << 3,
+	ReplacementProfile = 1u << 4,
+	ReplacementCalibration = 1u << 5,
+	ReplacementReceiverSupport = 1u << 6,
+	ReplacementIndirectSeparation = 1u << 7,
+	ReplacementRuntimeOperator = 1u << 8,
+	ReplacementAmplitude = 1u << 9,
+	ReplacementAllProofs = (1u << 10) - 1
+};
+struct ReplacementMetadata
+{
+	uint32_t version = 1, supported = 0, contradicted = 0;
+	Id provenance = 0;
+	std::string scope, runtimeOperator;			// receiver/observation model, never a shader name
+	Estimate maximumAbsoluteError, leakageRisk; // physical quantity and [0,1]; unknown blocks use
+};
 struct ContributionReference
 {
 	Id dataset = 0;
@@ -284,6 +342,8 @@ struct ContributionReference
 	std::string domain; // explicit operator/domain; legacy channels are NOT physical Rec.709
 	Id configuration = 0; // complete joint hypothesis; alternatives must never be summed
 	TransportMembership membership;
+	bool completeSampleCoverage = true; // false: valid sparse subset; absent sample = unknown
+	ReplacementMetadata replacement;	// evidence only; no automatic subtraction permission
 	// Sparse absence means unknown, not zero. Explicit zero records may be stored.
 	// Values are attribution evidence, never an instruction to subtract/promote energy.
 };

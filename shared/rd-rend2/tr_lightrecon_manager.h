@@ -16,6 +16,8 @@ class CpuEvaluator
 {
 public:
 	virtual ~CpuEvaluator() = default;
+	// Preparation/publication-time binding check only; never called by queries.
+	virtual Status AcceptsAsset(const ReconstructedLightingAsset &) const;
 	virtual Status Supports(Capability capability) const;
 	virtual Status Indirect(const ReconstructedLightingAsset&, const IrradianceQuery&, LightingSample&) const;
 	virtual Status IncomingRadiance(const ReconstructedLightingAsset&, const RadianceQuery&, LightingSample&) const;

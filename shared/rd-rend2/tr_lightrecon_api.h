@@ -117,6 +117,8 @@ struct ContributionQuery
 	SourceHandle source;
 	ContributionComponent component = ContributionComponent::Unresolved;
 	ContributionQuantity quantity = ContributionQuantity::IrradianceRGB;
+	Id dataset = 0, configuration = 0;		  // optional explicit alternative/path selection
+	bool allowLegacyRelativeChannels = false; // offline typed channels; never LightingSample
 };
 struct LightingSample
 {
@@ -130,6 +132,12 @@ struct ContributionSample
 {
 	LightingSample lighting; // RGB quantities
 	float fraction = 0.0f; // dimensionless [0,1] when quantity == AttributionFraction
+	Vec3 value, lower, upper; // conditional payload values/bounds, not calibrated confidence
+	ContributionQuantity quantity = ContributionQuantity::IrradianceRGB;
+	Id dataset = 0, configuration = 0;
+	std::string domain;
+	uint32_t issues = 0;
+	bool lightingSampleAvailable = false; // Rec.709 adapter available; unit may still be Relative
 };
 
 class Snapshot

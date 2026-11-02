@@ -260,6 +260,96 @@ struct Validator
 		return true;
 	}
 
+	bool Membership(const TransportMembership &m)
+	{
+		if ((m.version != 1 && m.version != 2) || m.style > 255 ||
+			!EnumIn(m.colour, ContributionColour::EncodedSourceRGB) ||
+			!EnumIn(m.addition, CompositionRule::Forbidden) ||
+			!EnumIn(m.replacement, CompositionRule::Forbidden) || !Nonnegative(m.numericalError))
+			return Fail("membership", "invalid version/colour/error/composition rule");
+		for (auto value :
+			 {m.directLocal, m.directSun, m.directSky, m.legacyAmbient, m.reflected, m.unresolved})
+			if (!EnumIn(value, FieldMembership::Included))
+				return Fail("membership", "invalid include/exclude state");
+		if (m.reflectionOrderKnown &&
+			(m.minimumReflectionOrder > m.maximumReflectionOrder || m.maximumReflectionOrder > 64))
+			return Fail("membership", "invalid reflection range");
+		std::set<Id> seen;
+		for (const auto &root : m.roots)
+		{
+			if (!EnumIn(root.kind, TransportRootKind::Unknown) ||
+				(root.kind != TransportRootKind::Unknown &&
+				 (!root.source || !sources.count(root.source))) ||
+				(root.source && (!sources.count(root.source) || !seen.insert(root.source).second)))
+				return Fail("membership.roots", "invalid root identity");
+			if (root.kind == TransportRootKind::LocalEmitter &&
+				(!emitters.count(root.source) ||
+				 emitters[root.source]->kind == EmitterKind::Directional))
+				return Fail("membership.roots", "local root is not finite emitter");
+			if (root.kind == TransportRootKind::Sun &&
+				(!emitters.count(root.source) ||
+				 emitters[root.source]->kind != EmitterKind::Directional))
+				return Fail("membership.roots", "sun root is not directional");
+			if (root.kind == TransportRootKind::Sky && !IsEnvironment(root.source))
+				return Fail("membership.roots", "sky root missing");
+			if (m.rootsComplete && root.kind == TransportRootKind::Unknown)
+				return Fail("membership.roots", "complete roots include unknown");
+		}
+		if (m.version == 2)
+		{
+			if (m.uncertainty & ~uint32_t((AttributionAlternative << 1) - 1))
+				return Fail("membership", "unknown uncertainty bits");
+			if (m.model.empty() || m.domain.empty() || m.generation.empty() || m.geometry.empty() ||
+				m.profile.empty())
+				return Fail("membership", "v2 identity/domain missing");
+			if (m.configuration &&
+				std::none_of(
+					asset.lightingConfigurations.begin(), asset.lightingConfigurations.end(),
+					[&](const LightingConfiguration &c) { return c.id == m.configuration; }))
+				return Fail("membership.configuration", "configuration missing");
+			if (m.alternativeGroup && !groups.count(m.alternativeGroup))
+				return Fail("membership", "hypothesis group missing");
+			if (m.reflectionOrders.empty() != !m.reflectionOrderKnown ||
+				m.reflectionOrders.size() > 65)
+				return Fail("membership.orders", "unknown/range/union conflict");
+			for (size_t i = 0; i < m.reflectionOrders.size(); ++i)
+				if (m.reflectionOrders[i] > 64 ||
+					(i && m.reflectionOrders[i] <= m.reflectionOrders[i - 1]))
+					return Fail("membership.orders", "noncanonical order union");
+			if (!m.reflectionOrders.empty() &&
+				(m.minimumReflectionOrder != m.reflectionOrders.front() ||
+				 m.maximumReflectionOrder != m.reflectionOrders.back()))
+				return Fail("membership.orders", "order union and bounds differ");
+			if (!m.reflectionOrders.empty())
+			{
+				bool direct = m.reflectionOrders.front() == 0,
+					 reflected = m.reflectionOrders.back() > 0;
+				if ((reflected && m.reflected == FieldMembership::Excluded) ||
+					(!reflected && m.reflected == FieldMembership::Included) ||
+					(!direct && (m.directLocal == FieldMembership::Included ||
+								 m.directSun == FieldMembership::Included ||
+								 m.directSky == FieldMembership::Included ||
+								 m.legacyAmbient == FieldMembership::Included)))
+					return Fail("membership.orders", "path/component membership conflict");
+				if (direct)
+					for (const auto &root : m.roots)
+					{
+						auto state = root.kind == TransportRootKind::LocalEmitter
+										 ? m.directLocal
+										 : root.kind == TransportRootKind::Sun
+											   ? m.directSun
+											   : root.kind == TransportRootKind::Sky
+													 ? m.directSky
+													 : root.kind == TransportRootKind::LegacyAmbient
+														   ? m.legacyAmbient
+														   : FieldMembership::Unknown;
+						if (state == FieldMembership::Excluded)
+							return Fail("membership.orders", "direct root explicitly excluded");
+					}
+			}
+		}
+		return true;
+	}
 	bool Run()
 	{
 		if (asset.schema != kSchema || asset.version != kSchemaVersion) return Fail("schema", "unsupported schema/version");
@@ -374,10 +464,13 @@ struct Validator
 			if (f.dataset && dims[0] && datasets[f.dataset]->elementCount != count)
 				return Fail("transport.sampleDimensions", "dataset logical count differs from lattice");
 			const auto& m=f.membership;
-			if(m.version!=1 || m.style>255 || !EnumIn(m.directLocal,FieldMembership::Included) ||
-				!EnumIn(m.directSun,FieldMembership::Included) || !EnumIn(m.directSky,FieldMembership::Included) ||
-				!EnumIn(m.legacyAmbient,FieldMembership::Included) || !EnumIn(m.reflected,FieldMembership::Included) ||
-				!EnumIn(m.unresolved,FieldMembership::Included)) return Fail("transport.membership","unsupported membership");
+			if (!Membership(m) || !EnumIn(m.directLocal, FieldMembership::Included) ||
+				!EnumIn(m.directSun, FieldMembership::Included) ||
+				!EnumIn(m.directSky, FieldMembership::Included) ||
+				!EnumIn(m.legacyAmbient, FieldMembership::Included) ||
+				!EnumIn(m.reflected, FieldMembership::Included) ||
+				!EnumIn(m.unresolved, FieldMembership::Included))
+				return Fail("transport.membership", "unsupported membership");
 			if(m.reflectionOrderKnown && (m.minimumReflectionOrder>m.maximumReflectionOrder || m.maximumReflectionOrder>64))
 				return Fail("transport.membership","invalid reflection orders");
 			if((f.component==TransportComponent::IndirectIrradiance && m.reflected==FieldMembership::Excluded) ||
@@ -406,6 +499,39 @@ struct Validator
 		}
 		for (const ContributionReference& c : asset.contributions)
 		{
+			if (!Membership(c.membership))
+				return false;
+			const auto &replacement = c.replacement;
+			if (replacement.version != 1 ||
+				(replacement.supported | replacement.contradicted) &
+					~uint32_t(ReplacementAllProofs) ||
+				(replacement.supported & replacement.contradicted) ||
+				!Nonnegative(replacement.maximumAbsoluteError) ||
+				!Confidence(replacement.leakageRisk) ||
+				(replacement.provenance && !provenance.count(replacement.provenance)))
+				return Fail("contributions.replacement", "invalid proof/uncertainty/provenance");
+			if (replacement.supported && (!replacement.provenance || replacement.scope.empty()))
+				return Fail("contributions.replacement", "proof scope missing");
+			if (c.membership.version == 2 &&
+				(c.configuration != c.membership.configuration || c.domain != c.membership.domain))
+				return Fail("contributions.membership", "domain/configuration disagreement");
+			if (c.membership.version == 2)
+			{
+				for (const auto &root : c.membership.roots)
+					if (root.source && std::find(c.sources.begin(), c.sources.end(), root.source) ==
+										   c.sources.end())
+						return Fail("contributions.membership", "root not in allowed source IDs");
+				if ((c.component == ContributionComponent::Direct &&
+					 c.membership.reflectionOrderKnown &&
+					 c.membership.maximumReflectionOrder > 0) ||
+					(c.component == ContributionComponent::Indirect &&
+					 c.membership.reflectionOrderKnown && c.membership.minimumReflectionOrder == 0))
+					return Fail("contributions.membership", "component and path order disagree");
+				if (c.quantity == ContributionQuantity::LegacyRelativeChannels &&
+					c.membership.colour != ContributionColour::CompilerRelativeChannels)
+					return Fail("contributions.membership",
+								"legacy channels claim physical primaries");
+			}
 			if (!Data(c.dataset, DatasetPurpose::Contributions, "contributions.dataset", true) ||
 				!Data(c.sampleDomain, DatasetPurpose::SampleDomain, "contributions.sampleDomain", true)) return false;
 			if (!EnumIn(c.component, ContributionComponent::Unresolved) || !EnumIn(c.quantity, ContributionQuantity::LegacyRelativeChannels) || c.sources.empty())

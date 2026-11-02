@@ -178,13 +178,18 @@ FIELDS(Dataset, v.id, v.purpose, v.layout, v.locator, v.contentHash, v.encoding,
 FIELDS(EnvironmentLighting, v.source, v.meanLuminance, v.radiance, v.sunCoverage)
 FIELDS(TransportRoot, v.source, v.kind)
 FIELDS(TransportMembership, v.version, v.model, v.roots, v.directLocal, v.directSun, v.directSky,
-	   v.legacyAmbient, v.reflected, v.unresolved, v.reflectionOrderKnown,
-	   v.minimumReflectionOrder, v.maximumReflectionOrder, v.style)
+	   v.legacyAmbient, v.reflected, v.unresolved, v.reflectionOrderKnown, v.minimumReflectionOrder,
+	   v.maximumReflectionOrder, v.style, v.colour, v.rootsComplete, v.reflectionOrders,
+	   v.configuration, v.alternativeGroup, v.generation, v.geometry, v.profile, v.domain,
+	   v.uncertainty, v.numericalError, v.addition, v.replacement)
 FIELDS(TransportField, v.source, v.component, v.quantity, v.unit, v.calibration, v.bounds,
 	   v.sampleDimensions[0], v.sampleDimensions[1], v.sampleDimensions[2], v.dataset, v.membership)
 FIELDS(VisibilityReference, v.dataset, v.kind, v.source, v.region)
+FIELDS(ReplacementMetadata, v.version, v.supported, v.contradicted, v.provenance, v.scope,
+	   v.runtimeOperator, v.maximumAbsoluteError, v.leakageRisk)
 FIELDS(ContributionReference, v.dataset, v.sampleDomain, v.sources, v.component, v.quantity, v.unit,
-	   v.calibration,v.domain,v.configuration,v.membership)
+	   v.calibration, v.domain, v.configuration, v.membership, v.completeSampleCoverage,
+	   v.replacement)
 FIELDS(Diagnostic, v.severity, v.code, v.message, v.source, v.region, v.metric, v.metricUnit)
 FIELDS(UncertaintyFactor,v.cause,v.status,v.reason)
 FIELDS(CalibratedConfidence,v.meaning,v.probability,v.event,v.population,v.protocol,v.calibrationHash,v.independentFamilies,v.intervalNominal)
@@ -296,6 +301,8 @@ ENUM_RANGE(ProviderOutcome,NumericalFailure)
 ENUM_RANGE(ProviderBudgetScope,Global)
 ENUM_RANGE(SourceUse,Specular)
 ENUM_RANGE(FieldMembership, Included)
+ENUM_RANGE(ContributionColour, EncodedSourceRGB)
+ENUM_RANGE(CompositionRule, Forbidden)
 ENUM_RANGE(TransportRootKind, Unknown)
 ENUM_RANGE(CalibrationKind, UncalibratedRelative)
 ENUM_RANGE(PhotometricQuantity, ReceiverIrradiance)
@@ -561,6 +568,17 @@ void Add(std::vector<Encoded> &sections, Section kind, const std::vector<T> &rec
 	e.bytes.swap(w.bytes);
 	sections.push_back(std::move(e));
 }
+template <class T> void CanonicalWrite(Writer &w, const std::vector<T> &records)
+{
+	std::vector<const T *> sorted;
+	for (const auto &v : records)
+		sorted.push_back(&v);
+	std::stable_sort(sorted.begin(), sorted.end(),
+					 [](const T *a, const T *b) { return RecordId(*a) < RecordId(*b); });
+	w.Value(uint64_t(sorted.size()));
+	for (const auto *v : sorted)
+		w.Value(*v);
+}
 template <class T> void DecodeRecords(Decoder &d, const SectionInfo &s, std::vector<T> &records)
 {
 	d.budget.Records(s.count);
@@ -688,6 +706,31 @@ Error HashContent(const Reader &reader, Digest &out, uint64_t maxInputBytes)
 	});
 }
 
+Error MetadataDigest(const ReconstructedLightingAsset &a, Digest &out, const Limits &limits)
+{
+	return Guard([&] {
+		Writer w(limits);
+		w(a.schema, a.version, a.lineage, a.units, a.provenance);
+#define BIND(member) CanonicalWrite(w, a.member)
+		BIND(provenanceRecords);
+		BIND(calibrations);
+		BIND(hypothesisGroups);
+		BIND(emitters);
+		BIND(suns);
+		BIND(environments);
+		BIND(transport);
+		BIND(regions);
+		BIND(datasets);
+		BIND(visibility);
+		BIND(contributions);
+		BIND(diagnostics);
+		BIND(lightingConfigurations);
+		BIND(uncertainty);
+#undef BIND
+		w(a.assessment);
+		out = Hash(w.bytes.data(), w.bytes.size());
+	});
+}
 Error Encode(const ReconstructedLightingAsset &asset, const Fingerprint &fingerprint,
 			 const std::vector<Chunk> &chunks, std::vector<uint8_t> &out, const Limits &limits)
 {

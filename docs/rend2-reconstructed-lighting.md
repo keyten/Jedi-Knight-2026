@@ -1,4 +1,11 @@
-# Canonical reconstructed static lighting, schema 6
+# Canonical reconstructed static lighting, schema 7
+
+P06 retains the S13 contribution/sample codecs and adds prepared read-only
+contribution queries, membership v2, sparse coverage and scoped replacement
+proofs. Sample/observation payload v2 separates original observation IDs from
+transport patch IDs and declares total observation units. Schema-6 and older
+canonical caches are rejected; `.jkobs` observations are unchanged. See
+[P06 attribution and replacement contract](rend2-contributions-p06.md).
 
 Schema 5 adds typed provider outcomes and independently scoped provider model
 requests to `BuildAssessment` v2. Unknown sun/environment and partial search are

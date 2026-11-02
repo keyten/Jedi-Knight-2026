@@ -386,7 +386,7 @@ int main(int argc, char **argv)
 		transfer.patchInterpretationKey = Key("Original planar triangle UV-clipped compiler footprint v1");
 		transfer.completePatchSet = false;
 		std::set<Id> ids, materials;
-		for (const auto &s : specs)
+		for (auto &s : specs)
 		{
 			Need(ids.insert(s.row.id).second, "Cross-partition duplicate/overlapping sample ID");
 			Indirect::Patch p;
@@ -399,6 +399,9 @@ int main(int argc, char **argv)
 				Footprint(surface, s.slot, s.x, s.y, p.receiver.geometricNormal, p.areaWorldSquared);
 			Need(std::abs(p.areaWorldSquared - s.area) <= 1e-4 * std::max(1., s.area),
 				 "Exported/imported original footprint area differs");
+			// Preserve the independently UV-clipped ORIGINAL receiver geometry too.
+			// The patch and observation domains share geometry, never hidden RGB.
+			s.row.receiver = p.receiver;
 			transfer.patches.push_back(p);
 			materials.insert(p.material);
 		}
@@ -463,6 +466,8 @@ int main(int argc, char **argv)
 		options.complexityPerParameter = .0001;
 		Controller controller(request, validation, validationKey);
 		FinalController final(request, held, heldoutKey);
+		size_t contributionQueries = 0, unavailableContributions = 0, zeroContributions = 0;
+		double maximumQueryError = 0;
 		J::Result result;
 		Error error;
 		P::Result produced;
@@ -532,6 +537,41 @@ int main(int argc, char **argv)
 				Manager manager;
 				Need(P::Publish(loaded, manager, manager.Acquire().Generation(), read) == Status::Ok,
 					 "Immutable snapshot publication");
+				auto snapshot = manager.Acquire();
+				for (const auto &ref : loaded.asset->contributions)
+				{
+					std::vector<P::ContributionRecord> values;
+					Check(P::ReadContributions(loaded, ref.dataset, read, values));
+					for (const auto &v : values)
+					{
+						ContributionQuery query;
+						query.source = snapshot.IdentifySource(v.source).value;
+						query.sampleDomain = ref.sampleDomain;
+						query.sample = v.sample;
+						query.dataset = ref.dataset;
+						query.configuration = ref.configuration;
+						query.component = ref.component;
+						query.quantity = ref.quantity;
+						query.allowLegacyRelativeChannels = true;
+						auto value = snapshot.SampleContribution(query);
+						if (!v.available)
+						{
+							Need(value.status == Status::Unavailable,
+								 "Unavailable contribution became known");
+							++unavailableContributions;
+							continue;
+						}
+						Need(bool(value), "Prepared compiled-source contribution query");
+						maximumQueryError =
+							std::max(maximumQueryError, Length(V(value.value.value) - V(v.value)));
+						Need(maximumQueryError == 0,
+							 "Prepared contribution changed serialized value");
+						Need(!value.value.lightingSampleAvailable,
+							 "Compiler Q became physical LightingSample");
+						++contributionQueries;
+						zeroContributions += Length(V(v.value)) == 0;
+					}
+				}
 				// Cache::Store creates the output directory, including diagnostic-only archives.
 				std::ofstream report(std::string(argv[3]) + "/report.json");
 				report << P::ReportJson(produced) << '\n';
@@ -568,7 +608,11 @@ int main(int argc, char **argv)
 						  << s.value.rgbAmplitude.y << ',' << s.value.rgbAmplitude.z << "]}";
 			}
 		}
-		std::cout << "],\"producer\":" << (argc >= 4 ? P::ReportJson(produced) : "null")
+		std::cout << "],\"contribution_queries\":{\"available\":" << contributionQueries
+				  << ",\"unavailable\":" << unavailableContributions
+				  << ",\"explicit_zero\":" << zeroContributions
+				  << ",\"maximum_roundtrip_error\":" << maximumQueryError
+				  << "},\"producer\":" << (argc >= 4 ? P::ReportJson(produced) : "null")
 				  << ",\"heldout_predictions\":[";
 		if (result.preferred != SIZE_MAX)
 		{

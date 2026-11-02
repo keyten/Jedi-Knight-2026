@@ -446,11 +446,11 @@ void RoundTrips()
 		if (asset.emitters.empty())
 		{
 			auto digest = D::Hex(D::Hash(bytes.data(), bytes.size()));
-			// Schema 6 adds optional scoped photometric calibration; the empty-asset
-			// fingerprint intentionally change. This freezes the new encoded bytes.
+			// Schema 7 adds explicit contribution membership/replacement contracts;
+			// the empty-asset fingerprint intentionally changes with the schema key.
 			// Earlier semantic schemas are rejected rather than silently reinterpreted.
-			CHECK(kSchemaVersion == 6);
-			CHECK(digest == "ad3c16533da0b2b7d579f12ffec0a450a2017bf360009286f856689162c8bf4a");
+			CHECK(kSchemaVersion == 7);
+			CHECK(digest == "70001b68182f77fb210ffc34a2966a197e95d91bdc2131d6261bf6eb354dd9b3");
 			std::printf("  empty format SHA-256: %s\n", digest.c_str());
 		}
 	}

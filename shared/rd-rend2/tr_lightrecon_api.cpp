@@ -147,6 +147,10 @@ bool Index(detail::SnapshotData& data)
 } // namespace
 
 Status CpuEvaluator::Supports(Capability) const { return Status::Unavailable; }
+Status CpuEvaluator::AcceptsAsset(const ReconstructedLightingAsset &) const
+{
+	return Status::Ok;
+}
 Status CpuEvaluator::Indirect(const ReconstructedLightingAsset&, const IrradianceQuery&, LightingSample&) const { return Status::Unavailable; }
 Status CpuEvaluator::IncomingRadiance(const ReconstructedLightingAsset&, const RadianceQuery&, LightingSample&) const { return Status::Unavailable; }
 Status CpuEvaluator::RegionAt(const ReconstructedLightingAsset&, const Vec3&, Id&) const { return Status::Unavailable; }
@@ -184,6 +188,8 @@ Status Manager::Publish(const ReconstructedLightingAsset& asset, Completeness co
 		return s == Status::Ok ? Status::Corrupt : s;
 	}
 	data->state = completeness == Completeness::Ready ? Availability::Ready : Availability::Partial;
+	if (evaluator && evaluator->AcceptsAsset(*data->asset) != Status::Ok)
+		return Status::Corrupt;
 	data->evaluator = evaluator;
 	if (!Index(*data))
 	{
@@ -416,13 +422,18 @@ Result<ContributionSample> Snapshot::SampleContribution(const ContributionQuery&
 {
 	if (!query.sampleDomain || !query.sample || static_cast<unsigned>(query.component) > static_cast<unsigned>(ContributionComponent::Unresolved) ||
 		static_cast<unsigned>(query.quantity) > static_cast<unsigned>(ContributionQuantity::LegacyRelativeChannels)) return Failure<ContributionSample>(Status::InvalidArgument);
-	if(query.quantity==ContributionQuantity::LegacyRelativeChannels)return Failure<ContributionSample>(Status::Unsupported); // offline diagnostic channels, never linear Rec.709 LightingSample
+	if (query.quantity == ContributionQuantity::LegacyRelativeChannels &&
+		!query.allowLegacyRelativeChannels)
+		return Failure<ContributionSample>(Status::Unsupported);
 	const Status s = Check(query.source); if (s != Status::Ok) return Failure<ContributionSample>(s);
 	const auto d = data_->datasets.find(query.sampleDomain);
 	if (d == data_->datasets.end() || d->second->purpose != DatasetPurpose::SampleDomain) return Failure<ContributionSample>(Status::InvalidArgument);
 	const ContributionReference* reference = nullptr;
 	for (const ContributionReference& c : data_->asset->contributions)
-		if (c.sampleDomain == query.sampleDomain && c.component == query.component && c.quantity == query.quantity &&
+		if ((!query.dataset || c.dataset == query.dataset) &&
+			(!query.configuration || c.configuration == query.configuration) &&
+			c.sampleDomain == query.sampleDomain && c.component == query.component &&
+			c.quantity == query.quantity &&
 			std::find(c.sources.begin(), c.sources.end(), query.source.id) != c.sources.end())
 		{
 			if (reference) return Failure<ContributionSample>(Status::Ambiguous);
@@ -435,6 +446,16 @@ Result<ContributionSample> Snapshot::SampleContribution(const ContributionQuery&
 	bool valid = true;
 	if (r && query.quantity == ContributionQuantity::AttributionFraction)
 		valid = std::isfinite(r.value.fraction) && r.value.fraction >= 0.0f && r.value.fraction <= 1.0f;
+	else if (r && query.quantity == ContributionQuantity::LegacyRelativeChannels)
+		valid = Finite(r.value.value) && Finite(r.value.lower) && Finite(r.value.upper) &&
+				r.value.value.x >= 0 && r.value.value.y >= 0 && r.value.value.z >= 0 &&
+				r.value.lower.x >= 0 && r.value.lower.y >= 0 && r.value.lower.z >= 0 &&
+				r.value.lower.x <= r.value.value.x && r.value.lower.y <= r.value.value.y &&
+				r.value.lower.z <= r.value.value.z && r.value.upper.x >= r.value.value.x &&
+				r.value.upper.y >= r.value.value.y && r.value.upper.z >= r.value.value.z &&
+				r.value.quantity == query.quantity && r.value.dataset == reference->dataset &&
+				r.value.configuration == reference->configuration &&
+				r.value.domain == reference->domain && !r.value.lightingSampleAvailable;
 	else if (r)
 		valid = ValidLighting(*data_, r.value.lighting, query.quantity == ContributionQuantity::IrradianceRGB ? PhotometricUnit::Lux : PhotometricUnit::Nits) &&
 			r.value.lighting.unit == reference->unit && r.value.lighting.calibration == reference->calibration && r.value.lighting.source == query.source.id;

@@ -3,6 +3,7 @@
 #include "producer.h"
 #include "../tr_pbr_contract.h"
 #include "bake_math.h"
+#include "contributions.h"
 #include "geometry_key.h"
 #include "provider_outcome.h"
 #include <algorithm>
@@ -71,6 +72,15 @@ double Y(Vec3 v)
 	return double(v.x) * Rend2PBR::kLumaR + double(v.y) * Rend2PBR::kLumaG +
 		   double(v.z) * Rend2PBR::kLumaB;
 }
+void Set(Vec3 &v, unsigned c, double x)
+{
+	if (c == 0)
+		v.x = float(x);
+	else if (c == 1)
+		v.y = float(x);
+	else
+		v.z = float(x);
+}
 Estimate Known(double x)
 {
 	Estimate e;
@@ -137,6 +147,7 @@ struct Reader
 {
 	const std::vector<uint8_t> &bytes;
 	size_t at = 0;
+	uint32_t version = 1;
 	explicit Reader(const std::vector<uint8_t> &v) : bytes(v)
 	{
 	}
@@ -192,6 +203,8 @@ void Write(Bytes &b, const SampleRecord &v)
 	b.V(v.normal);
 	b.D(v.area);
 	b.U(v.style, 4);
+	b.U(unsigned(v.kind), 4);
+	b.V(v.shadingNormal);
 }
 void Write(Bytes &b, const ContributionRecord &v)
 {
@@ -218,6 +231,14 @@ void Write(Bytes &b, const ObservationRecord &v)
 	for (Vec3 x : {v.prediction, v.direct, v.sun, v.sky, v.ambient, v.indirect, v.unresolved,
 				   v.signedIntervalDiscrepancy, v.directionToSource})
 		b.V(x);
+	b.U(v.sampleDomain, 8);
+	b.U(unsigned(v.domain), 4);
+	b.U(v.presentMask, 1);
+	b.U(v.unboundedUpperMask, 1);
+	b.V(v.observedLower);
+	b.V(v.observedUpper);
+	b.U(unsigned(v.unit), 4);
+	b.U(v.calibration, 8);
 }
 SampleRecord ReadSample(Reader &b)
 {
@@ -232,6 +253,13 @@ SampleRecord ReadSample(Reader &b)
 	v.normal = b.V();
 	v.area = b.D();
 	v.style = uint32_t(b.U(4));
+	if (b.version >= 2)
+	{
+		v.kind = SampleKind(b.U(4));
+		v.shadingNormal = b.V();
+	}
+	else
+		v.shadingNormal = v.normal;
 	return v;
 }
 ContributionRecord ReadContribution(Reader &b)
@@ -268,6 +296,17 @@ ObservationRecord ReadObservation(Reader &b)
 	v.unresolved = b.V();
 	v.signedIntervalDiscrepancy = b.V();
 	v.directionToSource = b.V();
+	if (b.version >= 2)
+	{
+		v.sampleDomain = b.U(8);
+		v.domain = ObservationDomain(b.U(4));
+		v.presentMask = uint8_t(b.U(1));
+		v.unboundedUpperMask = uint8_t(b.U(1));
+		v.observedLower = b.V();
+		v.observedUpper = b.V();
+		v.unit = PhotometricUnit(b.U(4));
+		v.calibration = b.U(8);
+	}
 	return v;
 }
 const Dataset &Descriptor(const Artifact &a, Id id)
@@ -291,13 +330,15 @@ std::vector<const Disk::Chunk *> Chunks(const Artifact &a, Id id)
 }
 template <class T, class Read>
 Error DecodeRows(const Artifact &a, Id id, uint32_t magic, const char *encoding,
-				 const ReadContext &read, std::vector<T> &out, Read decode)
+				 const ReadContext &read, std::vector<T> &out, Read decode,
+				 uint32_t maximumVersion = 1)
 {
 	out.clear();
 	try
 	{
 		const auto &d = Descriptor(a, id);
-		Need(d.encoding == encoding && d.encodingVersion == 1 && d.layout == DatasetLayout::Chunked,
+		Need(d.encoding == encoding && d.encodingVersion >= 1 &&
+				 d.encodingVersion <= maximumVersion && d.layout == DatasetLayout::Chunked,
 			 Code::UnsupportedSchema, "Unsupported producer dataset encoding");
 		Need(d.elementCount <= (read.maxBytes ? read.maxBytes : 128ull * 1024 * 1024) / sizeof(T),
 			 Code::MemoryLimit, "Producer decode span limit");
@@ -310,8 +351,9 @@ Error DecodeRows(const Artifact &a, Id id, uint32_t magic, const char *encoding,
 					 c->count <= d.elementCount - next,
 				 Code::ProviderError, "Producer chunk gaps/overlaps/range");
 			Reader b{c->bytes};
-			Need(b.U(4) == magic && b.U(4) == 1 && b.U(4) == c->count, Code::ProviderError,
-				 "Producer chunk header mismatch");
+			b.version = d.encodingVersion;
+			Need(b.U(4) == magic && b.U(4) == d.encodingVersion && b.U(4) == c->count,
+				 Code::ProviderError, "Producer chunk header mismatch");
 			for (uint64_t i = 0; i < c->count; ++i)
 				out.push_back(decode(b));
 			b.End();
@@ -556,6 +598,7 @@ Disk::Fingerprint Fingerprint(const Request &r)
 	Text(k, q.evaluationFamily);
 	k.U(r.options.maxBytes);
 	k.U(r.options.maxPayloadBytes);
+	k.U(r.options.maxContributionPairs);
 	k.U(r.options.maxPatches);
 	k.U(r.options.maxSources);
 	k.U(r.options.maxChunks);
@@ -834,7 +877,7 @@ struct Assembly
 	}
 	template <class T>
 	Id DatasetRows(const std::string &name, DatasetPurpose purpose, const char *encoding,
-				   uint32_t magic, const std::vector<T> &rows)
+				   uint32_t magic, const std::vector<T> &rows, uint32_t version = 1)
 	{
 		Cancel(read);
 		Id id = ids.Span(name);
@@ -843,7 +886,7 @@ struct Assembly
 		d.purpose = purpose;
 		d.layout = DatasetLayout::Chunked;
 		d.encoding = encoding;
-		d.encodingVersion = 1;
+		d.encodingVersion = version;
 		d.locator = "embedded://producer/" + std::to_string(id);
 		d.elementCount = rows.size();
 		d.chunkElements = request.options.chunkRows;
@@ -857,7 +900,7 @@ struct Assembly
 			c.count = std::min(request.options.chunkRows, rows.size() - first);
 			Bytes b;
 			b.U(magic, 4);
-			b.U(1, 4);
+			b.U(version, 4);
 			b.U(c.count, 4);
 			for (size_t j = first; j < first + c.count; ++j)
 				Write(b, rows[j]);
@@ -1640,6 +1683,12 @@ void AssessReadiness(Assembly &build, const Result &result, bool fitted)
 }
 void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &selected, Result &out)
 {
+	Need(q.transfer->Patches().size() <= UINT64_MAX - q.count, Code::MemoryLimit,
+		 "Attribution receiver count overflow");
+	Need(selected.sources.size() + q.boundaryRoots.size() <=
+			 b.request.options.maxContributionPairs /
+				 std::max<uint64_t>(1, q.count + q.transfer->Patches().size()),
+		 Code::WorkLimit, "Source/receiver attribution pair budget");
 	auto &a = b.asset.assessment;
 	Indirect::Result decomposition;
 	Check(Joint::DecomposeFrozen(q, selected, b.read, decomposition, out.work.decomposition));
@@ -1705,6 +1754,7 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 		s.material = patch.material;
 		s.world = patch.receiver.world;
 		s.normal = patch.receiver.geometricNormal;
+		s.shadingNormal = patch.receiver.shadingNormal;
 		s.style = patch.receiver.style;
 		s.area = patch.areaWorldSquared;
 		samples.push_back(s);
@@ -1712,8 +1762,48 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 	std::sort(samples.begin(), samples.end(),
 			  [](const SampleRecord &a, const SampleRecord &b) { return a.id < b.id; });
 	a.sampleDomain = b.DatasetRows("sample-domain", DatasetPurpose::SampleDomain, SampleEncoding,
-								   SampleMagic, samples);
+								   SampleMagic, samples, 2);
 	const auto &contract = q.profiles[selected.profile].contract;
+	auto membership = [&](TransportMembership &m) {
+		m.version = 2;
+		m.rootsComplete = !m.roots.empty() &&
+						  std::all_of(m.roots.begin(), m.roots.end(), [](const TransportRoot &r) {
+							  return r.kind != TransportRootKind::Unknown;
+						  });
+		m.reflectionOrders.clear();
+		if (m.reflectionOrderKnown)
+			for (uint32_t i = m.minimumReflectionOrder; i <= m.maximumReflectionOrder; ++i)
+				m.reflectionOrders.push_back(i);
+		m.configuration = a.selectedConfiguration;
+		m.generation = a.solverKey;
+		m.geometry = Disk::Hex(q.geometry.geometryKey);
+		m.profile = a.selectedProfile;
+		m.domain = Domain(contract);
+		m.colour = contract.incidentDomain == Indirect::Root::Domain::CompilerRelative255
+					   ? ContributionColour::CompilerRelativeChannels
+					   : (q.profiles[selected.profile].model.linearRec709PrimariesAttested ||
+						  contract.incidentDomain == Indirect::Root::Domain::PhysicalLux)
+							 ? ContributionColour::LinearRec709D65
+							 : ContributionColour::Unknown;
+		m.uncertainty = AttributionParametersUnknown;
+		if (contract.operation == Indirect::ObservationOperator::NetRadiantEncoded)
+			m.uncertainty |= AttributionQuantized;
+		if (contract.physicalTransportAssumed &&
+			std::any_of(selected.materials.begin(), selected.materials.end(),
+						[](const Indirect::Reflectance &r) {
+							return r.knowledge != Indirect::MaterialKnowledge::Known;
+						}))
+			m.uncertainty |= AttributionMaterialUnknown;
+		if (!b.request.coverage.historicalProfileKnown &&
+			q.profiles[selected.profile].model.law == Shape::Law::HistoricalBake)
+			m.uncertainty |= AttributionProfileUnknown;
+		m.addition = m.rootsComplete && m.reflectionOrderKnown ? CompositionRule::Permitted
+															   : CompositionRule::Unknown;
+		m.replacement =
+			CompositionRule::Forbidden; // Conditional fit is not exact-source attribution proof.
+	};
+	for (auto &field : b.asset.transport)
+		membership(field.membership);
 	Id calibration = contract.unit == PhotometricUnit::Relative ? b.relativeCalibration
 																: contract.calibration.id;
 	for (const auto &root : decomposition.fixedRoots)
@@ -1765,10 +1855,10 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 			ref.configuration = a.selectedConfiguration;
 			auto &m = ref.membership;
 			m.model = "strict frozen source-linked transport/1";
-			TransportRoot membership;
-			membership.source = root.source;
-			membership.kind = root.kind;
-			m.roots = {membership};
+			TransportRoot memberRoot;
+			memberRoot.source = root.source;
+			memberRoot.kind = root.kind;
+			m.roots = {memberRoot};
 			m.directLocal = m.directSun = m.directSky = m.legacyAmbient = m.reflected =
 				m.unresolved = FieldMembership::Excluded;
 			if (order)
@@ -1783,6 +1873,10 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 				m.directLocal = FieldMembership::Included;
 			m.reflectionOrderKnown = true;
 			m.minimumReflectionOrder = m.maximumReflectionOrder = order;
+			membership(m);
+			if (std::any_of(rows.begin(), rows.end(),
+							[](const ContributionRecord &r) { return !r.available; }))
+				m.uncertainty |= AttributionSupportMissing;
 			b.asset.contributions.push_back(ref);
 		}
 	}
@@ -1792,6 +1886,157 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 								  &predictions));
 	Need(checked.key == selected.key, Code::InvalidState,
 		 "Producer strict reevaluation changed frozen model identity");
+	std::vector<Joint::Observation> original;
+	std::vector<SampleRecord> observationSamples;
+	Need(q.count <=
+			 b.request.options.maxBytes / (sizeof(SampleRecord) + sizeof(Joint::Observation)),
+		 Code::MemoryLimit, "Observation attribution geometry budget");
+	for (uint64_t firstRow = 0; firstRow < q.count; firstRow += 128)
+	{
+		Chunk<Joint::Observation> chunk;
+		Check(q.training->Read(firstRow, size_t(std::min(uint64_t(128), q.count - firstRow)),
+							   b.read, chunk));
+		for (size_t rowIndex = 0; rowIndex < chunk.count; ++rowIndex)
+		{
+			const auto &o = chunk.data[rowIndex];
+			original.push_back(o);
+			SampleRecord s;
+			s.id = o.id;
+			s.patch = o.patch;
+			s.region = o.region;
+			s.surface = o.receiver.surface;
+			s.material = o.receiver.material;
+			s.block = o.block;
+			s.world = o.receiver.world;
+			s.normal = o.receiver.geometricNormal;
+			s.shadingNormal = o.receiver.shadingNormal;
+			s.style = o.receiver.style;
+			s.kind = o.channel == Joint::Channel::Surface ? SampleKind::SurfaceLuxel
+														  : SampleKind(unsigned(o.channel) + 1);
+			if (o.channel == Joint::Channel::Surface)
+				for (size_t tIndex = 0; tIndex < o.receiver.footprint.count; ++tIndex)
+				{
+					const auto &t = o.receiver.footprint.data[tIndex];
+					s.area += .5 * Length(Cross(V(t.world[1]) - V(t.world[0]),
+												V(t.world[2]) - V(t.world[0])));
+				}
+			observationSamples.push_back(s);
+		}
+	}
+	std::sort(observationSamples.begin(), observationSamples.end(),
+			  [](const SampleRecord &x, const SampleRecord &y) { return x.id < y.id; });
+	Id observationDomain = b.DatasetRows("observation-sample-domain", DatasetPurpose::SampleDomain,
+										 SampleEncoding, SampleMagic, observationSamples, 2);
+	for (size_t index = 0; index < selected.sources.size() + q.boundaryRoots.size(); ++index)
+	{
+		Cancel(b.read);
+		auto rq = q;
+		auto seed = selected;
+		seed.sources.clear();
+		rq.boundaryRoots.clear();
+		Id source = 0;
+		TransportRootKind root = TransportRootKind::Unknown;
+		if (index < selected.sources.size())
+		{
+			seed.sources = {selected.sources[index]};
+			source = seed.sources[0].candidate.id;
+			root = seed.sources[0].candidate.root;
+		}
+		else
+		{
+			rq.boundaryRoots = {q.boundaryRoots[index - selected.sources.size()]};
+			source = rq.boundaryRoots[0].source;
+			root = rq.boundaryRoots[0].kind;
+		}
+		Joint::Model component;
+		Joint::Score score;
+		Joint::Work work;
+		std::vector<Joint::Prediction> values;
+		Check(Joint::AssessHypothesis(rq, seed, b.read, component, score, work, &values));
+		out.work.decomposition.evaluations += work.evaluations;
+		out.work.decomposition.forwardCalls += work.forwardCalls;
+		out.work.decomposition.rays += work.rays;
+		out.work.decomposition.traversal += work.traversal;
+		out.work.decomposition.pairs += work.pairs;
+		Need(values.size() == original.size(), Code::InvalidState,
+			 "Per-source observation replay count changed");
+		std::vector<Joint::Prediction> directValues;
+		if (contract.physicalTransportAssumed)
+		{
+			// Direct ray support does not depend on unrelated, unavailable bounce links.
+			auto directRequest = rq;
+			directRequest.profiles[selected.profile].contract.physicalTransportAssumed = false;
+			Check(Joint::AssessHypothesis(directRequest, seed, b.read, component, score, work,
+										  &directValues));
+			out.work.decomposition.evaluations += work.evaluations;
+			out.work.decomposition.forwardCalls += work.forwardCalls;
+			out.work.decomposition.rays += work.rays;
+			out.work.decomposition.traversal += work.traversal;
+			out.work.decomposition.pairs += work.pairs;
+			Need(directValues.size() == original.size(), Code::InvalidState,
+				 "Direct contribution replay count changed");
+		}
+		for (unsigned order = 0; order <= (contract.physicalTransportAssumed ? 1u : 0u); ++order)
+		{
+			std::vector<ContributionRecord> rows;
+			for (size_t i = 0; i < values.size(); ++i)
+			{
+				const auto &p = (!order && !directValues.empty()) ? directValues[i] : values[i];
+				if (original[i].channel != Joint::Channel::Surface)
+					continue;
+				Need(original[i].id == p.id, Code::InvalidState,
+					 "Per-source observation identity changed");
+				ContributionRecord r;
+				r.sample = p.id;
+				r.source = sourceIds.at(source);
+				r.root = root;
+				r.reflectionOrder = order;
+				r.available = p.available && (!order || p.transportAvailable);
+				r.issues = p.issues;
+				r.value = order ? p.indirect
+								: root == TransportRootKind::Sun
+									  ? p.sun
+									  : root == TransportRootKind::Sky
+											? p.sky
+											: root == TransportRootKind::LegacyAmbient ? p.ambient
+																					   : p.direct;
+				r.lower = r.upper = r.value;
+				rows.push_back(r);
+			}
+			std::sort(rows.begin(), rows.end(),
+					  [](const ContributionRecord &x, const ContributionRecord &y) {
+						  return x.sample < y.sample;
+					  });
+			Id id = b.DatasetRows(
+				"observation-contribution/" + std::to_string(sourceIds.at(source)) + "/" +
+					std::to_string(order),
+				DatasetPurpose::Contributions, ContributionEncoding, ContributionMagic, rows);
+			auto prototype =
+				std::find_if(b.asset.contributions.begin(), b.asset.contributions.end(),
+							 [&](const ContributionReference &r) {
+								 return r.sources == std::vector<Id>{sourceIds.at(source)} &&
+										r.membership.minimumReflectionOrder == order;
+							 });
+			Need(prototype != b.asset.contributions.end(), Code::AlgorithmError,
+				 "Missing existing root contribution descriptor");
+			ContributionReference ref = *prototype;
+			ref.dataset = id;
+			ref.sampleDomain = observationDomain;
+			ref.completeSampleCoverage = rows.size() == observationSamples.size();
+			if (!ref.completeSampleCoverage ||
+				std::any_of(rows.begin(), rows.end(),
+							[](const ContributionRecord &r) { return !r.available; }))
+				ref.membership.uncertainty |= AttributionSupportMissing;
+			for (const auto &observation : original)
+				for (const auto &interval : observation.rgb)
+					if (interval.present && !std::isfinite(interval.upper))
+						ref.membership.uncertainty |= AttributionCensored;
+			ref.replacement.provenance = b.provenance;
+			ref.replacement.scope = "Conditional frozen observation replay; no exact "
+									"source/calibration/runtime replacement proof";
+			b.asset.contributions.push_back(ref);
+		}
+	}
 	std::vector<ObservationRecord> rows;
 	size_t ordinal = 0;
 	for (uint64_t firstRow = 0; firstRow < q.count; firstRow += 128)
@@ -1808,6 +2053,34 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 			Need(o.id == p.id, Code::InvalidState, "Observation stream changed before publication");
 			ObservationRecord v;
 			v.sample = o.id;
+			v.sampleDomain = observationDomain;
+			v.unit =
+				contract.operation == Indirect::ObservationOperator::NetRadiantEncoded ||
+						o.channel == Joint::Channel::GridDirection ||
+						o.channel == Joint::Channel::DeluxeDirection
+					? PhotometricUnit::Relative
+					: contract.operation == Indirect::ObservationOperator::OutgoingLambertian &&
+							  contract.unit == PhotometricUnit::Lux
+						  ? PhotometricUnit::Nits
+						  : contract.unit;
+			v.calibration = v.unit == PhotometricUnit::Relative ? b.relativeCalibration
+																: contract.calibration.id;
+			v.domain =
+				o.channel == Joint::Channel::GridDirection ||
+						o.channel == Joint::Channel::DeluxeDirection
+					? ObservationDomain::Direction
+					: contract.operation == Indirect::ObservationOperator::NetRadiantEncoded
+						  ? ObservationDomain::EncodedSourceRGB
+						  : contract.incidentDomain == Indirect::Root::Domain::CompilerRelative255
+								? ObservationDomain::LegacyLinearChannels
+								: !(q.profiles[selected.profile]
+										.model.linearRec709PrimariesAttested ||
+									contract.incidentDomain == Indirect::Root::Domain::PhysicalLux)
+									  ? ObservationDomain::Unknown
+									  : contract.operation ==
+												Indirect::ObservationOperator::OutgoingLambertian
+											? ObservationDomain::LinearRec709Radiance
+											: ObservationDomain::LinearRec709Irradiance;
 			v.patch = o.patch;
 			v.role = Joint::Role::Training;
 			v.channel = o.channel;
@@ -1827,22 +2100,30 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 			V residual;
 			for (unsigned c = 0; c < 3; ++c)
 				if (o.rgb[c].present)
+				{
+					v.presentMask |= uint8_t(1u << c);
+					Set(v.observedLower, c, o.rgb[c].lower);
+					if (std::isfinite(o.rgb[c].upper))
+						Set(v.observedUpper, c, o.rgb[c].upper);
+					else
+						v.unboundedUpperMask |= uint8_t(1u << c);
 					residual[c] =
 						V(p.rgb)[c] < o.rgb[c].lower
 							? o.rgb[c].lower - V(p.rgb)[c]
 							: V(p.rgb)[c] > o.rgb[c].upper ? o.rgb[c].upper - V(p.rgb)[c] : 0;
+				}
 			v.signedIntervalDiscrepancy = residual.Float();
 			rows.push_back(v);
 		}
 	}
 	a.diagnostics = b.DatasetRows("observation-diagnostics", DatasetPurpose::ObservationQuality,
-								  ObservationEncoding, ObservationMagic, rows);
+								  ObservationEncoding, ObservationMagic, rows, 2);
 }
 } // namespace
 
 Error ReadSamples(const Artifact &a, Id id, const ReadContext &c, std::vector<SampleRecord> &out)
 {
-	return DecodeRows(a, id, SampleMagic, SampleEncoding, c, out, ReadSample);
+	return DecodeRows(a, id, SampleMagic, SampleEncoding, c, out, ReadSample, 2);
 }
 Error ReadContributions(const Artifact &a, Id id, const ReadContext &c,
 						std::vector<ContributionRecord> &out)
@@ -1852,7 +2133,86 @@ Error ReadContributions(const Artifact &a, Id id, const ReadContext &c,
 Error ReadObservations(const Artifact &a, Id id, const ReadContext &c,
 					   std::vector<ObservationRecord> &out)
 {
-	return DecodeRows(a, id, ObservationMagic, ObservationEncoding, c, out, ReadObservation);
+	return DecodeRows(a, id, ObservationMagic, ObservationEncoding, c, out, ReadObservation, 2);
+}
+namespace
+{
+template <class T>
+Error EncodeRows(Id id, const std::vector<T> &rows, size_t span, const ReadContext &read,
+				 DatasetPurpose purpose, const char *encoding, uint32_t magic, uint32_t version,
+				 Dataset &output, std::vector<Disk::Chunk> &chunks)
+{
+	try
+	{
+		Need(id && span && span <= 65536, Code::InvalidInput,
+			 "Invalid producer encoding ID/chunk span");
+		Dataset d;
+		d.id = id;
+		d.purpose = purpose;
+		d.layout = DatasetLayout::Chunked;
+		d.encoding = encoding;
+		d.encodingVersion = version;
+		d.locator = "embedded://producer/" + std::to_string(id);
+		d.elementCount = rows.size();
+		d.chunkElements = span;
+		std::vector<Disk::Chunk> encoded;
+		GeometryKey hash;
+		uint64_t bytes = 0, maximum = read.maxBytes ? read.maxBytes : 128ull * 1024 * 1024;
+		for (size_t first = 0; first < rows.size(); first += span)
+		{
+			Cancel(read);
+			Disk::Chunk c;
+			c.dataset = id;
+			c.firstElement = first;
+			c.count = std::min(span, rows.size() - first);
+			Need(c.count <= maximum / (sizeof(T) + 32), Code::MemoryLimit,
+				 "Producer chunk encoding scratch budget");
+			Bytes b;
+			b.U(magic, 4);
+			b.U(version, 4);
+			b.U(c.count, 4);
+			for (size_t i = first; i < first + c.count; ++i)
+				Write(b, rows[i]);
+			Need(b.bytes.size() <= maximum - bytes, Code::MemoryLimit,
+				 "Producer encoded payload budget");
+			bytes += b.bytes.size();
+			c.bytes = std::move(b.bytes);
+			hash.Digest(Disk::Hash(c.bytes.data(), c.bytes.size()));
+			encoded.push_back(std::move(c));
+		}
+		Cancel(read);
+		d.contentHash = "sha256-chain:" + Disk::Hex(hash.Finish());
+		output = std::move(d);
+		chunks = std::move(encoded);
+		return {};
+	}
+	catch (const Error &e)
+	{
+		return e;
+	}
+	catch (const std::bad_alloc &)
+	{
+		return Failure(Code::MemoryLimit, "Producer encoding allocation");
+	}
+}
+} // namespace
+Error EncodeSamples(Id id, const std::vector<SampleRecord> &v, size_t span, const ReadContext &r,
+					Dataset &d, std::vector<Disk::Chunk> &c)
+{
+	return EncodeRows(id, v, span, r, DatasetPurpose::SampleDomain, SampleEncoding, SampleMagic, 2,
+					  d, c);
+}
+Error EncodeContributions(Id id, const std::vector<ContributionRecord> &v, size_t span,
+						  const ReadContext &r, Dataset &d, std::vector<Disk::Chunk> &c)
+{
+	return EncodeRows(id, v, span, r, DatasetPurpose::Contributions, ContributionEncoding,
+					  ContributionMagic, 1, d, c);
+}
+Error EncodeObservations(Id id, const std::vector<ObservationRecord> &v, size_t span,
+						 const ReadContext &r, Dataset &d, std::vector<Disk::Chunk> &c)
+{
+	return EncodeRows(id, v, span, r, DatasetPurpose::ObservationQuality, ObservationEncoding,
+					  ObservationMagic, 2, d, c);
 }
 
 Error PrepareModelRequests(const Request &request, const ReadContext &read, Result &out)
@@ -2205,7 +2565,8 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 		Need(artifact.asset != nullptr, Code::InvalidInput, "No sealed producer asset");
 		const auto &a = *artifact.asset;
 		std::string problem;
-		Need(Validate(a, &problem), Code::InvalidInput, "Canonical asset invalid: " + problem);
+		bool canonicalValid = Validate(a, &problem);
+		Need(canonicalValid, Code::InvalidInput, "Canonical asset invalid: " + problem);
 		Need(a.assessment.present && a.assessment.structuralValidated &&
 				 a.assessment.payloadsValidated,
 			 Code::InvalidInput, "Producer validation manifest absent/incomplete");
@@ -2220,30 +2581,49 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 				 Code::MemoryLimit, "Producer payload memory limit");
 			bytes += c.bytes.size();
 		}
-		std::map<Id, SampleRecord> samples;
-		std::vector<SampleRecord> sampleRows;
-		if (a.assessment.sampleDomain)
-		{
-			Check(ReadSamples(artifact, a.assessment.sampleDomain, read, sampleRows));
-			Need(sampleRows.size() <= (read.maxBytes ? read.maxBytes : 128ull * 1024 * 1024) / 512,
-				 Code::MemoryLimit, "Producer validation sample scratch");
-			Id last = 0;
-			for (const auto &v : sampleRows)
+		std::map<Id, std::map<Id, SampleRecord>> domains;
+		std::set<Id> handled;
+		uint64_t scratch = 0;
+		auto reserveScratch = [&](uint64_t count, uint64_t perRow) {
+			uint64_t maximum = read.maxBytes ? read.maxBytes : 128ull * 1024 * 1024;
+			Need(count <= (maximum - scratch) / perRow, Code::MemoryLimit,
+				 "Producer validation aggregate scratch budget");
+			scratch += count * perRow;
+		};
+		for (const auto &d : a.datasets)
+			if (d.purpose == DatasetPurpose::SampleDomain)
 			{
-				Need(v.id > last && v.patch && std::isfinite(v.area) && v.area > 0 &&
-						 Normal(V(v.normal)) && v.style <= 255,
-					 Code::ProviderError, "Invalid sample identity/geometry/area/style");
-				last = v.id;
-				samples.emplace(v.id, v);
+				std::vector<SampleRecord> sampleRows;
+				Check(ReadSamples(artifact, d.id, read, sampleRows));
+				reserveScratch(sampleRows.size(), 512);
+				Id last = 0;
+				for (const auto &v : sampleRows)
+				{
+					bool surface =
+						v.kind == SampleKind::TransportPatch || v.kind == SampleKind::SurfaceLuxel;
+					Need(v.id > last && unsigned(v.kind) <= unsigned(SampleKind::DeluxeDirection) &&
+							 std::isfinite(v.area) && v.area >= 0 && v.style <= 255 &&
+							 Finite(V(v.world)) &&
+							 (!surface ||
+							  (v.area > 0 && Normal(V(v.normal)) && Normal(V(v.shadingNormal)))) &&
+							 (v.kind != SampleKind::TransportPatch || v.patch),
+						 Code::ProviderError, "Invalid sample identity/geometry/area/style/kind");
+					last = v.id;
+					domains[d.id].emplace(v.id, v);
+				}
+				handled.insert(d.id);
 			}
-		}
+		const auto &samples = domains[a.assessment.sampleDomain];
 		struct Sum
 		{
 			V direct, sun, sky, ambient, indirect;
+			size_t records = 0;
 			bool available = true;
 		};
-		std::map<Id, Sum> sum;
-		std::set<Id> handled;
+		using SumKey = std::tuple<Id, Id, Id>;
+		std::map<SumKey, Sum> sum;
+		std::map<std::pair<Id, Id>, size_t> expected;
+		std::map<std::pair<Id, Id>, const ContributionReference *> basis;
 		if (a.assessment.sampleDomain)
 			handled.insert(a.assessment.sampleDomain);
 		std::map<Id, const Source *> sources;
@@ -2253,23 +2633,38 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 			sources[e.source.id] = &e.source;
 		for (const auto &e : a.transport)
 			sources[e.source.id] = &e.source;
-		std::set<std::tuple<Id, Id, unsigned>> identities;
+		std::set<std::tuple<Id, Id, Id, Id, unsigned>> identities;
 		for (const auto &ref : a.contributions)
 		{
 			Cancel(read);
-			Need(ref.sampleDomain == a.assessment.sampleDomain &&
-					 ref.configuration == a.assessment.selectedConfiguration &&
-					 !ref.domain.empty() && ref.membership.reflectionOrderKnown,
+			Need(domains.count(ref.sampleDomain) && ref.configuration && !ref.domain.empty() &&
+					 ref.membership.reflectionOrderKnown,
 				 Code::ProviderError, "Contribution domain/configuration/order missing");
 			std::vector<ContributionRecord> rows;
 			Check(ReadContributions(artifact, ref.dataset, read, rows));
+			reserveScratch(rows.size(), 192);
 			handled.insert(ref.dataset);
-			Need(rows.size() == samples.size(), Code::ProviderError,
-				 "Incomplete per-root surface coverage");
+			const auto &support = domains.at(ref.sampleDomain);
+			auto key = std::make_pair(ref.configuration, ref.sampleDomain);
+			auto previous = basis.find(key);
+			if (previous == basis.end())
+				basis[key] = &ref;
+			else
+			{
+				const auto &p = *previous->second;
+				Need(p.unit == ref.unit && p.quantity == ref.quantity &&
+						 p.calibration == ref.calibration && p.domain == ref.domain &&
+						 p.membership.colour == ref.membership.colour,
+					 Code::ProviderError,
+					 "Root contributions have incomparable domains/units/colour");
+			}
+			++expected[{ref.configuration, ref.sampleDomain}];
+			Need(!ref.completeSampleCoverage || rows.size() == support.size(), Code::ProviderError,
+				 "Incomplete declared-complete root coverage");
 			Id last = 0;
 			for (const auto &v : rows)
 			{
-				Need(v.sample > last && samples.count(v.sample) && sources.count(v.source) &&
+				Need(v.sample > last && support.count(v.sample) && sources.count(v.source) &&
 						 std::find(ref.sources.begin(), ref.sources.end(), v.source) !=
 							 ref.sources.end() &&
 						 v.reflectionOrder <= 1 &&
@@ -2277,7 +2672,13 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 						 Positive(V(v.value)) && Positive(V(v.lower)) && Positive(V(v.upper)),
 					 Code::ProviderError, "Invalid root contribution record");
 				last = v.sample;
-				Need(identities.emplace(v.sample, v.source, v.reflectionOrder).second,
+				Need(!v.available || ref.membership.version < 2 ||
+						 ref.membership.style == support.at(v.sample).style,
+					 Code::ProviderError, "Available contribution disagrees with declared style");
+				Need(identities
+						 .emplace(ref.configuration, ref.sampleDomain, v.sample, v.source,
+								  v.reflectionOrder)
+						 .second,
 					 Code::ProviderError, "Duplicate root/order contribution");
 				Need(ref.membership.minimumReflectionOrder == v.reflectionOrder &&
 						 ref.membership.maximumReflectionOrder == v.reflectionOrder &&
@@ -2289,7 +2690,8 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 					Need(V(v.lower)[c] <= V(v.value)[c] + 1e-5 &&
 							 V(v.value)[c] <= V(v.upper)[c] + 1e-5,
 						 Code::ProviderError, "Contribution uncertainty bounds invalid");
-				auto &s = sum[v.sample];
+				auto &s = sum[SumKey(ref.configuration, ref.sampleDomain, v.sample)];
+				++s.records;
 				s.available &= v.available;
 				if (v.reflectionOrder)
 					s.indirect = s.indirect + V(v.value);
@@ -2316,6 +2718,58 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 						 Positive(V(v.prediction)),
 					 Code::ProviderError, "Invalid observation diagnostic identity/domain");
 				last = v.sample;
+				if (v.sampleDomain)
+				{
+					Need(domains.count(v.sampleDomain) &&
+							 domains.at(v.sampleDomain).count(v.sample) &&
+							 unsigned(v.domain) <=
+								 unsigned(ObservationDomain::LinearRec709Radiance) &&
+							 v.presentMask <= 7 && v.unboundedUpperMask <= 7 &&
+							 !(v.unboundedUpperMask & ~v.presentMask) &&
+							 Positive(V(v.observedLower)) && Positive(V(v.observedUpper)) &&
+							 unsigned(v.unit) <= unsigned(PhotometricUnit::Lux),
+						 Code::ProviderError, "Invalid observation interval/domain metadata");
+					Need((v.unit == PhotometricUnit::Relative || v.calibration) &&
+							 ((v.domain != ObservationDomain::EncodedSourceRGB &&
+							   v.domain != ObservationDomain::LegacyLinearChannels &&
+							   v.domain != ObservationDomain::Direction) ||
+							  v.unit == PhotometricUnit::Relative) &&
+							 (v.domain != ObservationDomain::LinearRec709Irradiance ||
+							  v.unit == PhotometricUnit::Lux ||
+							  v.unit == PhotometricUnit::Relative) &&
+							 (v.domain != ObservationDomain::LinearRec709Radiance ||
+							  v.unit == PhotometricUnit::Nits ||
+							  v.unit == PhotometricUnit::Relative),
+						 Code::ProviderError, "Observation quantity/unit mismatch");
+					if (v.calibration)
+					{
+						auto calibration = std::find_if(
+							a.calibrations.begin(), a.calibrations.end(),
+							[&](const Calibration &c) { return c.id == v.calibration; });
+						Need(calibration != a.calibrations.end() &&
+								 ((v.unit == PhotometricUnit::Relative) ==
+								  (calibration->kind == CalibrationKind::UncalibratedRelative)),
+							 Code::ProviderError, "Observation calibration/domain mismatch");
+					}
+					for (unsigned channel = 0; channel < 3; ++channel)
+						if (v.presentMask & (1u << channel))
+						{
+							double lo = V(v.observedLower)[channel],
+								   hi = (v.unboundedUpperMask & (1u << channel))
+											? std::numeric_limits<double>::infinity()
+											: V(v.observedUpper)[channel];
+							Need(lo <= hi, Code::ProviderError, "Inverted observation interval");
+							if (v.discrepancyKnown)
+							{
+								double p = V(v.prediction)[channel],
+									   residual = p < lo ? lo - p : p > hi ? hi - p : 0;
+								Need(std::abs(residual - V(v.signedIntervalDiscrepancy)[channel]) <=
+										 2e-5 * std::max(1., std::abs(residual)),
+									 Code::ProviderError,
+									 "Signed discrepancy is not interval error");
+							}
+						}
+				}
 				if (v.directionKnown)
 					Need(Normal(V(v.directionToSource)), Code::ProviderError,
 						 "Invalid predicted direction");
@@ -2324,13 +2778,17 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 						 "Negative/nonfinite pre-encoding component");
 				if (v.channel != Joint::Channel::Surface)
 					continue;
-				Need(samples.count(v.patch), Code::ProviderError,
-					 "Surface diagnostic has no original sample patch");
-				const auto &s = sum[v.patch];
-				if (!v.available)
-					continue;
-				Need(s.available, Code::ProviderError,
-					 "Known diagnostic with unknown root contribution");
+				Id domain = v.sampleDomain ? v.sampleDomain : a.assessment.sampleDomain;
+				Id sample = v.sampleDomain ? v.sample : v.patch;
+				Need(domains.count(domain) && domains.at(domain).count(sample), Code::ProviderError,
+					 "Surface diagnostic has no sample geometry");
+				const auto &s = sum[SumKey(a.assessment.selectedConfiguration, domain, sample)];
+				if (!v.available ||
+					s.records != expected[{a.assessment.selectedConfiguration, domain}])
+					continue; // Sparse absence is unknown; independent total prediction may still
+							  // be available.
+				if (!s.available)
+					continue; // Known total need not imply identifiable per-root attribution.
 				const V stored[] = {V(v.direct), V(v.sun), V(v.sky), V(v.ambient), V(v.indirect)};
 				const V accumulated[] = {s.direct, s.sun, s.sky, s.ambient, s.indirect};
 				for (unsigned c = 0; c < 5; ++c)
@@ -2411,12 +2869,13 @@ Status Publish(const Artifact &artifact, Manager &owner, uint64_t generation,
 		return Status::Unavailable;
 	if (owner.Acquire().Generation() != generation)
 		return Status::StaleHandle;
-	auto valid = ValidateArtifact(artifact, read);
+	std::shared_ptr<const Attribution::Prepared> evaluator;
+	auto valid = Attribution::Prepare(artifact, read, evaluator);
 	if (!valid)
 		return Status::Corrupt;
 	if (owner.Acquire().Generation() != generation)
 		return Status::StaleHandle;
-	return owner.Publish(*artifact.asset, artifact.completeness);
+	return owner.Publish(*artifact.asset, artifact.completeness, evaluator);
 }
 Error Load(const Disk::Cache &cache, const Disk::Fingerprint &fingerprint, const ReadContext &read,
 		   Artifact &out)
@@ -2502,6 +2961,10 @@ Status Backend::LoadCache(BuildProduct &product)
 	last.state =
 		last.artifact.asset->assessment.strictEvaluated ? State::Completed : State::DiagnosticOnly;
 	last.reason = "Validated offline cached artifact; no solver or rendering consumer invoked";
+	std::shared_ptr<const Attribution::Prepared> evaluator;
+	if (!Attribution::Prepare(last.artifact, read_, evaluator))
+		return Status::Corrupt;
+	product.evaluator = evaluator;
 	product.asset = last.artifact.asset;
 	product.completeness = Completeness::Partial;
 	product.message = last.reason;
@@ -2513,6 +2976,10 @@ Status Backend::Build(BuildProduct &product)
 	auto error = Run(request_, read_, last, validation_, final_);
 	if (!error)
 		return error.code == Code::Unavailable ? Status::Unavailable : Status::Corrupt;
+	std::shared_ptr<const Attribution::Prepared> evaluator;
+	if (!Attribution::Prepare(last.artifact, read_, evaluator))
+		return Status::Corrupt;
+	product.evaluator = evaluator;
 	product.asset = last.artifact.asset;
 	product.completeness = Completeness::Partial;
 	product.message = last.reason;
