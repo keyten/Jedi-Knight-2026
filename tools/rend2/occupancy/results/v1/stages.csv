@@ -1,0 +1,9 @@
+map,profile,joint_calls,source_model_attempts,conditional_placement_queries,proven_placement_queries,collision_placement_queries,unknown_placement_queries,fitting_forward_calls,fitting_rays,final_heldout_available,canonical_asset,map_process_seconds,peak_rss_bytes
+t1_danger,isq,4,8,0,0,8,0,0,0,False,False,81.06299999996554,50176000
+t1_danger,linear,4,8,0,0,8,0,0,0,False,False,81.06299999996554,50176000
+mp/siege_desert,isq,4,8,0,0,8,0,0,0,False,False,33.28099999995902,61575168
+mp/siege_desert,linear,4,8,0,0,8,0,0,0,False,False,33.28099999995902,61575168
+hoth3,isq,4,8,0,0,8,0,0,0,False,False,46.57799999997951,106897408
+hoth3,linear,4,8,2,0,6,0,2,64,False,False,46.57799999997951,106897408
+hoth2,isq,4,8,8,0,0,0,8,310,False,False,19.156000000075437,69525504
+hoth2,linear,4,8,6,0,2,0,6,234,False,False,19.156000000075437,69525504

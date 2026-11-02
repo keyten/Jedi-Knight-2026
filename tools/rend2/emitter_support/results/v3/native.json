@@ -1,0 +1,38 @@
+{
+  "result": {
+    "schema": "org.openjk.emitter-support-native.v1",
+    "checks": 52,
+    "failures": 0,
+    "panel_area": 2,
+    "positive_response": 0.23776,
+    "blocked_response": 0,
+    "triangle_rectangle_relative_difference": 5.97276e-05,
+    "fit_rgb_relative_error": 0.000115132,
+    "heldout_mse": 1.44098e-09,
+    "rays": 1282,
+    "work": 4499
+  },
+  "repeat_semantics": true,
+  "resources": [
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_emitter_support_test.exe",
+        "tools\\rend2\\emitter_support\\results\\v3\\native-first.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.3279999999795109,
+      "peak_process_rss_bytes": 5328896
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_emitter_support_test.exe",
+        "tools\\rend2\\emitter_support\\results\\v3\\native-repeat.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.5,
+      "peak_process_rss_bytes": 5332992
+    }
+  ]
+}

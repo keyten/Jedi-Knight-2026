@@ -26,6 +26,18 @@ struct SpatialLocation
 	bool boundary = false;
 	uint64_t work = 0;
 };
+// Convex occupied support. A planar hull is not its enclosing vacuum sphere.
+// Cylinder is a closed occupied body; its emitting side is defined separately.
+struct SpatialSupport
+{
+	enum class Kind { Hull, Cylinder } kind = Kind::Hull;
+	std::vector<Vec3> vertices;
+	Vec3 centre, axis = Vec3(1,0,0);
+	double halfLengthWorld = 0, radiusWorld = 0;
+	bool contactPlaneKnown = false;
+	Vec3 contactNormal;
+	double contactDistance = 0; // supported OUTWARD side, not an epsilon-expanded solid
+};
 enum SpatialBoxIssue : uint32_t
 {
 	BoxOutsideWorld = 1u << 0,
@@ -40,6 +52,8 @@ class RegionDomain : public PointClassifier
 	virtual Error Locate(Vec3, SpatialLocation &, double toleranceWorld = 1e-5) const = 0;
 	// Uniform-volume certificate, not a classification inferred from a few samples.
 	virtual Error ClassifyBox(const Bounds &, SpaceClass &, uint64_t &work) const = 0;
+	virtual Error ClassifySupport(const SpatialSupport &, SpaceClass &, bool &contact,
+		uint64_t &work) const;
 	virtual const LightmapMapIdentity *SourceIdentity() const
 	{
 		return nullptr;
@@ -84,6 +98,7 @@ class BspRegionDomain final : public RegionDomain
 						uint64_t maxTestsPerQuery = 1024 * 1024);
 	Error Locate(Vec3, SpatialLocation &, double toleranceWorld = 1e-5) const override;
 	Error ClassifyBox(const Bounds &, SpaceClass &, uint64_t &) const override;
+	Error ClassifySupport(const SpatialSupport &, SpaceClass &, bool &, uint64_t &) const override;
 	Error InspectBox(const Bounds &, SpaceClass &, uint64_t &, uint32_t &reasons) const;
 	const BspSpaceInput &Source() const
 	{
@@ -108,6 +123,9 @@ struct DynamicBoundary
 	uint32_t model = 0;
 	Bounds bounds;
 	bool sweptExtentKnown = false; // authored model bounds rarely describe its travel
+	// Legacy immutable capture layout. With sweptExtentKnown=false bounds are
+	// original BSP submodel bounds, NOT a measured current pose/bake state.
+	// X13 PointRefine::OccupancyEvidence adds separately scoped bake hypotheses.
 };
 enum RegionCellIssue : uint32_t
 {

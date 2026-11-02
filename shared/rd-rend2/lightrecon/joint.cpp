@@ -27,7 +27,10 @@ void Check(Error e)
 	if (!e)
 		throw e;
 }
-bool Zero(const Disk::Digest &d) { return d == Disk::Digest{}; }
+bool Zero(const Disk::Digest &d)
+{
+	return d == Disk::Digest{};
+}
 void Text(GeometryKey &k, const std::string &s)
 {
 	k.U(s.size());
@@ -52,16 +55,22 @@ template <class T> class Rows final : public ChunkSource<T>
 		return {};
 	}
 };
-double Component(Vec3 v, unsigned c) { return V(v)[c]; }
+double Component(Vec3 v, unsigned c)
+{
+	return V(v)[c];
+}
 class TransferVisibility final : public VisibilityProvider
 {
 	std::shared_ptr<const Indirect::Transfer> transfer;
+	std::shared_ptr<const PointRefine::PlacementProvider> placement;
 	Work &work;
 	const Options &options;
 
   public:
-	TransferVisibility(std::shared_ptr<const Indirect::Transfer> t, Work &w, const Options &o)
-		: transfer(std::move(t)), work(w), options(o)
+	TransferVisibility(std::shared_ptr<const Indirect::Transfer> t,
+					   std::shared_ptr<const PointRefine::PlacementProvider> p, Work &w,
+					   const Options &o)
+		: transfer(std::move(t)), placement(std::move(p)), work(w), options(o)
 	{
 	}
 	Error Query(const RayQuery &q, const ReadContext &r, RayResult &result) const override
@@ -72,6 +81,8 @@ class TransferVisibility final : public VisibilityProvider
 		bounded.maxWork = std::min(q.maxWork, options.maxWork - work.traversal - work.arithmetic);
 		++work.rays;
 		auto error = transfer->QueryPath(bounded, r, result);
+		if (error)
+			error = placement->ConstrainVisibility(bounded, r, result);
 		work.traversal += result.nodeTests + result.primitiveTests;
 		return error;
 	}
@@ -96,13 +107,15 @@ bool Inside(const Bounds &b, Vec3 p)
 	if (!b.known)
 		return false;
 	for (unsigned c = 0; c < 3; ++c)
-		if (Component(p, c) < Component(b.minWorld, c) || Component(p, c) > Component(b.maxWorld, c))
+		if (Component(p, c) < Component(b.minWorld, c) ||
+			Component(p, c) > Component(b.maxWorld, c))
 			return false;
 	return true;
 }
 V Rotate(V v, V axis, double a)
 {
-	return v * std::cos(a) + Cross(axis, v) * std::sin(a) + axis * (Dot(axis, v) * (1 - std::cos(a)));
+	return v * std::cos(a) + Cross(axis, v) * std::sin(a) +
+		   axis * (Dot(axis, v) * (1 - std::cos(a)));
 }
 Frame Rotation(Frame f, unsigned axis, double a)
 {
@@ -116,6 +129,7 @@ Frame Rotation(Frame f, unsigned axis, double a)
 void HashSource(GeometryKey &k, const Source &s, bool amplitude)
 {
 	k.U(s.candidate.id);
+	k.U(s.candidate.attachedModel);
 	k.U(unsigned(s.candidate.root));
 	k.U(unsigned(s.value.geometry.kind));
 	k.V(s.value.geometry.position.world);
@@ -132,6 +146,7 @@ void HashSource(GeometryKey &k, const Source &s, bool amplitude)
 	k.F(s.value.geometry.angular.cosOuter);
 	k.F(s.value.spotTargetDistanceWorld);
 	k.F(s.value.spotRadiusWorld);
+	k.Digest(SourceSupport::Key(s.value.support));
 	k.V(s.environment.orientation.forward);
 	k.U(unsigned(s.environment.kind));
 	if (amplitude)
@@ -148,6 +163,7 @@ Disk::Digest ModelKey(const Model &m, bool values = true)
 		k.Digest(m.geometryKey);
 		k.Digest(m.policyKey);
 		k.Digest(m.transferKey);
+		k.U(m.occupancyConditional);
 	}
 	for (const auto &s : m.sources)
 	{
@@ -187,8 +203,8 @@ size_t Parameters(const Source &s)
 		n += s.value.geometry.kind == EmitterKind::Rectangle ? 3 : 2;
 	if (c.shape.fitCone && s.value.geometry.kind == EmitterKind::Spot)
 		n += 2;
-	if (c.shape.fitDimensions &&
-		(s.value.geometry.kind == EmitterKind::Rectangle || s.value.geometry.kind == EmitterKind::Tube))
+	if (c.shape.fitDimensions && (s.value.geometry.kind == EmitterKind::Rectangle ||
+								  s.value.geometry.kind == EmitterKind::Tube))
 		n += 2;
 	return n;
 }
@@ -271,13 +287,24 @@ struct Engine
 		Need(r.transfer->Patches().size() * 1024ull + r.options.cacheBytes + 65536 <= cap,
 			 Code::MemoryLimit, "Joint patch/cache budget");
 		work.accountedBytes = r.transfer->Patches().size() * 1024ull + r.options.cacheBytes + 65536;
+		uint64_t occupancyReserve =
+			(r.options.maxRetained + 2 * r.options.beamWidth + 3) *
+			(r.placement.dynamic.size() + r.placement.occupancy.size()) *
+			(r.options.maxSources * sizeof(PointRefine::OccupancyWitness) + 256ull);
+		Need(occupancyReserve <= cap - work.accountedBytes, Code::MemoryLimit,
+			 "Joint retained occupancy receipts budget");
+		work.accountedBytes += occupancyReserve;
 		baseBytes = work.accountedBytes;
 		for (size_t i = 0; i < r.transfer->Patches().size(); ++i)
 			patchIndex[r.transfer->Patches()[i].id] = i;
 		Check(PointRefine::MakePlacement(r.placement, read, placement));
 		effectiveGeometry = r.geometry;
 		effectiveGeometry.visibility =
-			std::make_shared<TransferVisibility>(r.transfer, work, r.options);
+			std::make_shared<TransferVisibility>(r.transfer, placement, work, r.options);
+		GeometryKey occupancyGeneration;
+		occupancyGeneration.Digest(effectiveGeometry.observationPolicyKey);
+		occupancyGeneration.Digest(placement->PolicyKey());
+		effectiveGeometry.observationPolicyKey = occupancyGeneration.Finish();
 		Need(placement->MapKey() == r.mapKey && placement->GeometryKey() == r.geometry.geometryKey,
 			 Code::MissingGeometry, "Joint placement generation");
 	}
@@ -409,7 +436,8 @@ struct Engine
 			}
 		}
 		std::vector<Candidate> cs = r.candidates;
-		std::sort(cs.begin(), cs.end(), [](const Candidate &a, const Candidate &b) { return a.id < b.id; });
+		std::sort(cs.begin(), cs.end(),
+				  [](const Candidate &a, const Candidate &b) { return a.id < b.id; });
 		for (const auto &c : cs)
 		{
 			HashSource(k, FromCandidate(c), true);
@@ -495,7 +523,8 @@ struct Engine
 		k.Digest(r.policyKey);
 		k.Digest(r.transfer->Key());
 		k.U(r.directOnlyConditional);
-		if(r.transportMesh)k.Digest(r.transportMesh->Key());
+		if (r.transportMesh)
+			k.Digest(r.transportMesh->Key());
 		for (const auto &p : r.profiles)
 		{
 			k.Digest(p.model.profile.contentKey);
@@ -545,9 +574,35 @@ struct Engine
 		k.B(r.sourceSearchBounds);
 		return k.Finish();
 	}
-	bool Place(const Model &m)
+	bool Place(const Model &m, std::vector<PointRefine::PlacementResult> *receipts = nullptr)
 	{
 		placementFailure.clear();
+		if (receipts)
+			receipts->assign(m.sources.size(), PointRefine::PlacementResult());
+		auto record = [&](size_t index, const PointRefine::PlacementResult &p) {
+			++work.placementChecks;
+			using F = PointRefine::Feasibility;
+			auto state = PointRefine::Classify(p);
+			work.conditionalPlacements += state == F::Conditional;
+			work.provenPlacements += state == F::Proven;
+			work.placementUnknown += state == F::Unknown;
+			work.placementCollisions += state == F::Collision;
+			if (!receipts)
+				return;
+			auto &receipt = receipts->at(index);
+			if (receipt.occupancy.empty())
+				receipt = p;
+			else
+			{
+				receipt.work += p.work;
+				receipt.rays += p.rays;
+				for (const auto &w : p.occupancy)
+				{auto found=std::lower_bound(receipt.occupancy.begin(),receipt.occupancy.end(),w.boundary,[](const PointRefine::OccupancyWitness&x,Id id){return x.boundary<id;});
+					if(found==receipt.occupancy.end()||found->boundary!=w.boundary)receipt.occupancy.insert(found,w);
+					else { V lo(found->scope.minWorld),hi(found->scope.maxWorld);for(unsigned c=0;c<3;++c){lo[c]=std::min(lo[c],V(w.scope.minWorld)[c]);hi[c]=std::max(hi[c],V(w.scope.maxWorld)[c]);}found->scope.known=true;found->scope.minWorld=lo.Float();found->scope.maxWorld=hi.Float(); }
+				}
+			}
+		};
 		auto reject = [&](Id source, const std::string &why) {
 			placementFailure = "source=" + std::to_string(source) + " " + why;
 			return false;
@@ -563,9 +618,14 @@ struct Engine
 		if (m.sources.size() > r.options.maxSources)
 			return reject(0, "source-count bound");
 		std::set<Id> ids, families;
+		size_t sourceIndex = 0;
 		for (const auto &s : m.sources)
 		{
+			size_t index = sourceIndex++;
 			const auto &c = s.candidate;
+			if (c.attachedModel)
+				return reject(c.id,
+							  "Moving emitter lacks independently fixed bake-time attachment pose");
 			if (!c.id || !ids.insert(c.id).second ||
 				(c.family && !families.insert(c.family).second))
 				return reject(c.id, "duplicate identity/family");
@@ -620,13 +680,21 @@ struct Engine
 					b < c.shape.minimumDimensionWorld || b > c.shape.maximumDimensionWorld)
 					return reject(c.id, "emitter dimensions");
 			}
+			if(s.value.support.kind!=SourceSupport::Kind::LegacyVacuum) {
+				SourceSupport::Result support;
+				Check(SourceSupport::Check(r.placement,*placement,c.shape.initial.geometry,p,s.value.support,read,support));
+				work.rays+=support.rays;work.traversal+=support.work;record(index,support.placement);Limit();
+				if(!PointRefine::Admissible(support.placement))return reject(c.id,"source-support:"+std::string(PointRefine::ConstraintName(support.placement.state))+"; "+support.reason);
+				continue;
+			}
 			PointRefine::PlacementResult placed;
 			Check(placement->Check(c.shape.initial.geometry.position.world, p.position.world,
 								   c.clearanceWorld, read, placed));
 			work.rays += placed.rays;
 			work.traversal += placed.work;
+			record(index, placed);
 			Limit();
-			if (placed.state != PointRefine::Constraint::Free)
+			if (!PointRefine::Admissible(placed))
 				return constraint(c.id, "centre/path", placed);
 			// Extended emitting support is checked explicitly; a free centre alone is insufficient.
 			if (p.kind == EmitterKind::Rectangle || p.kind == EmitterKind::Tube)
@@ -649,8 +717,9 @@ struct Engine
 									   radius + c.clearanceWorld, read, placed));
 				work.rays += placed.rays;
 				work.traversal += placed.work;
+				record(index, placed);
 				Limit();
-				if (placed.state != PointRefine::Constraint::Free)
+				if (!PointRefine::Admissible(placed))
 					return constraint(c.id, "extent", placed);
 				unsigned count = p.kind == EmitterKind::Rectangle ? 4 : 16;
 				for (unsigned j = 0; j < count; ++j)
@@ -674,8 +743,9 @@ struct Engine
 					Check(placement->Check(p.position.world, target.Float(), 0, read, placed));
 					work.rays += placed.rays;
 					work.traversal += placed.work;
+					record(index, placed);
 					Limit();
-					if (placed.state != PointRefine::Constraint::Free)
+					if (!PointRefine::Admissible(placed))
 						return constraint(c.id, "rim/path", placed);
 				}
 			}
@@ -1168,8 +1238,8 @@ struct Engine
 		o.maxWork = std::max<uint64_t>(1, r.options.maxWork - work.traversal);
 		Bake::Result result;
 		Bake::CpuForwardEvaluator evaluator;
-		auto error = evaluator.Evaluate(p.model.profile, Lease(sources), Lease(rows), {}, effectiveGeometry,
-										o, read, result);
+		auto error = evaluator.Evaluate(p.model.profile, Lease(sources), Lease(rows), {},
+										effectiveGeometry, o, read, result);
 		if (!error && error.code == Code::Unavailable)
 			return value;
 		Check(error);
@@ -1242,10 +1312,13 @@ struct Engine
 				prediction.rgb = x.channel == Channel::GridAmbient ? y.gridAmbient : y.gridDirected;
 				prediction.issues = y.visibilityIssues;
 			}
-			bool directional = x.channel == Channel::GridDirection || x.channel == Channel::DeluxeDirection;
+			bool directional =
+				x.channel == Channel::GridDirection || x.channel == Channel::DeluxeDirection;
 			if (directional)
 				prediction.available &= x.directionKnown && prediction.directionKnown;
 			prediction.available &= x.comparable && r.options.channelWeight[size_t(x.channel)] > 0;
+			if (m.occupancyConditional)
+				prediction.issues |= Indirect::MovingPath;
 			prediction.available &= r.profiles.at(m.profile).contract.transferAttested &&
 									r.profiles.at(m.profile).contract.primariesAttested;
 			admission.U(x.id);
@@ -1280,8 +1353,8 @@ struct Engine
 			bool positive = false;
 			if (directional)
 			{
-				double a =
-					std::acos(Clamp(Dot(V(prediction.directionToSource), V(x.directionToSource)), -1., 1.));
+				double a = std::acos(
+					Clamp(Dot(V(prediction.directionToSource), V(x.directionToSource)), -1., 1.));
 				loss = Huber(a / x.angularSigmaRadians, r.options.huber);
 				squared = a * a;
 				black = Pi * Pi;
@@ -1368,18 +1441,20 @@ struct Engine
 			for (const auto &s : m.sources)
 			{
 				const auto &c = s.candidate.shape;
-				out.terms.complexity +=
-					r.options.complexityPerSource + r.options.complexityPerParameter * Parameters(s);
-				if (s.candidate.root == TransportRootKind::LocalEmitter && c.geometryPriorWeight > 0)
+				out.terms.complexity += r.options.complexityPerSource +
+										r.options.complexityPerParameter * Parameters(s);
+				if (s.candidate.root == TransportRootKind::LocalEmitter &&
+					c.geometryPriorWeight > 0)
 				{
 					double prior = 0;
 					V d = V(s.value.geometry.position.world) - V(c.initial.geometry.position.world);
-					prior = Dot(d, d) / std::max(1e-12, c.positionSigmaWorld * c.positionSigmaWorld);
+					prior =
+						Dot(d, d) / std::max(1e-12, c.positionSigmaWorld * c.positionSigmaWorld);
 					if (s.value.geometry.kind != EmitterKind::Point)
 					{
-						double a = std::acos(
-							Clamp(Dot(V(s.value.geometry.frame.forward), V(c.initial.geometry.frame.forward)),
-								  -1., 1.));
+						double a = std::acos(Clamp(Dot(V(s.value.geometry.frame.forward),
+													   V(c.initial.geometry.frame.forward)),
+												   -1., 1.));
 						prior += a * a / std::max(1e-12, c.angleSigmaRadians * c.angleSigmaRadians);
 					}
 					const auto &g = s.value.geometry;
@@ -1390,10 +1465,12 @@ struct Engine
 																	: g.geometry.halfLengthWorld;
 						double b = g.kind == EmitterKind::Rectangle ? g.geometry.halfHeightWorld
 																	: g.geometry.radiusWorld;
-						double oa = g.kind == EmitterKind::Rectangle ? original.geometry.halfWidthWorld
-																	 : original.geometry.halfLengthWorld;
-						double ob = g.kind == EmitterKind::Rectangle ? original.geometry.halfHeightWorld
-																	 : original.geometry.radiusWorld;
+						double oa = g.kind == EmitterKind::Rectangle
+										? original.geometry.halfWidthWorld
+										: original.geometry.halfLengthWorld;
+						double ob = g.kind == EmitterKind::Rectangle
+										? original.geometry.halfHeightWorld
+										: original.geometry.radiusWorld;
 						prior += (std::pow(std::log(a / oa), 2) + std::pow(std::log(b / ob), 2)) /
 								 std::max(1e-12, c.logSizeSigma * c.logSizeSigma);
 					}
@@ -1402,9 +1479,9 @@ struct Engine
 			}
 			for (const auto &x : m.materials)
 			{
-				auto f =
-					std::find_if(r.materials.begin(), r.materials.end(),
-								 [&](const Indirect::Reflectance &a) { return a.material == x.material; });
+				auto f = std::find_if(
+					r.materials.begin(), r.materials.end(),
+					[&](const Indirect::Reflectance &a) { return a.material == x.material; });
 				if (f != r.materials.end())
 				{
 					V d = V(x.initial) - V(f->initial);
@@ -1445,7 +1522,8 @@ struct Engine
 		return a.score.available && a.score.admissionKey == b.score.admissionKey &&
 			   a.terms.Total() + r.options.objectiveTolerance < b.terms.Total();
 	}
-	bool LinearCoordinate(Model &m, Evaluation &best, size_t j, unsigned c, bool strict, double lo, double hi)
+	bool LinearCoordinate(Model &m, Evaluation &best, size_t j, unsigned c, bool strict, double lo,
+						  double hi)
 	{
 		if (!best.linear)
 			return false;
@@ -1464,8 +1542,8 @@ struct Engine
 		// geometry has just passed Block::Linear over the complete admissible Q box.
 		std::vector<double> column(training.size());
 		for (size_t i = 0; i < column.size(); ++i)
-			column[i] =
-				(Component(value.values[i].rgb, c) - Component(best.values[i].rgb, c)) / (q - current);
+			column[i] = (Component(value.values[i].rgb, c) - Component(best.values[i].rgb, c)) /
+						(q - current);
 		auto scalar = [&](double amplitude) {
 			using K = std::tuple<unsigned, Id, Id>;
 			std::map<K, std::pair<double, double>> sums;
@@ -1582,8 +1660,8 @@ struct Engine
 						};
 						trial(lo);
 						trial(hi);
-						for (size_t step = 0;
-							 step < r.options.amplitudeLineSteps && hi - lo > r.options.parameterTolerance;
+						for (size_t step = 0; step < r.options.amplitudeLineSteps &&
+											  hi - lo > r.options.parameterTolerance;
 							 ++step)
 						{
 							double a = lo + (hi - lo) / 3, b = hi - (hi - lo) / 3;
@@ -1717,12 +1795,14 @@ struct Engine
 						Model n = m;
 						auto &e = n.sources[j].value;
 						if (r.profiles[m.profile].model.law == Shape::Law::HistoricalBake)
-							e.spotRadiusWorld *= std::exp(sign * r.options.logDimensionStep * fraction);
+							e.spotRadiusWorld *=
+								std::exp(sign * r.options.logDimensionStep * fraction);
 						else
 						{
 							double outer = std::acos(Clamp(e.geometry.angular.cosOuter, -1., 1.)) +
 										   sign * r.options.angularStepRadians * fraction;
-							if (outer < c.shape.minimumOuterRadians || outer > c.shape.maximumOuterRadians)
+							if (outer < c.shape.minimumOuterRadians ||
+								outer > c.shape.maximumOuterRadians)
 								continue;
 							double inner = std::acos(Clamp(e.geometry.angular.cosInner, -1., 1.));
 							inner = std::min(inner, outer * .95);
@@ -1751,7 +1831,8 @@ struct Engine
 	}
 	void Diagnose(Model &m)
 	{
-		if (m.sources.empty() || m.sources.size() > r.options.diagnosticSources || !r.options.diagnosticRows)
+		if (m.sources.empty() || m.sources.size() > r.options.diagnosticSources ||
+			!r.options.diagnosticRows)
 			return;
 		std::vector<Observation> subset;
 		size_t count = std::min(r.options.diagnosticRows, training.size());
@@ -1770,10 +1851,10 @@ struct Engine
 			{
 				double q = Component(m.sources[source].value.rgbAmplitude, channel),
 					   step = std::max(1e-3, std::abs(q) * 1e-3);
-				double lo =
-						   std::max(Component(m.sources[source].candidate.shape.lowerRgb, channel), q - step),
-					   hi =
-						   std::min(Component(m.sources[source].candidate.shape.upperRgb, channel), q + step);
+				double lo = std::max(Component(m.sources[source].candidate.shape.lowerRgb, channel),
+									 q - step),
+					   hi = std::min(Component(m.sources[source].candidate.shape.upperRgb, channel),
+									 q + step);
 				if (hi <= lo)
 				{
 					columns.push_back(std::vector<double>(subset.size() * 3));
@@ -1790,8 +1871,9 @@ struct Engine
 				std::vector<double> column;
 				for (size_t i = 0; i < subset.size(); ++i)
 					for (unsigned c = 0; c < 3; ++c)
-						column.push_back((Component(vb.values[i].rgb, c) - Component(va.values[i].rgb, c)) /
-										 (hi - lo) * std::sqrt(subset[i].measure) / subset[i].sigma);
+						column.push_back(
+							(Component(vb.values[i].rgb, c) - Component(va.values[i].rgb, c)) /
+							(hi - lo) * std::sqrt(subset[i].measure) / subset[i].sigma);
 				columns.push_back(std::move(column));
 			}
 		std::vector<std::vector<double>> gram(parameters, std::vector<double>(parameters));
@@ -1818,8 +1900,8 @@ struct Engine
 					}
 			if (largest < 1e-14)
 				break;
-			double angle = .5 * std::atan2(2 * gram[a][b], gram[b][b] - gram[a][a]), c = std::cos(angle),
-				   s = std::sin(angle);
+			double angle = .5 * std::atan2(2 * gram[a][b], gram[b][b] - gram[a][a]),
+				   c = std::cos(angle), s = std::sin(angle);
 			double aa = gram[a][a], bb = gram[b][b], ab = gram[a][b];
 			for (size_t k = 0; k < parameters; ++k)
 				if (k != a && k != b)
@@ -1837,8 +1919,9 @@ struct Engine
 		spectrum = {};
 		spectrum.available = true;
 		spectrum.parameters = parameters;
-		spectrum.scope = "Conditional local prediction RGB Jacobian at frozen geometry/material/profile; "
-						 "source existence and XYZ/count unidentifiability remain separate";
+		spectrum.scope =
+			"Conditional local prediction RGB Jacobian at frozen geometry/material/profile; "
+			"source existence and XYZ/count unidentifiability remain separate";
 		for (size_t i = 0; i < parameters; ++i)
 			spectrum.singular.push_back(std::sqrt(std::max(0., gram[i][i])));
 		std::sort(spectrum.singular.begin(), spectrum.singular.end(), std::greater<double>());
@@ -1864,7 +1947,10 @@ struct Engine
 		{
 			std::vector<Observation> &target;
 			std::vector<Observation> full;
-			~RestoreTraining() { target = std::move(full); }
+			~RestoreTraining()
+			{
+				target = std::move(full);
+			}
 		} restore{training, training};
 		if (r.options.coarseRows && r.options.coarseRows < training.size())
 		{
@@ -1924,16 +2010,42 @@ struct Engine
 		m.reflectedPowerFraction = best.reflected;
 		m.roots = best.roots;
 		m.omittedBouncePower = best.tail;
+		Need(Place(m, &m.placements), Code::MissingGeometry,
+			 "Final bake occupancy admissibility changed");
+		m.occupancyConditional = std::any_of(
+			m.placements.begin(), m.placements.end(), [](const PointRefine::PlacementResult &p) {
+				return p.state == PointRefine::Constraint::Conditional;
+			});
+		m.occupancyConditional|=!m.sources.empty()&&placement->HasUnverifiedBakeState();
 		m.key = ModelKey(m);
 		Diagnose(m);
 		m.absoluteScaleKnown =
 			r.profiles[m.profile].contract.incidentDomain == Indirect::Root::Domain::PhysicalLux &&
 			r.profiles[m.profile].contract.calibration.kind == CalibrationKind::PhysicallyAuthored;
-		m.assumptions.push_back("Conditional model, not certified source existence; fixed calibration gauge; "
-								"one passive bounce only");
+		m.assumptions.push_back(
+			"Conditional model, not certified source existence; fixed calibration gauge; "
+			"one passive bounce only");
+		if (m.occupancyConditional)
+		{
+			m.physicalExistenceCertified = false;
+			m.assumptions.push_back(
+				"X13: bake occupancy/visibility conditional, not runtime Free; " +
+				r.placement.occupancyProvenance + "; policy=" + Disk::Hex(placement->PolicyKey()));
+			std::set<Id> recorded;
+			for (const auto &p : m.placements)
+				for (const auto &w : p.occupancy)
+					if (recorded.insert(w.boundary).second)
+						m.assumptions.push_back("X13 model=" + std::to_string(w.model) +
+												" boundary=" + std::to_string(w.boundary) +
+												" bake-state=" + std::to_string(w.state) +
+												" reason=" + std::to_string(unsigned(w.reason)));
+		}
+		for(const auto& source:m.sources)if(source.value.support.kind!=SourceSupport::Kind::LegacyVacuum)
+			m.assumptions.push_back("X14 scoped occupied/emitting support; "+source.value.support.provenance+"; key="+Disk::Hex(SourceSupport::Key(source.value.support)));
 		for (const auto &x : m.materials)
 			if (x.knowledge != Indirect::MaterialKnowledge::Known)
-				m.assumptions.push_back("Reflectance/source allocation is conditional and correlated");
+				m.assumptions.push_back(
+					"Reflectance/source allocation is conditional and correlated");
 		return m;
 	}
 };
@@ -1962,8 +2074,8 @@ bool Contains(const Model &m, const Candidate &c)
 			return true;
 	return false;
 }
-std::vector<Model> Proposals(const Request &r, const Model &parent, const std::vector<Candidate> &catalog,
-							 uint64_t &deferred)
+std::vector<Model> Proposals(const Request &r, const Model &parent,
+							 const std::vector<Candidate> &catalog, uint64_t &deferred)
 {
 	std::vector<Model> out;
 	auto push = [&](Model m) {
@@ -1994,7 +2106,8 @@ std::vector<Model> Proposals(const Request &r, const Model &parent, const std::v
 		}
 		if (c.family)
 			for (size_t i = 0; i < parent.sources.size(); ++i)
-				if (parent.sources[i].candidate.family == c.family && parent.sources[i].candidate.id != c.id)
+				if (parent.sources[i].candidate.family == c.family &&
+					parent.sources[i].candidate.id != c.id)
 				{
 					Model m = parent;
 					m.sources[i] = FromCandidate(c);
@@ -2024,8 +2137,8 @@ std::vector<Model> Proposals(const Request &r, const Model &parent, const std::v
 					b.value.geometry.kind != EmitterKind::Point || !a.candidate.mayRemove ||
 					!b.candidate.mayRemove)
 					continue;
-				if (Length(V(a.value.geometry.position.world) - V(b.value.geometry.position.world)) >
-					2 * r.options.positionStepWorld)
+				if (Length(V(a.value.geometry.position.world) -
+						   V(b.value.geometry.position.world)) > 2 * r.options.positionStepWorld)
 					continue;
 				Model m = parent;
 				Source merged = a;
@@ -2036,20 +2149,24 @@ std::vector<Model> Proposals(const Request &r, const Model &parent, const std::v
 				merged.candidate.provenance =
 					"Alternative midpoint of two candidate hypotheses; not fixture deduplication";
 				merged.value.geometry.position.world =
-					((V(a.value.geometry.position.world) + V(b.value.geometry.position.world)) * .5).Float();
+					((V(a.value.geometry.position.world) + V(b.value.geometry.position.world)) * .5)
+						.Float();
 				merged.value.geometry.source.id = merged.candidate.id;
-				merged.value.rgbAmplitude = (V(a.value.rgbAmplitude) + V(b.value.rgbAmplitude)).Float();
+				merged.value.rgbAmplitude =
+					(V(a.value.rgbAmplitude) + V(b.value.rgbAmplitude)).Float();
 				for (unsigned c = 0; c < 3; ++c)
 					Set(merged.value.rgbAmplitude, c,
 						std::min(Component(merged.value.rgbAmplitude, c),
 								 Component(merged.candidate.shape.upperRgb, c)));
 				m.sources.erase(m.sources.begin() + j);
 				m.sources[i] = merged;
-				m.proposal = "merge:" + std::to_string(a.candidate.id) + ":" + std::to_string(b.candidate.id);
+				m.proposal = "merge:" + std::to_string(a.candidate.id) + ":" +
+							 std::to_string(b.candidate.id);
 				Order(m);
 				push(std::move(m));
 			}
-		for (size_t i = 0; i < parent.sources.size() && parent.sources.size() < r.options.maxSources; ++i)
+		for (size_t i = 0;
+			 i < parent.sources.size() && parent.sources.size() < r.options.maxSources; ++i)
 		{
 			const auto &s = parent.sources[i];
 			if (s.candidate.root != TransportRootKind::LocalEmitter ||
@@ -2069,10 +2186,13 @@ std::vector<Model> Proposals(const Request &r, const Model &parent, const std::v
 				a.value.geometry.source.id = a.candidate.id;
 				b.value.geometry.source.id = b.candidate.id;
 				Set(a.value.geometry.position.world, axis,
-					Component(a.value.geometry.position.world, axis) - .5 * r.options.positionStepWorld);
+					Component(a.value.geometry.position.world, axis) -
+						.5 * r.options.positionStepWorld);
 				Set(b.value.geometry.position.world, axis,
-					Component(b.value.geometry.position.world, axis) + .5 * r.options.positionStepWorld);
-				a.value.rgbAmplitude = b.value.rgbAmplitude = (V(s.value.rgbAmplitude) * .5).Float();
+					Component(b.value.geometry.position.world, axis) +
+						.5 * r.options.positionStepWorld);
+				a.value.rgbAmplitude = b.value.rgbAmplitude =
+					(V(s.value.rgbAmplitude) * .5).Float();
 				m.sources[i] = a;
 				m.sources.push_back(b);
 				m.proposal = "split:" + std::to_string(s.candidate.id) + ":" + std::to_string(axis);
@@ -2107,8 +2227,8 @@ void ResidualCandidates(Engine &e, const Model &model, std::vector<Candidate> &c
 	if (!r.options.residualSearch || !r.sourceSearchBounds.known || !r.options.residualCandidates ||
 		catalog.size() >= r.options.maxCandidates)
 		return;
-	Need(r.options.residualGridDivisions >= 2 && r.options.residualGridDivisions <= 5, Code::InvalidInput,
-		 "Residual grid bounded at 125 nodes");
+	Need(r.options.residualGridDivisions >= 2 && r.options.residualGridDivisions <= 5,
+		 Code::InvalidInput, "Residual grid bounded at 125 nodes");
 	auto base = e.Evaluate(model, e.training, true);
 	if (!base.score.available)
 		return;
@@ -2117,7 +2237,8 @@ void ResidualCandidates(Engine &e, const Model &model, std::vector<Candidate> &c
 		if (e.training[i].channel == Channel::Surface && base.values[i].available)
 			for (unsigned c = 0; c < 3; ++c)
 				if (e.training[i].rgb[c].present)
-					deficit += std::max(0., e.training[i].rgb[c].lower - Component(base.values[i].rgb, c));
+					deficit +=
+						std::max(0., e.training[i].rgb[c].lower - Component(base.values[i].rgb, c));
 	if (deficit <= r.options.parameterTolerance)
 		return;
 	struct Trial
@@ -2134,8 +2255,9 @@ void ResidualCandidates(Engine &e, const Model &model, std::vector<Candidate> &c
 				Candidate candidate;
 				candidate.id = DerivedId("residual-grid", 0, 0, (a * n + b) * n + c);
 				candidate.provider = "joint-training-residual-grid";
-				candidate.provenance = "Predeclared geometry search lattice, ranked only against training "
-									   "residual; not emitter evidence";
+				candidate.provenance =
+					"Predeclared geometry search lattice, ranked only against training "
+					"residual; not emitter evidence";
 				candidate.shape.centreBounds = r.sourceSearchBounds;
 				candidate.shape.initial.geometry.kind = EmitterKind::Point;
 				candidate.shape.initial.geometry.source.id = candidate.id;
@@ -2143,11 +2265,13 @@ void ResidualCandidates(Engine &e, const Model &model, std::vector<Candidate> &c
 				candidate.shape.initial.geometry.angular.kind = AngularKind::Isotropic;
 				V low = r.sourceSearchBounds.minWorld, high = r.sourceSearchBounds.maxWorld;
 				candidate.shape.initial.geometry.position.world =
-					V(low.x + (high.x - low.x) * a / (n - 1), low.y + (high.y - low.y) * b / (n - 1),
+					V(low.x + (high.x - low.x) * a / (n - 1),
+					  low.y + (high.y - low.y) * b / (n - 1),
 					  low.z + (high.z - low.z) * c / (n - 1))
 						.Float();
 				candidate.shape.maximumTranslationWorld = Length(high - low);
-				candidate.shape.fitFrame = candidate.shape.fitDimensions = candidate.shape.fitCone = false;
+				candidate.shape.fitFrame = candidate.shape.fitDimensions = candidate.shape.fitCone =
+					false;
 				candidate.shape.maximumRotationRadians = 0;
 				candidate.shape.upperRgb = Vec3(1200, 1200, 1200);
 				candidate.shape.initial.rgbAmplitude = Vec3(16, 16, 16);
@@ -2155,7 +2279,8 @@ void ResidualCandidates(Engine &e, const Model &model, std::vector<Candidate> &c
 				if (!catalog.empty())
 				{
 					candidate.shape.upperRgb = catalog.front().shape.upperRgb;
-					candidate.shape.initial.rgbAmplitude = (V(candidate.shape.upperRgb) * .1).Float();
+					candidate.shape.initial.rgbAmplitude =
+						(V(candidate.shape.upperRgb) * .1).Float();
 				}
 				if (Contains(model, candidate))
 					continue;
@@ -2170,7 +2295,8 @@ void ResidualCandidates(Engine &e, const Model &model, std::vector<Candidate> &c
 					// Source sorting can put the derived ID anywhere; update by identity.
 					for (auto &s : m.sources)
 						if (s.candidate.id == candidate.id)
-							s.value.rgbAmplitude = (V(candidate.shape.upperRgb) * amplitude).Float();
+							s.value.rgbAmplitude =
+								(V(candidate.shape.upperRgb) * amplitude).Float();
 					auto v = e.Evaluate(m, e.training, false);
 					if (v.score.available && v.score.admissionKey == base.score.admissionKey)
 						score = std::min(score, v.terms.Total());
@@ -2192,13 +2318,13 @@ void ResidualCandidates(Engine &e, const Model &model, std::vector<Candidate> &c
 }
 State FailureState(Code c)
 {
-	return c == Code::Cancelled
-			   ? State::Cancelled
-			   : c == Code::WorkLimit || c == Code::MemoryLimit
-					 ? State::Budget
-					 : c == Code::AlgorithmError
-						   ? State::NumericalFailure
-						   : c == Code::MissingGeometry ? State::PhysicallyInvalid : State::Unavailable;
+	return c == Code::Cancelled ? State::Cancelled
+								: c == Code::WorkLimit || c == Code::MemoryLimit
+									  ? State::Budget
+									  : c == Code::AlgorithmError
+											? State::NumericalFailure
+											: c == Code::MissingGeometry ? State::PhysicallyInvalid
+																		 : State::Unavailable;
 }
 } // namespace
 
@@ -2213,7 +2339,7 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 		engine.reset(new Engine(r, read));
 		auto &e = *engine;
 		e.Pin();
-		auto selectionIdentity=e.identity;
+		auto selectionIdentity = e.identity;
 		if (validation)
 		{
 			GeometryKey k;
@@ -2221,13 +2347,13 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 			k.Digest(validation->Key());
 			selectionIdentity = k.Finish();
 		}
-		Need(!Zero(r.trainingKey) && r.candidates.size() <= r.options.maxCandidates, Code::InvalidInput,
-			 "Joint pinned training key / candidate budget");
+		Need(!Zero(r.trainingKey) && r.candidates.size() <= r.options.maxCandidates,
+			 Code::InvalidInput, "Joint pinned training key / candidate budget");
 		std::set<Id> ids;
 		for (const auto &c : r.candidates)
 		{
-			Need(c.id && ids.insert(c.id).second && !c.provenance.empty() && c.provenance.size() <= 4096 &&
-					 c.provider.size() <= 4096,
+			Need(c.id && ids.insert(c.id).second && !c.provenance.empty() &&
+					 c.provenance.size() <= 4096 && c.provider.size() <= 4096,
 				 Code::InvalidInput, "Joint candidate identity/provenance");
 			Need(c.root == TransportRootKind::LocalEmitter || c.root == TransportRootKind::Sun ||
 					 c.root == TransportRootKind::Sky,
@@ -2243,9 +2369,12 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 							 Component(c.shape.upperRgb, channel),
 					 Code::InvalidInput, "Candidate amplitude outside bounds");
 			Need(std::isfinite(c.clearanceWorld) && c.clearanceWorld > 0 &&
-					 std::isfinite(c.shape.geometryPriorWeight) && c.shape.geometryPriorWeight >= 0 &&
-					 std::isfinite(c.shape.maximumTranslationWorld) && c.shape.maximumTranslationWorld >= 0 &&
-					 std::isfinite(c.shape.maximumRotationRadians) && c.shape.maximumRotationRadians >= 0,
+					 std::isfinite(c.shape.geometryPriorWeight) &&
+					 c.shape.geometryPriorWeight >= 0 &&
+					 std::isfinite(c.shape.maximumTranslationWorld) &&
+					 c.shape.maximumTranslationWorld >= 0 &&
+					 std::isfinite(c.shape.maximumRotationRadians) &&
+					 c.shape.maximumRotationRadians >= 0,
 				 Code::InvalidInput, "Source clearance/fixture prior/pose bounds");
 			if (c.root == TransportRootKind::Sun)
 				Need(c.environment.kind == Bake::SourceKind::Directional, Code::InvalidInput,
@@ -2278,11 +2407,12 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 				 "Missing patch material definition");
 		if (resume)
 		{
-			Need(resume->version == kVersion && resume->inputKey == selectionIdentity, Code::InvalidState,
-				 "Stale joint checkpoint");
+			Need(resume->version == kVersion && resume->inputKey == selectionIdentity,
+				 Code::InvalidState, "Stale joint checkpoint");
 			Need(resume->completed.size() <= r.options.maxModels &&
 					 resume->catalog.size() <= r.options.maxCandidates &&
-					 resume->beam.size() <= r.options.beamWidth && resume->round <= r.options.rounds,
+					 resume->beam.size() <= r.options.beamWidth &&
+					 resume->round <= r.options.rounds,
 				 Code::InvalidState, "Checkpoint search bounds");
 			checkpoint = *resume;
 			e.work = checkpoint.work;
@@ -2290,7 +2420,8 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 			e.cacheSize = 0;
 			for (const auto &entry : e.cache)
 			{
-				Need(entry.second != nullptr, Code::InvalidState, "Invalid checkpoint geometry lease");
+				Need(entry.second != nullptr, Code::InvalidState,
+					 "Invalid checkpoint geometry lease");
 				e.cacheSize += entry.second->Bytes();
 			}
 			Need(e.cacheSize == checkpoint.cacheBytes && e.cacheSize <= r.options.cacheBytes,
@@ -2320,7 +2451,8 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 				return;
 			Need(e.work.attemptedModels < r.options.maxModels, Code::WorkLimit,
 				 "Bounded structural model search exhausted");
-			uint64_t cap = read.maxBytes ? std::min(read.maxBytes, r.options.maxBytes) : r.options.maxBytes;
+			uint64_t cap =
+				read.maxBytes ? std::min(read.maxBytes, r.options.maxBytes) : r.options.maxBytes;
 			uint64_t metadata = (checkpoint.completed.size() + r.options.maxModels + 8) *
 								(r.options.maxSources * (sizeof(Source) + 2048) + 16384) * 3;
 			Need(e.baseBytes + metadata < cap, Code::MemoryLimit,
@@ -2349,8 +2481,8 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 									random ^= random >> 12;
 									random ^= random << 25;
 									random ^= random >> 27;
-									double t =
-										double((random * 2685821657736338717ull) >> 11) / 9007199254740992.;
+									double t = double((random * 2685821657736338717ull) >> 11) /
+											   9007199254740992.;
 									Set(s.value.rgbAmplitude, c,
 										Component(s.candidate.shape.lowerRgb, c) +
 											t * (Component(s.candidate.shape.upperRgb, c) -
@@ -2448,8 +2580,9 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 				std::sort(models.begin(), models.end(), RankLess);
 			else
 				std::sort(models.begin(), models.end(), [](const Model &a, const Model &b) {
-					return a.training.Total() != b.training.Total() ? a.training.Total() < b.training.Total()
-																	: a.key < b.key;
+					return a.training.Total() != b.training.Total()
+							   ? a.training.Total() < b.training.Total()
+							   : a.key < b.key;
 				});
 			if (models.size() > r.options.beamWidth)
 				models.resize(r.options.beamWidth);
@@ -2527,8 +2660,9 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 									  !out.alternatives.front().stationary
 								  ? State::Partial
 								  : State::Converged;
-			out.reason = "Preferred conditional strict-forward model; source existence is not certified by "
-						 "residual or sparsity";
+			out.reason =
+				"Preferred conditional strict-forward model; source existence is not certified by "
+				"residual or sparsity";
 		}
 		return {};
 	}
@@ -2564,17 +2698,19 @@ Error Refit(const Request &r, const Model &seed, const ReadContext &read, Model 
 	{
 		Model input = seed;
 		out = {}; // input/output aliasing is supported
-		Need(r.transfer && input.profile < r.profiles.size() && input.geometryKey == r.geometry.geometryKey &&
+		Need(r.transfer && input.profile < r.profiles.size() &&
+				 input.geometryKey == r.geometry.geometryKey &&
 				 input.transferKey == r.transfer->Key(),
 			 Code::InvalidInput, "Nuisance refit seed generation/profile mismatch");
 		input.physicalExistenceCertified = false;
 		input.sourceAllocationIdentifiable = false;
 		for (const auto &m : input.materials)
 		{
-			auto original =
-				std::find_if(r.materials.begin(), r.materials.end(),
-							 [&](const Indirect::Reflectance &a) { return a.material == m.material; });
-			Need(original != r.materials.end(), Code::InvalidInput, "Refit material is not in request");
+			auto original = std::find_if(
+				r.materials.begin(), r.materials.end(),
+				[&](const Indirect::Reflectance &a) { return a.material == m.material; });
+			Need(original != r.materials.end(), Code::InvalidInput,
+				 "Refit material is not in request");
 			for (unsigned c = 0; c < 3; ++c)
 				Need(Component(m.lower, c) >= Component(original->lower, c) &&
 						 Component(m.upper, c) <= Component(original->upper, c) &&
@@ -2601,8 +2737,8 @@ Error Refit(const Request &r, const Model &seed, const ReadContext &read, Model 
 		return Failure(Code::MemoryLimit, "Nuisance refit allocation");
 	}
 }
-Error AssessHypothesis(const Request &r, const Model &seed, const ReadContext &read, Model &out, Score &score,
-					   Work &work, std::vector<Prediction> *predictions)
+Error AssessHypothesis(const Request &r, const Model &seed, const ReadContext &read, Model &out,
+					   Score &score, Work &work, std::vector<Prediction> *predictions)
 {
 	score = {};
 	work = {};
@@ -2613,18 +2749,26 @@ Error AssessHypothesis(const Request &r, const Model &seed, const ReadContext &r
 	{
 		Model input = seed;
 		out = {};
-		Need(r.transfer && input.profile < r.profiles.size() && input.geometryKey == r.geometry.geometryKey &&
+		Need(r.transfer && input.profile < r.profiles.size() &&
+				 input.geometryKey == r.geometry.geometryKey &&
 				 input.transferKey == r.transfer->Key(),
 			 Code::InvalidInput, "Hypothesis generation/profile mismatch");
 		engine.reset(new Engine(r, read));
 		auto &e = *engine;
 		e.Pin();
-		Need(e.Place(input), Code::MissingGeometry, "Hypothesis source geometry not certified");
+		Need(e.Place(input, &input.placements), Code::MissingGeometry,
+			 "Hypothesis source geometry not admissible");
+		input.occupancyConditional =
+			std::any_of(input.placements.begin(), input.placements.end(),
+						[](const PointRefine::PlacementResult &p) {
+							return p.state == PointRefine::Constraint::Conditional;
+						});
+		input.occupancyConditional|=!input.sources.empty()&&e.placement->HasUnverifiedBakeState();
 		for (const auto &m : input.materials)
 		{
-			auto original =
-				std::find_if(r.materials.begin(), r.materials.end(),
-							 [&](const Indirect::Reflectance &a) { return a.material == m.material; });
+			auto original = std::find_if(
+				r.materials.begin(), r.materials.end(),
+				[&](const Indirect::Reflectance &a) { return a.material == m.material; });
 			Need(original != r.materials.end() && Positive(m.initial) && Peak(m.initial) <= 1,
 				 Code::InvalidInput, "Hypothesis material outside passive model");
 			for (unsigned c = 0; c < 3; ++c)
@@ -2649,9 +2793,10 @@ Error AssessHypothesis(const Request &r, const Model &seed, const ReadContext &r
 		out.physicalExistenceCertified = false;
 		out.sourceAllocationIdentifiable = false;
 		out.localAmplitudeSpectrum = {};
-		out.absoluteScaleKnown =
-			r.profiles[out.profile].contract.incidentDomain == Indirect::Root::Domain::PhysicalLux &&
-			r.profiles[out.profile].contract.calibration.kind == CalibrationKind::PhysicallyAuthored;
+		out.absoluteScaleKnown = r.profiles[out.profile].contract.incidentDomain ==
+									 Indirect::Root::Domain::PhysicalLux &&
+								 r.profiles[out.profile].contract.calibration.kind ==
+									 CalibrationKind::PhysicallyAuthored;
 		score = value.score;
 		work = e.work;
 		if (predictions)
@@ -2671,40 +2816,100 @@ Error AssessHypothesis(const Request &r, const Model &seed, const ReadContext &r
 		return Failure(Code::MemoryLimit, "Hypothesis assessment allocation");
 	}
 }
-Error DecomposeFrozen(const Request& r,const Model& m,const ReadContext& read,Indirect::Result& out,Work& work)
+Error DecomposeFrozen(const Request &r, const Model &m, const ReadContext &read,
+					  Indirect::Result &out, Work &work)
 {
-	out={};work={};std::unique_ptr<Engine> engine;
-	try {
-		Need(r.transfer&&!r.transfer->Patches().empty()&&m.profile<r.profiles.size()&&m.strictReevaluated&&m.key==ModelKey(m),Code::InvalidInput,"Frozen decomposition needs a sealed strict model");
-		engine.reset(new Engine(r,read));auto& e=*engine;e.identity=m.trainingKey;
-		Need(m.geometryKey==r.geometry.geometryKey&&m.policyKey==e.Configuration()&&m.transferKey==r.transfer->Key(),Code::InvalidState,"Decomposition generation mismatch");
-		Need(e.Place(m),Code::MissingGeometry,"Decomposition source geometry not certified");
-		Indirect::Request q;q.transfer=r.transfer;q.trainingKey=m.trainingKey;q.contract=r.profiles[m.profile].contract;q.materials=m.materials;
-		for(const auto& s:m.sources)q.roots.push_back(e.Primary(m,s,true));
-		q.roots.insert(q.roots.end(),r.boundaryRoots.begin(),r.boundaryRoots.end());
-		for(auto& material:q.materials){material.lower=material.upper=material.initial;material.knowledge=Indirect::MaterialKnowledge::Known;}
-		auto rows=std::make_shared<Rows<Indirect::Observation>>();
-		size_t representative=0;
-        for(size_t i=0;i<r.transfer->Patches().size();++i) {
-            bool known=true;for(const auto& root:q.roots)known&=i<root.available.size() && root.available[i];
-            if(known){representative=i;break;}
-        }
-        Indirect::Observation row;row.id=1;row.patch=r.transfer->Patches()[representative].id;row.spatialBlock=1;row.areaWorldSquared=r.transfer->Patches()[representative].areaWorldSquared;rows->v->push_back(row);q.training=rows;q.count=1;
-		q.options.maxIterations=1;q.options.maxWork=r.options.maxWork;q.options.maxBytes=r.options.maxBytes;
-		Check(Indirect::Fit(q,read,out));e.work.links+=out.work.linkOperations;e.work.arithmetic+=out.work.linkOperations;e.Limit();
-		out.materials=m.materials;out.physicalBounceVerified=false;
-        if(std::any_of(m.materials.begin(),m.materials.end(),[](const Indirect::Reflectance& material){return material.knowledge!=Indirect::MaterialKnowledge::Known;})) {
-            for(auto& value:out.values){value.upperKnown=false;value.issues|=Indirect::UnknownMaterial;}
-            out.limitations.push_back("Frozen reflectance prediction only; numeric per-root bounds are conditional, not total material-uncertainty bounds");
-        }
-        work=e.work;return {};
-	}catch(const Error& error){out={};if(engine)work=engine->work;return error;}
-	catch(const std::bad_alloc&){out={};return Failure(Code::MemoryLimit,"Frozen decomposition allocation");}
+	out = {};
+	work = {};
+	std::unique_ptr<Engine> engine;
+	try
+	{
+		Need(r.transfer && !r.transfer->Patches().empty() && m.profile < r.profiles.size() &&
+				 m.strictReevaluated && m.key == ModelKey(m),
+			 Code::InvalidInput, "Frozen decomposition needs a sealed strict model");
+		engine.reset(new Engine(r, read));
+		auto &e = *engine;
+		e.identity = m.trainingKey;
+		Need(m.geometryKey == r.geometry.geometryKey && m.policyKey == e.Configuration() &&
+				 m.transferKey == r.transfer->Key(),
+			 Code::InvalidState, "Decomposition generation mismatch");
+		Need(e.Place(m), Code::MissingGeometry, "Decomposition source geometry not certified");
+		Indirect::Request q;
+		q.transfer = r.transfer;
+		q.trainingKey = m.trainingKey;
+		q.contract = r.profiles[m.profile].contract;
+		q.materials = m.materials;
+		for (const auto &s : m.sources)
+			q.roots.push_back(e.Primary(m, s, true));
+		q.roots.insert(q.roots.end(), r.boundaryRoots.begin(), r.boundaryRoots.end());
+		for (auto &material : q.materials)
+		{
+			material.lower = material.upper = material.initial;
+			material.knowledge = Indirect::MaterialKnowledge::Known;
+		}
+		auto rows = std::make_shared<Rows<Indirect::Observation>>();
+		size_t representative = 0;
+		for (size_t i = 0; i < r.transfer->Patches().size(); ++i)
+		{
+			bool known = true;
+			for (const auto &root : q.roots)
+				known &= i < root.available.size() && root.available[i];
+			if (known)
+			{
+				representative = i;
+				break;
+			}
+		}
+		Indirect::Observation row;
+		row.id = 1;
+		row.patch = r.transfer->Patches()[representative].id;
+		row.spatialBlock = 1;
+		row.areaWorldSquared = r.transfer->Patches()[representative].areaWorldSquared;
+		rows->v->push_back(row);
+		q.training = rows;
+		q.count = 1;
+		q.options.maxIterations = 1;
+		q.options.maxWork = r.options.maxWork;
+		q.options.maxBytes = r.options.maxBytes;
+		Check(Indirect::Fit(q, read, out));
+		e.work.links += out.work.linkOperations;
+		e.work.arithmetic += out.work.linkOperations;
+		e.Limit();
+		out.materials = m.materials;
+		out.physicalBounceVerified = false;
+		if (std::any_of(m.materials.begin(), m.materials.end(),
+						[](const Indirect::Reflectance &material) {
+							return material.knowledge != Indirect::MaterialKnowledge::Known;
+						}))
+		{
+			for (auto &value : out.values)
+			{
+				value.upperKnown = false;
+				value.issues |= Indirect::UnknownMaterial;
+			}
+			out.limitations.push_back("Frozen reflectance prediction only; numeric per-root bounds "
+									  "are conditional, not total material-uncertainty bounds");
+		}
+		work = e.work;
+		return {};
+	}
+	catch (const Error &error)
+	{
+		out = {};
+		if (engine)
+			work = engine->work;
+		return error;
+	}
+	catch (const std::bad_alloc &)
+	{
+		out = {};
+		return Failure(Code::MemoryLimit, "Frozen decomposition allocation");
+	}
 }
 Error EvaluateFrozen(const Request &r, const Model &model,
-					 std::shared_ptr<const ChunkSource<Observation>> source, uint64_t count, Role role,
-					 const Disk::Digest &partition, const ReadContext &read, Score &score,
-					 std::vector<Prediction> *values, Work *work)
+					 std::shared_ptr<const ChunkSource<Observation>> source, uint64_t count,
+					 Role role, const Disk::Digest &partition, const ReadContext &read,
+					 Score &score, std::vector<Prediction> *values, Work *work)
 {
 	score = {};
 	if (values)
@@ -2713,8 +2918,8 @@ Error EvaluateFrozen(const Request &r, const Model &model,
 		*work = {};
 	try
 	{
-		Need(role != Role::Training && !Zero(partition) && model.strictReevaluated, Code::InvalidInput,
-			 "Freeze before independent validation/held-out evaluation");
+		Need(role != Role::Training && !Zero(partition) && model.strictReevaluated,
+			 Code::InvalidInput, "Freeze before independent validation/held-out evaluation");
 		Need(model.profile < r.profiles.size() && model.key == ModelKey(model), Code::InvalidInput,
 			 "Invalid or modified frozen model parameters/profile");
 		Engine e(r, read);
@@ -2745,9 +2950,10 @@ Error EvaluateFrozen(const Request &r, const Model &model,
 }
 const char *StateName(State s)
 {
-	static const char *names[] = {"NotStarted",	 "Converged",		   "Partial",		   "Unidentifiable",
-								  "Unvalidated", "InsufficientSignal", "Unavailable",	   "Cancelled",
-								  "Budget",		 "NumericalFailure",   "PhysicallyInvalid"};
+	static const char *names[] = {"NotStarted",		  "Converged",		  "Partial",
+								  "Unidentifiable",	  "Unvalidated",	  "InsufficientSignal",
+								  "Unavailable",	  "Cancelled",		  "Budget",
+								  "NumericalFailure", "PhysicallyInvalid"};
 	return unsigned(s) < sizeof(names) / sizeof(*names) ? names[unsigned(s)] : "Invalid";
 }
 } // namespace Joint

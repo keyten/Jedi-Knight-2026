@@ -1,0 +1,42 @@
+{
+  "cpu_tests": {
+    "passed": 38,
+    "failed": 0,
+    "log_sha256": "5787f7e8b7f73342f3a796e626fde3d967b31a0b82b44f759aff5c8e814de490"
+  },
+  "native": {
+    "schema": "org.openjk.occupancy-tests.v1",
+    "checks": 45,
+    "failures": 0,
+    "distant_unknown_conditional": true,
+    "known_wall_rejected": true,
+    "conditional_forward_calls": 461,
+    "conditional_placement_queries": 2,
+    "heldout_mse": 0,
+    "original_stock_state_recovered": false
+  },
+  "sp_release": true,
+  "mp_release": true,
+  "renderer_log_sha256": "0dcc51f19cbcd8c46eb9d88883261cbc96e32156b2205ad22ba19462541df5ad",
+  "game_launched": false,
+  "runtime_consumer_enabled": false,
+  "limitations": [
+    "No accepted stock source model or final prediction",
+    "Existing Transfer::QueryPath unknown-motion policy is preserved",
+    "Existing unrelated renderer/worktree edits were not changed by X13"
+  ],
+  "python": {
+    "occupancy": {
+      "passed": 3,
+      "log_sha256": "3c649d7188445ee893af8e566b7369377d7c8b050068fa78c32f80dffe2d3a93"
+    },
+    "blind": {
+      "passed": 7,
+      "log_sha256": "41badfd5b4c016b17407199be5af4b1f19deaa2f386ec79f5357c718abd197a8"
+    },
+    "controller": {
+      "passed": 4,
+      "log_sha256": "5ea432e12a505d51b08b649aacd9cbb1acf733444f5848d2dbb73a5b60714875"
+    }
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "t1_danger": {
+    "model_count": 87,
+    "non_world_models": 86,
+    "models_with_entity_reference": 86,
+    "multiply_referenced_models": 0,
+    "entity_classes": {
+      "func_breakable": 1,
+      "func_door": 9,
+      "func_static": 1,
+      "func_usable": 12,
+      "func_wall": 3,
+      "trigger_multiple": 9,
+      "trigger_once": 51
+    },
+    "declared_key_presence": {
+      "angle": 10,
+      "angles": 0,
+      "height": 0,
+      "lip": 7,
+      "origin": 18,
+      "pos1": 0,
+      "pos2": 0,
+      "spawnflags": 66,
+      "speed": 8,
+      "target": 52
+    },
+    "non_world_surfaces": 65,
+    "non_world_lightmapped_surfaces": 60,
+    "bake_participation": "Unknown; a lightmap record does not prove any selected world bake pose",
+    "captured_bounds": "Original model-lump bounds, not a measured gameplay/current transform",
+    "runtime_sweeps_inferred": false,
+    "original_bake_state_inferred": false
+  },
+  "mp/siege_desert": {
+    "model_count": 95,
+    "non_world_models": 94,
+    "models_with_entity_reference": 94,
+    "multiply_referenced_models": 0,
+    "entity_classes": {
+      "func_breakable": 22,
+      "func_door": 33,
+      "func_usable": 7,
+      "trigger_multiple": 14,
+      "trigger_once": 18
+    },
+    "declared_key_presence": {
+      "angle": 44,
+      "angles": 0,
+      "height": 0,
+      "lip": 5,
+      "origin": 3,
+      "pos1": 0,
+      "pos2": 0,
+      "spawnflags": 81,
+      "speed": 7,
+      "target": 56
+    },
+    "non_world_surfaces": 735,
+    "non_world_lightmapped_surfaces": 731,
+    "bake_participation": "Unknown; a lightmap record does not prove any selected world bake pose",
+    "captured_bounds": "Original model-lump bounds, not a measured gameplay/current transform",
+    "runtime_sweeps_inferred": false,
+    "original_bake_state_inferred": false
+  },
+  "hoth3": {
+    "model_count": 89,
+    "non_world_models": 88,
+    "models_with_entity_reference": 88,
+    "multiply_referenced_models": 0,
+    "entity_classes": {
+      "func_breakable": 3,
+      "func_door": 13,
+      "func_static": 2,
+      "func_wall": 2,
+      "trigger_multiple": 35,
+      "trigger_once": 33
+    },
+    "declared_key_presence": {
+      "angle": 18,
+      "angles": 0,
+      "height": 0,
+      "lip": 0,
+      "origin": 4,
+      "pos1": 0,
+      "pos2": 0,
+      "spawnflags": 70,
+      "speed": 2,
+      "target": 38
+    },
+    "non_world_surfaces": 94,
+    "non_world_lightmapped_surfaces": 94,
+    "bake_participation": "Unknown; a lightmap record does not prove any selected world bake pose",
+    "captured_bounds": "Original model-lump bounds, not a measured gameplay/current transform",
+    "runtime_sweeps_inferred": false,
+    "original_bake_state_inferred": false
+  },
+  "hoth2": {
+    "model_count": 125,
+    "non_world_models": 124,
+    "models_with_entity_reference": 124,
+    "multiply_referenced_models": 0,
+    "entity_classes": {
+      "func_breakable": 2,
+      "func_door": 15,
+      "func_static": 4,
+      "func_usable": 3,
+      "misc_weather_zone": 10,
+      "trigger_multiple": 31,
+      "trigger_once": 59
+    },
+    "declared_key_presence": {
+      "angle": 23,
+      "angles": 0,
+      "height": 0,
+      "lip": 2,
+      "origin": 4,
+      "pos1": 0,
+      "pos2": 0,
+      "spawnflags": 95,
+      "speed": 2,
+      "target": 69
+    },
+    "non_world_surfaces": 229,
+    "non_world_lightmapped_surfaces": 153,
+    "bake_participation": "Unknown; a lightmap record does not prove any selected world bake pose",
+    "captured_bounds": "Original model-lump bounds, not a measured gameplay/current transform",
+    "runtime_sweeps_inferred": false,
+    "original_bake_state_inferred": false
+  }
+}

@@ -10,7 +10,8 @@ namespace Core
 {
 namespace Joint
 {
-constexpr uint32_t kVersion = 4; // X10: correlation identities/statistical weights
+constexpr uint32_t kVersion =
+	6; // X14: typed occupied/emitting support
 enum class Channel
 {
 	Surface,
@@ -37,7 +38,8 @@ struct Observation
 	Channel channel = Channel::Surface;
 	Amplitude::Interval rgb[3];
 	Vec3 directionToSource;
-	double measure = 0, sigma = 1, angularSigmaRadians = 1; // statistical objective mass, not transport area
+	double measure = 0, sigma = 1,
+		   angularSigmaRadians = 1; // statistical objective mass, not transport area
 	bool comparable = false, directionKnown = false, required = true;
 	Role role = Role::Training;
 };
@@ -53,6 +55,7 @@ struct Candidate
 	double clearanceWorld = .001;
 	std::string provider, provenance;
 	std::vector<Id> parents;
+	uint32_t attachedModel = 0; // no inferred transform for a moving emitter
 };
 struct Profile
 {
@@ -101,6 +104,8 @@ struct Work
 	uint64_t accountedBytes = 0;
 	uint64_t arithmetic = 0, linearColumns = 0;
 	uint64_t proposalsDeferred = 0;
+	uint64_t placementChecks = 0, conditionalPlacements = 0, provenPlacements = 0,
+			 placementUnknown = 0, placementCollisions = 0;
 };
 enum class State
 {
@@ -155,6 +160,9 @@ struct Model
 	Estimate omittedBouncePower; // area-weighted power bound, never per-luxel error
 	std::string proposal;
 	std::vector<std::string> assumptions;
+	bool occupancyConditional = false;
+	std::vector<PointRefine::PlacementResult>
+		placements; // source ordering; independent from ray visibility
 };
 struct Options
 {

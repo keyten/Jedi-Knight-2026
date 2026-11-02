@@ -1,0 +1,1532 @@
+{
+  "t1_danger": {
+    "bsp_sha256": "6a24f3cd86d93766034fd064be480cd3f3e70cd512733c9826ecbc64cc444ca3",
+    "dataset_sha256": "e92302cfceace6627aede38d5be1f04333586ffa51b03d3dfda7d83c375b550c",
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x13-a-native.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\t1_danger\\home\\rend2\\lightrecon\\v1\\observations\\t1_danger_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x13-a\\t1_danger",
+        "6a24f3cd86d93766034fd064be480cd3f3e70cd512733c9826ecbc64cc444ca3",
+        "scene-bake-conditional"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 81.06299999996554,
+      "peak_process_rss_bytes": 50176000
+    },
+    "historical_profile": "UnknownProfile",
+    "source_truth": "Unavailable",
+    "isq": {
+      "schema": "org.openjk.scene-schedule.v1",
+      "status": "NoSupportedEvidence",
+      "reason": "No independently supported combined model; unsearched/unavailable light is not zero",
+      "graph_key": "ee23eced6c5e3a7ac50a28f4099f2bb736547519947c1f4e1a49a6c07557cd92",
+      "branches": [
+        {
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+          "status": "NoSupportedEvidence",
+          "catalog_models": 119,
+          "deferred": 1153,
+          "waves": 4,
+          "joint_state": "InsufficientSignal",
+          "preferred": -1,
+          "diagnostics": [
+            "Progressive S05 cursor deferred by wave budget; no absence certified"
+          ],
+          "attempts": [
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:2575112068345644399",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=2575112068345644399 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:13347330686497372287",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=13347330686497372287 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:2575112068345644399",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=2575112068345644399 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:13347330686497372287",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=13347330686497372287 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:8352426616531149012",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8352426616531149012 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:16553314588676525220",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=16553314588676525220 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:8352426616531149012",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8352426616531149012 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:16553314588676525220",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=16553314588676525220 centre/path:Solid",
+              "sources": 1
+            }
+          ],
+          "omitted_attempts": 0
+        }
+      ],
+      "equivalent_branches": [],
+      "local_calls": 89,
+      "cache_hits": 0,
+      "joint_calls": 4,
+      "rays": 1887,
+      "work": 502574,
+      "forward_calls": 704,
+      "candidate_inputs_deferred": 1038,
+      "accounted_bytes": 2796998,
+      "influence_links": 0,
+      "influence_complete": true,
+      "candidates_unsupported": 0,
+      "fitting_evaluations": 16,
+      "fitting_models": 12,
+      "fitting_forward_calls": 0,
+      "fitting_rays": 0,
+      "placement_checks": 8,
+      "conditional_placements": 0,
+      "proven_placements": 0,
+      "unknown_placements": 0,
+      "collision_placements": 8,
+      "local_coverage_complete": false,
+      "candidate_coverage_complete": false,
+      "final_evaluated": false,
+      "stock_source_truth": null,
+      "local_units": 89,
+      "unit_statuses": {
+        "NoSupportedEvidence": 45,
+        "Partial": 37,
+        "Unsupported": 6,
+        "Produced": 1
+      },
+      "controller": {
+        "validation_calls": 4,
+        "final_calls": 0,
+        "occupancy_policy": "ConditionalBake",
+        "sample_counts": [
+          244,
+          105,
+          66
+        ],
+        "direct_only_conditional": true,
+        "geometry_refinement_enabled": false,
+        "source_count_proposals_enabled": true,
+        "shadow_weight": 0.1,
+        "coarse_rows": 64,
+        "training_evidence_blocks": 25,
+        "canonical_asset_available": false,
+        "uncertainty_attempts": 0
+      },
+      "occupancy": {
+        "schema": "org.openjk.bake-occupancy-stock.v1",
+        "offered_candidates": 2,
+        "unbounded_runtime_models": 86,
+        "original_global_guard_rejections": 2,
+        "current_runtime_guard_classes": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "bake_classes": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "policy_key": "65053e89fa564860b5224c0f9d5cef051ea20c245e7db9c13eadce4730d90e1d",
+        "class_order": [
+          "Proven",
+          "Collision",
+          "Conditional",
+          "Unknown",
+          "Invalid"
+        ],
+        "claims_historical_state": false
+      }
+    },
+    "linear": {
+      "schema": "org.openjk.scene-schedule.v1",
+      "status": "NoSupportedEvidence",
+      "reason": "No independently supported combined model; unsearched/unavailable light is not zero",
+      "graph_key": "37e401c3d3e26e1cfb5f9378d504596404756516fa7be292a61b76078ba19dfd",
+      "branches": [
+        {
+          "profile": "NetRadiant-d9338309e-subsets-v2/linear/6b4991ec25375a50",
+          "status": "NoSupportedEvidence",
+          "catalog_models": 119,
+          "deferred": 1153,
+          "waves": 4,
+          "joint_state": "InsufficientSignal",
+          "preferred": -1,
+          "diagnostics": [
+            "Progressive S05 cursor deferred by wave budget; no absence certified"
+          ],
+          "attempts": [
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:2575112068345644399",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=2575112068345644399 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:13347330686497372287",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=13347330686497372287 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:2575112068345644399",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=2575112068345644399 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:13347330686497372287",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=13347330686497372287 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:8352426616531149012",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8352426616531149012 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:16553314588676525220",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=16553314588676525220 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:8352426616531149012",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8352426616531149012 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:16553314588676525220",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=16553314588676525220 centre/path:Solid",
+              "sources": 1
+            }
+          ],
+          "omitted_attempts": 0
+        }
+      ],
+      "equivalent_branches": [],
+      "local_calls": 89,
+      "cache_hits": 0,
+      "joint_calls": 4,
+      "rays": 1887,
+      "work": 502574,
+      "forward_calls": 704,
+      "candidate_inputs_deferred": 1038,
+      "accounted_bytes": 2798156,
+      "influence_links": 0,
+      "influence_complete": true,
+      "candidates_unsupported": 0,
+      "fitting_evaluations": 16,
+      "fitting_models": 12,
+      "fitting_forward_calls": 0,
+      "fitting_rays": 0,
+      "placement_checks": 8,
+      "conditional_placements": 0,
+      "proven_placements": 0,
+      "unknown_placements": 0,
+      "collision_placements": 8,
+      "local_coverage_complete": false,
+      "candidate_coverage_complete": false,
+      "final_evaluated": false,
+      "stock_source_truth": null,
+      "local_units": 89,
+      "unit_statuses": {
+        "NoSupportedEvidence": 45,
+        "Unsupported": 6,
+        "Partial": 37,
+        "Produced": 1
+      },
+      "controller": {
+        "validation_calls": 4,
+        "final_calls": 0,
+        "occupancy_policy": "ConditionalBake",
+        "sample_counts": [
+          244,
+          105,
+          66
+        ],
+        "direct_only_conditional": true,
+        "geometry_refinement_enabled": false,
+        "source_count_proposals_enabled": true,
+        "shadow_weight": 0.1,
+        "coarse_rows": 64,
+        "training_evidence_blocks": 25,
+        "canonical_asset_available": false,
+        "uncertainty_attempts": 0
+      },
+      "occupancy": {
+        "schema": "org.openjk.bake-occupancy-stock.v1",
+        "offered_candidates": 2,
+        "unbounded_runtime_models": 86,
+        "original_global_guard_rejections": 2,
+        "current_runtime_guard_classes": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "bake_classes": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "policy_key": "65053e89fa564860b5224c0f9d5cef051ea20c245e7db9c13eadce4730d90e1d",
+        "class_order": [
+          "Proven",
+          "Collision",
+          "Conditional",
+          "Unknown",
+          "Invalid"
+        ],
+        "claims_historical_state": false
+      }
+    },
+    "private_debug_hashes": {
+      "scheduler-isq-placement.tsv": "b9196662bbc81d77e0d62650c57fd8f27d1772869d8bda8bdfab3aa8a0e64d53",
+      "scheduler-linear-placement.tsv": "b9196662bbc81d77e0d62650c57fd8f27d1772869d8bda8bdfab3aa8a0e64d53"
+    }
+  },
+  "mp/siege_desert": {
+    "bsp_sha256": "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+    "dataset_sha256": "868eb79f14c7bcfda2b973d42871e9f0e32c458acb39cc2e7ffbda2075fe3881",
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x13-a-native.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_siege_desert\\home\\rend2\\lightrecon\\v1\\observations\\mp_siege_desert_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x13-a\\mp_siege_desert",
+        "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+        "scene-bake-conditional"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 33.28099999995902,
+      "peak_process_rss_bytes": 61575168
+    },
+    "historical_profile": "UnknownProfile",
+    "source_truth": "Unavailable",
+    "isq": {
+      "schema": "org.openjk.scene-schedule.v1",
+      "status": "NoSupportedEvidence",
+      "reason": "No independently supported combined model; unsearched/unavailable light is not zero",
+      "graph_key": "251e6597d5c928b6510620b2cb917a3edb1e733bd48a0a502549cccefc3aac6a",
+      "branches": [
+        {
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+          "status": "NoSupportedEvidence",
+          "catalog_models": 74,
+          "deferred": 1397,
+          "waves": 4,
+          "joint_state": "InsufficientSignal",
+          "preferred": -1,
+          "diagnostics": [
+            "Model 15475537769604168417: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Progressive S05 cursor deferred by wave budget; no absence certified"
+          ],
+          "attempts": [
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:16264532848072740940",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=16264532848072740940 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:12477943583511736518",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=12477943583511736518 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:16264532848072740940",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=16264532848072740940 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:12477943583511736518",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=12477943583511736518 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:9849676377460359477",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=9849676377460359477 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:8852123587446825234",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8852123587446825234 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:9849676377460359477",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=9849676377460359477 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:8852123587446825234",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8852123587446825234 centre/path:Clearance",
+              "sources": 1
+            }
+          ],
+          "omitted_attempts": 0
+        }
+      ],
+      "equivalent_branches": [],
+      "local_calls": 58,
+      "cache_hits": 0,
+      "joint_calls": 4,
+      "rays": 92,
+      "work": 28068,
+      "forward_calls": 56,
+      "candidate_inputs_deferred": 1328,
+      "accounted_bytes": 2031084,
+      "influence_links": 0,
+      "influence_complete": true,
+      "candidates_unsupported": 1,
+      "fitting_evaluations": 16,
+      "fitting_models": 12,
+      "fitting_forward_calls": 0,
+      "fitting_rays": 0,
+      "placement_checks": 8,
+      "conditional_placements": 0,
+      "proven_placements": 0,
+      "unknown_placements": 0,
+      "collision_placements": 8,
+      "local_coverage_complete": false,
+      "candidate_coverage_complete": false,
+      "final_evaluated": false,
+      "stock_source_truth": null,
+      "local_units": 58,
+      "unit_statuses": {
+        "NoSupportedEvidence": 40,
+        "Unsupported": 14,
+        "Partial": 4
+      },
+      "controller": {
+        "validation_calls": 4,
+        "final_calls": 0,
+        "occupancy_policy": "ConditionalBake",
+        "sample_counts": [
+          123,
+          74,
+          48
+        ],
+        "direct_only_conditional": true,
+        "geometry_refinement_enabled": false,
+        "source_count_proposals_enabled": true,
+        "shadow_weight": 0.1,
+        "coarse_rows": 64,
+        "training_evidence_blocks": 52,
+        "canonical_asset_available": false,
+        "uncertainty_attempts": 0
+      },
+      "occupancy": {
+        "schema": "org.openjk.bake-occupancy-stock.v1",
+        "offered_candidates": 2,
+        "unbounded_runtime_models": 94,
+        "original_global_guard_rejections": 2,
+        "current_runtime_guard_classes": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "bake_classes": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "policy_key": "5a6bce43313bb751b25ea28a2129c7c4ace8d003d222afa38ed7c00ad38189c8",
+        "class_order": [
+          "Proven",
+          "Collision",
+          "Conditional",
+          "Unknown",
+          "Invalid"
+        ],
+        "claims_historical_state": false
+      }
+    },
+    "linear": {
+      "schema": "org.openjk.scene-schedule.v1",
+      "status": "NoSupportedEvidence",
+      "reason": "No independently supported combined model; unsearched/unavailable light is not zero",
+      "graph_key": "6c7565d628b2a2f957f85261e90bd50e7f7ed7c8ac885ab80fc08bd0155cf5cc",
+      "branches": [
+        {
+          "profile": "NetRadiant-d9338309e-subsets-v2/linear/6b4991ec25375a50",
+          "status": "NoSupportedEvidence",
+          "catalog_models": 73,
+          "deferred": 1396,
+          "waves": 4,
+          "joint_state": "InsufficientSignal",
+          "preferred": -1,
+          "diagnostics": [
+            "Model 15475537769604168417: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Progressive S05 cursor deferred by wave budget; no absence certified"
+          ],
+          "attempts": [
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:16264532848072740940",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=16264532848072740940 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:12477943583511736518",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=12477943583511736518 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:16264532848072740940",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=16264532848072740940 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:12477943583511736518",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=12477943583511736518 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:9849676377460359477",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=9849676377460359477 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:8852123587446825234",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8852123587446825234 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:9849676377460359477",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=9849676377460359477 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:8852123587446825234",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8852123587446825234 centre/path:Clearance",
+              "sources": 1
+            }
+          ],
+          "omitted_attempts": 0
+        }
+      ],
+      "equivalent_branches": [],
+      "local_calls": 58,
+      "cache_hits": 0,
+      "joint_calls": 4,
+      "rays": 92,
+      "work": 28068,
+      "forward_calls": 56,
+      "candidate_inputs_deferred": 1328,
+      "accounted_bytes": 2013912,
+      "influence_links": 0,
+      "influence_complete": true,
+      "candidates_unsupported": 1,
+      "fitting_evaluations": 16,
+      "fitting_models": 12,
+      "fitting_forward_calls": 0,
+      "fitting_rays": 0,
+      "placement_checks": 8,
+      "conditional_placements": 0,
+      "proven_placements": 0,
+      "unknown_placements": 0,
+      "collision_placements": 8,
+      "local_coverage_complete": false,
+      "candidate_coverage_complete": false,
+      "final_evaluated": false,
+      "stock_source_truth": null,
+      "local_units": 58,
+      "unit_statuses": {
+        "NoSupportedEvidence": 40,
+        "Unsupported": 14,
+        "Partial": 4
+      },
+      "controller": {
+        "validation_calls": 4,
+        "final_calls": 0,
+        "occupancy_policy": "ConditionalBake",
+        "sample_counts": [
+          123,
+          74,
+          48
+        ],
+        "direct_only_conditional": true,
+        "geometry_refinement_enabled": false,
+        "source_count_proposals_enabled": true,
+        "shadow_weight": 0.1,
+        "coarse_rows": 64,
+        "training_evidence_blocks": 52,
+        "canonical_asset_available": false,
+        "uncertainty_attempts": 0
+      },
+      "occupancy": {
+        "schema": "org.openjk.bake-occupancy-stock.v1",
+        "offered_candidates": 2,
+        "unbounded_runtime_models": 94,
+        "original_global_guard_rejections": 2,
+        "current_runtime_guard_classes": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "bake_classes": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "policy_key": "5a6bce43313bb751b25ea28a2129c7c4ace8d003d222afa38ed7c00ad38189c8",
+        "class_order": [
+          "Proven",
+          "Collision",
+          "Conditional",
+          "Unknown",
+          "Invalid"
+        ],
+        "claims_historical_state": false
+      }
+    },
+    "private_debug_hashes": {
+      "scheduler-isq-placement.tsv": "9a546cad924610bf8ab0ef64b6205fb4a10e9208ccd0da056d188ef5c8aa72c6",
+      "scheduler-linear-placement.tsv": "9a546cad924610bf8ab0ef64b6205fb4a10e9208ccd0da056d188ef5c8aa72c6"
+    }
+  },
+  "hoth3": {
+    "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+    "dataset_sha256": "fdbf5351babdaf6a1b0e9d776a77d01f5396e82c5f3945ec46079e171385d613",
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x13-a-native.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x13-a\\hoth3",
+        "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "scene-bake-conditional"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 46.57799999997951,
+      "peak_process_rss_bytes": 106897408
+    },
+    "historical_profile": "UnknownProfile",
+    "source_truth": "Unavailable",
+    "isq": {
+      "schema": "org.openjk.scene-schedule.v1",
+      "status": "NoSupportedEvidence",
+      "reason": "No independently supported combined model; unsearched/unavailable light is not zero",
+      "graph_key": "91c68733b476c690cf2dcb3b5a821a8c2ca17f90cdf5f528b6bafc2ce9a6caf1",
+      "branches": [
+        {
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+          "status": "NoSupportedEvidence",
+          "catalog_models": 139,
+          "deferred": 855,
+          "waves": 4,
+          "joint_state": "InsufficientSignal",
+          "preferred": -1,
+          "diagnostics": [
+            "Model 937880189640420703: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1603703956813217459: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1945778581900023215: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2375513171124758634: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 3551622386843573569: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 5183896085411654948: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 5647500671818417443: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7450411641460290636: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7503028057900614221: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7896656571155165910: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8564448320831615763: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9645643940254299101: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9662057351117587215: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 14090482741498661850: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16365951902224602580: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Progressive S05 cursor deferred by wave budget; no absence certified"
+          ],
+          "attempts": [
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:2669928192670200679",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=2669928192670200679 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:9774342763915263035",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=9774342763915263035 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:2669928192670200679",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=2669928192670200679 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:9774342763915263035",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=9774342763915263035 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:1135927210735602440",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=1135927210735602440 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:6562282832448120415",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=6562282832448120415 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:1135927210735602440",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=1135927210735602440 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:6562282832448120415",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=6562282832448120415 centre/path:Clearance",
+              "sources": 1
+            }
+          ],
+          "omitted_attempts": 0
+        }
+      ],
+      "equivalent_branches": [],
+      "local_calls": 853,
+      "cache_hits": 0,
+      "joint_calls": 4,
+      "rays": 11803,
+      "work": 6262736,
+      "forward_calls": 4133,
+      "candidate_inputs_deferred": 735,
+      "accounted_bytes": 5891378,
+      "influence_links": 0,
+      "influence_complete": true,
+      "candidates_unsupported": 15,
+      "fitting_evaluations": 16,
+      "fitting_models": 12,
+      "fitting_forward_calls": 0,
+      "fitting_rays": 0,
+      "placement_checks": 8,
+      "conditional_placements": 0,
+      "proven_placements": 0,
+      "unknown_placements": 0,
+      "collision_placements": 8,
+      "local_coverage_complete": false,
+      "candidate_coverage_complete": false,
+      "final_evaluated": false,
+      "stock_source_truth": null,
+      "local_units": 853,
+      "unit_statuses": {
+        "NoSupportedEvidence": 607,
+        "Partial": 231,
+        "Produced": 12,
+        "Unsupported": 3
+      },
+      "controller": {
+        "validation_calls": 4,
+        "final_calls": 0,
+        "occupancy_policy": "ConditionalBake",
+        "sample_counts": [
+          412,
+          239,
+          227
+        ],
+        "direct_only_conditional": true,
+        "geometry_refinement_enabled": false,
+        "source_count_proposals_enabled": true,
+        "shadow_weight": 0.1,
+        "coarse_rows": 64,
+        "training_evidence_blocks": 43,
+        "canonical_asset_available": false,
+        "uncertainty_attempts": 0
+      },
+      "occupancy": {
+        "schema": "org.openjk.bake-occupancy-stock.v1",
+        "offered_candidates": 2,
+        "unbounded_runtime_models": 88,
+        "original_global_guard_rejections": 2,
+        "current_runtime_guard_classes": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "bake_classes": [
+          0,
+          2,
+          0,
+          0,
+          0
+        ],
+        "policy_key": "d200fb265e5276e94c2cd3064def117f33dae6f94b0dd3f789df89ef8a47f1fb",
+        "class_order": [
+          "Proven",
+          "Collision",
+          "Conditional",
+          "Unknown",
+          "Invalid"
+        ],
+        "claims_historical_state": false
+      }
+    },
+    "linear": {
+      "schema": "org.openjk.scene-schedule.v1",
+      "status": "NoSupportedEvidence",
+      "reason": "No independently supported combined model; unsearched/unavailable light is not zero",
+      "graph_key": "3fcac55682dfef37879abae5ae29c153807d1c0a60c936b891b263d6bf17fcd6",
+      "branches": [
+        {
+          "profile": "NetRadiant-d9338309e-subsets-v2/linear/6b4991ec25375a50",
+          "status": "NoSupportedEvidence",
+          "catalog_models": 139,
+          "deferred": 855,
+          "waves": 4,
+          "joint_state": "InsufficientSignal",
+          "preferred": -1,
+          "diagnostics": [
+            "Model 937880189640420703: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1603703956813217459: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1945778581900023215: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2375513171124758634: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 3551622386843573569: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 5183896085411654948: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 5647500671818417443: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7450411641460290636: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7503028057900614221: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7896656571155165910: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8564448320831615763: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9645643940254299101: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9662057351117587215: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 14090482741498661850: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16365951902224602580: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Progressive S05 cursor deferred by wave budget; no absence certified"
+          ],
+          "attempts": [
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:2669928192670200679",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=2669928192670200679 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:9774342763915263035",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=9774342763915263035 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:2669928192670200679",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=2669928192670200679 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:9774342763915263035",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=9774342763915263035 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:143209749644097373",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=52 unavailable=12 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:1135927210735602440",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=1135927210735602440 centre/path:Clearance",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:143209749644097373",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=52 unavailable=12 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:1135927210735602440",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=1135927210735602440 centre/path:Clearance",
+              "sources": 1
+            }
+          ],
+          "omitted_attempts": 0
+        }
+      ],
+      "equivalent_branches": [],
+      "local_calls": 853,
+      "cache_hits": 0,
+      "joint_calls": 4,
+      "rays": 11864,
+      "work": 6306229,
+      "forward_calls": 4135,
+      "candidate_inputs_deferred": 735,
+      "accounted_bytes": 5924076,
+      "influence_links": 0,
+      "influence_complete": true,
+      "candidates_unsupported": 15,
+      "fitting_evaluations": 18,
+      "fitting_models": 12,
+      "fitting_forward_calls": 2,
+      "fitting_rays": 64,
+      "placement_checks": 8,
+      "conditional_placements": 2,
+      "proven_placements": 0,
+      "unknown_placements": 0,
+      "collision_placements": 6,
+      "local_coverage_complete": false,
+      "candidate_coverage_complete": false,
+      "final_evaluated": false,
+      "stock_source_truth": null,
+      "local_units": 853,
+      "unit_statuses": {
+        "NoSupportedEvidence": 607,
+        "Partial": 231,
+        "Unsupported": 3,
+        "Produced": 12
+      },
+      "controller": {
+        "validation_calls": 4,
+        "final_calls": 0,
+        "occupancy_policy": "ConditionalBake",
+        "sample_counts": [
+          412,
+          239,
+          227
+        ],
+        "direct_only_conditional": true,
+        "geometry_refinement_enabled": false,
+        "source_count_proposals_enabled": true,
+        "shadow_weight": 0.1,
+        "coarse_rows": 64,
+        "training_evidence_blocks": 43,
+        "canonical_asset_available": false,
+        "uncertainty_attempts": 0
+      },
+      "occupancy": {
+        "schema": "org.openjk.bake-occupancy-stock.v1",
+        "offered_candidates": 2,
+        "unbounded_runtime_models": 88,
+        "original_global_guard_rejections": 2,
+        "current_runtime_guard_classes": [
+          0,
+          1,
+          0,
+          1,
+          0
+        ],
+        "bake_classes": [
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        "policy_key": "d200fb265e5276e94c2cd3064def117f33dae6f94b0dd3f789df89ef8a47f1fb",
+        "class_order": [
+          "Proven",
+          "Collision",
+          "Conditional",
+          "Unknown",
+          "Invalid"
+        ],
+        "claims_historical_state": false
+      }
+    },
+    "private_debug_hashes": {
+      "scheduler-isq-placement.tsv": "ecb4dfb7de25897bba0c3e20c1563bd6ee7ee50b02e31cfc02db4cb3d33fad93",
+      "scheduler-linear-placement.tsv": "2a7fb7777dcb4586c1019a3385d76065684aa4ad971b909c8a257ed8ad1cea5c"
+    }
+  },
+  "hoth2": {
+    "bsp_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+    "dataset_sha256": "39ee537e003f7aaac802b48e847f9e35afa0f37eb8379aa7baaca57df05fbbb0",
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x13-a-native.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth2\\all-pages.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x13-a\\hoth2",
+        "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+        "scene-bake-conditional"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 19.156000000075437,
+      "peak_process_rss_bytes": 69525504
+    },
+    "historical_profile": "UnknownProfile",
+    "source_truth": "Unavailable",
+    "isq": {
+      "schema": "org.openjk.scene-schedule.v1",
+      "status": "NoSupportedEvidence",
+      "reason": "No independently supported combined model; unsearched/unavailable light is not zero",
+      "graph_key": "b145015441cd6bf6bb26c7cb37196bda984b7a7856ac7fd13c5225193ba7fcbf",
+      "branches": [
+        {
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+          "status": "NoSupportedEvidence",
+          "catalog_models": 118,
+          "deferred": 595,
+          "waves": 4,
+          "joint_state": "InsufficientSignal",
+          "preferred": -1,
+          "diagnostics": [
+            "Model 6031955542538987132: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8739713807551294985: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8981152151135766955: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9665431468601228779: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11916197984501741959: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12008240876141842895: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 13860218054929041811: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17017522536160141269: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Progressive S05 cursor deferred by wave budget; no absence certified"
+          ],
+          "attempts": [
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:3253120584775080820",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=47 unavailable=17 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:10687517112965033994",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=47 unavailable=17 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:3253120584775080820",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=47 unavailable=17 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:10687517112965033994",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=47 unavailable=17 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:9209865176389459861",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=48 unavailable=16 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:10343987128876290991",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=48 unavailable=16 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:9209865176389459861",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=48 unavailable=16 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:10343987128876290991",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=48 unavailable=16 incomparable=0 disabled=0",
+              "sources": 1
+            }
+          ],
+          "omitted_attempts": 0
+        }
+      ],
+      "equivalent_branches": [],
+      "local_calls": 811,
+      "cache_hits": 0,
+      "joint_calls": 4,
+      "rays": 2243,
+      "work": 2675619,
+      "forward_calls": 393,
+      "candidate_inputs_deferred": 489,
+      "accounted_bytes": 4424200,
+      "influence_links": 0,
+      "influence_complete": true,
+      "candidates_unsupported": 8,
+      "fitting_evaluations": 24,
+      "fitting_models": 12,
+      "fitting_forward_calls": 8,
+      "fitting_rays": 310,
+      "placement_checks": 8,
+      "conditional_placements": 8,
+      "proven_placements": 0,
+      "unknown_placements": 0,
+      "collision_placements": 0,
+      "local_coverage_complete": false,
+      "candidate_coverage_complete": false,
+      "final_evaluated": false,
+      "stock_source_truth": null,
+      "local_units": 811,
+      "unit_statuses": {
+        "NoSupportedEvidence": 770,
+        "Produced": 5,
+        "Unsupported": 12,
+        "Partial": 24
+      },
+      "controller": {
+        "validation_calls": 4,
+        "final_calls": 0,
+        "occupancy_policy": "ConditionalBake",
+        "sample_counts": [
+          189,
+          157,
+          173
+        ],
+        "direct_only_conditional": true,
+        "geometry_refinement_enabled": false,
+        "source_count_proposals_enabled": true,
+        "shadow_weight": 0.1,
+        "coarse_rows": 64,
+        "training_evidence_blocks": 48,
+        "canonical_asset_available": false,
+        "uncertainty_attempts": 0
+      },
+      "occupancy": {
+        "schema": "org.openjk.bake-occupancy-stock.v1",
+        "offered_candidates": 2,
+        "unbounded_runtime_models": 124,
+        "original_global_guard_rejections": 2,
+        "current_runtime_guard_classes": [
+          0,
+          0,
+          0,
+          2,
+          0
+        ],
+        "bake_classes": [
+          0,
+          0,
+          2,
+          0,
+          0
+        ],
+        "policy_key": "6712c704485998ebd827d42dcb4cb993d3633f7469e33bc8e38cd81e3cf462a2",
+        "class_order": [
+          "Proven",
+          "Collision",
+          "Conditional",
+          "Unknown",
+          "Invalid"
+        ],
+        "claims_historical_state": false
+      }
+    },
+    "linear": {
+      "schema": "org.openjk.scene-schedule.v1",
+      "status": "NoSupportedEvidence",
+      "reason": "No independently supported combined model; unsearched/unavailable light is not zero",
+      "graph_key": "4fdcb5da0576c6eba8a5008e8ecdc67b92dad3f00c7c63012ee117044963c0cf",
+      "branches": [
+        {
+          "profile": "NetRadiant-d9338309e-subsets-v2/linear/6b4991ec25375a50",
+          "status": "NoSupportedEvidence",
+          "catalog_models": 117,
+          "deferred": 594,
+          "waves": 4,
+          "joint_state": "InsufficientSignal",
+          "preferred": -1,
+          "diagnostics": [
+            "Model 6031955542538987132: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8739713807551294985: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8981152151135766955: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9665431468601228779: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11916197984501741959: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12008240876141842895: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 13860218054929041811: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17017522536160141269: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Progressive S05 cursor deferred by wave budget; no absence certified"
+          ],
+          "attempts": [
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:2036834345691421358",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=47 unavailable=17 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:16768770675293265502",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=47 unavailable=17 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:2036834345691421358",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=47 unavailable=17 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:16768770675293265502",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=47 unavailable=17 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:13954640245355357046",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=48 unavailable=16 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:3306913327617940809",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=3306913327617940809 centre/path:Solid",
+              "sources": 1
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0
+            },
+            {
+              "proposal": "activate:13954640245355357046",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=48 unavailable=16 incomparable=0 disabled=0",
+              "sources": 1
+            },
+            {
+              "proposal": "activate:3306913327617940809",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=3306913327617940809 centre/path:Solid",
+              "sources": 1
+            }
+          ],
+          "omitted_attempts": 0
+        }
+      ],
+      "equivalent_branches": [],
+      "local_calls": 811,
+      "cache_hits": 0,
+      "joint_calls": 4,
+      "rays": 2167,
+      "work": 2648115,
+      "forward_calls": 391,
+      "candidate_inputs_deferred": 489,
+      "accounted_bytes": 4407686,
+      "influence_links": 0,
+      "influence_complete": true,
+      "candidates_unsupported": 8,
+      "fitting_evaluations": 22,
+      "fitting_models": 12,
+      "fitting_forward_calls": 6,
+      "fitting_rays": 234,
+      "placement_checks": 8,
+      "conditional_placements": 6,
+      "proven_placements": 0,
+      "unknown_placements": 0,
+      "collision_placements": 2,
+      "local_coverage_complete": false,
+      "candidate_coverage_complete": false,
+      "final_evaluated": false,
+      "stock_source_truth": null,
+      "local_units": 811,
+      "unit_statuses": {
+        "NoSupportedEvidence": 770,
+        "Partial": 24,
+        "Produced": 5,
+        "Unsupported": 12
+      },
+      "controller": {
+        "validation_calls": 4,
+        "final_calls": 0,
+        "occupancy_policy": "ConditionalBake",
+        "sample_counts": [
+          189,
+          157,
+          173
+        ],
+        "direct_only_conditional": true,
+        "geometry_refinement_enabled": false,
+        "source_count_proposals_enabled": true,
+        "shadow_weight": 0.1,
+        "coarse_rows": 64,
+        "training_evidence_blocks": 48,
+        "canonical_asset_available": false,
+        "uncertainty_attempts": 0
+      },
+      "occupancy": {
+        "schema": "org.openjk.bake-occupancy-stock.v1",
+        "offered_candidates": 2,
+        "unbounded_runtime_models": 124,
+        "original_global_guard_rejections": 2,
+        "current_runtime_guard_classes": [
+          0,
+          1,
+          0,
+          1,
+          0
+        ],
+        "bake_classes": [
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        "policy_key": "6712c704485998ebd827d42dcb4cb993d3633f7469e33bc8e38cd81e3cf462a2",
+        "class_order": [
+          "Proven",
+          "Collision",
+          "Conditional",
+          "Unknown",
+          "Invalid"
+        ],
+        "claims_historical_state": false
+      }
+    },
+    "private_debug_hashes": {
+      "scheduler-isq-placement.tsv": "d8b6bafd11dc456940cfea95226d5bbbc22c61436223b768d1aa3ace391382d0",
+      "scheduler-linear-placement.tsv": "86401655a27cd4b30738e79081b6a63ece8b208b77edac19486cafb16ae685fa"
+    }
+  }
+}

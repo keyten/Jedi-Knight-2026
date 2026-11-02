@@ -146,6 +146,7 @@ static Error SceneAttempt(P::Request request, const std::shared_ptr<Hidden::Requ
 	report << SC::ReportJson(result);
 	std::ofstream controller(output + "/scheduler-" + name + "-controller.json");
 	controller << "{\"validation_calls\":" << validation.calls << ",\"final_calls\":" << final.calls
+			   << ",\"occupancy_policy\":"<<Q(request.fitting.placement.occupancyPolicy==PointRefine::OccupancyPolicy::ConditionalBake?"ConditionalBake":"RuntimeConservative")
 			   << ",\"sample_counts\":[" << rows[0]->v->size() << ',' << rows[1]->v->size() << ','
 			   << rows[2]->v->size()
 			   << "],\"direct_only_conditional\":true,"
@@ -157,6 +158,24 @@ static Error SceneAttempt(P::Request request, const std::shared_ptr<Hidden::Requ
 			   << (result.publication.artifact.asset ? "true" : "false")
 			   << ",\"uncertainty_attempts\":" << result.publication.uncertainty.attempts.size()
 			   << '}';
+	// Compare identical offered source geometry; no RGB is read for placement.
+	std::shared_ptr<const PointRefine::PlacementProvider> before,after;
+	auto original=request.fitting.placement;original.occupancyPolicy=PointRefine::OccupancyPolicy::RuntimeConservative;
+	Check(PointRefine::MakePlacement(original,read,before));Check(PointRefine::MakePlacement(request.fitting.placement,read,after));
+	std::map<Id,J::Candidate> offered;
+	for(const auto& branch:result.branches)for(const auto& c:branch.fit.checkpoint.catalog)if(c.root==TransportRootKind::LocalEmitter)offered.emplace(c.id,c);
+	uint64_t oldCounts[5]={},newCounts[5]={},globalUnknown=0;
+	for(const auto& d:original.dynamic)globalUnknown+=!d.sweptExtentKnown||!d.bounds.known;
+	std::ofstream placement(output+"/scheduler-"+name+"-placement.tsv");
+	placement<<"source\tx\ty\tz\truntime_guard\tbake_placement\tfeasibility\tconditional_models\twork\n";
+	for(const auto& entry:offered){const auto& c=entry.second;auto p=c.shape.initial.geometry.position.world;PointRefine::PlacementResult a,b;
+		Check(before->Check(p,p,c.clearanceWorld,read,a));Check(after->Check(p,p,c.clearanceWorld,read,b));
+		++oldCounts[unsigned(PointRefine::Classify(a))];++newCounts[unsigned(PointRefine::Classify(b))];
+		placement<<c.id<<'\t'<<p.x<<'\t'<<p.y<<'\t'<<p.z<<'\t'<<PointRefine::ConstraintName(a.state)<<'\t'<<PointRefine::ConstraintName(b.state)<<'\t'<<unsigned(PointRefine::Classify(b))<<'\t'<<b.occupancy.size()<<'\t'<<b.work<<'\n';
+	}
+	std::ofstream occupancy(output+"/scheduler-"+name+"-occupancy.json");
+	occupancy<<"{\"schema\":\"org.openjk.bake-occupancy-stock.v1\",\"offered_candidates\":"<<offered.size()<<",\"unbounded_runtime_models\":"<<globalUnknown<<",\"original_global_guard_rejections\":"<<(globalUnknown?offered.size():0)<<",\"current_runtime_guard_classes\":[";
+	for(unsigned i=0;i<5;++i)occupancy<<(i?",":"")<<oldCounts[i];occupancy<<"],\"bake_classes\":[";for(unsigned i=0;i<5;++i)occupancy<<(i?",":"")<<newCounts[i];occupancy<<"],\"policy_key\":"<<Q(Disk::Hex(after->PolicyKey()))<<",\"class_order\":[\"Proven\",\"Collision\",\"Conditional\",\"Unknown\",\"Invalid\"],\"claims_historical_state\":false}";
 	std::ofstream graph(output + "/scheduler-" + name + "-units.tsv");
 	graph << "unit\tprofile\tstatus\ttraining\tcandidates\tcomplete\tx0\ty0\tz0\tx1\ty1\tz1\trays\t"
 			 "work\n";

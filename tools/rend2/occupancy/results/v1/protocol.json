@@ -1,0 +1,49 @@
+{
+  "schema": "org.openjk.bake-occupancy-protocol.v1",
+  "revision": "x13-a",
+  "input_commit": "f63356ef381cf2674304b203596240f09a190b38",
+  "inventory_sha256": "3f5e7e321f64debab087d05fd78d916d7c4fa89d0508088af7669ad1d261c6a9",
+  "maps": [
+    {
+      "map": "t1_danger",
+      "bsp_sha256": "6a24f3cd86d93766034fd064be480cd3f3e70cd512733c9826ecbc64cc444ca3",
+      "dataset_sha256": "e92302cfceace6627aede38d5be1f04333586ffa51b03d3dfda7d83c375b550c",
+      "dataset_bytes": 896223176
+    },
+    {
+      "map": "mp/siege_desert",
+      "bsp_sha256": "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+      "dataset_sha256": "868eb79f14c7bcfda2b973d42871e9f0e32c458acb39cc2e7ffbda2075fe3881",
+      "dataset_bytes": 263183008
+    },
+    {
+      "map": "hoth3",
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "dataset_sha256": "fdbf5351babdaf6a1b0e9d776a77d01f5396e82c5f3945ec46079e171385d613",
+      "dataset_bytes": 383228400
+    },
+    {
+      "map": "hoth2",
+      "bsp_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+      "dataset_sha256": "39ee537e003f7aaac802b48e847f9e35afa0f37eb8379aa7baaca57df05fbbb0",
+      "dataset_bytes": 131790672
+    }
+  ],
+  "native_sha256": "3fac225bbd2dcba39634469265df237051c41863bc8bba359bdfc23c8e83deeb",
+  "test_sha256": "47ea785d06a1347f44d9dcc7111cdf005a7fc4e4aba24c6c81dd3715f2cec674",
+  "mode": "scene-bake-conditional",
+  "frozen_before_evaluation": true,
+  "policy": "X12 source/fold/profile/work budgets retained; explicit X13 conditional placement; independent visibility/GI uncertainty retained",
+  "original_x12_sha256": "8b70003472efae586908992c87846899216d2a171555af4fba0a0649adc17230",
+  "environment": {
+    "os": "Windows-10-10.0.19045-SP0",
+    "cpu": "Intel64 Family 6 Model 165 Stepping 2, GenuineIntel",
+    "python": "3.12.14"
+  },
+  "profile": "Independent assumed NetRadiant inverse-square/linear branches, stock UnknownProfile",
+  "absolute_photometry": "Unknown",
+  "source_xyz_truth": "Unavailable",
+  "uses_heldout_for_search": false,
+  "process_seconds": 600,
+  "process_bytes": 1073741824
+}

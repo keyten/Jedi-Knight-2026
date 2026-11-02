@@ -1,0 +1,4 @@
+map,attempts,old_collision,old_unknown,new_collision,new_unknown,new_invalid,new_admitted,process_seconds,peak_rss_bytes,geometry_work,joint_fit_attempted
+mp/duel4,108,108,0,17,87,4,0,3.4070000000065193,33894400,58830,False
+mp/siege_desert,256,256,0,4,252,0,0,11.14000000001397,54255616,149011,False
+hoth3,256,230,26,31,209,16,0,15.047000000020489,89665536,159238,False

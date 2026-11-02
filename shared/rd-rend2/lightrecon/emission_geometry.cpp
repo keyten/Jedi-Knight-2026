@@ -1,4 +1,5 @@
 #include "emission_geometry.h"
+#include "bake_math.h"
 #include <cmath>
 #include <algorithm>
 #include <map>
@@ -350,6 +351,40 @@ Error Sample(const std::vector<Triangle> &tris, const std::vector<int> &members,
 	Copy(peak, blob.peak);
 	out.push_back(std::move(blob));
 	return Error();
+}
+double IntersectionArea(const std::vector<Vec3> &polygon, const Vec3 triangle[3], Vec3 normal)
+{
+	using namespace Bake::Detail;
+	if (polygon.size() < 3 || polygon.size() > 256 || !Normal(normal))
+		return 0;
+	std::vector<V> p;
+	for (auto v : polygon)
+		p.push_back(V(v));
+	V n(normal);
+	double winding =
+		Dot(Cross(V(triangle[1]) - V(triangle[0]), V(triangle[2]) - V(triangle[0])), n) >= 0 ? 1
+																							 : -1;
+	for (unsigned edge = 0; edge < 3; ++edge)
+	{
+		V a(triangle[edge]), b(triangle[(edge + 1) % 3]), side = Cross(n, b - a) * winding;
+		std::vector<V> clipped;
+		for (size_t i = 0; i < p.size(); ++i)
+		{
+			V v = p[i], w = p[(i + 1) % p.size()];
+			double dv = Dot(side, v - a), dw = Dot(side, w - a);
+			if (dv >= 0)
+				clipped.push_back(v);
+			if ((dv < 0) != (dw < 0))
+				clipped.push_back(v + (w - v) * (dv / (dv - dw)));
+		}
+		p.swap(clipped);
+		if (p.size() < 3)
+			return 0;
+	}
+	double area = 0;
+	for (size_t i = 1; i + 1 < p.size(); ++i)
+		area += Length(Cross(p[i] - p[0], p[i + 1] - p[0])) * .5;
+	return area;
 }
 } // namespace Emission
 } // namespace Core

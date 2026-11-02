@@ -872,7 +872,7 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 					   const std::array<std::vector<Selected>, 3> &folds, const Census &census,
 					   const std::string &output, bool linear, Disk::Digest archiveHash,
 					   const TransportPreparation &transport, const Bounds *localScope = nullptr,
-					   const SamplingSelection *sampling = nullptr, bool scene = false)
+					   const SamplingSelection *sampling = nullptr, bool scene = false, bool conditionalBake = false)
 {
 	ReadContext read;
 	read.maxBytes = 512ull << 20;
@@ -915,6 +915,8 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	q.placement.domainKey = archiveHash;
 	q.placement.geometry = rays;
 	q.placement.dynamic = s.dynamic;
+	if(conditionalBake){q.placement.occupancyPolicy=PointRefine::OccupancyPolicy::ConditionalBake;
+		q.placement.occupancyProvenance="X13 conditional static-world bake hypothesis: local source support is assumed unoccupied by unspecified bake model states; captured AABBs are not filled solids; no inferred mover pose or runtime swept certificate; receiver rays/transport remain independent";}
 	q.sourceSearchBounds = s.domain->Source().worldBounds;
 	if (localScope)
 	{
@@ -1310,20 +1312,22 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	std::cerr << "profile " << name << " " << P::StateName(result.state) << " " << result.reason
 			  << '\n';
 }
+#include "mount_audit.h"
 int main(int argc, char **argv)
 {
 	try
 	{
-		Need(argc == 4 || (argc == 5 && (std::string(argv[4]) == "local-density" ||
+		Need(argc == 4 || (argc == 5 && (std::string(argv[4]) == "mounting-only" || std::string(argv[4]) == "local-density" ||
 									   std::string(argv[4]) == "transport-only" ||
 									   std::string(argv[4]) == "sampling-only" ||
-									   std::string(argv[4]) == "hierarchical" || std::string(argv[4]) == "scene")),
+									   std::string(argv[4]) == "hierarchical" || std::string(argv[4]) == "scene" || std::string(argv[4]) == "scene-bake-conditional")),
 			 "usage: lightrecon_map_solver dataset.jkobs output-folder "
 			 "expected-bsp-sha256 [local-density|transport-only|sampling-only|hierarchical|scene]");
 		bool local = argc == 5 && std::string(argv[4]) == "local-density";
 		bool transportOnly = argc == 5 && std::string(argv[4]) == "transport-only";
 		bool samplingOnly = argc == 5 && std::string(argv[4]) == "sampling-only";
-		bool scene = argc == 5 && std::string(argv[4]) == "scene";
+		bool conditionalBake = argc == 5 && std::string(argv[4]) == "scene-bake-conditional";
+		bool scene = conditionalBake || (argc == 5 && std::string(argv[4]) == "scene");
 		bool hierarchical = scene || (argc == 5 && std::string(argv[4]) == "hierarchical");
 		ReadContext read;
 		read.maxBytes = 512ull << 20;
@@ -1346,6 +1350,11 @@ int main(int argc, char **argv)
 		Need(bool(opened), "Dataset hash read");
 		Disk::Digest archiveHash;
 		Need(bool(Disk::HashContent(*reader, archiveHash, 1024ull << 20)), "Dataset hash budget");
+		if(argc==5 && std::string(argv[4])=="mounting-only"){
+			auto geometry=Sanitized(source);VisibilityBuildOptions b;b.maxBytes=256ull<<20;
+			b.patchToleranceWorld=data->Info().visibilityPatchToleranceWorld;std::shared_ptr<const StaticVisibility> rays;
+			Check(StaticVisibility::Build(geometry,b,read,rays,source.domain));MountAudit(source,geometry,rays,read,argv[2]);return 0;
+		}
 		Census census;
 		std::cerr << "scan all original pages\n";
 		Bounds focus;
@@ -1428,7 +1437,7 @@ int main(int argc, char **argv)
 			try
 			{
 				RunProfile(source, *data, graph, geometry, rays, folds, census, argv[2], linear,
-						   archiveHash, transport, local ? &focus : nullptr,sampled.get(),scene);
+						   archiveHash, transport, local ? &focus : nullptr,sampled.get(),scene,conditionalBake);
 			}
 			catch (const std::exception &e)
 			{

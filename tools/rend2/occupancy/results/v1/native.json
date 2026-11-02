@@ -1,0 +1,36 @@
+{
+  "result": {
+    "schema": "org.openjk.occupancy-tests.v1",
+    "checks": 45,
+    "failures": 0,
+    "distant_unknown_conditional": true,
+    "known_wall_rejected": true,
+    "conditional_forward_calls": 461,
+    "conditional_placement_queries": 2,
+    "heldout_mse": 0,
+    "original_stock_state_recovered": false
+  },
+  "repeat_semantics": true,
+  "resources": [
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_occupancy_test.exe",
+        "build\\x13-run\\first.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.6099999999860302,
+      "peak_process_rss_bytes": 5140480
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_occupancy_test.exe",
+        "build\\x13-run\\repeat.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.8120000000344589,
+      "peak_process_rss_bytes": 5144576
+    }
+  ]
+}

@@ -505,6 +505,7 @@ Disk::Fingerprint Fingerprint(const Request &r)
 	k.U(r.fitting.placement.maxWorkPerCheck);
 	k.U(r.fitting.placement.maxSegments);
 	k.F(r.fitting.placement.minimumSegmentWorld);
+	k.Digest(PointRefine::InputKey(r.fitting.placement));
 	for (const auto &d : r.fitting.placement.dynamic)
 	{
 		k.U(d.id);
@@ -639,6 +640,7 @@ Disk::Fingerprint Fingerprint(const Request &r)
 	for (const auto &c : candidates)
 	{
 		k.U(c.id);
+		k.U(c.attachedModel);
 		k.U(c.family);
 		k.U(c.region);
 		k.U(unsigned(c.root));
@@ -751,6 +753,7 @@ Disk::Fingerprint Fingerprint(const Request &r)
 		HashGeometry(k, c.shape.initial.geometry);
 		k.F(c.shape.initial.spotTargetDistanceWorld);
 		k.F(c.shape.initial.spotRadiusWorld);
+		k.Digest(SourceSupport::Key(c.shape.initial.support));
 		k.U(c.shape.initial.emittingSurface);
 		k.F(c.shape.minimumOuterRadians);
 		k.F(c.shape.maximumOuterRadians);
@@ -941,6 +944,8 @@ struct Assembly
 			}
 			Need(primary != nullptr, Code::AlgorithmError, "Producer track has no configuration");
 			const auto &s = *primary;
+			Need(s.value.support.kind!=SourceSupport::Kind::OriginalSurface,Code::Unavailable,
+			     "Exact emitting triangle union is a numeric diagnostic; canonical mesh-source payload is not implemented (bounding rectangle publication forbidden)");
 			const Id canonicalSource = ids.Span("source-track/" + std::to_string(track.id));
 			trackSources[track.id] = canonicalSource;
 			Provenance p;
@@ -950,6 +955,8 @@ struct Assembly
 			p.parents = {provenance};
 			p.locator = s.candidate.provider;
 			p.method = s.candidate.provenance;
+			if(s.value.support.kind!=SourceSupport::Kind::LegacyVacuum)p.method+="; X14: "+s.value.support.provenance+"; support="+Disk::Hex(SourceSupport::Key(s.value.support));
+			if(selected.occupancyConditional)p.method+="; X13 bake occupancy conditional; policy="+Disk::Hex(PointRefine::InputKey(request.fitting.placement));
 			p.contentHash = Disk::Hex(selected.key);
 			asset.provenanceRecords.push_back(p);
 			Source source;
@@ -1168,6 +1175,21 @@ bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
 			g.geometry.radiusWorld = e.radius;
 			g.angular.twoSided = g.kind == EmitterKind::Rectangle && e.twoSided;
 		}
+	}
+	if(r.placement.originalSurfaces && !e.surfaces.empty()) {
+		SourceSupport::Contract support;ReadContext read;read.maxBytes=1ull<<20;
+		auto prepared=SourceSupport::FromSurfaces(r.placement.originalSurfaces,*r.placement.geometry,e.surfaces,model.bundle,read,support);
+		if(!prepared){
+			support={};support.kind=SourceSupport::Kind::UnsupportedAssembly;support.map=r.mapKey;support.geometry=r.geometry.geometryKey;
+			support.fixture=model.bundle;support.provenance="Unsupported original fixture assembly: "+prepared.message;
+		} else if(g.kind!=EmitterKind::Rectangle){
+			support.kind=g.kind==EmitterKind::Tube?SourceSupport::Kind::Cylinder:g.kind==EmitterKind::Spot?SourceSupport::Kind::MountedSpot:SourceSupport::Kind::MountedPoint;
+			support.original={};support.triangleSurfaces.clear();
+		}
+		s.initial.support=std::move(support);
+		// No automatic relocation, enlargement or bounding-rectangle substitution.
+		s.fitPosition=s.fitFrame=s.fitDimensions=false;
+		c.provenance+="; X14 source-kind support: "+s.initial.support.provenance;
 	}
 	return true;
 }
@@ -1564,6 +1586,9 @@ void AssessReadiness(Assembly &build, const Result &result, bool fitted)
 	a.present = true;
 	a.providers = result.work.providers;
 	a.providerScenarios = result.scenarios;
+	if(result.fitted.preferred!=SIZE_MAX){const auto&m=result.fitted.alternatives.at(result.fitted.preferred);
+		for(const auto&s:m.assumptions){a.coverage.limitations.push_back(s);if(s.find("X13")!=std::string::npos){Diagnostic d;d.severity=Severity::Warning;d.code="X13.ConditionalBakeOccupancy";d.message=s;build.asset.diagnostics.push_back(d);}}
+	}
 	for (const auto &s : build.asset.suns)
 	{
 		(void)s;
@@ -1786,6 +1811,7 @@ void MakePayloads(Assembly &b, const Joint::Request &q, const Joint::Model &sele
 							 ? ContributionColour::LinearRec709D65
 							 : ContributionColour::Unknown;
 		m.uncertainty = AttributionParametersUnknown;
+		if(selected.occupancyConditional)m.uncertainty|=AttributionVisibilityUnknown;
 		if (contract.operation == Indirect::ObservationOperator::NetRadiantEncoded)
 			m.uncertainty |= AttributionQuantized;
 		if (contract.physicalTransportAssumed &&

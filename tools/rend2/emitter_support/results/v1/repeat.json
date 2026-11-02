@@ -1,0 +1,18 @@
+{
+  "map": "mp/duel4",
+  "semantic_match": true,
+  "private_witness_match": true,
+  "resources": {
+    "command": [
+      "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v1-native.exe",
+      "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+      "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v1\\mp_duel4-repeat",
+      "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+      "mounting-only"
+    ],
+    "state": "Completed",
+    "exit_code": 0,
+    "wall_seconds": 2.062999999965541,
+    "peak_process_rss_bytes": 27582464
+  }
+}

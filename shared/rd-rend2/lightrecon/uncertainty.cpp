@@ -572,7 +572,7 @@ void Tracks(Result &out, const Joint::Request &r, const Options &o, const Explor
 		double lo = 1e300, hi = 0;
 		V colourLo(1, 1, 1), colourHi;
 		bool zeroColour = false;
-		bool knownMaterial = true, conditionalTransport = false;
+		bool knownMaterial = true, conditionalTransport = false, conditionalOccupancy = false;
 		t.minimumSceneSources = UINT32_MAX;
 		t.absoluteScaleKnown = true;
 		for (size_t w = 0; w < out.witnesses.size(); ++w)
@@ -613,6 +613,7 @@ void Tracks(Result &out, const Joint::Request &r, const Options &o, const Explor
 					for (const auto &mat : m.materials)
 						knownMaterial &= mat.knowledge == Indirect::MaterialKnowledge::Known;
 					conditionalTransport |= m.reflectedPowerFraction > 0;
+					conditionalOccupancy |= m.occupancyConditional;
 					if (witness.method == Method::InputAlternative)
 						++t.inputWitnesses;
 					if (witness.method == Method::SubsampleBlocks || witness.method == Method::DeleteBlock)
@@ -715,8 +716,8 @@ void Tracks(Result &out, const Joint::Request &r, const Options &o, const Explor
 			knownMaterial ? UncertaintyStatus::Conditional : UncertaintyStatus::Unknown,
 			"Bake-time reflectance bounds retained; current PBR albedo is not substituted");
 		add(UncertaintyCause::Visibility, UncertaintyStatus::Conditional,
-			"Strict local geometry queries used; unavailable optics reject a probe rather than become "
-			"transparent");
+			conditionalOccupancy ? "X13: local placement/visibility conditional on declared bake state; runtime motion and historical occupancy unknown" :
+			"Strict local geometry queries used; unavailable optics reject a probe rather than become transparent");
 		add(UncertaintyCause::ShadowAssociation,
 			r.shadow ? UncertaintyStatus::Conditional : UncertaintyStatus::Unknown,
 			"Automatic shadow alternatives are not verified caster/source correspondences");
@@ -749,7 +750,7 @@ void Tracks(Result &out, const Joint::Request &r, const Options &o, const Explor
 				poseModes |= Length(p - positions.front()) > 1e-6;
 		bool physicalRoot = roots.size() == 1 && (roots.count(TransportRootKind::LocalEmitter) ||
 												  roots.count(TransportRootKind::Sun));
-		bool disqualified = !physicalRoot || !t.absoluteScaleKnown || absent || types.size() != 1 ||
+		bool disqualified = conditionalOccupancy || !physicalRoot || !t.absoluteScaleKnown || absent || types.size() != 1 ||
 							!knownMaterial || poseModes ||
 							(t.directionSpreadRadians.bounded && t.directionSpreadRadians.upper > 1e-5);
 		t.exactLight = disqualified ? Suitability::Unsuitable

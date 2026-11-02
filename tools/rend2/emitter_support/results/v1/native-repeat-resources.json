@@ -1,0 +1,10 @@
+{
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_emitter_support_test.exe",
+    "tools\\rend2\\emitter_support\\results\\v1\\repeat.json"
+  ],
+  "state": "Completed",
+  "exit_code": 0,
+  "wall_seconds": 0.3440000000409782,
+  "peak_process_rss_bytes": 5292032
+}

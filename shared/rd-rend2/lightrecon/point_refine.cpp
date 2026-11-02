@@ -29,8 +29,14 @@ void Checked(Error e)
 	if (!e)
 		throw e;
 }
-bool Zero(const Disk::Digest &d) { return d == Disk::Digest{}; }
-bool Free(SpaceClass s) { return s == SpaceClass::Free || s == SpaceClass::Exterior; }
+bool Zero(const Disk::Digest &d)
+{
+	return d == Disk::Digest{};
+}
+bool Free(SpaceClass s)
+{
+	return s == SpaceClass::Free || s == SpaceClass::Exterior;
+}
 Bounds Box(V a, V b)
 {
 	Bounds out;
@@ -91,42 +97,346 @@ bool Add(uint64_t &v, uint64_t x, uint64_t cap)
 	v = x > UINT64_MAX - v ? UINT64_MAX : v + x;
 	return allowed;
 }
+Disk::Digest SceneKey(const SceneInput &in)
+{
+	GeometryKey k;
+	k.U(kVersion);
+	k.U(2); // X14 support classifier interpretation; invalidate earlier occupancy proofs
+	k.Digest(in.map.sha256);
+	k.Digest(in.domainKey);
+	if (in.geometry)
+		k.Digest(in.geometry->CertificationKey());
+	k.U(bool(in.originalSurfaces));
+	if(in.originalSurfaces)k.Digest(in.originalSurfaces->Map().sha256);
+	k.U(in.maxWorkPerCheck);
+	k.U(in.maxSegments);
+	k.F(in.minimumSegmentWorld);
+	k.U(unsigned(in.occupancyPolicy));
+	Text(k, in.occupancyProvenance);
+	auto evidence = CapturedOccupancy(in);
+	std::sort(evidence.begin(), evidence.end(),
+			  [](const OccupancyEvidence &a, const OccupancyEvidence &b) { return a.id < b.id; });
+	k.U(evidence.size());
+	for (auto e : evidence)
+	{
+		k.U(e.version);
+		k.U(e.id);
+		k.U(e.model);
+		k.Digest(e.mapKey);
+		k.Digest(e.geometryGeneration);
+		k.B(e.capturedBounds);
+		k.B(e.runtimeSweptBounds);
+		k.U(e.runtimeSweptKnown);
+		k.U(e.selectedState);
+		k.B(e.conditionalClearRegion);
+		Text(k, e.provenance);
+		std::sort(e.states.begin(), e.states.end(),
+				  [](const BakeState &a, const BakeState &b) { return a.id < b.id; });
+		k.U(e.states.size());
+		for (const auto &s : e.states)
+		{
+			k.U(s.id);
+			k.U(s.alternativeGroup);
+			k.U(unsigned(s.participation));
+			k.U(s.verified);
+			k.U(s.supportComplete);
+			k.B(s.support);
+			k.Digest(s.generation);
+			Text(k, s.provenance);
+			k.U(bool(s.domain));
+			if (s.geometry)
+				k.Digest(s.geometry->CertificationKey());
+		}
+	}
+	if (in.regions)
+		k.Digest(in.regions->CertificationKey());
+	return k.Finish();
+}
 class Scene final : public PlacementProvider
 {
 	SceneInput input;
+	std::vector<OccupancyEvidence> records;
 	Disk::Digest policy{};
 
   public:
 	explicit Scene(SceneInput in) : input(std::move(in))
 	{
-		Core::GeometryKey k;
-		k.U(kVersion);
-		k.Digest(input.map.sha256);
-		k.Digest(input.domainKey);
-		k.Digest(input.geometry->CertificationKey());
-		k.U(input.maxWorkPerCheck);
-		k.U(input.maxSegments);
-		k.F(input.minimumSegmentWorld);
-		std::sort(input.dynamic.begin(), input.dynamic.end(),
-				  [](const DynamicBoundary &a, const DynamicBoundary &b) { return a.id < b.id; });
-		for (const auto &d : input.dynamic)
-		{
-			k.U(d.id);
-			k.U(d.model);
-			k.B(d.bounds);
-			k.U(d.sweptExtentKnown);
-		}
-		if (input.regions)
-			k.Digest(input.regions->CertificationKey());
-		policy = k.Finish();
+		policy = SceneKey(input);
+		records = CapturedOccupancy(input);
+		std::sort(
+			records.begin(), records.end(),
+			[](const OccupancyEvidence &a, const OccupancyEvidence &b) { return a.id < b.id; });
 	}
-	Disk::Digest MapKey() const override { return input.map.sha256; }
-	Disk::Digest GeometryKey() const override { return input.geometry->CertificationKey(); }
-	Disk::Digest PolicyKey() const override { return policy; }
+	Disk::Digest MapKey() const override
+	{
+		return input.map.sha256;
+	}
+	Disk::Digest GeometryKey() const override
+	{
+		return input.geometry->CertificationKey();
+	}
+	Disk::Digest PolicyKey() const override
+	{
+		return policy;
+	}
+	const BakeState *Selected(const OccupancyEvidence &e) const
+	{
+		for (const auto &s : e.states)
+			if (s.id == e.selectedState)
+				return &s;
+		return nullptr;
+	}
+	bool HasUnverifiedBakeState() const override
+	{
+		if(records.empty()&&input.geometry->Report().excludedMoving)return true;
+		for(const auto&e:records){const auto*s=Selected(e);if(!s||!s->verified||s->participation==BakeParticipation::Unknown)return true;}
+		return false;
+	}
+	void Witness(PlacementResult &out, const OccupancyEvidence &e, const Bounds &box,
+				 OccupancyReason reason) const
+	{
+		auto found=std::lower_bound(out.occupancy.begin(),out.occupancy.end(),e.id,[](const OccupancyWitness&w,Id id){return w.boundary<id;});
+		if (found==out.occupancy.end()||found->boundary!=e.id)
+		{
+			OccupancyWitness w;
+			w.boundary = e.id;
+			w.model = e.model;
+			w.state = e.selectedState;
+			w.reason = reason;
+			w.scope = box;
+			w.runtimeExtentUnknown = !e.runtimeSweptKnown;
+			out.occupancy.insert(found,w);
+		}
+		else {
+				auto& w=*found;
+					V lo(w.scope.minWorld), hi(w.scope.maxWorld);
+					for (unsigned c = 0; c < 3; ++c)
+					{
+						lo[c] = std::min(lo[c], V(box.minWorld)[c]);
+						hi[c] = std::max(hi[c], V(box.maxWorld)[c]);
+					}
+					w.scope = Box(lo, hi);
+					if(reason==OccupancyReason::CapturedBoundsOverlap)w.reason=reason;
+				}
+		out.dynamicBoundary = out.occupancy.front().boundary;
+		out.dynamicExtentUnknown = out.occupancy.front().runtimeExtentUnknown;
+		out.assumptions = input.occupancyProvenance;
+	}
+	bool Occupancy(const Bounds &box, const ReadContext &read, PlacementResult &out) const
+	{
+		bool unknown = false;
+		for (const auto &e : records)
+		{
+			Need(!Cancelled(read), Code::Cancelled, "Bake occupancy cancelled");
+			Need(Add(out.work, 1, input.maxWorkPerCheck), Code::WorkLimit, "Bake occupancy budget");
+			if (input.occupancyPolicy == OccupancyPolicy::RuntimeConservative)
+			{
+				if (!e.runtimeSweptKnown || !e.runtimeSweptBounds.known ||
+					Overlap(box, e.runtimeSweptBounds))
+				{
+					Witness(out, e, box, OccupancyReason::UnknownBakeState);
+					out.state = Constraint::Dynamic;
+					return false;
+				}
+				continue;
+			}
+			const auto *s = Selected(e);
+			bool conditional = s && !s->verified;
+			if (s && s->participation == BakeParticipation::Excluded)
+			{
+				if (conditional)
+					Witness(out, e, box, OccupancyReason::AssumedBakeState);
+				continue;
+			}
+			if (s && s->participation == BakeParticipation::Included)
+			{
+				if (s->supportComplete && !s->geometry && !s->domain && !Overlap(box, s->support))
+				{
+					if (conditional)
+						Witness(out, e, box, OccupancyReason::AssumedBakeState);
+					continue;
+				}
+				SpaceClass space = SpaceClass::Unknown;
+				uint64_t work = 0;
+				if (s->domain)
+				{
+					Checked(s->domain->ClassifyBox(box, space, work));
+					Need(Add(out.work, work, input.maxWorkPerCheck), Code::WorkLimit,
+						 "Bake-state solid work");
+					if (space == SpaceClass::Solid)
+					{
+						out.state = Constraint::Solid;
+						out.dynamicBoundary = e.id;
+						return false;
+					}
+				}
+				GeometryBoxResult visual;
+				if (s->geometry)
+				{
+					Checked(s->geometry->OverlapBox(
+						box, read, visual,
+						std::max<uint64_t>(1, input.maxWorkPerCheck - out.work)));
+					Need(Add(out.work, visual.work, input.maxWorkPerCheck), Code::WorkLimit,
+						 "Bake-state visual work");
+					if (visual.intersects &&
+						!(visual.issues &
+						  (OpticalUnknown | UnsupportedGeometry | PatchApproximation)))
+					{
+						out.state = Constraint::Clearance;
+						out.dynamicBoundary = e.id;
+						return false;
+					}
+				}
+				if (s->domain && Free(space) && s->geometry && visual.coverageComplete &&
+					!visual.intersects)
+				{
+					if (conditional)
+						Witness(out, e, box, OccupancyReason::AssumedBakeState);
+					continue;
+				}
+			}
+			bool localAssumption = e.conditionalClearRegion.known &&
+								   In(e.conditionalClearRegion, V(box.minWorld)) &&
+								   In(e.conditionalClearRegion, V(box.maxWorld));
+			if (!s && e.capturedBounds.known)
+				localAssumption = true;
+			if (localAssumption)
+				Witness(out, e, box,
+						e.capturedBounds.known ? (Overlap(box, e.capturedBounds)
+													  ? OccupancyReason::CapturedBoundsOverlap
+													  : OccupancyReason::UnknownBakeState)
+											   : OccupancyReason::UnboundedModel);
+			else
+			{
+				Witness(out, e, box,
+						e.capturedBounds.known ? OccupancyReason::UnknownBakeState
+											   : OccupancyReason::UnboundedModel);
+				unknown = true;
+			}
+		}
+		if (unknown)
+		{
+			out.state = Constraint::Dynamic;
+			return false;
+		}
+		return true;
+	}
+	Error ConstrainVisibility(const RayQuery &q, const ReadContext &read,
+							  RayResult &out) const override
+	{
+		if (!Finite(q.startWorld) || !Finite(q.endWorld) || !q.maxWork)
+			return Failure(Code::InvalidInput, "Invalid occupancy ray");
+		if (Cancelled(read))
+			return Failure(Code::Cancelled, "Bake occupancy ray cancelled");
+		if (out.state == VisibilityState::Blocked)
+			return {};
+		try
+		{
+			Bounds box = Box(
+				V(std::min(q.startWorld.x, q.endWorld.x), std::min(q.startWorld.y, q.endWorld.y),
+				  std::min(q.startWorld.z, q.endWorld.z)),
+				V(std::max(q.startWorld.x, q.endWorld.x), std::max(q.startWorld.y, q.endWorld.y),
+				  std::max(q.startWorld.z, q.endWorld.z)));
+			uint64_t checks = 0, nodes = 0, primitives = 0, baseNodes = out.nodeTests,
+					 basePrimitives = out.primitiveTests;
+			Need(baseNodes <= q.maxWork && basePrimitives <= q.maxWork - baseNodes, Code::WorkLimit,
+				 "Base visibility exceeded ray budget");
+			const uint64_t remaining = q.maxWork - baseNodes - basePrimitives;
+			auto assumed = [&]() {
+				if (out.state == VisibilityState::Visible)
+					out.reliability = RayReliability::Assumed;
+				out.issues |= PolicyAssumption;
+			};
+			for (const auto &e : records)
+			{
+				Need(!Cancelled(read), Code::Cancelled, "Bake-state visibility cancelled");
+				Need(++checks + nodes + primitives <= remaining, Code::WorkLimit,
+					 "Bake-state visibility work");
+				const auto *s = Selected(e);
+				bool allow = input.occupancyPolicy == OccupancyPolicy::ConditionalBake;
+				if (!allow && !s && e.runtimeSweptKnown && !Overlap(box, e.runtimeSweptBounds))
+					continue;
+				if (s && s->participation == BakeParticipation::Excluded)
+				{
+					if (!s->verified)
+						assumed();
+					continue;
+				}
+				if (s && s->participation == BakeParticipation::Included && !s->geometry &&
+					!s->domain && s->supportComplete && !Overlap(box, s->support))
+				{
+					if (!s->verified)
+						assumed();
+					continue;
+				}
+				if (s && s->participation == BakeParticipation::Included && s->geometry)
+				{
+					RayResult hit;
+					RayQuery bounded = q;
+					bounded.purpose =
+						RayPurpose::Segment; // model adds blockers; only base scene proves sky
+					Need(remaining > checks + nodes + primitives, Code::WorkLimit,
+						 "Bake-state query remaining budget");
+					bounded.maxWork = remaining - checks - nodes - primitives;
+					Checked(s->geometry->Query(bounded, read, hit));
+					nodes += hit.nodeTests;
+					primitives += hit.primitiveTests;
+					if (hit.state == VisibilityState::Blocked)
+					{
+						out = hit;
+						out.nodeTests = baseNodes + checks + nodes;
+						out.primitiveTests = basePrimitives + primitives;
+						if (!s->verified)
+							assumed();
+						return {};
+					}
+					if (hit.state == VisibilityState::Visible)
+					{
+						if (!s->verified)
+							assumed();
+						continue;
+					}
+				}
+				if (allow && !s && e.capturedBounds.known && !Overlap(box, e.capturedBounds))
+					assumed();
+				else
+				{
+					out.state = VisibilityState::Unknown;
+					out.reliability = RayReliability::Unknown;
+					out.issues |= IncompleteGeometry | PolicyAssumption;
+				}
+			}
+			out.nodeTests += checks + nodes;
+			out.primitiveTests += primitives;
+			return {};
+		}
+		catch (const Error &e)
+		{
+			return e;
+		}
+	}
+	Error Query(const RayQuery &q, const ReadContext &read, RayResult &out) const override
+	{
+		auto e = input.geometry->Query(q, read, out);
+		if (!e)
+			return e;
+		return ConstrainVisibility(q, read, out);
+	}
+	Error CheckOccupancy(const Bounds&box,const ReadContext&read,PlacementResult&out) const override
+	{
+		out={};out.occupancyKey=policy;
+		if(!Valid(box))return Failure(Code::InvalidInput,"Invalid source occupancy support");
+		try {if(!Occupancy(box,read,out))return {};
+			out.state=out.occupancy.empty()?Constraint::Free:Constraint::Conditional;
+			out.bakeOccupancyProven=!HasUnverifiedBakeState()&&out.state==Constraint::Free;
+			return {};
+		}catch(const Error&e){return e;}catch(const std::bad_alloc&){return Failure(Code::MemoryLimit,"Occupancy receipt allocation");}
+	}
 	Error Check(Vec3 from, Vec3 to, double radius, const ReadContext &read,
 				PlacementResult &out) const override
 	{
 		out = {};
+		out.occupancyKey = policy;
 		if (!Finite(from) || !Finite(to) || !std::isfinite(radius) || radius < 0)
 			return Failure(Code::InvalidInput, "Invalid placement segment/radius");
 		try
@@ -134,7 +444,8 @@ class Scene final : public PlacementProvider
 			auto cancelled = [&]() {
 				Need(!(read.cancellation && read.cancellation->IsCancelled()), Code::Cancelled,
 					 "Placement cancelled");
-				Need(out.work < input.maxWorkPerCheck, Code::WorkLimit, "Placement query work budget");
+				Need(out.work < input.maxWorkPerCheck, Code::WorkLimit,
+					 "Placement query work budget");
 			};
 			auto inspect = [&](V a, V b, bool endpoint) {
 				cancelled();
@@ -145,22 +456,11 @@ class Scene final : public PlacementProvider
 					hi[k] = std::max(a[k], b[k]) + radius;
 				}
 				Bounds box = Box(lo, hi);
-				for (const auto &d : input.dynamic)
-				{
-					Need(Add(out.work, 1, input.maxWorkPerCheck), Code::WorkLimit,
-						 "Moving-bound query budget");
-					if (!d.sweptExtentKnown || !d.bounds.known || Overlap(box, d.bounds))
-					{
-						out.state = Constraint::Dynamic;
-						out.dynamicBoundary = d.id;
-						out.dynamicExtentUnknown = !d.sweptExtentKnown || !d.bounds.known;
-						return false;
-					}
-				}
 				SpaceClass space;
 				uint64_t work = 0;
 				Checked(input.domain->ClassifyBox(box, space, work));
-				Need(Add(out.work, work, input.maxWorkPerCheck), Code::WorkLimit, "Placement domain budget");
+				Need(Add(out.work, work, input.maxWorkPerCheck), Code::WorkLimit,
+					 "Placement domain budget");
 				if (space == SpaceClass::Solid)
 				{
 					out.state = Constraint::Solid;
@@ -172,8 +472,8 @@ class Scene final : public PlacementProvider
 					return false;
 				}
 				GeometryBoxResult visual;
-				Checked(input.geometry->OverlapBox(box, read, visual,
-												   std::max<uint64_t>(1, input.maxWorkPerCheck - out.work)));
+				Checked(input.geometry->OverlapBox(
+					box, read, visual, std::max<uint64_t>(1, input.maxWorkPerCheck - out.work)));
 				Need(Add(out.work, visual.work, input.maxWorkPerCheck), Code::WorkLimit,
 					 "Placement visual budget");
 				if (!visual.coverageComplete)
@@ -183,7 +483,8 @@ class Scene final : public PlacementProvider
 				}
 				if (visual.intersects)
 				{
-					out.state = (visual.issues & (OpticalUnknown | UnsupportedGeometry | PatchApproximation))
+					out.state = (visual.issues &
+								 (OpticalUnknown | UnsupportedGeometry | PatchApproximation))
 									? Constraint::UnknownGeometry
 									: Constraint::Clearance;
 					return false;
@@ -206,7 +507,9 @@ class Scene final : public PlacementProvider
 						return false;
 					}
 				}
-				out.state = Constraint::Free;
+				if (!Occupancy(box, read, out))
+					return false;
+				out.state = out.occupancy.empty() ? Constraint::Free : Constraint::Conditional;
 				return true;
 			};
 			if (!inspect(V(from), V(from), true) || !inspect(V(to), V(to), true))
@@ -225,14 +528,14 @@ class Scene final : public PlacementProvider
 				++out.rays;
 				Need(Add(out.work, hit.nodeTests + hit.primitiveTests, input.maxWorkPerCheck),
 					 Code::WorkLimit, "Placement ray budget");
-				if (hit.state == VisibilityState::Blocked && hit.reliability != RayReliability::Assumed &&
-					!(hit.issues & PolicyAssumption))
+				if (hit.state == VisibilityState::Blocked &&
+					hit.reliability != RayReliability::Assumed && !(hit.issues & PolicyAssumption))
 				{
 					out.state = Constraint::OpaquePath;
 					return {};
 				}
-				if (hit.state != VisibilityState::Visible || hit.reliability != RayReliability::Geometric ||
-					(hit.issues & PolicyAssumption))
+				if (hit.state != VisibilityState::Visible ||
+					hit.reliability != RayReliability::Geometric || (hit.issues & PolicyAssumption))
 				{
 					out.state = Constraint::UnknownPath;
 					return {};
@@ -265,7 +568,8 @@ class Scene final : public PlacementProvider
 					pending.emplace_back(segment.first, mid);
 				}
 			}
-			out.state = Constraint::Free;
+			out.state = out.occupancy.empty() ? Constraint::Free : Constraint::Conditional;
+			out.bakeOccupancyProven=!HasUnverifiedBakeState()&&out.state==Constraint::Free;
 			if (input.regions)
 			{
 				RegionAssignment a;
@@ -291,10 +595,10 @@ WeightKey Group(const Amplitude::Observation &a)
 	if (a.region)
 		return {a.region, 0, 0, 0, size_t(a.type)};
 	V p(a.receiver.world);
-	Need(Finite(p) && std::max({std::abs(p.x), std::abs(p.y), std::abs(p.z)}) < 1e12, Code::InvalidInput,
-		 "Invalid spatial weighting position");
-	return {0, int64_t(std::floor(p.x / 128)), int64_t(std::floor(p.y / 128)), int64_t(std::floor(p.z / 128)),
-			size_t(a.type)};
+	Need(Finite(p) && std::max({std::abs(p.x), std::abs(p.y), std::abs(p.z)}) < 1e12,
+		 Code::InvalidInput, "Invalid spatial weighting position");
+	return {0, int64_t(std::floor(p.x / 128)), int64_t(std::floor(p.y / 128)),
+			int64_t(std::floor(p.z / 128)), size_t(a.type)};
 }
 class Balanced final : public ChunkSource<Amplitude::Observation>
 {
@@ -312,7 +616,8 @@ class Balanced final : public ChunkSource<Amplitude::Observation>
 			return Failure(Code::ProviderError, "Truncated balancing stream");
 		try
 		{
-			auto v = std::make_shared<std::vector<Amplitude::Observation>>(input.data, input.data + count);
+			auto v = std::make_shared<std::vector<Amplitude::Observation>>(input.data,
+																		   input.data + count);
 			for (auto &a : *v)
 			{
 				auto found = measure.find(Group(a));
@@ -352,7 +657,10 @@ struct State
 	Amplitude::Result amplitude;
 	double prior = 0, directional = 0, shadow = 0;
 	FitEvidence::Value shadowValue;
-	double Total() const { return amplitude.objective.Total() + prior + directional + shadow; }
+	double Total() const
+	{
+		return amplitude.objective.Total() + prior + directional + shadow;
+	}
 };
 struct SampleValues final : public Amplitude::PredictionSink
 {
@@ -394,8 +702,9 @@ Eigen Diagonalize(std::vector<double> a, size_t n)
 		}
 		if (maximum <= std::max(1e-28, diag * 1e-13))
 			break;
-		double angle = .5 * std::atan2(2 * a[p * n + q], a[q * n + q] - a[p * n + p]), c = std::cos(angle),
-			   s = std::sin(angle), app = a[p * n + p], aqq = a[q * n + q], apq = a[p * n + q];
+		double angle = .5 * std::atan2(2 * a[p * n + q], a[q * n + q] - a[p * n + p]),
+			   c = std::cos(angle), s = std::sin(angle), app = a[p * n + p], aqq = a[q * n + q],
+			   apq = a[p * n + q];
 		for (size_t k = 0; k < n; ++k)
 			if (k != p && k != q)
 			{
@@ -459,6 +768,11 @@ struct Engine
 				 r.placement->GeometryKey() == lighting.geometry.geometryKey &&
 				 !Zero(r.placement->PolicyKey()),
 			 Code::MissingGeometry, "Missing/stale placement certificate provider");
+		lighting.geometry.visibility = WithOccupancy(lighting.geometry.visibility, r.placement);
+		GeometryKey scoped;
+		scoped.Digest(lighting.geometry.observationPolicyKey);
+		scoped.Digest(r.placement->PolicyKey());
+		lighting.geometry.observationPolicyKey = scoped.Finish();
 		Need(!points.empty() && points.size() <= o.maxPoints && o.maxPoints <= 16 && o.maxFits &&
 				 o.maxFits <= 100000 && o.maxSweeps && o.maxSweeps <= 10000 && o.multiStarts &&
 				 o.multiStarts <= 16 && o.diagnosticRows <= 512 && lighting.options.batchRows &&
@@ -476,9 +790,10 @@ struct Engine
 				 o.feasibleObjectiveSlack >= 0,
 			 Code::InvalidInput, "Invalid position tolerances");
 		uint64_t cap = read.maxBytes ? std::min(read.maxBytes, o.maxBytes) : o.maxBytes;
-		uint64_t reserve = 2 * 1024 * 1024 +
-						   (uint64_t(o.maxFits) + uint64_t(o.maxSweeps) * o.multiStarts) * sizeof(Iteration) +
-						   uint64_t(o.diagnosticRows) * sizeof(Amplitude::Observation) * 4;
+		uint64_t reserve =
+			2 * 1024 * 1024 +
+			(uint64_t(o.maxFits) + uint64_t(o.maxSweeps) * o.multiStarts) * sizeof(Iteration) +
+			uint64_t(o.diagnosticRows) * sizeof(Amplitude::Observation) * 4;
 		Need(reserve < cap && lighting.options.maxBytes <= cap - reserve, Code::MemoryLimit,
 			 "Point refinement/amplitude scratch preflight");
 		out.work.accountedBytes = reserve + lighting.options.maxBytes;
@@ -486,8 +801,8 @@ struct Engine
 		std::sort(points.begin(), points.end(),
 				  [](const Point &a, const Point &b) { return a.source < b.source; });
 		for (size_t i = 0; i < lighting.candidates.size(); ++i)
-			Need(sourceIndex.emplace(lighting.candidates[i].source.id, i).second, Code::InvalidInput,
-				 "Duplicate candidate ID");
+			Need(sourceIndex.emplace(lighting.candidates[i].source.id, i).second,
+				 Code::InvalidInput, "Duplicate candidate ID");
 		key.U(kVersion);
 		if (r.shadowWeight > 0)
 		{
@@ -520,29 +835,36 @@ struct Engine
 		for (size_t i = 0; i < points.size(); ++i)
 		{
 			const auto &p = points[i];
-			Need(p.source && pointIndex.emplace(p.source, i).second && sourceIndex.count(p.source) &&
-					 Valid(p.bounds),
+			Need(!p.attachedModel, Code::Unavailable,
+				 "Moving source attachment lacks a fixed bake-time pose");
+			Need(p.source && pointIndex.emplace(p.source, i).second &&
+					 sourceIndex.count(p.source) && Valid(p.bounds),
 				 Code::InvalidInput, "Invalid point identity/search bounds");
 			const auto &s = lighting.candidates[sourceIndex.at(p.source)].source;
 			Need(s.kind == Bake::SourceKind::Point && s.position.known && Finite(s.position.world),
 				 Code::Unavailable, "XYZ refinement supports known point geometry only");
 			Need(std::isfinite(p.initialRadiusWorld) && p.initialRadiusWorld > 0 &&
-					 std::isfinite(p.maximumRadiusWorld) && p.maximumRadiusWorld >= p.initialRadiusWorld &&
-					 p.maximumRadiusWorld <= 1e9 && std::isfinite(p.sourceSupportRadiusWorld) &&
-					 p.sourceSupportRadiusWorld >= 0 && p.sourceSupportRadiusWorld <= 1e6 &&
-					 std::isfinite(p.clearanceWorld) && p.clearanceWorld > 0 && p.clearanceWorld <= 1e6,
+					 std::isfinite(p.maximumRadiusWorld) &&
+					 p.maximumRadiusWorld >= p.initialRadiusWorld && p.maximumRadiusWorld <= 1e9 &&
+					 std::isfinite(p.sourceSupportRadiusWorld) && p.sourceSupportRadiusWorld >= 0 &&
+					 p.sourceSupportRadiusWorld <= 1e6 && std::isfinite(p.clearanceWorld) &&
+					 p.clearanceWorld > 0 && p.clearanceWorld <= 1e6,
 				 Code::InvalidInput, "Invalid source clearance/search radius");
-			Need(In(p.bounds, V(s.position.world)), Code::InvalidInput, "Initial point outside hard bounds");
+			Need(In(p.bounds, V(s.position.world)), Code::InvalidInput,
+				 "Initial point outside hard bounds");
 			if (p.prior.known)
 				Need(Finite(p.prior.meanWorld) && Positive(V(p.prior.sigmaWorld)) &&
-						 p.prior.sigmaWorld.x > 0 && p.prior.sigmaWorld.y > 0 && p.prior.sigmaWorld.z > 0 &&
-						 std::isfinite(p.prior.weight) && p.prior.weight >= 0 && !p.prior.provenance.empty(),
-					 Code::InvalidInput, "Position prior requires finite positive scales and provenance");
+						 p.prior.sigmaWorld.x > 0 && p.prior.sigmaWorld.y > 0 &&
+						 p.prior.sigmaWorld.z > 0 && std::isfinite(p.prior.weight) &&
+						 p.prior.weight >= 0 && !p.prior.provenance.empty(),
+					 Code::InvalidInput,
+					 "Position prior requires finite positive scales and provenance");
 			if (p.mount.known)
 				Need(Finite(p.mount.anchorWorld) && Normal(V(p.mount.normalWorld)) &&
 						 std::isfinite(p.mount.minimumOffsetWorld) &&
 						 std::isfinite(p.mount.maximumOffsetWorld) &&
-						 p.mount.minimumOffsetWorld >= p.sourceSupportRadiusWorld + p.clearanceWorld &&
+						 p.mount.minimumOffsetWorld >=
+							 p.sourceSupportRadiusWorld + p.clearanceWorld &&
 						 p.mount.maximumOffsetWorld >= p.mount.minimumOffsetWorld,
 					 Code::InvalidInput, "Invalid mount offset policy");
 			original.push_back(s.position.world);
@@ -569,10 +891,10 @@ struct Engine
 		}
 		for (const auto &d : r.directions)
 		{
-			Need(d.id && pointIndex.count(d.source) && Finite(d.originWorld) && Normal(V(d.toSource)) &&
-					 std::isfinite(d.halfAngleRadians) && d.halfAngleRadians >= 0 &&
-					 d.halfAngleRadians < Pi / 2 && std::isfinite(d.weight) && d.weight >= 0 &&
-					 !d.provenance.empty(),
+			Need(d.id && pointIndex.count(d.source) && Finite(d.originWorld) &&
+					 Normal(V(d.toSource)) && std::isfinite(d.halfAngleRadians) &&
+					 d.halfAngleRadians >= 0 && d.halfAngleRadians < Pi / 2 &&
+					 std::isfinite(d.weight) && d.weight >= 0 && !d.provenance.empty(),
 				 Code::InvalidInput, "Invalid directional constraint");
 			if (d.isolatedSourceAttested && d.profileValidated && d.weight > 0)
 				directions.push_back(d);
@@ -581,12 +903,14 @@ struct Engine
 										  std::to_string(d.id));
 		}
 		Need(directions.size() <= 1024, Code::MemoryLimit, "Directional evidence limit");
-		std::sort(directions.begin(), directions.end(),
-				  [](const DirectionEvidence &a, const DirectionEvidence &b) { return a.id < b.id; });
+		std::sort(
+			directions.begin(), directions.end(),
+			[](const DirectionEvidence &a, const DirectionEvidence &b) { return a.id < b.id; });
 		for (size_t i = 0; i < directions.size(); ++i)
 		{
 			const auto &d = directions[i];
-			Need(!i || d.id != directions[i - 1].id, Code::InvalidInput, "Duplicate directional ID");
+			Need(!i || d.id != directions[i - 1].id, Code::InvalidInput,
+				 "Duplicate directional ID");
 			key.U(d.id);
 			key.U(d.source);
 			key.U(d.surface);
@@ -608,7 +932,8 @@ struct Engine
 			{
 				Cancel();
 				Chunk<Amplitude::Observation> rows;
-				size_t n = size_t(std::min<uint64_t>(lighting.options.batchRows, lighting.count - first));
+				size_t n =
+					size_t(std::min<uint64_t>(lighting.options.batchRows, lighting.count - first));
 				Need(n > 0, Code::InvalidInput, "Zero amplitude batch");
 				Checked(balanced->source->Read(first, n, read, rows));
 				Need(rows.count == n && rows.owner && rows.data, Code::ProviderError,
@@ -616,8 +941,8 @@ struct Engine
 				for (size_t i = 0; i < n; ++i)
 				{
 					const auto &a = rows.data[i];
-					Need(std::isfinite(a.measure) && a.measure >= 0 && std::isfinite(a.reliability) &&
-							 a.reliability >= 0,
+					Need(std::isfinite(a.measure) && a.measure >= 0 &&
+							 std::isfinite(a.reliability) && a.reliability >= 0,
 						 Code::InvalidInput, "Invalid balancing measure");
 					if (a.eligible && a.measure > 0 && a.reliability > 0)
 					{
@@ -626,7 +951,8 @@ struct Engine
 							 Code::MemoryLimit, "Region weight group limit");
 						double &total = balanced->measure[group];
 						total += a.measure * a.reliability;
-						Need(std::isfinite(total), Code::InvalidInput, "Balancing measure overflow");
+						Need(std::isfinite(total), Code::InvalidInput,
+							 "Balancing measure overflow");
 					}
 				}
 			}
@@ -640,19 +966,21 @@ struct Engine
 	}
 	void AmplitudeWork(const Amplitude::Work &w)
 	{
-		Need(Add(out.work.amplitudeEvaluations, w.objectiveEvaluations, o.maxAmplitudeEvaluations) &&
-				 Add(out.work.pairs, w.pairs, o.maxPairs) && Add(out.work.rays, w.rays, o.maxRays) &&
-				 Add(out.work.traversal, w.traversal, o.maxWork),
-			 Code::WorkLimit, "Point refinement cumulative numerical budget");
+		Need(
+			Add(out.work.amplitudeEvaluations, w.objectiveEvaluations, o.maxAmplitudeEvaluations) &&
+				Add(out.work.pairs, w.pairs, o.maxPairs) && Add(out.work.rays, w.rays, o.maxRays) &&
+				Add(out.work.traversal, w.traversal, o.maxWork),
+			Code::WorkLimit, "Point refinement cumulative numerical budget");
 		out.work.cacheHits += w.cacheHits;
 	}
 	bool Placement(size_t i, Vec3 from, Vec3 to, bool local = true)
 	{
 		Cancel();
 		const auto &p = points[i];
-		if (!In(p.bounds, V(to)) || (local && (std::abs(double(to.x) - original[i].x) > radius[i] + 1e-5 ||
-											   std::abs(double(to.y) - original[i].y) > radius[i] + 1e-5 ||
-											   std::abs(double(to.z) - original[i].z) > radius[i] + 1e-5)))
+		if (!In(p.bounds, V(to)) ||
+			(local && (std::abs(double(to.x) - original[i].x) > radius[i] + 1e-5 ||
+					   std::abs(double(to.y) - original[i].y) > radius[i] + 1e-5 ||
+					   std::abs(double(to.z) - original[i].z) > radius[i] + 1e-5)))
 		{
 			++out.work.rejected[size_t(Constraint::SearchBounds)];
 			boundary[i] = true;
@@ -670,10 +998,12 @@ struct Engine
 		}
 		PlacementResult result;
 		++out.work.placementChecks;
-		Checked(r.placement->Check(from, to, p.sourceSupportRadiusWorld + p.clearanceWorld, read, result));
-		Need(Add(out.work.rays, result.rays, o.maxRays) && Add(out.work.traversal, result.work, o.maxWork),
+		Checked(r.placement->Check(from, to, p.sourceSupportRadiusWorld + p.clearanceWorld, read,
+								   result));
+		Need(Add(out.work.rays, result.rays, o.maxRays) &&
+				 Add(out.work.traversal, result.work, o.maxWork),
 			 Code::WorkLimit, "Placement cumulative budget");
-		if (result.state != Constraint::Free)
+		if (!Admissible(result))
 		{
 			++out.work.rejected[size_t(result.state)];
 			boundary[i] = true;
@@ -709,7 +1039,8 @@ struct Engine
 			ray.endWorld = positions[pointIndex.at(d.source)];
 			ray.originSurface = d.surface;
 			ray.originKnownFree = d.originKnownFree;
-			ray.maxWork = std::max<uint64_t>(1, std::min<uint64_t>(1048576, o.maxWork - out.work.traversal));
+			ray.maxWork =
+				std::max<uint64_t>(1, std::min<uint64_t>(1048576, o.maxWork - out.work.traversal));
 			RayResult hit;
 			Need(bool(lighting.geometry.visibility), Code::MissingGeometry,
 				 "Directional constraints require static visibility");
@@ -719,15 +1050,17 @@ struct Engine
 				 Code::WorkLimit, "Directional ray budget");
 			if (hit.state == VisibilityState::Unknown || hit.reliability == RayReliability::Assumed)
 				return false;
-			double error = hit.state == VisibilityState::Blocked
-							   ? Pi
-							   : std::max(0., std::acos(Clamp(Dot(Unit(delta), V(d.toSource)), -1, 1)) -
-												  d.halfAngleRadians);
+			double error =
+				hit.state == VisibilityState::Blocked
+					? Pi
+					: std::max(0., std::acos(Clamp(Dot(Unit(delta), V(d.toSource)), -1, 1)) -
+									   d.halfAngleRadians);
 			value += .5 * d.weight * error * error;
 		}
 		return std::isfinite(value);
 	}
-	Amplitude::Request Setup(const std::vector<Vec3> &positions, const Amplitude::Result *warm = nullptr)
+	Amplitude::Request Setup(const std::vector<Vec3> &positions,
+							 const Amplitude::Result *warm = nullptr)
 	{
 		auto q = lighting;
 		for (size_t i = 0; i < points.size(); ++i)
@@ -838,9 +1171,9 @@ struct Engine
 	Vec3 Clip(size_t i, V value)
 	{
 		for (size_t k = 0; k < 3; ++k)
-			value[k] =
-				Clamp(value[k], std::max(V(points[i].bounds.minWorld)[k], V(original[i])[k] - radius[i]),
-					  std::min(V(points[i].bounds.maxWorld)[k], V(original[i])[k] + radius[i]));
+			value[k] = Clamp(
+				value[k], std::max(V(points[i].bounds.minWorld)[k], V(original[i])[k] - radius[i]),
+				std::min(V(points[i].bounds.maxWorld)[k], V(original[i])[k] + radius[i]));
 		return value.Float();
 	}
 	bool Trial(const State &current, size_t point, Vec3 position, double step, State &outState,
@@ -890,8 +1223,9 @@ struct Engine
 						trial[axis] += (sign ? 1 : -1) * step;
 						Vec3 clipped = Clip(i, trial);
 						bool clippedToBounds = Length(trial - V(clipped)) > 1e-6;
-						neighborhoodHit[i] = neighborhoodHit[i] ||
-											 std::abs(trial[axis] - V(original[i])[axis]) > radius[i] + 1e-6;
+						neighborhoodHit[i] =
+							neighborhoodHit[i] ||
+							std::abs(trial[axis] - V(original[i])[axis]) > radius[i] + 1e-6;
 						if (clippedToBounds)
 						{
 							boundary[i] = true;
@@ -904,8 +1238,9 @@ struct Engine
 							chosen = out.trace.size() - 1;
 						}
 					}
-					if (o.parabolicAcceleration && valid[0] && valid[1] && current.amplitude.linear &&
-						sides[0].amplitude.linear && sides[1].amplitude.linear &&
+					if (o.parabolicAcceleration && valid[0] && valid[1] &&
+						current.amplitude.linear && sides[0].amplitude.linear &&
+						sides[1].amplitude.linear &&
 						sides[0].amplitude.visibilityKey == current.amplitude.visibilityKey &&
 						sides[1].amplitude.visibilityKey == current.amplitude.visibilityKey)
 					{
@@ -913,11 +1248,13 @@ struct Engine
 							   curvature = left + right - 2 * current.Total();
 						if (curvature > 1e-15)
 						{
-							double delta = Clamp(.5 * step * (left - right) / curvature, -step, step);
+							double delta =
+								Clamp(.5 * step * (left - right) / curvature, -step, step);
 							V proposed(current.positions[i]);
 							proposed[axis] += delta;
 							State refined;
-							if (Trial(current, i, Clip(i, proposed), step, refined) && Better(refined, best))
+							if (Trial(current, i, Clip(i, proposed), step, refined) &&
+								Better(refined, best))
 							{
 								best = refined;
 								chosen = out.trace.size() - 1;
@@ -970,9 +1307,9 @@ struct Engine
 		out.converged = false;
 		return current;
 	}
-	Amplitude::Result AssessAt(const State &state,
-							   std::shared_ptr<const ChunkSource<Amplitude::Observation>> observations,
-							   uint64_t count, SampleValues &sink)
+	Amplitude::Result AssessAt(
+		const State &state, std::shared_ptr<const ChunkSource<Amplitude::Observation>> observations,
+		uint64_t count, SampleValues &sink)
 	{
 		auto q = Setup(state.positions, &state.amplitude);
 		q.observations = observations;
@@ -991,8 +1328,9 @@ struct Engine
 		info.stepWorld = o.diagnosticStepWorld;
 		size_t nx = points.size() * 3, nq = lighting.candidates.size() * 3, n = nx + nq;
 		info.parameters = nx;
-		info.scope = "Local finite differences of strict surface/grid prediction, RGB amplitudes projected "
-					 "out; no priors, calibrated covariance or visibility-boundary gradient";
+		info.scope =
+			"Local finite differences of strict surface/grid prediction, RGB amplitudes projected "
+			"out; no priors, calibrated covariance or visibility-boundary gradient";
 		if (n > 48 || !o.diagnosticRows)
 		{
 			info.scope += "; diagnostic parameter budget unavailable";
@@ -1004,7 +1342,8 @@ struct Engine
 		{
 			Cancel();
 			Chunk<Amplitude::Observation> rows;
-			size_t count = size_t(std::min<uint64_t>(lighting.options.batchRows, lighting.count - first));
+			size_t count =
+				size_t(std::min<uint64_t>(lighting.options.batchRows, lighting.count - first));
 			Checked(lighting.observations->Read(first, count, read, rows));
 			Need(rows.count == count && rows.data && rows.owner, Code::ProviderError,
 				 "Truncated diagnostic stream");
@@ -1025,9 +1364,10 @@ struct Engine
 		}
 		for (const auto &s : selected)
 			subset->data->push_back(s.second);
-		std::sort(
-			subset->data->begin(), subset->data->end(),
-			[](const Amplitude::Observation &a, const Amplitude::Observation &b) { return a.id < b.id; });
+		std::sort(subset->data->begin(), subset->data->end(),
+				  [](const Amplitude::Observation &a, const Amplitude::Observation &b) {
+					  return a.id < b.id;
+				  });
 		if (subset->data->empty())
 			return;
 		SampleValues centre;
@@ -1062,7 +1402,8 @@ struct Engine
 			{
 				size_t j = (p - nx) / 3, c = (p - nx) % 3;
 				V a(plus.amplitude.sources[j].compilerQ), b = a;
-				const auto &bound = lighting.candidates[sourceIndex.at(plus.amplitude.sources[j].source)];
+				const auto &bound =
+					lighting.candidates[sourceIndex.at(plus.amplitude.sources[j].source)];
 				a[c] = std::min(double(V(bound.upperQ)[c]), a[c] + 1);
 				b[c] = std::max(double(V(bound.lowerQ)[c]), b[c] - 1);
 				span = a[c] - b[c];
@@ -1075,7 +1416,8 @@ struct Engine
 			auto pa = AssessAt(plus, subset, subset->data->size(), a),
 				 pb = AssessAt(minus, subset, subset->data->size(), b);
 			if (pa.admissionKey != center.admissionKey || pb.admissionKey != center.admissionKey ||
-				pa.visibilityKey != center.visibilityKey || pb.visibilityKey != center.visibilityKey ||
+				pa.visibilityKey != center.visibilityKey ||
+				pb.visibilityKey != center.visibilityKey ||
 				a.values.size() != centre.values.size() || b.values.size() != centre.values.size())
 			{
 				stable = false;
@@ -1094,8 +1436,10 @@ struct Engine
 				SampleValues halfA, halfB;
 				auto ha = AssessAt(plus, subset, subset->data->size(), halfA),
 					 hb = AssessAt(minus, subset, subset->data->size(), halfB);
-				if (ha.admissionKey != center.admissionKey || hb.admissionKey != center.admissionKey ||
-					ha.visibilityKey != center.visibilityKey || hb.visibilityKey != center.visibilityKey ||
+				if (ha.admissionKey != center.admissionKey ||
+					hb.admissionKey != center.admissionKey ||
+					ha.visibilityKey != center.visibilityKey ||
+					hb.visibilityKey != center.visibilityKey ||
 					halfA.values.size() != centre.values.size() ||
 					halfB.values.size() != centre.values.size())
 				{
@@ -1105,7 +1449,8 @@ struct Engine
 				double difference = 0, magnitude = 0;
 				for (size_t j = 0; j < centre.rows.size(); ++j)
 					for (size_t c = 0; c < 3; ++c)
-						if (centre.rows[j].channels[c].present && !centre.rows[j].channels[c].censored)
+						if (centre.rows[j].channels[c].present &&
+							!centre.rows[j].channels[c].censored)
 						{
 							double h = (halfA.values[j][c] - halfB.values[j][c]) / (span * .5) *
 									   std::sqrt(centre.weight[j]) / centre.rows[j].sigma;
@@ -1190,7 +1535,8 @@ struct Engine
 						++diagnosticFits;
 						V p(best.positions[i]);
 						p[axis] += sign * o.diagnosticStepWorld * scale;
-						if (!In(points[i].bounds, p) || std::abs(p[axis] - V(original[i])[axis]) > radius[i])
+						if (!In(points[i].bounds, p) ||
+							std::abs(p[axis] - V(original[i])[axis]) > radius[i])
 						{
 							range.limitedBySearch = true;
 							continue;
@@ -1227,7 +1573,8 @@ struct Engine
 		State best = initial.amplitude.coverage.positive ? Search(initial) : initial;
 		Stop bestStop = out.stop;
 		bool converged = out.converged;
-		for (size_t start = 1; initial.amplitude.coverage.positive && start < o.multiStarts; ++start)
+		for (size_t start = 1; initial.amplitude.coverage.positive && start < o.multiStarts;
+			 ++start)
 		{
 			auto p = original;
 			bool allowed = true;
@@ -1235,9 +1582,10 @@ struct Engine
 			{
 				V proposal(original[i]);
 				for (size_t k = 0; k < 3; ++k)
-					proposal[k] +=
-						(2 * Halton(start + o.seed % 1024 + 1, unsigned(k == 0 ? 2 : k == 1 ? 3 : 5)) - 1) *
-						points[i].initialRadiusWorld * .5;
+					proposal[k] += (2 * Halton(start + o.seed % 1024 + 1,
+											   unsigned(k == 0 ? 2 : k == 1 ? 3 : 5)) -
+									1) *
+								   points[i].initialRadiusWorld * .5;
 				p[i] = Clip(i, proposal);
 				allowed &= Placement(i, original[i], p[i]);
 			}
@@ -1264,14 +1612,15 @@ struct Engine
 			point.world = best.positions[i];
 			point.boundaryConstrained = boundary[i];
 			PlacementResult location;
-			Checked(r.placement->Check(point.world, point.world,
-									   points[i].sourceSupportRadiusWorld + points[i].clearanceWorld, read,
-									   location));
+			Checked(r.placement->Check(
+				point.world, point.world,
+				points[i].sourceSupportRadiusWorld + points[i].clearanceWorld, read, location));
 			++out.work.placementChecks;
 			Need(Add(out.work.rays, location.rays, o.maxRays) &&
 					 Add(out.work.traversal, location.work, o.maxWork),
 				 Code::WorkLimit, "Final placement cumulative budget");
-			Need(location.state == Constraint::Free, Code::InvalidState, "Final source certificate changed");
+			Need(Admissible(location), Code::InvalidState, "Final source admissibility changed");
+			point.placement = location;
 			point.regionKnown = location.regionKnown;
 			point.region = location.region;
 			point.uncertainty = "Conditional on supplied profile/material/geometry; no calibrated "
@@ -1305,10 +1654,11 @@ struct Engine
 		++out.work.assessments;
 		Checked(Amplitude::Assess(final, read, assessment));
 		AmplitudeWork(assessment.work);
-		Need(assessment.admissionKey == admission && assessment.strictReevaluated, Code::InvalidState,
-			 "Final strict replay coverage changed");
+		Need(assessment.admissionKey == admission && assessment.strictReevaluated,
+			 Code::InvalidState, "Final strict replay coverage changed");
 		Need(std::abs(assessment.objective.Total() - best.amplitude.objective.Total()) <=
-				 r.lighting.options.strictTolerance * std::max(1., best.amplitude.objective.Total()),
+				 r.lighting.options.strictTolerance *
+					 std::max(1., best.amplitude.objective.Total()),
 			 Code::AlgorithmError, "Frozen RGB/XYZ strict replay disagrees");
 		out.amplitude = best.amplitude;
 		out.amplitude.objective = assessment.objective;
@@ -1346,7 +1696,8 @@ struct Engine
 			Need(Add(out.work.rays, out.shadowReference.rays, o.maxRays) &&
 					 Add(out.work.traversal, out.shadowReference.work, o.maxWork),
 				 Code::WorkLimit, "Frozen reference shadow budget");
-			Need(out.shadowReference.available, Code::Unavailable, "Frozen reference shadow unavailable");
+			Need(out.shadowReference.available, Code::Unavailable,
+				 "Frozen reference shadow unavailable");
 		}
 		out.strictReevaluated = true;
 		out.admissionKey = admission;
@@ -1357,43 +1708,171 @@ struct Engine
 		for (auto &p : out.points)
 			p.locallyIdentifiable = out.information.available && out.information.stepStable &&
 									out.information.rank == out.information.parameters &&
-									out.amplitude.coverage.positive > 0 && !out.amplitude.coverage.censored;
+									out.amplitude.coverage.positive > 0 &&
+									!out.amplitude.coverage.censored;
 		if (out.amplitude.coverage.positive == 0)
 		{
 			out.stop = Stop::Uninformative;
 			out.converged = false;
 		}
-		out.diagnostics.push_back("Point XYZ diagnostic refinement only; IDs/count/types preserved. No "
-								  "recovered runtime lights or absolute photometric calibration.");
+		out.diagnostics.push_back(
+			"Point XYZ diagnostic refinement only; IDs/count/types preserved. No "
+			"recovered runtime lights or absolute photometric calibration.");
 		Cancel();
 		out.refined = true;
 		return out;
 	}
 };
 } // namespace
-Error MakePlacement(SceneInput input, const ReadContext &read, std::shared_ptr<const PlacementProvider> &out)
+std::vector<OccupancyEvidence> CapturedOccupancy(const SceneInput &input)
+{
+	std::vector<OccupancyEvidence> out = input.occupancy;
+	for (const auto &d : input.dynamic)
+	{
+		if (std::any_of(out.begin(), out.end(),
+						[&](const OccupancyEvidence &e) { return e.id == d.id; }))
+			continue;
+		OccupancyEvidence e;
+		e.id = d.id;
+		e.model = d.model;
+		e.mapKey = input.map.sha256;
+		if (input.geometry)
+			e.geometryGeneration = input.geometry->CertificationKey();
+		e.capturedBounds = d.bounds;
+		e.runtimeSweptKnown = d.sweptExtentKnown;
+		if (d.sweptExtentKnown)
+			e.runtimeSweptBounds = d.bounds;
+		e.provenance = "Immutable captured submodel bounds; no bake participation/state or "
+					   "trajectory inferred";
+		out.push_back(e);
+	}
+	return out;
+}
+namespace
+{
+class ScopedVisibility final : public VisibilityProvider
+{
+	std::shared_ptr<const VisibilityProvider> base;
+	std::shared_ptr<const PlacementProvider> occupancy;
+
+  public:
+	ScopedVisibility(std::shared_ptr<const VisibilityProvider> b,
+					 std::shared_ptr<const PlacementProvider> p)
+		: base(std::move(b)), occupancy(std::move(p))
+	{
+	}
+	Error Query(const RayQuery &q, const ReadContext &r, RayResult &out) const override
+	{
+		if (!base || !occupancy)
+			return Failure(Code::MissingGeometry, "Missing scoped visibility lease");
+		auto e = base->Query(q, r, out);
+		if (!e)
+			return e;
+		return occupancy->ConstrainVisibility(q, r, out);
+	}
+};
+} // namespace
+std::shared_ptr<const VisibilityProvider> WithOccupancy(std::shared_ptr<const VisibilityProvider> b,
+														std::shared_ptr<const PlacementProvider> p)
+{
+	return std::make_shared<ScopedVisibility>(std::move(b), std::move(p));
+}
+Disk::Digest InputKey(const SceneInput &input)
+{
+	if(input.dynamic.size()>4096||input.occupancy.size()>4096)return {};
+	uint64_t bytes=input.occupancy.size()*sizeof(OccupancyEvidence)+input.dynamic.size()*sizeof(DynamicBoundary)+input.occupancyProvenance.size();
+	for(const auto&e:input.occupancy){if(e.states.size()>32||e.provenance.size()>4096)return {};bytes+=e.provenance.size()+e.states.size()*sizeof(BakeState);for(const auto&s:e.states){if(s.provenance.size()>4096)return {};bytes+=s.provenance.size();}}
+	if(bytes>16ull*1024*1024)return {};
+	return SceneKey(input);
+}
+Error MakePlacement(SceneInput input, const ReadContext &read,
+					std::shared_ptr<const PlacementProvider> &out)
 {
 	out.reset();
 	if (read.cancellation && read.cancellation->IsCancelled())
 		return Failure(Code::Cancelled, "Placement setup cancelled");
 	if (!input.domain || !input.geometry || Zero(input.map.sha256) || Zero(input.domainKey) ||
 		input.map.sha256 != input.geometry->GeometryIdentity().sha256 || !input.maxWorkPerCheck ||
-		!input.maxSegments || input.maxSegments > 65536 || !std::isfinite(input.minimumSegmentWorld) ||
-		input.minimumSegmentWorld <= 0)
-		return Failure(Code::InvalidInput, "Missing/incompatible placement sources or query bounds");
-	if (input.domain->SourceIdentity() && input.domain->SourceIdentity()->sha256 != input.map.sha256)
+		!input.maxSegments || input.maxSegments > 65536 ||
+		!std::isfinite(input.minimumSegmentWorld) || input.minimumSegmentWorld <= 0)
+		return Failure(Code::InvalidInput,
+					   "Missing/incompatible placement sources or query bounds");
+	if (input.domain->SourceIdentity() &&
+		input.domain->SourceIdentity()->sha256 != input.map.sha256)
 		return Failure(Code::InvalidInput, "Placement BSP map mismatch");
 	if (input.regions && (input.regions->Identity().sha256 != input.map.sha256 ||
 						  input.regions->VisibilityKey() != input.geometry->CertificationKey()))
 		return Failure(Code::InvalidInput, "Stale placement regions");
+	if(input.originalSurfaces && !input.geometry->BuiltFrom(input.originalSurfaces))
+		return Failure(Code::InvalidInput,"Original emitter surfaces must be the pinned visibility geometry lease");
+	if(input.originalSurfaces){
+		if(input.originalSurfaces->Report().bytes>read.maxBytes)return Failure(Code::MemoryLimit,"Emitter geometry lease exceeds setup budget");
+		for(const auto& surface:input.originalSurfaces->Surfaces()){
+			if(Cancelled(read))return Failure(Code::Cancelled,"Emitter geometry sanitization preflight cancelled");
+			for(const auto& vertex:surface.vertices){
+				if(vertex.colourPresent)return Failure(Code::InvalidInput,"Emitter geometry must be colour-sanitized; baked vertex targets belong to observation views");
+				for(const auto& rgba:vertex.colour)for(auto channel:rgba)if(channel)return Failure(Code::InvalidInput,"Hidden vertex colour bytes in emitter geometry lease");
+			}
+		}
+	}
 	if (input.dynamic.size() > 4096)
 		return Failure(Code::MemoryLimit, "Dynamic-bound limit");
+	if (input.occupancy.size() > 4096 || input.occupancyProvenance.size() > 4096 ||
+		unsigned(input.occupancyPolicy) > unsigned(OccupancyPolicy::ConditionalBake) ||
+		(input.occupancyPolicy == OccupancyPolicy::ConditionalBake &&
+		 input.occupancyProvenance.empty()))
+		return Failure(Code::InvalidInput,
+					   "Bake occupancy policy requires bounded records and explicit provenance");
 	try
 	{
 		std::set<Id> dynamicIds;
 		for (const auto &d : input.dynamic)
 			if (!d.id || !dynamicIds.insert(d.id).second || (d.bounds.known && !Valid(d.bounds)))
-				return Failure(Code::InvalidInput, "Invalid/duplicate moving-bound identity or bounds");
+				return Failure(Code::InvalidInput,
+							   "Invalid/duplicate moving-bound identity or bounds");
+		std::set<Id> occupancyIds;
+		std::set<uint32_t> modelStates;
+		uint64_t bytes = sizeof(SceneInput) + input.dynamic.size() * sizeof(DynamicBoundary) +
+						 input.occupancyProvenance.size();
+		for (const auto &e : input.occupancy)
+		{
+			if(e.model&&!modelStates.insert(e.model).second)return Failure(Code::InvalidInput,"Two selected records for one source model; use separate bake-state requests");
+			if (e.version != 1 || !e.id || !occupancyIds.insert(e.id).second ||
+				e.mapKey != input.map.sha256 ||
+				e.geometryGeneration != input.geometry->CertificationKey() ||
+				(e.capturedBounds.known && !Valid(e.capturedBounds)) ||
+				(e.runtimeSweptKnown && !Valid(e.runtimeSweptBounds)) ||
+				(e.conditionalClearRegion.known && !Valid(e.conditionalClearRegion)) ||
+				e.provenance.empty() || e.provenance.size() > 4096 || e.states.size() > 32)
+				return Failure(Code::InvalidInput, "Invalid/stale model occupancy evidence");
+			for (const auto &d : input.dynamic)
+				if (d.id == e.id && d.model != e.model)
+					return Failure(Code::InvalidInput,
+								   "Occupancy override belongs to another source model");
+			std::set<Id> states;
+			bool found = e.selectedState == 0;
+			for (const auto &s : e.states)
+			{
+				if (!s.id || !states.insert(s.id).second ||
+					unsigned(s.participation) > unsigned(BakeParticipation::Excluded) ||
+					s.provenance.empty() || s.provenance.size() > 4096 || Zero(s.generation) ||
+					(s.supportComplete && !Valid(s.support)) ||
+					(s.support.known && !Valid(s.support)) ||
+					(s.geometry && s.geometry->GeometryIdentity().sha256 != input.map.sha256) ||
+					(s.domain && s.domain->SourceIdentity() &&
+					 s.domain->SourceIdentity()->sha256 != input.map.sha256))
+					return Failure(Code::InvalidInput, "Invalid/stale bake-state hypothesis");
+				found |= s.id == e.selectedState;
+				bytes += sizeof(BakeState) + s.provenance.size();
+			}
+			if (!found)
+				return Failure(Code::InvalidInput, "Selected bake state absent from hypotheses");
+			bytes += sizeof(OccupancyEvidence) + e.provenance.size();
+		}
+		if (bytes > std::min<uint64_t>(read.maxBytes ? read.maxBytes : 16ull * 1024 * 1024,16ull*1024*1024))
+			return Failure(Code::MemoryLimit, "Placement occupancy metadata limit");
+		if (CapturedOccupancy(input).size() > 4096)
+			return Failure(Code::MemoryLimit, "Combined occupancy record limit");
 		out = std::make_shared<Scene>(std::move(input));
 		return {};
 	}
@@ -1424,11 +1903,12 @@ Error Refine(const Request &r, const ReadContext &read, Result &out)
 			out.trace = engine->out.trace;
 			out.diagnostics = engine->out.diagnostics;
 		}
-		out.stop = e.code == Code::Cancelled
-					   ? Stop::Cancelled
-					   : e.code == Code::WorkLimit
-							 ? Stop::WorkLimit
-							 : e.code == Code::AlgorithmError ? Stop::NumericalFailure : Stop::Unavailable;
+		out.stop =
+			e.code == Code::Cancelled
+				? Stop::Cancelled
+				: e.code == Code::WorkLimit
+					  ? Stop::WorkLimit
+					  : e.code == Code::AlgorithmError ? Stop::NumericalFailure : Stop::Unavailable;
 		out.diagnostics.push_back(e.message);
 		return e;
 	}
@@ -1446,8 +1926,9 @@ const char *StopName(Stop s)
 }
 const char *ConstraintName(Constraint c)
 {
-	const char *n[] = {"Free",		 "Solid",		"Outside", "UnknownGeometry", "Clearance",
-					   "OpaquePath", "UnknownPath", "Dynamic", "Mount",			  "SearchBounds"};
+	const char *n[] = {"Free",		"Solid",		"Outside",	   "UnknownGeometry",
+					   "Clearance", "OpaquePath",	"UnknownPath", "Dynamic",
+					   "Mount",		"SearchBounds", "Conditional"};
 	return size_t(c) < size_t(Constraint::Count) ? n[size_t(c)] : "Invalid";
 }
 } // namespace PointRefine

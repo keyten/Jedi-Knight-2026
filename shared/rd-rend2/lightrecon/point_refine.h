@@ -10,7 +10,58 @@ namespace Core
 {
 namespace PointRefine
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 3; // X14: independent occupied-support occupancy query
+enum class OccupancyPolicy
+{
+	RuntimeConservative,
+	ConditionalBake
+};
+enum class BakeParticipation
+{
+	Unknown,
+	Included,
+	Excluded
+};
+struct BakeState
+{
+	Id id = 0, alternativeGroup = 0;
+	BakeParticipation participation = BakeParticipation::Unknown;
+	bool verified = false, supportComplete = false; // caller-attested for THIS declared scene; never inferred from entity class
+	Bounds support; // OUTER support, never a filled solid box
+	// Optional exact participating geometry. Existing classifiers/BVH are reused.
+	std::shared_ptr<const RegionDomain> domain;
+	std::shared_ptr<const StaticVisibility> geometry;
+	Disk::Digest generation{}; // mandatory for custom domain/selected state interpretation
+	std::string provenance;
+};
+struct OccupancyEvidence
+{
+	uint32_t version = 1;
+	Id id = 0;
+	uint32_t model = 0; // immutable BSP ordinal, scoped by map
+	Disk::Digest mapKey{}, geometryGeneration{};
+	Bounds capturedBounds, runtimeSweptBounds;
+	bool runtimeSweptKnown = false;
+	std::vector<BakeState> states; // alternatives, NOT simultaneously participating geometry
+	Id selectedState = 0;		   // 0 = unknown bake state
+	Bounds conditionalClearRegion; // explicit optional LOCAL assumption, not measured absence
+	std::string provenance;
+};
+enum class OccupancyReason
+{
+	UnknownBakeState,
+	AssumedBakeState,
+	UnboundedModel,
+	CapturedBoundsOverlap
+};
+struct OccupancyWitness
+{
+	Id boundary = 0, state = 0;
+	uint32_t model = 0;
+	OccupancyReason reason = OccupancyReason::UnknownBakeState;
+	bool runtimeExtentUnknown = false;
+	Bounds scope; // exact query support to which this assumption applies
+};
 enum class Constraint
 {
 	Free,
@@ -23,6 +74,7 @@ enum class Constraint
 	Dynamic,
 	Mount,
 	SearchBounds,
+	Conditional,
 	Count
 };
 struct PlacementResult
@@ -32,18 +84,61 @@ struct PlacementResult
 	Id dynamicBoundary = 0; // first blocking/uncertain motion witness, not a static occluder
 	bool dynamicExtentUnknown = false;
 	bool regionKnown = false;
+	bool bakeOccupancyProven = false; // runtime-envelope clearance alone cannot establish this
 	uint64_t work = 0, rays = 0;
+	Disk::Digest occupancyKey{};
+	std::vector<OccupancyWitness> occupancy;
+	std::string assumptions;
 };
-class PlacementProvider
+inline bool Admissible(const PlacementResult &p)
+{
+	return p.state == Constraint::Free || p.state == Constraint::Conditional;
+}
+enum class Feasibility
+{
+	Proven,
+	Collision,
+	Conditional,
+	Unknown,
+	Invalid
+};
+inline Feasibility Classify(const PlacementResult &p)
+{
+	return p.state == Constraint::Free
+			   ? Feasibility::Proven
+			   : p.state == Constraint::Conditional
+					 ? Feasibility::Conditional
+					 : (p.state == Constraint::Solid || p.state == Constraint::Clearance ||
+						p.state == Constraint::OpaquePath)
+						   ? Feasibility::Collision
+						   : (p.state == Constraint::Outside ||
+							  p.state == Constraint::SearchBounds || p.state == Constraint::Mount)
+								 ? Feasibility::Invalid
+								 : Feasibility::Unknown;
+}
+class PlacementProvider : public VisibilityProvider
 {
   public:
 	virtual ~PlacementProvider() = default;
 	virtual Disk::Digest MapKey() const = 0;
 	virtual Disk::Digest GeometryKey() const = 0;
 	virtual Disk::Digest PolicyKey() const = 0;
-	// Endpoint AND complete swept path for the enclosing radius cube. Initial
-	// certification uses from==to. Free is a certificate, not a few point samples.
-	virtual Error Check(Vec3 from, Vec3 to, double radius, const ReadContext &, PlacementResult &) const = 0;
+	virtual bool HasUnverifiedBakeState() const { return true; }
+	// Endpoint AND source-displacement path for the enclosing radius cube (not
+	// a mover's runtime trajectory). from==to is initial placement. Free certifies
+	// the declared scene; Conditional is admissible only with its recorded assumptions.
+	virtual Error Check(Vec3 from, Vec3 to, double radius, const ReadContext &,
+						PlacementResult &) const = 0;
+	// Independent ray predicate. Does not turn a conditional centre into clear rays.
+	// Existing caller result (e.g. passive transfer) is narrowed, never cleared.
+	virtual Error ConstrainVisibility(const RayQuery &, const ReadContext &, RayResult &) const
+	{
+		return {};
+	}
+	// Source-kind-specific geometry already checked independently. This narrows
+	// ONLY occupancy assumptions; it grants no static solid or ray exemption.
+	virtual Error CheckOccupancy(const Bounds &, const ReadContext &, PlacementResult &) const
+	{ return Failure(Code::Unavailable,"Provider has no separate occupancy support query"); }
 };
 struct SceneInput
 {
@@ -51,14 +146,24 @@ struct SceneInput
 	std::shared_ptr<const RegionDomain> domain;
 	Disk::Digest domainKey{};
 	std::shared_ptr<const StaticVisibility> geometry;
+	// Optional immutable geometry lease for explicit original-surface contracts.
+	std::shared_ptr<const SurfaceGeometry> originalSurfaces;
 	std::shared_ptr<const LightingRegionGraph> regions;
 	std::vector<DynamicBoundary> dynamic;
+	std::vector<OccupancyEvidence> occupancy; // explicit records override matching legacy bounds
+	OccupancyPolicy occupancyPolicy = OccupancyPolicy::RuntimeConservative;
+	std::string occupancyProvenance; // required opt-in explanation for ConditionalBake
 	uint64_t maxWorkPerCheck = 1048576;
 	size_t maxSegments = 256;
 	double minimumSegmentWorld = .125;
 };
 // Reuses BSP/visual-box certification and real CPU rays, not PVS/cluster IDs.
 Error MakePlacement(SceneInput, const ReadContext &, std::shared_ptr<const PlacementProvider> &);
+// Pure deterministic metadata identity. No target RGB or query-time cache work.
+Disk::Digest InputKey(const SceneInput &);
+std::vector<OccupancyEvidence> CapturedOccupancy(const SceneInput &);
+std::shared_ptr<const VisibilityProvider> WithOccupancy(std::shared_ptr<const VisibilityProvider>,
+														std::shared_ptr<const PlacementProvider>);
 enum class PriorKind
 {
 	Inferred,
@@ -88,6 +193,7 @@ struct Point
 		   clearanceWorld = .001; // placement only, NOT baker finite-radius expansion
 	PositionPrior prior;
 	Mount mount;
+	uint32_t attachedModel = 0; // unsupported without independently fixed bake-time attachment pose
 };
 struct DirectionEvidence
 {
@@ -131,8 +237,10 @@ enum class Stop
 };
 struct Work
 {
-	uint64_t fits = 0, assessments = 0, amplitudeEvaluations = 0, pairs = 0, rays = 0, traversal = 0;
-	uint64_t placementChecks = 0, cacheHits = 0, cacheInvalidations = 0, accepted = 0, expansions = 0;
+	uint64_t fits = 0, assessments = 0, amplitudeEvaluations = 0, pairs = 0, rays = 0,
+			 traversal = 0;
+	uint64_t placementChecks = 0, cacheHits = 0, cacheInvalidations = 0, accepted = 0,
+			 expansions = 0;
 	uint64_t visibilityChanges = 0, coverageRejected = 0, rejected[size_t(Constraint::Count)] = {};
 	uint64_t accountedBytes = 0;
 };
@@ -156,6 +264,7 @@ struct PointResult
 	bool regionKnown = false, locallyIdentifiable = false, boundaryConstrained = false;
 	AxisRange sampledRange[3];
 	std::string uncertainty;
+	PlacementResult placement;
 };
 struct Information
 {

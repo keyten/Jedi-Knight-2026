@@ -11,7 +11,7 @@ namespace Core
 {
 namespace Producer
 {
-constexpr uint32_t kVersion = 4; // P06: observation-root attribution and membership contracts
+constexpr uint32_t kVersion = 6; // X14: explicit mounted/original support identity
 struct PreparedProviders; // opaque immutable provider leases, created only by PrepareModelRequests
 struct ProviderPolicy
 {

@@ -4,13 +4,14 @@
 #include "amplitude_fit.h"
 #include "fit_evidence.h"
 #include "point_refine.h"
+#include "emitter_support.h"
 namespace Rend2LightRecon
 {
 namespace Core
 {
 namespace Shape
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 3; // X14 occupied/emitting support
 enum class Law
 {
 	HistoricalBake,
@@ -43,6 +44,7 @@ struct Emitter
 	// Historical angular law has these parameters, NOT a runtime smooth cone.
 	double spotTargetDistanceWorld = 64, spotRadiusWorld = 32;
 	Id emittingSurface = 0; // optional endpoint-only exclusion, never a general transparent surface
+	SourceSupport::Contract support;
 };
 struct Sampling
 {
@@ -169,6 +171,8 @@ struct Iteration
 };
 struct FitResult
 {
+	bool conditionalOccupancy = false;
+	std::shared_ptr<const PointRefine::PlacementProvider> occupancyScene; // pinned frozen scene, no lazy state
 	bool fitted = false, converged = false, strictReevaluated = false, amplitudeConverged = false;
 	bool linearAmplitudes = false, absoluteScaleKnown = false;
 	bool projectedKktAvailable = false;

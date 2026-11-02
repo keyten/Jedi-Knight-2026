@@ -63,6 +63,7 @@ void FrameValid(const Frame &f)
 }
 void Validate(const Model &m, const Emitter &e)
 {
+	Check(SourceSupport::Validate(e.support));
 	const auto &p = e.geometry;
 	auto kind = p.kind;
 	Need(p.source.id && p.source.state == HypothesisState::Candidate && p.position.known &&
@@ -147,6 +148,7 @@ void HashEmitter(GeometryKey &k, const Emitter &e)
 	k.F(e.spotTargetDistanceWorld);
 	k.F(e.spotRadiusWorld);
 	k.U(e.emittingSurface);
+	k.Digest(SourceSupport::Key(e.support));
 }
 void HashModel(GeometryKey &k, const Model &m)
 {
@@ -185,6 +187,7 @@ struct Node
 	V p, n;
 	double area = 1;
 	bool surface = false;
+	Id sourceSurface = 0;
 };
 std::vector<Node> Nodes(const Emitter &e, const Sampling &s, bool refined)
 {
@@ -196,6 +199,25 @@ std::vector<Node> Nodes(const Emitter &e, const Sampling &s, bool refined)
 		Node n;
 		n.p = V(p.position.world);
 		v.push_back(n);
+		return v;
+	}
+	if (e.support.kind == SourceSupport::Kind::OriginalSurface)
+	{
+		unsigned count = s.areaDivisions * multiplier;
+		Need(uint64_t(count)*count*e.support.original.count <= 16384, Code::MemoryLimit,
+		     "Original emission triangle quadrature bound");
+		for (size_t t=0;t<e.support.original.count;++t) {
+			const auto& tri=e.support.original.data[t];
+			V a(tri.world[0]),u=V(tri.world[1])-a,edgeV=V(tri.world[2])-a;
+			double area=Length(Cross(u,edgeV))*.5/(count*count);
+			for(unsigned i=0;i<count;++i)for(unsigned j=0;j<count-i;++j){
+				auto append=[&](double x,double y){Node node;node.surface=true;node.p=a+u*x+edgeV*y;
+					node.n=Unit(Cross(u,edgeV));node.area=area;node.sourceSurface=e.support.triangleSurfaces[t];
+					v.push_back(node);};
+				append((i+1./3)/count,(j+1./3)/count);
+				if(i+j+1<count)append((i+2./3)/count,(j+2./3)/count);
+			}
+		}
 		return v;
 	}
 	if (p.kind == EmitterKind::Rectangle)
@@ -337,6 +359,16 @@ Expanded Expand(const Model &model, const std::vector<Emitter> &emitters)
 			s.polygon = Lease(vertices);
 			add(j, s);
 		};
+		if (e.support.kind == SourceSupport::Kind::OriginalSurface) {
+			for(size_t t=0;t<e.support.original.count;++t){const auto& tri=e.support.original.data[t];
+				auto vertices=std::make_shared<std::vector<Vec3>>(tri.world,tri.world+3);
+				V normal=Unit(Cross(V(tri.world[1])-V(tri.world[0]),V(tri.world[2])-V(tri.world[0])));
+				auto source=base;source.kind=Bake::SourceKind::Polygon;
+				source.position.world=((V(tri.world[0])+V(tri.world[1])+V(tri.world[2]))/3+normal*model.historicalEmitterPushWorld).Float();
+				source.orientation=MakeFrame(normal);source.polygon=Lease(vertices);add(j,source);
+			}
+			continue;
+		}
 		if (p.kind == EmitterKind::Rectangle)
 		{
 			unsigned n = model.rectangleDivisions;
@@ -520,9 +552,16 @@ Error Prepare(const Model &model, const std::vector<Emitter> &emitters, const Ch
 					}
 			}
 		}
+		for(const auto& emitter:emitters)if(emitter.support.kind!=SourceSupport::Kind::LegacyVacuum){
+			Need(emitter.support.geometry==context.geometryKey,Code::InvalidState,"Stale emitter support geometry");
+			if(model.law==Law::HistoricalBake && (emitter.support.kind==SourceSupport::Kind::MountedPoint||emitter.support.kind==SourceSupport::Kind::MountedSpot)){
+				double standOff=Dot(V(emitter.support.outward),V(emitter.geometry.position.world)-V(emitter.support.anchorWorld));
+				Need(standOff>0,Code::Unavailable,"Historical point/spot exactly on support: source endpoint trace replay is unverified; no black prediction substituted");
+			}
+		}
 		uint64_t expansionCount = 0;
 		for (const auto &e : emitters)
-			expansionCount += e.geometry.kind == EmitterKind::Rectangle
+			expansionCount += e.support.kind == SourceSupport::Kind::OriginalSurface ? e.support.original.count : e.geometry.kind == EmitterKind::Rectangle
 								  ? uint64_t(model.rectangleDivisions) * model.rectangleDivisions
 								  : e.geometry.kind == EmitterKind::Tube
 										? uint64_t(model.tubeSides) * model.tubeSegments
@@ -601,6 +640,11 @@ Error Prepare(const Model &model, const std::vector<Emitter> &emitters, const Ch
 								Need(distance > sampling.minimumDistanceWorld, Code::Unavailable,
 									 "Singular/near emitting surface sample");
 								V incoming = delta / distance;
+								const auto& support=emitters[j].support;
+								if(!n.surface && support.mountKnown && support.kind!=SourceSupport::Kind::LegacyVacuum){
+									double distanceFromSupport=Dot(V(support.outward),n.p-V(support.anchorWorld));
+									if(distanceFromSupport==0 && Dot(V(support.outward),incoming)>=0)continue;
+								}
 								double cosine = Dot(receiver.n, incoming);
 								cosine = r.twoSided ? std::abs(cosine) : std::max(0., cosine);
 								if (cosine <= 0)
@@ -633,8 +677,16 @@ Error Prepare(const Model &model, const std::vector<Emitter> &emitters, const Ch
 													 .Float();
 								ray.endWorld = n.p.Float();
 								ray.originSurface = r.surface;
-								ray.targetSurface = emitters[j].emittingSurface;
+								ray.targetSurface = n.sourceSurface ? n.sourceSurface : emitters[j].emittingSurface;
 								ray.targetToleranceWorld = sampling.endpointToleranceWorld;
+								if (emitters[j].support.kind != SourceSupport::Kind::LegacyVacuum) {
+									// Named source endpoint ONLY; tolerance follows float coordinate rounding,
+									// not a world-space shadow dilation or free-space source offset.
+									const auto& support=emitters[j].support;
+									if(!ray.targetSurface && support.mountKnown && support.surfaces.size()==1)
+										ray.targetSurface=support.surfaces[0];
+									ray.targetToleranceWorld=8*std::numeric_limits<float>::epsilon()*(1+Length(n.p));
+								}
 								ray.bias.absoluteWorld = ray.bias.relative = 0;
 								ray.maxWork = sampling.maxWork - d->work.traversal;
 								RayResult hit;
@@ -849,6 +901,7 @@ struct Engine
 	std::vector<Candidate> candidates;
 	std::vector<Param> params;
 	std::shared_ptr<const PointRefine::PlacementProvider> placement;
+	Bake::EvaluationContext effectiveGeometry;
 	double area = 0;
 	bool positive = false;
 	std::map<Disk::Digest, std::shared_ptr<const Block>> cache;
@@ -886,6 +939,10 @@ struct Engine
 				 r.placement.geometry->CertificationKey() == r.geometry.geometryKey,
 			 Code::MissingGeometry, "Shape fitting requires matching BSP/visual placement generation");
 		Check(PointRefine::MakePlacement(r.placement, read, placement));
+		out.conditionalOccupancy=placement->HasUnverifiedBakeState();
+		if(out.conditionalOccupancy)out.limitations.push_back("X13: bake-state occupancy/visibility remains unverified; runtime clearance is not a historical bake certificate");
+		effectiveGeometry=r.geometry;effectiveGeometry.visibility=PointRefine::WithOccupancy(r.geometry.visibility,placement);
+		GeometryKey scoped;scoped.Digest(effectiveGeometry.observationPolicyKey);scoped.Digest(placement->PolicyKey());effectiveGeometry.observationPolicyKey=scoped.Finish();
 		std::sort(candidates.begin(), candidates.end(), [](const Candidate &a, const Candidate &b) {
 			return a.initial.geometry.source.id < b.initial.geometry.source.id;
 		});
@@ -1127,6 +1184,14 @@ struct Engine
 				++out.rejectedGeometry;
 				return false;
 			}
+			if(to[i].support.kind!=SourceSupport::Kind::LegacyVacuum) {
+				SourceSupport::Result support;
+				Check(SourceSupport::Check(r.placement,*placement,from[i].geometry,e,to[i].support,read,support));
+				out.work.rays+=support.rays;out.work.traversal+=support.work;Limit();
+				out.conditionalOccupancy|=support.conditional;
+				if(!PointRefine::Admissible(support.placement)){++out.rejectedGeometry;return false;}
+				continue;
+			}
 			const auto &before = from[i].geometry;
 			auto radius = [](const PhysicalEmitter &p) {
 				return p.kind == EmitterKind::Rectangle
@@ -1176,7 +1241,11 @@ struct Engine
 					out.work.rays += p.rays;
 					out.work.traversal += p.work;
 					Limit();
-					if (p.state != PointRefine::Constraint::Free)
+					if(p.state==PointRefine::Constraint::Conditional){
+						if(!out.conditionalOccupancy)out.limitations.push_back("X13: bake occupancy conditional; exact source/visibility not certified; "+r.placement.occupancyProvenance);
+						out.conditionalOccupancy=true;
+					}
+					if (!PointRefine::Admissible(p))
 					{
 						++out.rejectedGeometry;
 						return false;
@@ -1200,7 +1269,7 @@ struct Engine
 		if (found != cache.end())
 			return found->second;
 		std::shared_ptr<const Block> block;
-		Check(Prepare(r.model, e, receivers, r.geometry, sampling, read, block));
+		Check(Prepare(r.model, e, receivers, effectiveGeometry, sampling, read, block));
 		Add(out.work, block->PreparationWork());
 		Limit();
 		if (block->Bytes() <= r.options.maxCacheBytes)
@@ -1743,6 +1812,7 @@ struct Engine
 		// Only frozen geometry/RGB is evaluated with strict sampling. No target-dependent retuning.
 		out.mapKey = r.mapKey;
 		out.geometryKey = r.geometry.geometryKey;
+		out.occupancyScene=placement;
 		out.model = r.model;
 		out.emitters = current.emitters;
 		out.objective = strict + current.prior + current.shadow;
@@ -1903,7 +1973,8 @@ Error EvaluateFrozen(const FitResult &fit, std::shared_ptr<const ChunkSource<Obs
 				blocks.insert(a.spatialBlock);
 			}
 			std::shared_ptr<const Block> prepared;
-			Check(Prepare(fit.model, fit.emitters, Lease(receivers), geometry, sampling, read, prepared));
+			auto scoped=geometry;if(fit.occupancyScene){scoped.visibility=PointRefine::WithOccupancy(geometry.visibility,fit.occupancyScene);GeometryKey p;p.Digest(scoped.observationPolicyKey);p.Digest(fit.occupancyScene->PolicyKey());scoped.observationPolicyKey=p.Finish();}
+			Check(Prepare(fit.model, fit.emitters, Lease(receivers), scoped, sampling, read, prepared));
 			Add(out.work, prepared->PreparationWork());
 			Need(out.work.rays <= sampling.maxRays && out.work.traversal <= sampling.maxWork, Code::WorkLimit,
 				 "Frozen scoring cumulative ray budget");

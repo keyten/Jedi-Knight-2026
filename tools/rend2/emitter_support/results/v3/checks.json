@@ -1,0 +1,41 @@
+{
+  "schema": "org.openjk.emitter-support-checks.v1",
+  "cpu_suite": {
+    "passed": 39,
+    "failed": 0,
+    "wall_seconds": 535.93,
+    "command": "ctest --test-dir build/s06-gcc --output-on-failure -j 2",
+    "log_sha256": "d283881f61e9af82fa7e54c521761d387aac6fd8ea1f6f1c72bf4753188937ea"
+  },
+  "final_native": {
+    "assertions": 52,
+    "failures": 0,
+    "repeat_semantics": true,
+    "log_counter_scope": "reference value checks only; whole process also performs amplitude fit and Joint smoke test"
+  },
+  "python": {
+    "passed": 11,
+    "failed": 0,
+    "command": "PYTHONPATH=tools/rend2/datasets python -X utf8 -m unittest tools.rend2.datasets.test_blind_views tools.rend2.producer.test_controller",
+    "log_sha256": "ee3ec787a3797ea4d421aecde6ba398cd19ff1b6881a1efb99f36f5b2ed41f64"
+  },
+  "release_builds": {
+    "SP": "Passed",
+    "MP": "Passed",
+    "command": "cmake --build build/s13-renderers --config Release --target rdsp-rend2_x86_64 rd-rend2_x86_64 --parallel 2",
+    "log_sha256": "189c89d4477994c9266f47041f95b494b1d8350f70c7d3bbf8e7b8517e989c5c",
+    "intermediate_unrelated_failure": "R_WaterWavesOn declaration, supplied by concurrent renderer edits; no X14 water code change"
+  },
+  "game_launched": false,
+  "stock_joint_fit_attempted": false,
+  "stock_recovered_lights_certified": false,
+  "preliminary_attempts_preserved": [
+    "v1",
+    "v2"
+  ],
+  "compiler": {
+    "CPU": "GCC 16.2",
+    "SP_MP": "MSVC 2019",
+    "cmake": "4.4"
+  }
+}

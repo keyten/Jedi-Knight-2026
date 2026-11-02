@@ -1,0 +1,214 @@
+{
+  "mp/duel4": {
+    "input": {
+      "map": "mp/duel4",
+      "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+      "dataset_sha256": "8173ddaa017c87dd4b341d240f95f6a99599f894d4164d0ab7902bc70b2ac3c5",
+      "dataset_bytes": 25475232
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v2-native.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v2\\mp_duel4",
+        "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 3.094000000040978,
+      "peak_process_rss_bytes": 33906688
+    },
+    "admission": {
+      "schema": "org.openjk.emitter-support-stock.v1",
+      "map": "maps/mp/duel4.bsp",
+      "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+      "catalog_models": 3219,
+      "attempts": 108,
+      "accepted": 0,
+      "conditional": 0,
+      "newly_admitted": 0,
+      "old_classes": [
+        0,
+        108,
+        0,
+        0,
+        0
+      ],
+      "new_classes": [
+        0,
+        17,
+        0,
+        87,
+        4
+      ],
+      "class_order": [
+        "Proven",
+        "Collision",
+        "Conditional",
+        "Unknown",
+        "Invalid"
+      ],
+      "reasons": {
+        "Cylinder occupied body penetrates the mounting plane": 15,
+        "Emitting support is behind its mounting side or outside declared fixture stand-off": 4,
+        "Incomplete local visual support": 33,
+        "Occupied source support is not certified outside world solids": 56
+      },
+      "types": {
+        "1": 24,
+        "3": 64,
+        "4": 20
+      },
+      "work": 58830,
+      "catalog_work": 15451,
+      "seconds": 1.04055,
+      "reads_observed_rgb": false,
+      "joint_fit_attempted": false,
+      "selection": "stable consolidated ID; first 256 named-surface candidates, 16M geometry work cap",
+      "profile": "UnknownProfile",
+      "claims_original_source_recovery": false
+    },
+    "private_geometry_witness_sha256": "268ea18efaba2822f1c01c1c6166becf07b5f7a3d0250371d91796a134bef373"
+  },
+  "mp/siege_desert": {
+    "input": {
+      "map": "mp/siege_desert",
+      "bsp_sha256": "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+      "dataset_sha256": "868eb79f14c7bcfda2b973d42871e9f0e32c458acb39cc2e7ffbda2075fe3881",
+      "dataset_bytes": 263183008
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v2-native.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_siege_desert\\home\\rend2\\lightrecon\\v1\\observations\\mp_siege_desert_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v2\\mp_siege_desert",
+        "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 11.656000000075437,
+      "peak_process_rss_bytes": 54235136
+    },
+    "admission": {
+      "schema": "org.openjk.emitter-support-stock.v1",
+      "map": "maps/mp/siege_desert.bsp",
+      "bsp_sha256": "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+      "catalog_models": 1410,
+      "attempts": 256,
+      "accepted": 0,
+      "conditional": 0,
+      "newly_admitted": 0,
+      "old_classes": [
+        0,
+        256,
+        0,
+        0,
+        0
+      ],
+      "new_classes": [
+        0,
+        4,
+        0,
+        252,
+        0
+      ],
+      "class_order": [
+        "Proven",
+        "Collision",
+        "Conditional",
+        "Unknown",
+        "Invalid"
+      ],
+      "reasons": {
+        "Occupied source support is not certified outside world solids": 256
+      },
+      "types": {
+        "1": 5,
+        "3": 251
+      },
+      "work": 149011,
+      "catalog_work": 945,
+      "seconds": 0.450753,
+      "reads_observed_rgb": false,
+      "joint_fit_attempted": false,
+      "selection": "stable consolidated ID; first 256 named-surface candidates, 16M geometry work cap",
+      "profile": "UnknownProfile",
+      "claims_original_source_recovery": false
+    },
+    "private_geometry_witness_sha256": "13baafb8f23dde82147fceaa39cbba4872d518d422d0615f898ec6c78aa54cd8"
+  },
+  "hoth3": {
+    "input": {
+      "map": "hoth3",
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "dataset_sha256": "fdbf5351babdaf6a1b0e9d776a77d01f5396e82c5f3945ec46079e171385d613",
+      "dataset_bytes": 383228400
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v2-native.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v2\\hoth3",
+        "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 15.655999999959022,
+      "peak_process_rss_bytes": 89579520
+    },
+    "admission": {
+      "schema": "org.openjk.emitter-support-stock.v1",
+      "map": "maps/hoth3.bsp",
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "catalog_models": 746,
+      "attempts": 256,
+      "accepted": 0,
+      "conditional": 0,
+      "newly_admitted": 0,
+      "old_classes": [
+        0,
+        230,
+        0,
+        26,
+        0
+      ],
+      "new_classes": [
+        0,
+        31,
+        0,
+        209,
+        16
+      ],
+      "class_order": [
+        "Proven",
+        "Collision",
+        "Conditional",
+        "Unknown",
+        "Invalid"
+      ],
+      "reasons": {
+        "Cylinder occupied body penetrates the mounting plane": 10,
+        "Emitting support is behind its mounting side or outside declared fixture stand-off": 16,
+        "Incomplete local visual support": 33,
+        "Occupied source support is not certified outside world solids": 197
+      },
+      "types": {
+        "1": 25,
+        "3": 221,
+        "4": 10
+      },
+      "work": 159238,
+      "catalog_work": 1691,
+      "seconds": 0.269114,
+      "reads_observed_rgb": false,
+      "joint_fit_attempted": false,
+      "selection": "stable consolidated ID; first 256 named-surface candidates, 16M geometry work cap",
+      "profile": "UnknownProfile",
+      "claims_original_source_recovery": false
+    },
+    "private_geometry_witness_sha256": "dbd04f8e97e00e8a7eb1d1a805ed70dcf51e6f8d40513e354565e5c5d32fccca"
+  }
+}

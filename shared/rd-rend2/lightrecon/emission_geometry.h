@@ -39,6 +39,8 @@ std::vector<std::vector<int>> Groups(const std::vector<Triangle> &, bool sourceC
 // Caller validates finite unit normal, nonempty points and bounded counts.
 void FitRectangle(const std::vector<const float *> &, const float *normal, float margin,
 				  Rectangle &);
+// Convex planar polygon/triangle intersection area. Pure geometry, double accumulation.
+double IntersectionArea(const std::vector<Vec3>& polygon,const Vec3 triangle[3],Vec3 normal);
 // Same UV barycentrics, area weighting, threshold and 8-neighbour blobs as LTC.
 // No minimum emitter size: thin tubes and small fixtures survive this boundary.
 Error Sample(const std::vector<Triangle> &, const std::vector<int> &, const Mask *,

@@ -1,0 +1,10 @@
+{
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_emitter_support_test.exe",
+    "tools\\rend2\\emitter_support\\results\\v2\\native-first.json"
+  ],
+  "state": "Completed",
+  "exit_code": 0,
+  "wall_seconds": 0.34399999992456287,
+  "peak_process_rss_bytes": 5308416
+}

@@ -139,6 +139,7 @@ void Add(Joint::Work &a, const Joint::Work &b)
 	a.arithmetic += b.arithmetic;
 	a.linearColumns += b.linearColumns;
 	a.proposalsDeferred += b.proposalsDeferred;
+	a.placementChecks+=b.placementChecks;a.conditionalPlacements+=b.conditionalPlacements;a.provenPlacements+=b.provenPlacements;a.placementUnknown+=b.placementUnknown;a.placementCollisions+=b.placementCollisions;
 	a.accountedBytes = std::max(a.accountedBytes, b.accountedBytes);
 }
 struct Engine
@@ -1326,6 +1327,7 @@ std::string ReportJson(const Result &r)
 			o << ",\"sources\":" << m.sources.size()
 			  << ",\"validation_mse\":" << m.validation.intervalMse
 			  << ",\"black_mse\":" << m.validation.blackMse;
+			o<<",\"occupancy_conditional\":"<<(m.occupancyConditional?"true":"false");
 		}
 		o << ",\"diagnostics\":[";
 		for (size_t j = 0; j < b.diagnostics.size(); ++j)
@@ -1361,6 +1363,8 @@ std::string ReportJson(const Result &r)
 	  << ",\"candidates_unsupported\":" << r.work.candidatesUnsupported
 	  << ",\"fitting_evaluations\":" << r.work.fitting.evaluations
 	  << ",\"fitting_models\":" << r.work.fitting.attemptedModels
+	  << ",\"fitting_forward_calls\":"<<r.work.fitting.forwardCalls<<",\"fitting_rays\":"<<r.work.fitting.rays
+	  << ",\"placement_checks\":"<<r.work.fitting.placementChecks<<",\"conditional_placements\":"<<r.work.fitting.conditionalPlacements<<",\"proven_placements\":"<<r.work.fitting.provenPlacements<<",\"unknown_placements\":"<<r.work.fitting.placementUnknown<<",\"collision_placements\":"<<r.work.fitting.placementCollisions
 	  << ",\"local_coverage_complete\":" << (r.localCoverageComplete ? "true" : "false")
 	  << ",\"candidate_coverage_complete\":" << (r.candidateCoverageComplete ? "true" : "false")
 	  << ",\"final_evaluated\":" << (r.finalEvaluated ? "true" : "false")

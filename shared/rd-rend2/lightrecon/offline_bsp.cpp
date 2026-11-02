@@ -121,6 +121,10 @@ Error CaptureBspSpace(const void *original, size_t bytes, const LightmapMapIdent
 			space.brushes.push_back(q);
 		}
 		std::vector<DynamicBoundary> staged;
+		// Every non-world model is a possible independent model, not proof of
+		// motion, bake inclusion or a gameplay pose. The model lump has neither
+		// a trajectory nor compiler bake-state metadata. Keep this raw archive
+		// record unchanged; X13 derives separate conditional occupancy evidence.
 		for (size_t n = 1; n < models.count; ++n)
 		{
 			DynamicBoundary q;

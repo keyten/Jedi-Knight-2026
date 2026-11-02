@@ -9,7 +9,7 @@ namespace Core
 {
 namespace Uncertainty
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2; // X13 occupancy uncertainty cannot pass exact-light admission
 enum class Event
 {
 	Existence,

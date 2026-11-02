@@ -1,0 +1,523 @@
+// X14 owned brush/surface geometry. No commercial geometry or renderer.
+// SPDX-License-Identifier: GPL-2.0-or-later
+#include "joint_test_scene.h"
+#include <cstdio>
+#include <fstream>
+using namespace JointTest;
+namespace SS = Rend2LightRecon::Core::SourceSupport;
+namespace P = Rend2LightRecon::Core::PointRefine;
+int checks = 0, failures = 0;
+#define CHECK(x)                                                                                   \
+	do                                                                                             \
+	{                                                                                              \
+		++checks;                                                                                  \
+		if (!(x))                                                                                  \
+		{                                                                                          \
+			++failures;                                                                            \
+			std::printf("FAIL %d: %s\n", __LINE__, #x);                                            \
+		}                                                                                          \
+	} while (0)
+struct World
+{
+	Scene visual;
+	BspSpaceInput input;
+	P::SceneInput scene;
+	std::shared_ptr<const P::PlacementProvider> placement;
+	std::shared_ptr<const SurfaceGeometry> geometry;
+	World()
+	{
+		visual.surfaces.clear();
+		input.worldBounds = Box(V(-20, -20, -8), V(20, 20, 16));
+		SpatialLeaf leaf;
+		leaf.cluster = 0;
+		input.leaves = {leaf};
+	}
+	void Brush(V lo, V hi)
+	{
+		SpatialBrush b;
+		b.world = b.solid = true;
+		b.firstSide = uint32_t(input.sides.size());
+		b.sideCount = 6;
+		for (unsigned k = 0; k < 3; ++k)
+			for (int sign : {-1, 1})
+			{
+				SpatialPlane p;
+				V n;
+				n[k] = sign;
+				p.normal = n.Float();
+				p.distance = sign < 0 ? -lo[k] : hi[k];
+				input.sides.push_back(uint32_t(input.planes.size()));
+				input.planes.push_back(p);
+			}
+		input.leafBrushes.push_back(uint32_t(input.brushes.size()));
+		input.brushes.push_back(b);
+		input.leaves[0].brushCount = uint32_t(input.brushes.size());
+	}
+	void Floor(double z = 0)
+	{
+		visual.Quad(V(-8, -8, z), V(8, -8, z), V(8, 8, z), V(-8, 8, z));
+		Brush(V(-16, -16, -4), V(16, 16, z));
+	}
+	void Build()
+	{
+		GeometryKey key;
+		for (const auto &s : visual.surfaces)
+		{
+			key.U(s.materialFacts.signals);
+			for (const auto &v : s.vertices)
+				key.V(v.position);
+		}
+		for (const auto &p : input.planes)
+		{
+			key.V(p.normal);
+			key.F(p.distance);
+		}
+		visual.map.path = "maps/x14-owned.bsp";
+		visual.map.sha256 = key.Finish();
+		input.identity = visual.map;
+		SurfaceCapture capture;
+		capture.Begin(BuildPolicy::ForceRebuild);
+		Must(capture.SetMap(visual.map));
+		for (auto s : visual.surfaces)
+			Must(capture.Add(s));
+		Must(capture.Freeze());
+		geometry = capture.Acquire();
+		std::shared_ptr<const BspRegionDomain> domain;
+		Must(BspRegionDomain::Create(input, Read(), domain));
+		scene.map = visual.map;
+		scene.domain = domain;
+		scene.domainKey = Key("X14 owned brush classifier");
+		Must(StaticVisibility::Build(geometry, {}, Read(), visual.visibility, domain));
+		scene.geometry = visual.visibility;
+		scene.originalSurfaces = geometry;
+		Must(P::MakePlacement(scene, Read(), placement));
+	}
+	SS::Contract Contract(SS::Kind kind = SS::Kind::Rectangle)
+	{
+		SS::Contract c;
+		c.kind = kind;
+		c.fixture = 71;
+		c.map = scene.map.sha256;
+		c.geometry = scene.geometry->CertificationKey();
+		c.surfaces = {1};
+		c.anchorWorld = visual.surfaces[0].vertices[0].position;
+		c.outward = Vec3(0, 0, 1);
+		c.mountKnown = true;
+		c.provenance =
+			"Owned original fixture and declared outward emission side; no bake amplitude assumed";
+		return c;
+	}
+	SS::Result At(const Shape::Emitter &e)
+	{
+		SS::Result out;
+		Must(SS::Check(scene, *placement, e.geometry, e.geometry, e.support, Read(), out));
+		return out;
+	}
+};
+Shape::Emitter Emitter(EmitterKind kind, V pos = V())
+{
+	auto e = Extended(71, kind, pos).shape.initial;
+	e.geometry.frame.known = true;
+	e.geometry.frame.right = Vec3(1, 0, 0);
+	e.geometry.frame.up = Vec3(0, 1, 0);
+	e.geometry.frame.forward = Vec3(0, 0, 1);
+	e.rgbAmplitude = Vec3(2, 3, 4);
+	e.geometry.geometry.halfWidthWorld = 1;
+	e.geometry.geometry.halfHeightWorld = .5;
+	e.geometry.geometry.halfLengthWorld = 1;
+	e.geometry.geometry.radiusWorld = .25;
+	if (kind == EmitterKind::Point)
+		e.geometry.angular.kind = AngularKind::Isotropic;
+	return e;
+}
+struct Cancel : Cancellation
+{
+	bool IsCancelled() const noexcept override
+	{
+		return true;
+	}
+};
+int main(int argc, char **argv)
+{
+	uint64_t rays = 0, work = 0;
+	double area = 0, positive = 0, blocked = -1, meshDifference = -1, fitError = -1, heldMse = -1;
+	try
+	{
+		World w;
+		w.Floor();
+		w.Build();
+		auto e = Emitter(EmitterKind::Rectangle);
+		e.support = w.Contract();
+		P::PlacementResult old;
+		Must(w.placement->Check(e.geometry.position.world, e.geometry.position.world, 1.001, Read(),
+								old));
+		CHECK(!P::Admissible(old));
+		auto flush = w.At(e);
+		CHECK(P::Admissible(flush.placement) && flush.contact && flush.sourceSideCertified);
+		CHECK(flush.emittingAreaWorldSquared == 2);
+		area = flush.emittingAreaWorldSquared;
+		work += flush.work;
+		World boundary;
+		boundary.Floor();
+		SpatialPlane partition;
+		partition.normal = Vec3(0, 0, -1);
+		partition.distance = 0;
+		SpatialNode node;
+		node.plane = uint32_t(boundary.input.planes.size());
+		node.children[0] = -2;
+		node.children[1] = -1;
+		boundary.input.planes.push_back(partition);
+		boundary.input.nodes.push_back(node);
+		auto solidLeaf = boundary.input.leaves[0];
+		solidLeaf.cluster = -1;
+		boundary.input.leaves.push_back(solidLeaf);
+		boundary.Build();
+		auto boundaryPanel = e;
+		boundaryPanel.support = boundary.Contract();
+		CHECK(P::Admissible(boundary.At(boundaryPanel).placement));
+		auto insidePoint = Emitter(EmitterKind::Point, V(0, 0, -1));
+		insidePoint.support = boundary.Contract(SS::Kind::FreePoint);
+		insidePoint.support.mountKnown = false;
+		insidePoint.support.surfaces.clear();
+		CHECK(boundary.At(insidePoint).placement.state == P::Constraint::Solid);
+		insidePoint.geometry.position.world.z = 0;
+		CHECK(!P::Admissible(boundary.At(insidePoint).placement));
+		auto wrong = e;
+		wrong.geometry.position.world.z = -.01f;
+		CHECK(!P::Admissible(w.At(wrong).placement));
+		wrong = e;
+		wrong.geometry.frame.up = Vec3(0, -1, 0);
+		wrong.geometry.frame.forward = Vec3(0, 0, -1);
+		CHECK(w.At(wrong).placement.state == P::Constraint::Mount);
+		wrong = e;
+		wrong.geometry.angular.twoSided = true;
+		CHECK(!P::Admissible(w.At(wrong).placement));
+		wrong.support.twoSidedAttested = true;
+		wrong.support.kind = SS::Kind::TwoSidedRectangle;
+		CHECK(!P::Admissible(w.At(wrong).placement));
+		World hanging;
+		hanging.visual.surfaces = w.visual.surfaces;
+		hanging.Build();
+		wrong.support = hanging.Contract(SS::Kind::TwoSidedRectangle);
+		wrong.support.twoSidedAttested = true;
+		CHECK(P::Admissible(hanging.At(wrong).placement));
+		auto point = Emitter(EmitterKind::Point, V(0, 0, .0001));
+		point.support = w.Contract(SS::Kind::FreePoint);
+		point.support.mountKnown = false;
+		point.support.surfaces.clear();
+		CHECK(P::Admissible(w.At(point).placement));
+		point.geometry.position.world.z = -1;
+		CHECK(w.At(point).placement.state == P::Constraint::Solid);
+		point.geometry.position.world.z = 0;
+		point.support = w.Contract(SS::Kind::MountedPoint);
+		CHECK(P::Admissible(w.At(point).placement));
+		auto spot = Emitter(EmitterKind::Spot);
+		spot.support = w.Contract(SS::Kind::MountedSpot);
+		CHECK(P::Admissible(w.At(spot).placement));
+		spot.geometry.frame.up = Vec3(0, -1, 0);
+		spot.geometry.frame.forward = Vec3(0, 0, -1);
+		CHECK(!P::Admissible(w.At(spot).placement));
+		auto tube = Emitter(EmitterKind::Tube, V(0, 0, .25));
+		tube.support = w.Contract(SS::Kind::Cylinder);
+		CHECK(P::Admissible(w.At(tube).placement));
+		tube.geometry.position.world.z = .249f;
+		CHECK(!P::Admissible(w.At(tube).placement));
+		auto assembly = e;
+		assembly.support.kind = SS::Kind::UnsupportedAssembly;
+		CHECK(!P::Admissible(w.At(assembly).placement));
+		auto stale = e;
+		stale.support.geometry = Key("changed geometry");
+		SS::Result result;
+		auto error = SS::Check(w.scene, *w.placement, stale.geometry, stale.geometry, stale.support,
+							   Read(), result);
+		CHECK(error.code == Code::InvalidState);
+		auto r = Read();
+		Cancel cancel;
+		r.cancellation = &cancel;
+		error = SS::Check(w.scene, *w.placement, e.geometry, e.geometry, e.support, r, result);
+		CHECK(error.code == Code::Cancelled);
+		auto small = w.scene;
+		small.maxWorkPerCheck = 1;
+		error = SS::Check(small, *w.placement, e.geometry, e.geometry, e.support, Read(), result);
+		CHECK(error.code == Code::WorkLimit);
+		auto moved = e.geometry;
+		moved.position.world.x = .1f;
+		Must(SS::Check(w.scene, *w.placement, e.geometry, moved, e.support, Read(), result));
+		CHECK(result.placement.state == P::Constraint::UnknownPath);
+		auto malformed = e.support;
+		malformed.surfaces = {1, 1};
+		CHECK(SS::Validate(malformed).code == Code::InvalidInput);
+		// Actual recessed cavity, not a world-solid exception or a free-space offset.
+		World recess;
+		recess.visual.Quad(V(-2, -2, -1), V(2, -2, -1), V(2, 2, -1), V(-2, 2, -1));
+		recess.Brush(V(-16, -16, -4), V(16, 16, -1));
+		recess.Brush(V(-16, -16, -1), V(-2, 16, 0));
+		recess.Brush(V(2, -16, -1), V(16, 16, 0));
+		recess.Build();
+		auto re = e;
+		re.geometry.position.world.z = -1;
+		re.support = recess.Contract(SS::Kind::RecessedRectangle);
+		re.support.frontClearanceWorld = 1;
+		CHECK(recess.At(re).placement.state == P::Constraint::Conditional);
+		auto fake = e;
+		fake.geometry.position.world.z = -1;
+		fake.support = w.Contract(SS::Kind::RecessedRectangle);
+		CHECK(!P::Admissible(w.At(fake).placement));
+		// Independent visual wall crossing the emitter; named mounting surface never hides it.
+		World cross;
+		cross.Floor();
+		cross.visual.Quad(V(0, -2, -1), V(0, 2, -1), V(0, 2, 2), V(0, -2, 2));
+		cross.Build();
+		auto ce = e;
+		ce.support = cross.Contract();
+		CHECK(!P::Admissible(cross.At(ce).placement));
+		World alpha;
+		alpha.Floor();
+		alpha.visual.surfaces[0].materialFacts.signals = MaterialCutout;
+		alpha.Build();
+		auto ae = e;
+		ae.support = alpha.Contract();
+		CHECK(alpha.At(ae).placement.state == P::Constraint::UnknownGeometry);
+		// A ceiling point very close to its support is geometrically valid without a vacuum ball.
+		World ceiling;
+		ceiling.visual.Quad(V(-8, -8, 6), V(-8, 8, 6), V(8, 8, 6), V(8, -8, 6));
+		ceiling.Brush(V(-16, -16, 6), V(16, 16, 10));
+		ceiling.Build();
+		auto cp = Emitter(EmitterKind::Point, V(0, 0, 5.999));
+		cp.support = ceiling.Contract(SS::Kind::MountedPoint);
+		cp.support.outward = Vec3(0, 0, -1);
+		cp.support.maximumStandOffWorld = .01;
+		CHECK(P::Admissible(ceiling.At(cp).placement));
+		// No invented luminous area: a connected L union retains the missing corner.
+		World unionWorld;
+		unionWorld.visual.Quad(V(-2, -2, 0), V(0, -2, 0), V(0, 0, 0), V(-2, 0, 0));
+		unionWorld.visual.Quad(V(0, -2, 0), V(2, -2, 0), V(2, 0, 0), V(0, 0, 0));
+		unionWorld.visual.Quad(V(-2, 0, 0), V(0, 0, 0), V(0, 2, 0), V(-2, 2, 0));
+		unionWorld.Brush(V(-16, -16, -4), V(16, 16, 0));
+		unionWorld.Build();
+		SS::Contract original;
+		Must(SS::FromSurfaces(unionWorld.geometry, *unionWorld.scene.geometry, {0, 1, 2}, 71,
+							  Read(), original));
+		auto mesh = e;
+		mesh.support = original;
+		auto mr = unionWorld.At(mesh);
+		CHECK(P::Admissible(mr.placement));
+		CHECK(mr.emittingAreaWorldSquared == 12);
+		auto filled = mesh;
+		filled.support.kind = SS::Kind::Rectangle;
+		filled.geometry.geometry.halfWidthWorld = filled.geometry.geometry.halfHeightWorld = 2;
+		CHECK(!P::Admissible(unionWorld.At(filled).placement));
+		World separate;
+		separate.visual.Quad(V(-3, -1, 0), V(-2, -1, 0), V(-2, 1, 0), V(-3, 1, 0));
+		separate.visual.Quad(V(2, -1, 0), V(3, -1, 0), V(3, 1, 0), V(2, 1, 0));
+		separate.Brush(V(-16, -16, -4), V(16, 16, 0));
+		separate.Build();
+		CHECK(SS::FromSurfaces(separate.geometry, *separate.scene.geometry, {0, 1}, 71, Read(),
+							   original)
+				  .code == Code::Unavailable);
+		SS::Contract one, two;
+		Must(SS::FromSurfaces(separate.geometry, *separate.scene.geometry, {0}, 71, Read(), one));
+		Must(SS::FromSurfaces(separate.geometry, *separate.scene.geometry, {1}, 72, Read(), two));
+		CHECK(SS::Key(one) != SS::Key(two));
+		// Independent source-side ray queries: the contact certificate never clears a wall.
+		Shape::Model model;
+		model.law = Shape::Law::DiffuseIntegral;
+		model.output = Shape::Output::RelativeIncident;
+		model.units.worldUnitsPerMeter = 1;
+		model.allowAssumed = true;
+		model.provenance = "Owned finite Lambertian integral; radiance amplitude, not compiler Q";
+		auto receivers = std::make_shared<std::vector<Bake::Receiver>>();
+		Bake::Receiver receiver;
+		receiver.sample = 99;
+		receiver.world = Vec3(0, 0, 4);
+		receiver.geometricNormal = receiver.shadingNormal = Vec3(0, 0, -1);
+		receiver.mappedPlanar = true;
+		receivers->push_back(receiver);
+		auto evaluate = [&](World &world, Shape::Emitter source) {
+			Bake::EvaluationContext ctx;
+			ctx.visibility = world.scene.geometry;
+			ctx.geometryKey = world.scene.geometry->CertificationKey();
+			Shape::Sampling sampling;
+			sampling.areaDivisions = 8;
+			sampling.compareRefined = true;
+			std::shared_ptr<const Shape::Block> b;
+			Must(Shape::Prepare(model, {source}, Lease(receivers), ctx, sampling, Read(), b));
+			std::vector<Shape::Prediction> out;
+			Shape::Work cost;
+			Must(b->Evaluate({source.rgbAmplitude}, Read(), out, cost));
+			rays += b->PreparationWork().rays;
+			work += b->PreparationWork().traversal;
+			CHECK(out.size() == 1 && out[0].available);
+			return out[0].value.x;
+		};
+		SS::Contract floorOriginal;
+		Must(SS::FromSurfaces(w.geometry, *w.scene.geometry, {0}, 71, Read(), floorOriginal));
+		// Restrict the exact mesh to the panel only for a numerical quadrature comparison.
+		World panel;
+		panel.visual.Quad(V(-1, -.5, 0), V(1, -.5, 0), V(1, .5, 0), V(-1, .5, 0));
+		panel.Brush(V(-16, -16, -4), V(16, 16, 0));
+		panel.Build();
+		auto pe = e;
+		pe.support = panel.Contract();
+		pe.emittingSurface = 1;
+		positive = evaluate(panel, pe);
+		CHECK(positive > 0);
+		auto me = pe;
+		Must(SS::FromSurfaces(panel.geometry, *panel.scene.geometry, {0}, 71, Read(), me.support));
+		double exact = evaluate(panel, me);
+		meshDifference = std::abs(exact - positive) / positive;
+		CHECK(meshDifference < .002);
+		World blockedWorld;
+		blockedWorld.visual.surfaces = panel.visual.surfaces;
+		blockedWorld.Brush(V(-16, -16, -4), V(16, 16, 0));
+		blockedWorld.visual.Quad(V(-6, -6, 2), V(6, -6, 2), V(6, 6, 2), V(-6, 6, 2));
+		blockedWorld.Brush(V(-6, -6, 1.9), V(6, 6, 2.1));
+		blockedWorld.Build();
+		auto be = pe;
+		be.support = blockedWorld.Contract();
+		CHECK(P::Admissible(blockedWorld.At(be).placement));
+		blocked = evaluate(blockedWorld, be);
+		CHECK(blocked == 0);
+		// Fixed flush geometry, training-only amplitude fit, independently located held-out
+		// receivers.
+		Shape::Request request;
+		request.mapKey = panel.scene.map.sha256;
+		request.observationsKey = Key("X14 training fold");
+		request.model = model;
+		request.placement = panel.scene;
+		request.geometry.visibility = panel.scene.geometry;
+		request.geometry.geometryKey = panel.scene.geometry->CertificationKey();
+		auto rows = std::make_shared<Stream<Shape::Observation>>(),
+			 held = std::make_shared<Stream<Shape::Observation>>();
+		for (unsigned fold = 0; fold < 2; ++fold)
+		{
+			auto target = std::make_shared<std::vector<Bake::Receiver>>();
+			for (int j = 0; j < 8; ++j)
+			{
+				auto r = receiver;
+				r.sample = 100 + 100 * fold + j;
+				r.world = Vec3(float((j % 4 - 1.5) * .4), float(fold ? .9 : -.9), 4);
+				target->push_back(r);
+			}
+			Shape::Sampling reference;
+			reference.areaDivisions = 16;
+			reference.compareRefined = true;
+			std::shared_ptr<const Shape::Block> truth;
+			Must(Shape::Prepare(model, {pe}, Lease(target), request.geometry, reference, Read(),
+								truth));
+			std::vector<Shape::Prediction> predictions;
+			Shape::Work cost;
+			Must(truth->Evaluate({pe.rgbAmplitude}, Read(), predictions, cost));
+			for (size_t i = 0; i < target->size(); ++i)
+			{
+				Shape::Observation o;
+				o.id = target->at(i).sample;
+				o.receiver = target->at(i);
+				o.role = fold ? Shape::Role::Heldout : Shape::Role::Training;
+				o.spatialBlock = fold + 1;
+				o.area = 1;
+				o.comparable = true;
+				for (unsigned c = 0; c < 3; ++c)
+					o.channel[c].lower = o.channel[c].upper = V(predictions[i].value)[c];
+				(fold ? held : rows)->data->push_back(o);
+			}
+		}
+		Shape::Candidate candidate;
+		candidate.initial = pe;
+		candidate.initial.rgbAmplitude = Vec3(.1, .1, .1);
+		candidate.upperRgb = Vec3(10, 10, 10);
+		candidate.centreBounds = Box(V(-.1, -.1, -.1), V(.1, .1, .1));
+		candidate.fitPosition = candidate.fitFrame = candidate.fitDimensions = candidate.fitCone =
+			false;
+		candidate.provenance = "Fixed owned flush support; hidden RGB amplitude not supplied";
+		request.candidates = {candidate};
+		request.training = rows;
+		request.count = rows->data->size();
+		request.searchSampling.areaDivisions = 8;
+		request.strictSampling.areaDivisions = 16;
+		Shape::FitResult fitted;
+		Must(Shape::Fit(request, Read(), fitted));
+		CHECK(fitted.fitted && fitted.strictReevaluated);
+		fitError = Length(V(fitted.emitters[0].rgbAmplitude) - V(pe.rgbAmplitude)) /
+				   Length(V(pe.rgbAmplitude));
+		CHECK(fitError < .003);
+		Shape::Score score;
+		Must(Shape::EvaluateFrozen(fitted, held, held->data->size(), Shape::Role::Heldout,
+								   request.geometry, request.strictSampling, 0, Read(), score));
+		heldMse = score.intervalMse;
+		CHECK(score.available && score.positive && score.comparable == held->data->size() &&
+			  score.unknown == 0);
+		CHECK(score.intervalMse < 1e-7 && score.blackMse > 1e-3);
+		// Explicit ideal point on a mount emits only into its declared outward side.
+		auto mountedPoint = Emitter(EmitterKind::Point);
+		mountedPoint.support = panel.Contract(SS::Kind::MountedPoint);
+		CHECK(evaluate(panel, mountedPoint) > 0);
+		Shape::Model historical = model;
+		historical.law = Shape::Law::HistoricalBake;
+		historical.output = Shape::Output::RelativeIncident;
+		historical.profile = Bake::NetRadiantProfile(Bake::Recipe{});
+		historical.allowAssumed = true;
+		Bake::EvaluationContext contactContext;
+		contactContext.visibility = panel.scene.geometry;
+		contactContext.geometryKey = panel.scene.geometry->CertificationKey();
+		std::shared_ptr<const Shape::Block> unverified;
+		CHECK(Shape::Prepare(historical, {mountedPoint}, Lease(receivers), contactContext, {},
+							 Read(), unverified)
+				  .code == Code::Unavailable);
+		SS::Contract canonicalOrderA, canonicalOrderB;
+		Must(SS::FromSurfaces(unionWorld.geometry, *unionWorld.scene.geometry, {0, 1, 2}, 71,
+							  Read(), canonicalOrderA));
+		Must(SS::FromSurfaces(unionWorld.geometry, *unionWorld.scene.geometry, {2, 0, 1}, 71,
+							  Read(), canonicalOrderB));
+		CHECK(SS::Key(canonicalOrderA) == SS::Key(canonicalOrderB));
+		// A geometry lease must not become an alternate held-out vertex-RGB route.
+		SurfaceCapture coloured;
+		coloured.Begin(BuildPolicy::ForceRebuild);
+		Must(coloured.SetMap(panel.scene.map));
+		auto colourSurface = panel.visual.surfaces[0];
+		colourSurface.vertices[0].colour[0][0] = 123;
+		Must(coloured.Add(colourSurface));
+		Must(coloured.Freeze());
+		auto colourLease = coloured.Acquire();
+		auto forbidden = panel.scene;
+		forbidden.originalSurfaces = colourLease;
+		Must(
+			StaticVisibility::Build(colourLease, {}, Read(), forbidden.geometry, forbidden.domain));
+		std::shared_ptr<const P::PlacementProvider> badPlacement;
+		CHECK(P::MakePlacement(forbidden, Read(), badPlacement).code == Code::InvalidInput);
+		// Existing Joint and strict production evaluation accept an explicit free-point contract.
+		Rig rig;
+		rig.request.candidates = {Point(101, V(-.5, 0, 1.2), true)};
+		auto &source = rig.request.candidates[0].shape.initial;
+		source.support.kind = SS::Kind::FreePoint;
+		source.support.map = rig.request.mapKey;
+		source.support.geometry = rig.request.geometry.geometryKey;
+		source.support.provenance = "Owned explicit ideal point support; no mount assumed";
+		auto truth = rig.request.candidates[0];
+		truth.shape.initial.rgbAmplitude = Vec3(2, 1, .5);
+		rig.Observations(rig.Truth({Answer(truth, V(2, 1, .5))}));
+		J::Result fit;
+		Must(J::Solve(rig.request, Read(), fit));
+		CHECK(!fit.alternatives.empty());
+		CHECK(fit.work.forwardCalls > 0);
+	}
+	catch (const std::exception &e)
+	{
+		++failures;
+		std::printf("EXCEPTION %s\n", e.what());
+	}
+	if (argc == 2)
+	{
+		std::ofstream f(argv[1]);
+		f << "{\"schema\":\"org.openjk.emitter-support-native.v1\",\"checks\":" << checks
+		  << ",\"failures\":" << failures << ",\"panel_area\":" << area
+		  << ",\"positive_response\":" << positive << ",\"blocked_response\":" << blocked
+		  << ",\"triangle_rectangle_relative_difference\":" << meshDifference
+		  << ",\"fit_rgb_relative_error\":" << fitError << ",\"heldout_mse\":" << heldMse
+		  << ",\"rays\":" << rays << ",\"work\":" << work << "}";
+	}
+	std::printf(
+		"X14 checks=%d failures=%d positive=%.9g blocked=%.9g mesh_difference=%.9g rays=%llu\n",
+		checks, failures, positive, blocked, meshDifference, (unsigned long long)rays);
+	return failures ? 1 : 0;
+}

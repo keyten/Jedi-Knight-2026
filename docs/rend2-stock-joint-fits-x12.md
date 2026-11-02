@@ -1,5 +1,11 @@
 # X12: native stock joint-fit execution and new blocking witnesses
 
+Follow-up [X13 bake occupancy](rend2-bake-occupancy-x13.md) separates source-placement
+assumptions from runtime swept motion and preserves this frozen run. The new
+four-map attempt reaches 16 source forward calls on hoth2/hoth3, but accepts no
+stock source model; known local collisions and independent path-visibility
+availability remain explicit blockers.
+
 The native scheduler now reaches `Joint::Solve` on all six preselected stock
 maps. **No stock source configuration completes fitting/validation, no final
 stock prediction is accepted, and no recovered stock emitter is published.**

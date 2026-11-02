@@ -1,0 +1,30 @@
+{
+  "schema": "org.openjk.emitter-support-historical-witnesses.v1",
+  "map": "mp/duel4",
+  "before_sha256": "a94f37ec75546759a202619385c657b445f7a7488bb40eab34ed7957ceff1a62",
+  "after_sha256": "268ea18efaba2822f1c01c1c6166becf07b5f7a3d0250371d91796a134bef373",
+  "observations_read": false,
+  "claims_physical_source_truth": false,
+  "witnesses": [
+    {
+      "source": "378495349532519697",
+      "kind": 3,
+      "matched_stable_id": true,
+      "geometry_coordinates_unchanged": true,
+      "frozen_constraint_ordinal": 4,
+      "new_control_constraint": "Clearance",
+      "new_constraint": "UnknownGeometry",
+      "reason": "Occupied source support is not certified outside world solids"
+    },
+    {
+      "source": "17291380550458404209",
+      "kind": 4,
+      "matched_stable_id": true,
+      "geometry_coordinates_unchanged": true,
+      "frozen_constraint_ordinal": 4,
+      "new_control_constraint": "Clearance",
+      "new_constraint": "Solid",
+      "reason": "Cylinder occupied body penetrates the mounting plane"
+    }
+  ]
+}

@@ -1,0 +1,1038 @@
+{
+  "cases": [
+    {
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+      "heldout": {
+        "available": true,
+        "black": 2495.8888888888887,
+        "mse": 0.0,
+        "objective": 0.0,
+        "positive": true,
+        "required": true,
+        "worst": 0.0
+      },
+      "historical_compiler_identified": false,
+      "name": "point_room",
+      "partition_sha256": {
+        "heldout": "00ed225d5ee1b7416af1493cc74cc13b2d66a193904bdf366fda78b858aa051d",
+        "train": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72",
+        "validation": "2b21db10069e8716f29183e63f97cfa926601e6416b8959dd1e36ba81936e3c7"
+      },
+      "producer_publication": true,
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "e717444d1a3320315bea41436a5246b93030a36605fbe1a0ad2ffb1365152b7c",
+      "result": {
+        "code": 0,
+        "contribution_queries": {
+          "available": 66,
+          "explicit_zero": 0,
+          "maximum_roundtrip_error": 0,
+          "unavailable": 0
+        },
+        "evaluations": 465,
+        "event": "result",
+        "models": 2,
+        "preferred_available": true,
+        "producer": {
+          "asset_available": true,
+          "cache_key": "6dcd68b3abfbabbf881ef5b30ba01563601aca3e58669c8bc53c368e67005a7f",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": false,
+          "derived_pixels": 345,
+          "environment_evidence": "UnresolvedEnvironment",
+          "evaluations": 476,
+          "heldout_black_mse": 2495.88888889,
+          "heldout_interval_mse": 0,
+          "heldout_used": 15,
+          "mapped_samples": 345,
+          "payload_bytes": 14352,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+          "providers": [
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": true,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "supplied-candidates",
+              "operation_succeeded": true,
+              "outcome": "Produced",
+              "outputs_admitted": true,
+              "ran": true,
+              "rays": 0,
+              "reason": "Evidence hypotheses only; not physical/exact-light certification",
+              "records": 1,
+              "required": false,
+              "search_complete": true,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "hidden",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; hidden sources remain unresolved",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "solar.fit",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; UnknownSun/unresolved environment",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            }
+          ],
+          "raw_pages": 2,
+          "raw_pixels": 32768,
+          "rays": 480,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "scenarios": [],
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied-candidates: Produced; Evidence hypotheses only; not physical/exact-light certification",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "sun_evidence": "UnknownSun",
+          "training_interval_mse": 0,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 0,
+          "validation_used": 15
+        },
+        "rays": 144,
+        "sources": [
+          {
+            "id": 1,
+            "rgb": [
+              299.854919434,
+              299.854919434,
+              299.854919434
+            ]
+          }
+        ],
+        "state": "Partial"
+      },
+      "source_parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            299.854919434,
+            299.854919434,
+            299.854919434
+          ],
+          "relative_rgb_error": 0.00048360188666663357,
+          "true_compiler_rgb": [
+            300.0,
+            300.0,
+            300.0
+          ]
+        }
+      ],
+      "validation_calls": 5,
+      "wrong_profile": false
+    },
+    {
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+      "heldout": {
+        "available": false
+      },
+      "historical_compiler_identified": false,
+      "name": "point_room",
+      "partition_sha256": {
+        "heldout": "00ed225d5ee1b7416af1493cc74cc13b2d66a193904bdf366fda78b858aa051d",
+        "train": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72",
+        "validation": "2b21db10069e8716f29183e63f97cfa926601e6416b8959dd1e36ba81936e3c7"
+      },
+      "producer_publication": true,
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "ff6ef1ae52c83ada5d21bb39812053292568642db934ec454f17367fdb41263b",
+      "result": {
+        "code": 0,
+        "contribution_queries": {
+          "available": 0,
+          "explicit_zero": 0,
+          "maximum_roundtrip_error": 0,
+          "unavailable": 0
+        },
+        "evaluations": 1215,
+        "event": "result",
+        "heldout_predictions": [],
+        "models": 2,
+        "preferred_available": false,
+        "producer": {
+          "asset_available": true,
+          "cache_key": "191933d61d5a2bf5ff7e28432a54e5b8b3a55c1e477abc2626e022a21e8c0aba",
+          "candidates": 1,
+          "conditional_sources": 0,
+          "deferred": 0,
+          "derived_complete": false,
+          "derived_pixels": 345,
+          "environment_evidence": "UnresolvedEnvironment",
+          "evaluations": 1215,
+          "heldout_black_mse": null,
+          "heldout_interval_mse": null,
+          "heldout_used": 0,
+          "mapped_samples": 345,
+          "payload_bytes": 0,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "",
+          "providers": [
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": true,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "supplied-candidates",
+              "operation_succeeded": true,
+              "outcome": "Produced",
+              "outputs_admitted": true,
+              "ran": true,
+              "rays": 0,
+              "reason": "Evidence hypotheses only; not physical/exact-light certification",
+              "records": 1,
+              "required": false,
+              "search_complete": true,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "hidden",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; hidden sources remain unresolved",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "solar.fit",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; UnknownSun/unresolved environment",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            }
+          ],
+          "raw_pages": 2,
+          "raw_pixels": 32768,
+          "rays": 144,
+          "reason": "No model passes required independent spatial blocks",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "scenarios": [],
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied-candidates: Produced; Evidence hypotheses only; not physical/exact-light certification",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "DiagnosticOnly",
+          "sun_evidence": "UnknownSun",
+          "training_interval_mse": null,
+          "training_requested": 18,
+          "training_used": 0,
+          "validation_interval_mse": null,
+          "validation_used": 0
+        },
+        "rays": 144,
+        "sources": [],
+        "state": "Unavailable"
+      },
+      "source_parameters": [],
+      "validation_calls": 2,
+      "wrong_profile": true
+    },
+    {
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+      "heldout": {
+        "available": true,
+        "black": 1170.6018518518517,
+        "mse": 0.222869236135012,
+        "objective": 0.16480971039361977,
+        "positive": true,
+        "required": true,
+        "worst": 0.6534529352668867
+      },
+      "historical_compiler_identified": false,
+      "name": "two_colour",
+      "partition_sha256": {
+        "heldout": "f9646b6e8a23d3630ef79d29c734d811c2e6a2d7ff5c9db2e40745138bf9b923",
+        "train": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7",
+        "validation": "e82486b9fa788c1353425ab78d0a64e20eb4b664589d1ab825130fb7001cf604"
+      },
+      "producer_publication": true,
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "3113ad6f4d1f793488bf88daf91629d346618e0455bf254cc7b088100dc7154a",
+      "result": {
+        "code": 0,
+        "contribution_queries": {
+          "available": 132,
+          "explicit_zero": 0,
+          "maximum_roundtrip_error": 0,
+          "unavailable": 0
+        },
+        "evaluations": 3943,
+        "event": "result",
+        "models": 4,
+        "preferred_available": true,
+        "producer": {
+          "asset_available": true,
+          "cache_key": "0092eb5ca86340d6a3024e97fc4e96cd27d901562562add6df6a06f3b41aeb00",
+          "candidates": 2,
+          "conditional_sources": 2,
+          "deferred": 0,
+          "derived_complete": false,
+          "derived_pixels": 345,
+          "environment_evidence": "UnresolvedEnvironment",
+          "evaluations": 4874,
+          "heldout_black_mse": 1170.60185185,
+          "heldout_interval_mse": 0.222869236135,
+          "heldout_used": 15,
+          "mapped_samples": 345,
+          "payload_bytes": 18666,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+          "providers": [
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": true,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "supplied-candidates",
+              "operation_succeeded": true,
+              "outcome": "Produced",
+              "outputs_admitted": true,
+              "ran": true,
+              "rays": 0,
+              "reason": "Evidence hypotheses only; not physical/exact-light certification",
+              "records": 2,
+              "required": false,
+              "search_complete": true,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "hidden",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; hidden sources remain unresolved",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "solar.fit",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; UnknownSun/unresolved environment",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            }
+          ],
+          "raw_pages": 2,
+          "raw_pixels": 32768,
+          "rays": 1440,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "scenarios": [],
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied-candidates: Produced; Evidence hypotheses only; not physical/exact-light certification",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "sun_evidence": "UnknownSun",
+          "training_interval_mse": 0.218169823821,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 2.17680241764,
+          "validation_used": 15
+        },
+        "rays": 384,
+        "sources": [
+          {
+            "id": 1,
+            "rgb": [
+              287.158630371,
+              27.55534935,
+              6.30522537231
+            ]
+          },
+          {
+            "id": 2,
+            "rgb": [
+              26.7347106934,
+              69.7119522095,
+              303.298187256
+            ]
+          }
+        ],
+        "state": "Partial"
+      },
+      "source_parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            287.158630371,
+            27.55534935,
+            6.30522537231
+          ],
+          "relative_rgb_error": 0.05161886670630411,
+          "true_compiler_rgb": [
+            300.0,
+            35.9999991,
+            8.99999979
+          ]
+        },
+        {
+          "candidate": 2,
+          "fitted_compiler_rgb": [
+            26.7347106934,
+            69.7119522095,
+            303.298187256
+          ],
+          "relative_rgb_error": 0.058636268504425326,
+          "true_compiler_rgb": [
+            11.99999973,
+            60.0000009,
+            300.0
+          ]
+        }
+      ],
+      "validation_calls": 8,
+      "wrong_profile": false
+    },
+    {
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+      "heldout": {
+        "available": false
+      },
+      "historical_compiler_identified": false,
+      "name": "two_colour",
+      "partition_sha256": {
+        "heldout": "f9646b6e8a23d3630ef79d29c734d811c2e6a2d7ff5c9db2e40745138bf9b923",
+        "train": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7",
+        "validation": "e82486b9fa788c1353425ab78d0a64e20eb4b664589d1ab825130fb7001cf604"
+      },
+      "producer_publication": true,
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "dd15eae8820ca8db70c6f65a5f7d68046cfe4a5ff35bccfff3a3950204c71ad8",
+      "result": {
+        "code": 0,
+        "contribution_queries": {
+          "available": 0,
+          "explicit_zero": 0,
+          "maximum_roundtrip_error": 0,
+          "unavailable": 0
+        },
+        "evaluations": 3643,
+        "event": "result",
+        "heldout_predictions": [],
+        "models": 4,
+        "preferred_available": false,
+        "producer": {
+          "asset_available": true,
+          "cache_key": "d729e977af4f070133742419c514914a843b04723886af3d838236f2111ec5d9",
+          "candidates": 2,
+          "conditional_sources": 0,
+          "deferred": 0,
+          "derived_complete": false,
+          "derived_pixels": 345,
+          "environment_evidence": "UnresolvedEnvironment",
+          "evaluations": 3643,
+          "heldout_black_mse": null,
+          "heldout_interval_mse": null,
+          "heldout_used": 0,
+          "mapped_samples": 345,
+          "payload_bytes": 0,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "",
+          "providers": [
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": true,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "supplied-candidates",
+              "operation_succeeded": true,
+              "outcome": "Produced",
+              "outputs_admitted": true,
+              "ran": true,
+              "rays": 0,
+              "reason": "Evidence hypotheses only; not physical/exact-light certification",
+              "records": 2,
+              "required": false,
+              "search_complete": true,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "hidden",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; hidden sources remain unresolved",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "solar.fit",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; UnknownSun/unresolved environment",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            }
+          ],
+          "raw_pages": 2,
+          "raw_pixels": 32768,
+          "rays": 384,
+          "reason": "No model passes required independent spatial blocks",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "scenarios": [],
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied-candidates: Produced; Evidence hypotheses only; not physical/exact-light certification",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "DiagnosticOnly",
+          "sun_evidence": "UnknownSun",
+          "training_interval_mse": null,
+          "training_requested": 18,
+          "training_used": 0,
+          "validation_interval_mse": null,
+          "validation_used": 0
+        },
+        "rays": 384,
+        "sources": [],
+        "state": "Unavailable"
+      },
+      "source_parameters": [],
+      "validation_calls": 4,
+      "wrong_profile": true
+    },
+    {
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+      "heldout": {
+        "available": true,
+        "black": 2495.8888888888887,
+        "mse": 0.0,
+        "objective": 0.0,
+        "positive": true,
+        "required": true,
+        "worst": 0.0
+      },
+      "historical_compiler_identified": false,
+      "name": "door_occlusion",
+      "partition_sha256": {
+        "heldout": "467ca4ac91336889212ba74ef4b385069b0b77aff598943ec111bfa8fe301d56",
+        "train": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734",
+        "validation": "ded6f9fb54688e685b81e3cb5b563bb85e28d6b30c7004aabfc825ec1a68c92c"
+      },
+      "producer_publication": true,
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "d3220d6a0edb8b428a815b77b5716cabd7525d815076e30fe94d152d092d9ea3",
+      "result": {
+        "code": 0,
+        "contribution_queries": {
+          "available": 66,
+          "explicit_zero": 18,
+          "maximum_roundtrip_error": 0,
+          "unavailable": 0
+        },
+        "evaluations": 465,
+        "event": "result",
+        "models": 2,
+        "preferred_available": true,
+        "producer": {
+          "asset_available": true,
+          "cache_key": "0bc69d6b60d90a13799398d19519f00d8d3ebfc4d78fb0c2ea6ffa14db16e27b",
+          "candidates": 1,
+          "conditional_sources": 1,
+          "deferred": 0,
+          "derived_complete": false,
+          "derived_pixels": 345,
+          "environment_evidence": "UnresolvedEnvironment",
+          "evaluations": 476,
+          "heldout_black_mse": 2495.88888889,
+          "heldout_interval_mse": 0,
+          "heldout_used": 15,
+          "mapped_samples": 345,
+          "payload_bytes": 14352,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+          "providers": [
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": true,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "supplied-candidates",
+              "operation_succeeded": true,
+              "outcome": "Produced",
+              "outputs_admitted": true,
+              "ran": true,
+              "rays": 0,
+              "reason": "Evidence hypotheses only; not physical/exact-light certification",
+              "records": 1,
+              "required": false,
+              "search_complete": true,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "hidden",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; hidden sources remain unresolved",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "solar.fit",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; UnknownSun/unresolved environment",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            }
+          ],
+          "raw_pages": 2,
+          "raw_pixels": 32768,
+          "rays": 480,
+          "reason": "Operational conditional offline producer; structural publication is not physical-source certification",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "scenarios": [],
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied-candidates: Produced; Evidence hypotheses only; not physical/exact-light certification",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "joint alternative/configuration and uncertainty schedule complete",
+            "final model frozen; independent held-out assessment performed without refitting",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "Completed",
+          "sun_evidence": "UnknownSun",
+          "training_interval_mse": 0,
+          "training_requested": 18,
+          "training_used": 18,
+          "validation_interval_mse": 0,
+          "validation_used": 15
+        },
+        "rays": 144,
+        "sources": [
+          {
+            "id": 1,
+            "rgb": [
+              299.854919434,
+              299.854919434,
+              299.854919434
+            ]
+          }
+        ],
+        "state": "Partial"
+      },
+      "source_parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            299.854919434,
+            299.854919434,
+            299.854919434
+          ],
+          "relative_rgb_error": 0.00048360188666663357,
+          "true_compiler_rgb": [
+            300.0,
+            300.0,
+            300.0
+          ]
+        }
+      ],
+      "validation_calls": 5,
+      "wrong_profile": false
+    },
+    {
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "geometry_sha256": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+      "heldout": {
+        "available": false
+      },
+      "historical_compiler_identified": false,
+      "name": "door_occlusion",
+      "partition_sha256": {
+        "heldout": "467ca4ac91336889212ba74ef4b385069b0b77aff598943ec111bfa8fe301d56",
+        "train": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734",
+        "validation": "ded6f9fb54688e685b81e3cb5b563bb85e28d6b30c7004aabfc825ec1a68c92c"
+      },
+      "producer_publication": true,
+      "protocol": "Fixed XYZ prior + native Joint::Solve structural/amplitude search, no hidden RGB/answers in native inputs",
+      "request_sha256": "5e0931551805e3b1b4bc78dc006ae8c3884a9ec330efeec99ff0a3f9e111c880",
+      "result": {
+        "code": 0,
+        "contribution_queries": {
+          "available": 0,
+          "explicit_zero": 0,
+          "maximum_roundtrip_error": 0,
+          "unavailable": 0
+        },
+        "evaluations": 1215,
+        "event": "result",
+        "heldout_predictions": [],
+        "models": 2,
+        "preferred_available": false,
+        "producer": {
+          "asset_available": true,
+          "cache_key": "a1708eb1c6d3c344ffe627483e504a11551b095d79798792a532cfa0467120ff",
+          "candidates": 1,
+          "conditional_sources": 0,
+          "deferred": 0,
+          "derived_complete": false,
+          "derived_pixels": 345,
+          "environment_evidence": "UnresolvedEnvironment",
+          "evaluations": 1215,
+          "heldout_black_mse": null,
+          "heldout_interval_mse": null,
+          "heldout_used": 0,
+          "mapped_samples": 345,
+          "payload_bytes": 0,
+          "primaries_known": true,
+          "production_cache_ready": false,
+          "profile": "",
+          "providers": [
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": true,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "supplied-candidates",
+              "operation_succeeded": true,
+              "outcome": "Produced",
+              "outputs_admitted": true,
+              "ran": true,
+              "rays": 0,
+              "reason": "Evidence hypotheses only; not physical/exact-light certification",
+              "records": 1,
+              "required": false,
+              "search_complete": true,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "hidden",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; hidden sources remain unresolved",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            },
+            {
+              "budget_scope": 0,
+              "bytes": 0,
+              "diagnostics": [],
+              "error_code": 0,
+              "evidence_available": false,
+              "exact_lighting_admissible": false,
+              "forward_calls": 0,
+              "generation": "",
+              "name": "solar.fit",
+              "operation_succeeded": false,
+              "outcome": "NotRequested",
+              "outputs_admitted": false,
+              "ran": false,
+              "rays": 0,
+              "reason": "Not requested; UnknownSun/unresolved environment",
+              "records": 0,
+              "required": false,
+              "search_complete": false,
+              "work": 0
+            }
+          ],
+          "raw_pages": 2,
+          "raw_pixels": 32768,
+          "rays": 144,
+          "reason": "No model passes required independent spatial blocks",
+          "resolved_sources": 0,
+          "runtime_consumers_ready": false,
+          "scenarios": [],
+          "schema": "org.openjk.producer-report.v1",
+          "source_transfer_known": true,
+          "stages": [
+            "supplied-candidates: Produced; Evidence hypotheses only; not physical/exact-light certification",
+            "immutable input/provenance validated",
+            "joint intensity/geometry/type/profile/visibility/passive-transport model selection executed",
+            "canonical structural and every referenced payload validated; data-only artifact sealed"
+          ],
+          "state": "DiagnosticOnly",
+          "sun_evidence": "UnknownSun",
+          "training_interval_mse": null,
+          "training_requested": 18,
+          "training_used": 0,
+          "validation_interval_mse": null,
+          "validation_used": 0
+        },
+        "rays": 144,
+        "sources": [],
+        "state": "Unavailable"
+      },
+      "source_parameters": [],
+      "validation_calls": 2,
+      "wrong_profile": true
+    }
+  ],
+  "executable_sha256": "8c95a8494145764b32331657677b947e72c26a2deeea28c6c7e7902bf4fb6b6d",
+  "limitations": [
+    "Fixed XYZ is supplied, not discovered",
+    "No absolute photometry",
+    "No stock reconstruction claim",
+    "Independent existence calibration remains unavailable"
+  ],
+  "repeat_archive_sha256": {
+    "0092eb5ca86340d6a3024e97fc4e96cd27d901562562add6df6a06f3b41aeb00.jklr": "bd9d9d35097912cf787a19468b92ac08d40de0c264e974112e8675dc376adfaf"
+  },
+  "schema": "org.openjk.producer-compiled.v1",
+  "source_sha256": {
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "21271e904f205d2bf40ad18bc3309ff9997782f943871934a5a44bb3f9124c64",
+    "shared/rd-rend2/lightrecon/disk.cpp": "2448a86a78be19e5d4aca39cf38d7da2647d4c3d0c1579dc57e186f68b6daf6e",
+    "shared/rd-rend2/lightrecon/joint.cpp": "6fe4d6bc4fe95588fdb8d12ec6b065a3ca1b6612c17d4c962b65c5d427931f43",
+    "shared/rd-rend2/lightrecon/joint.h": "f15d9fe8db4f635e653866b1b4d92ee153e6116dcefbc9f2d61e5f9925ca57d3",
+    "shared/rd-rend2/lightrecon/producer.cpp": "02590aa04004c5f5813c768ff99f8f4d4adea4ef8f3cbebe5a9c21524162ff76",
+    "shared/rd-rend2/lightrecon/producer.h": "719ae2e5b63edcd6476f9e174390dae7385ca2ec929665aae6c74aeab86a2613",
+    "shared/rd-rend2/lightrecon/uncertainty.cpp": "5ca0c9ae998d437c3e7812e737c55aa0dfaeb276acbf681a0516e1b2416cb44a",
+    "shared/rd-rend2/tr_lightrecon_types.cpp": "f26bfdbd6a1ddf460e2355abe5ebe1d3b4efd71ab25b4b4b5f38fdd1a31f7f1a",
+    "shared/rd-rend2/tr_lightrecon_types.h": "0d151448e3ea3b16ad3e410d4ac1d38063fda587f201f8b2df7224e0ca67655b",
+    "tools/lightrecon_test/lightrecon_joint_tool.cpp": "bd70eeda1df735e9a3239c14153be722eda653bf12b1f35e045b84c8f1124498",
+    "tools/rend2/joint/compiled.py": "961db7f7ab665a83324809befdf6d788f82bcb6bd03a0a7d71b3582798848ea8",
+    "tools/rend2/producer/benchmark.py": "391d0ec9aa23a0ee4b034f42208892218879a9fae996602d5d815a7656811cb6"
+  }
+}
