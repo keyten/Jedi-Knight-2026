@@ -302,7 +302,9 @@ void R_SkinSSSSetupDraw( const shaderStage_t *stage, UniformDataWriter& uniforms
 	vec4_t params = { 0.0f, 0.0f, -1.0f, 0.0f };
 	vec4_t wrap = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-	if ( stage->skinScatter > 0.0f && !backEnd.depthFill && !(viewParms.flags & VPF_DEPTHSHADOW) )
+	// r_skinSSSCompare 2: every stage drawn as not skin, without vid_restart
+	if ( stage->skinScatter > 0.0f && !R_CompareOff(RC_SKINSSS) &&
+		!backEnd.depthFill && !(viewParms.flags & VPF_DEPTHSHADOW) )
 	{
 		params[0] = stage->skinScatter;
 		if ( stage->skinMaskImage && s_maskUnitsOk )
@@ -311,10 +313,9 @@ void R_SkinSSSSetupDraw( const shaderStage_t *stage, UniformDataWriter& uniforms
 			samplers.AddStaticImage(stage->skinMaskImage, TB_SKINMASK);
 		}
 
-		// r_skinSSSCompare: left half without (the wrap / transmission of
-		// lightall; the diffusion is split by its composite)
-		if ( r_skinSSSCompare->integer )
-			params[2] = viewParms.viewportX + 0.5f * viewParms.viewportWidth;
+		// r_skinSSSCompare 1: left of the split without (the wrap /
+		// transmission of lightall; the diffusion is split by its composite)
+		params[2] = R_CompareSplitX(RC_SKINSSS);
 
 		if ( s_mode == 1 )
 		{
@@ -516,8 +517,10 @@ qboolean RB_SkinSSSWantsView( void )
 		return qfalse;
 
 	// strength 0 without debug views is mode 1 without wrap: skip the passes
+	if ( R_CompareOff(RC_SKINSSS) )
+		return qfalse;
 	return (qboolean)(r_skinSSSStrength->value > 0.0f || r_skinSSSDebug->integer >= SKIN_DEBUG_MASK ||
-		r_skinSSSCompare->integer);
+		R_CompareSplit(RC_SKINSSS));
 }
 
 /*
@@ -593,8 +596,7 @@ void RB_RenderSkinSSS( const screenViewInfo_t& info )
 		GL_BindToTMU(tr.skinBlurImage[0], TB_SPECULARMAP);
 		RB_ScreenSetViewUniforms(sp, info);
 
-		const float splitX = r_skinSSSCompare->integer ?
-			viewParms.viewportX + 0.5f * viewParms.viewportWidth : -1.0f;
+		const float splitX = R_CompareSplitX(RC_SKINSSS);
 		VectorSet4(settings2,
 			radiusUnits,
 			Com_Clamp(0.0f, 1.0f, r_skinSSSStrength->value),

@@ -248,13 +248,7 @@ void main()
 
 		color = mix(scene, water, weight);
 	}
-	if (debugView == 4)
-	{
-		vec3 preview = uv.x < 0.5 ? scene : color;
-		if (u_RainLensParams2.w < 0.5)
-			preview = pow(preview / (1.0 + preview), vec3(1.0 / 2.2));
-		color = abs(uv.x - 0.5) < 0.0015 ? vec3(1.0, 0.8, 0.0) : preview;
-	}
+	// debug view 4 (scene / final split) is r_rainLensCompare 1 now
 	if (debugView == 9)
 		color = ControllerPanel(gl_FragCoord.xy, screenSize, color);
 	out_Color = vec4(color, 1.0);

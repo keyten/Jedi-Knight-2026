@@ -10,13 +10,11 @@ The renderer computes light far brighter than a monitor can show: sky, lamps, sa
 
 - `r_toneMapMode 0` — **0** Rend2's original filmic curve. **1** ACES, the film look of many modern games: stronger contrast; very bright colored lights can shift hue. **2** AgX-like: gentler contrast; bright colored lights fade to white without changing hue.
 
-`r_toneMapDebug 2` shows legacy / ACES / AgX side by side.
+**Compare:** `r_toneMapCompare` — 1 split screen (original curve left, `r_toneMapMode` right), 2 original curve, 3 three strips: original / ACES / AgX.
 
 **Debug**
 
-- `r_toneMapDebug 1` — left legacy, right the current `r_toneMapMode`.
-- `r_toneMapDebug 2` — legacy / ACES / AgX strips.
-- `r_toneMapDebug 3..5` — raw HDR image, image after exposure, exposure in false color.
+- `r_toneMapDebug 1..3` — raw HDR image, image after exposure, exposure in false color.
 
 Design notes: [rend2-tonemapping.md](../rend2-tonemapping.md).
 
@@ -36,6 +34,8 @@ Instead of the original adaptation you can use real camera settings, mostly usef
 - `r_cameraAutoEVMin -6` — mode 2: the darkest scene it fully adapts to. Raise it to keep dark areas dark.
 - `r_cameraAutoEVMax 20` — mode 2: the brightest scene it fully adapts to. Lower it to keep bright areas bright.
 - `r_motionBlurPhysicalShutter 0` — 1: in modes 1–2, [motion blur](#motion-blur) length follows `r_cameraShutterSeconds` instead of the shutter angle.
+
+**Compare:** `r_cameraCompare 2` — the original exposure. No split screen: the scene is metered once for the whole view.
 
 **How it works.** Manual mode converts ISO, aperture and shutter into an exposure value (EV100), as a light meter would. Automatic mode measures the average scene brightness and moves toward it, clamped to the EV range. Exposure compensation is applied on top.
 
@@ -65,6 +65,8 @@ Original glow (`r_bloom -1`):
 
 - `r_dynamicGlowBloom 0.0` — also let bright parts of the scene glow, not only glow-marked surfaces.
 
+**Compare:** `r_bloomCompare` — 1 split screen (original glow left, HDR bloom right), 2 the original glow. The original glow is what `r_dynamicGlow` sets; with `r_dynamicGlow 0` the original side has none.
+
 **How it works.** HDR bloom takes the image before tone mapping, blurs progressively smaller copies of its bright parts and adds them back. Glowing materials always contribute; other pixels contribute only above a brightness threshold, scaled by `r_bloomSceneIntensity`.
 
 - `r_bloomThreshold 2.0` — brightness where scene bloom starts.
@@ -78,10 +80,11 @@ Applies a color filter to the whole image — warmer, colder, faded, more contra
 
 **Cost:** light.
 
-- `r_colorGrading 1` — on; does nothing without a LUT.
+- `r_colorGrading 0` — 1 on; does nothing without a LUT.
 - `r_colorGradingLUT ""` — a `.cube` file in the game data, for example `luts/warm.cube` in `base/` or a pk3. Empty uses the map's own LUT if it has one; `*identity` is neutral.
 - `r_colorGradingIntensity 1` — 0 original colors … 1 the full LUT.
-- `r_colorGradingCompare 0` — 1: original on the left, graded on the right.
+
+**Compare:** `r_colorGradingCompare` — 1 split screen (ungraded left), 2 ungraded.
 
 **Mod authors:** put `maps/<map>.cube` next to the `.bsp`; it loads with the map unless the player sets `r_colorGradingLUT`.
 
@@ -99,6 +102,8 @@ Fast camera turns and moving characters or sabers leave short streaks, like film
 - `r_motionBlurMaxPixels 32` — longest streak, in pixels at 1080p.
 - `r_motionBlurQuality 1` — 0 low, 1 medium, 2 high. Higher removes graininess in long streaks.
 - `r_motionBlurViewModelScale 0.5` — blur on your own hands, weapon and saber in first person.
+
+**Compare:** `r_motionBlurCompare` — 1 split screen (sharp left), 2 off.
 
 **How it works.** Every pixel stores how far its surface moved since the last frame. The blur samples along that movement. A camera cut or teleport would produce a huge false streak, so a jump bigger than the limits below resets the history instead.
 
@@ -118,8 +123,10 @@ Smooths jagged geometry edges.
 
 **Cost:** light.
 
-- `r_smaa 0` *(restart)* — 1 on.
-- `r_smaa_quality 2` *(restart)* — 0 low, 1 medium, 2 high, 3 ultra.
+- `r_smaa 0` *(restart)* — **1** SMAA 1x. **2** SMAA T2x: also smooths over two frames, with a slight camera jitter.
+- `r_smaaQuality 2` *(restart)* — 0 low, 1 medium, 2 high, 3 ultra.
+
+**Compare:** `r_smaaCompare` — 1 split screen (no anti-aliasing left; `r_smaa 1` only, T2x jitters the whole view), 2 off.
 
 **How it works.** SMAA finds edges in the finished image and blends pixels along them. It does not fix shimmering of very thin moving details, such as distant fences or grass.
 
@@ -131,10 +138,14 @@ Known side effects: sabers, blaster bolts, explosions and other effects drawn by
 
 - `r_linearLighting 0` *(restart)* — 1 on. Needs `r_hdr 1`, `r_toneMap 1` and `r_overBrightBits 0`; otherwise it is ignored.
 
+No compare cvar: lightmaps and textures are converted when they load, so only `vid_restart` switches it.
+
 Design notes: [rend2-tonemapping.md](../rend2-tonemapping.md#linear-lighting-r_linearlighting-experimental).
 
 ## Distortion color fringes
 
-Screen-distortion effects (Force push, some weapon shots, refractive shaders) split red, green and blue slightly, like a cheap lens.
+Screen-distortion effects (Force push, some weapon shots, refractive shaders) split red, green and blue slightly, like a cheap lens. Rend2 always drew fixed fringes; this makes them adjustable.
 
-- `r_refractionChromaticAberration 0.05` — fringe width; 0 turns it off.
+- `r_refractionChromaticAberration -1` — **-1** Rend2's original fixed fringes. **0** none. Above 0 the fringe width (0.05 subtle).
+
+**Compare:** `r_refractionChromaticAberrationCompare 2` — Rend2's original fringes. No split screen: the refraction is computed per vertex.

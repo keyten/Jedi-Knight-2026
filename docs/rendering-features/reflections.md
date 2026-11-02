@@ -17,7 +17,7 @@ Rend2's reflections come from cubemaps: 360° snapshots taken at a few points of
 - `r_ssrEmitters 1` — sabers, blaster bolts and other glowing effects are reflected even when off screen.
 - `r_ssrEmitterIntensity 1` — their brightness.
 
-`r_ssrCompare 1` shows cubemap-only reflections on the left and SSR on the right.
+**Compare:** `r_ssrCompare` — 1 split screen (cubemap reflections left), 2 off.
 
 **How it works.** For each glossy pixel the shader marches a ray through the on-screen depth image until it hits a surface, and uses that pixel's color as the reflection. A confidence value fades SSR out near screen edges and where the ray misses, so it blends into the cubemap without a seam. Sabers and effects are added separately as analytic light sources, which is why they reflect from off screen too.
 
@@ -55,6 +55,8 @@ On a rough floor, a lamp's reflection should stretch into a long streak toward y
 
 - `r_ssrStochastic 0` *(restart)* — 1 on.
 
+No compare cvar: the rough rays need their own passes and history; `r_ssrCompare` compares SSR as a whole.
+
 **How it works.** Each pixel traces one ray in a random direction drawn from its surface's roughness, shares results with its neighbours, and averages over frames.
 
 **Debug**
@@ -63,10 +65,12 @@ On a rough floor, a lamp's reflection should stretch into a long streak toward y
 
 ## Fog in reflections
 
-With volumetric fog, a distant object seen in a reflection should be as hazy as when you look at it directly. This makes the reflected ray pass through the fog too. On by default; also used by water reflections. Needs `r_volumetricFog 2`.
+With volumetric fog, a distant object seen in a reflection should be as hazy as when you look at it directly. This makes the reflected ray pass through the fog too. It is on whenever SSR or modern water is; also used by water reflections. Needs `r_volumetricFog 2`.
 
 **Cost:** light to medium.
 
 - `r_ssrReflectedFog 1` *(restart)* — 0 off.
+
+**Compare:** `r_ssrReflectedFogCompare` — 1 split screen (no fog in reflections left), 2 off (also for water reflections).
 
 **How it works.** The fog between the reflecting surface and the reflected hit is sampled along the ray and applied to the reflection. Cubemap fallback and saber/effect reflections don't get it.

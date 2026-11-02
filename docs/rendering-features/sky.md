@@ -17,6 +17,8 @@ In real air distant mountains and buildings turn pale and bluish, and the sky is
 - `r_atmosphereStart 0` — no haze closer than this distance (world units).
 - `r_atmosphereSunGlow 1` — mode 0: glow around the sun over the skybox. Lower it if the skybox's painted sun is elsewhere.
 
+**Compare:** `r_atmosphereCompare` — 1 split screen (original sky and distance left), 2 off.
+
 **How it works.** The renderer models two kinds of scattering along long view paths: air molecules (Rayleigh), which make the sky blue and distances bluish, and dust/haze (Mie), which makes a whitish glow around the sun. The result is applied to distant surfaces and the sky before volumetric fog.
 
 - `r_atmosphereRayleigh 1`, `r_atmosphereMie 1`, `r_atmosphereOzone 1` — density of air, of haze, and of ozone (sky color only).
@@ -53,6 +55,8 @@ Real 3D clouds above the map, with shaded undersides and bright edges toward the
 - `r_cloudSkyPortal 0` — 1: also draw clouds on maps with sky portals (approximate).
 - `r_cloudLegacy 1` — SP `fx_cloudlayer` entities: **0** ignored (their old haze is drawn), **1** used as a hint for the cloud style, **2** drawn as a literal ring (testing).
 
+**Compare:** `r_cloudsCompare` — 1 split screen (original sky left, no cloud shadows there), 2 off. `r_cloudShadowsCompare` — 1 split screen, 2 off, for the shadows alone.
+
 **How it works.** For each pixel a ray is marched through a layer of noise-shaped cloud density, checking light toward the sun at each step. The result is rendered at reduced resolution and averaged over frames.
 
 - `r_cloudSteps 64`, `r_cloudStepLength 150` — maximum steps per ray and step length in metres.
@@ -77,6 +81,6 @@ Design notes: [rend2-volumetric-clouds.md](../rend2-volumetric-clouds.md).
 
 ## Sky portal speed-up
 
-On maps with a sky portal (a separate scene shown through the sky), the portal scene is shaded only where the main view leaves the sky visible. The image is unchanged; on by default.
+On maps with a sky portal (a separate scene shown through the sky), the portal scene is shaded only where the main view leaves the sky visible. The image is unchanged, so there is no compare cvar.
 
-- `r_skyPortalCull 1` — 0 always shade the whole portal view.
+- `r_skyPortalCull 0` — 1 on: shade only the visible part of the portal view.

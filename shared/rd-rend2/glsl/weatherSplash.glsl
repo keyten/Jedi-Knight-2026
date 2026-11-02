@@ -370,8 +370,12 @@ flat in float var_SurfaceClass;
 out vec4 out_Color;
 out vec4 out_Glow;
 
+uniform vec4 u_CompareParams;	// x: r_rainSplashesCompare 1, no splashes left of this window x
+
 void main()
 {
+	if (gl_FragCoord.x < u_CompareParams.x)
+		discard;
 	int kind = int(var_Shape.x + 0.5);
 	// glow alpha 0 keeps the bloom buffer behind the splash untouched
 	out_Glow = vec4(0.0);

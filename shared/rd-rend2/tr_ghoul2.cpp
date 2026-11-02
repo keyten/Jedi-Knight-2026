@@ -1825,7 +1825,8 @@ static const SAnimSoftTable *G2_AnimSoftTable( const mdxaHeader_t *header )
 // once per skeleton traversal: decide whether this model gets soft limits
 static void G2_AnimSoftBegin( CBoneCache &BC, const CGhoul2Info &ghoul2, const mdxaHeader_t *header )
 {
-	const int mode = r_animSoftLimits ? r_animSoftLimits->integer : 0;
+	// r_animSoftLimitsCompare 2: the unmodified animation
+	const int mode = (r_animSoftLimits && !R_CompareOff(RC_ANIMSOFTLIMITS)) ? r_animSoftLimits->integer : 0;
 	const bool active =
 		mode != 0 &&
 		header->numBones > 1 &&

@@ -15,7 +15,7 @@ Darkens corners, wall joints, the ground under feet and crates, and small recess
 - `r_gtaoRadius 32` — how far an object reaches to darken its surroundings, in world units (a player is about 64 tall).
 - `r_gtaoPower 1.5` — strength; higher is darker.
 
-`r_aoCompare 1` shows original SSAO on the left and GTAO on the right.
+**Compare:** `r_aoCompare` — 1 split screen (left the original AO: Rend2's SSAO with `r_ssao 1`, none with `r_ssao 0`), 2 the original AO.
 
 **How it works.** For each pixel the shader looks around in the depth image to estimate how much of the surrounding sky of light is blocked by nearby geometry. It only knows what is on screen, so occlusion from objects just outside the view is missing. GTAO darkens only indirect light (ambient light, the indirect share of baked light and reflections), not direct sun or lamps, as in reality.
 
@@ -44,6 +44,8 @@ Rend2 allows at most 32 dynamic lights per frame — sabers, blaster bolts, expl
 - `r_forwardPlus 0` — 1 on.
 - `r_forwardPlusMaxShadowLights 4` — with dynamic-light shadows (`r_dlightMode 2`, see [Shadows](shadows.md#dynamic-light-shadows)), how many of the strongest lights cast them.
 
+**Compare:** `r_forwardPlusCompare 2` — the original 32-light path. No split screen: one frame uses one light path (and the picture only differs with more than 32 lights).
+
 **How it works.** The view is split into screen tiles and depth slices (clusters). Each frame every light is added to the clusters it touches, and each pixel loops only over its cluster's list.
 
 - `r_forwardPlusTileSize 64` — tile size in pixels.
@@ -71,7 +73,7 @@ A saber or explosion near a wall lights the wall — and with this, the wall als
 - `r_ssgiQuality 1` — 0 low, 1 medium, 2 high, 3 ultra.
 - `r_ssgiSource 0` — what bounces: **0** dynamic lights and glowing materials, **1** glowing materials only, **2** everything, including baked lighting (experimental: baked bounce is counted twice).
 
-`r_ssgiCompare 1` shows the screen without SSGI on the left and with it on the right.
+**Compare:** `r_ssgiCompare` — 1 split screen (no bounce left), 2 off.
 
 **How it works.** For each pixel the shader traces a few short rays through the on-screen depth image and picks up the light of the surfaces they hit. It only sees what is on screen, and the noisy result is averaged over several frames and smoothed.
 
@@ -102,6 +104,8 @@ A dynamic light in JKA is a point. Real lamps have size and shape: a long ceilin
 - `r_ltcAutoAreaLights 1` — find lamps on maps without a light file: **0** off, **1** clear lamp shapes, **2** also doubtful ones (more lamps, more mistakes). Applied at map load.
 - `r_ltcIntensityScale 1` — brightness of map area lights.
 - `r_ltcStaticShadows 0` — shadows of map area lights: **0** off, **1** world shadows (cached), **2** also characters near up to four lights.
+
+**Compare:** `r_ltcAreaLightsCompare` — 1 split screen (no map area lights left), 2 off (sabers fall back to their point light).
 
 **Mod authors:** a map's own `maps/<map>.arealights.json` replaces auto-detection. A warm rectangle lamp:
 
@@ -137,14 +141,18 @@ The saber light normally comes from one point at the middle of the blade, so flo
 - `r_ltcSaberIntensityScale 1` — brightness.
 - `r_ltcSaberLuminance 40000` — blade brightness in nits with `r_pbrPhysical 1`.
 
+**Compare:** `r_ltcSaberCompare 2` — the original point light. No split screen: a saber gives the frame either its blade light or its point light.
+
 ## Spot lights (mod authors)
 
 Flashlight-like cones instead of lights that shine in every direction. Stock effects have no cones; a mod adds them in EFX files. Cones can cast shadows (`r_dlightMode 2`) and show a beam in [volumetric fog](fog.md).
 
 **Cost:** light; shadows and fog beams medium.
 
-- `r_spotLights 1` — 0 draws authored spots as ordinary point lights.
+- `r_spotLights 0` — 1 on; 0 draws authored spots as ordinary point lights.
 - `r_spotLightShadows 1` — 0 no spot shadows.
+
+**Compare:** `r_spotLightsCompare 2` — spots as point lights. No split screen: a spot's shadow is a cone or a cube for the whole frame.
 
 Add a `spot` block inside an EFX `Light`; its size and color still set range and color:
 
@@ -172,7 +180,9 @@ A spot light can project an image — a grate, a window frame, colored glass —
 
 **Cost:** light.
 
-- `r_spotLightCookies 1` — **0** off, **1** pattern brightness only, **2** in color.
+- `r_spotLightCookies 0` — **0** off, **1** pattern brightness only, **2** in color.
+
+**Compare:** `r_spotLightCookiesCompare` — 1 split screen (no pattern left, also in fog), 2 off.
 
 Inside the EFX `spot` block add `cookie textures/imperial/grate02`; `cookieRoll <degrees>` rotates it.
 

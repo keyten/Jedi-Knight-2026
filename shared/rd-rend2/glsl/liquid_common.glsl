@@ -18,6 +18,9 @@
 // Overlapping brushes of different media add up (no stock map has any).
 
 #if defined(USE_LIQUIDS)
+// r_waterCausticsCompare 1: no caustics left of the split line, set first thing by the program
+// (lightall R_CompareSetup, the froxel injection after FroxelCompareSetup)
+bool g_liquidCausticOriginal = false;
 layout(std140) uniform Liquids
 {
 	vec4 u_LiquidParams;		// visible brushes, camera liquid class (-1 none), sun path on, class mask
@@ -283,7 +286,7 @@ float LiquidFade(in float viewDepth)
 // at the focus depth and slowly decays deeper. Box mips: big footprints see the mean.
 float LiquidCaustic(in vec2 xy, in float depth, in float footprint)
 {
-	if (u_LiquidCausticSurface.x < 0.5)
+	if (u_LiquidCausticSurface.x < 0.5 || g_liquidCausticOriginal)
 		return 1.0;
 	float strength = u_LiquidCaustics.w;
 	if (strength <= 0.0)
@@ -347,7 +350,8 @@ float LiquidSurfaceDrivenCaustic(in int brush, in vec3 entry, in float depth, in
 	in vec3 lightVector, in bool localLight, out vec3 diagnostic)
 {
 	diagnostic = vec3(0.0);
-	if (brush < 0 || u_LiquidCausticDebug.w < 0.5 || depth > u_LiquidCausticSurface.z) return 1.0;
+	if (brush < 0 || u_LiquidCausticDebug.w < 0.5 || depth > u_LiquidCausticSurface.z ||
+		g_liquidCausticOriginal) return 1.0;
 	float spacing = max(u_LiquidCausticSurface.y,
 		max(footprint, sqrt(max(depth, 0.0))) * u_LiquidCausticDebug.x);
 	vec2 slope; vec3 ray; float interaction;

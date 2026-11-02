@@ -203,7 +203,8 @@ void RE_AddSpotLightToScene( const refSpotLight_t *light )
 	}
 	dlight_t *dl = R_AddSceneDynamicLight(light->origin, light->radius,
 		light->color[0], light->color[1], light->color[2], (light->flags & SPOTLIGHT_ADDITIVE) ? qtrue : qfalse);
-	if ( !dl || !r_spotLights->integer )
+	// r_spotLightsCompare 2: the authored spot as a point light
+	if ( !dl || !r_spotLights->integer || R_CompareOff(RC_SPOTLIGHTS) )
 		return;
 	R_SetSpotCone(dl, light->dir, light->innerAngle, light->outerAngle);
 	dl->spotNoShadow = (light->flags & SPOTLIGHT_NOSHADOW) ? qtrue : qfalse;

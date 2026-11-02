@@ -33,7 +33,7 @@ uniform vec4 u_AOProjection;        // P[0], P[5], P[8], P[9]
 uniform vec4 u_AODepthParams;       // P[14], P[10], zFar, sky threshold
 uniform vec4 u_AOViewport;          // view rectangle in texture coordinates
 uniform vec4 u_AOTexelSize;         // xy = 1 / AO texture size, zw = 1 / screen size
-uniform vec4 u_AOSettings;          // AO source (0 none, 1 legacy, 2 GTAO, 3 split), split x, contact shadows, contact strength
+uniform vec4 u_AOSettings;          // AO source (0 none, 1 legacy, 2 GTAO, 3 split legacy | GTAO, 4 split none | GTAO), split x, contact shadows, contact strength
 uniform vec4 u_AOSettings2;         // contact length, steps, thickness, view size of a pixel at depth 1
 uniform vec4 u_AOSettings3;         // soft contact shadows (r_contactShadowSoft), bent normals, unused, unused
 uniform vec3 u_AOLightDir;          // view space direction to the sun
@@ -276,8 +276,11 @@ void main()
 	bool withBent = u_AOSettings3.y > 0.5;
 	vec3 bentView = vec3(0.0, 0.0, -1.0);
 	int source = int(u_AOSettings.x);
+	// r_aoCompare 1: the original left of the split (3 legacy SSAO, 4 none)
 	if (source == 3)
 		source = uv.x < u_AOSettings.y ? 1 : 2;
+	else if (source == 4)
+		source = uv.x < u_AOSettings.y ? 0 : 2;
 	if (source == 1)
 		ao = texture(u_LegacyAOMap, uv).r;
 	else if (source == 2)
@@ -290,7 +293,7 @@ void main()
 		bentEncoded = OctEncode(normalize(mat3(u_AOViewToWorld) * bentView));
 
 	float contact = 1.0;
-	if (u_AOSettings.z > 0.5)
+	if (u_AOSettings.z > 0.5 && uv.x >= u_AOSettings3.z)
 		contact = ContactShadow(pix, uv, P, z);
 
 	out_Color = vec4(ao, contact, bentEncoded);

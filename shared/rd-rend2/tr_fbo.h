@@ -66,6 +66,8 @@ void FBO_Blit(FBO_t *src, vec4i_t srcBox, vec2_t srcTexScale, FBO_t *dst, vec4i_
 
 void FBO_FastBlit(FBO_t *src, vec4i_t srcBox, FBO_t *dst, vec4i_t dstBox, int buffers, int filter);
 void FBO_FastBlitIndexed(FBO_t *src, FBO_t *dst, int srcReadBuffer, int dstDrawBuffer, int buffers, int filter);
+void FBO_BlitColorRect(FBO_t *src, int srcReadBuffer, FBO_t *dst, int dstDrawBuffer, const int box[4]);
+FBO_t *FBO_CompareScratch(void);
 
 
 #endif

@@ -302,8 +302,11 @@ qboolean RB_SSGIWantsView( void )
 		return qfalse;
 
 	// zero intensity without debug views is the legacy look: skip the passes
-	// (lightall still writes the attachments: isolates their cost)
-	return (qboolean)(r_ssgiIntensity->value > 0.0f || r_ssgiDebug->integer || r_ssgiCompare->integer);
+	// (lightall still writes the attachments: isolates their cost); so is
+	// r_ssgiCompare 2, r_ssgi 0 without vid_restart
+	if ( R_CompareOff(RC_SSGI) )
+		return qfalse;
+	return (qboolean)(r_ssgiIntensity->value > 0.0f || r_ssgiDebug->integer || R_CompareSplit(RC_SSGI));
 }
 
 static qboolean RB_SSGIUseHiZ( void )
@@ -563,8 +566,7 @@ void RB_RenderSSGI( const screenViewInfo_t& info )
 				break;
 		}
 
-		const float splitX = r_ssgiCompare->integer ?
-			viewParms.viewportX + 0.5f * viewParms.viewportWidth : -1.0f;
+		const float splitX = R_CompareSplitX(RC_SSGI);
 
 		shaderProgram_t *sp = &tr.ssgiCompositeShader;
 		FBO_Bind(tr.screenCompositeFbo);

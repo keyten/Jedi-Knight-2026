@@ -338,7 +338,7 @@ static void LogLight( trRefEntity_t *ent ) {
 /*
 ===============================================================================
 
-r_entitySunSplit
+r_entitySunLight
 
 The light grid stores one directed light per cell: the sum of every light the
 cell sees (the sun, lamps, bounce) along their mean direction. The legacy model
@@ -393,7 +393,7 @@ qboolean R_EntitySunSplitWanted( void )
 {
 	// the split lives in the per pixel legacy grid path only: the fast light
 	// vertex path and the multi-point / GPU grids keep the legacy light
-	return (qboolean)(r_entitySunSplit && r_entitySunSplit->integer &&
+	return (qboolean)(r_entitySunLight && r_entitySunLight->integer &&
 		r_sunlightMode->integer &&
 		(r_normalMapping->integer || r_specularMapping->integer) &&
 		r_entityLightGrid->integer == 0 && r_entityLightGridDebug->integer == 0);
@@ -452,7 +452,7 @@ void R_CalibrateEntitySun( world_t *world )
 	}
 	if ( (int)cells.size() < ENTITY_SUN_CALIBRATION_MIN_CELLS )
 	{
-		ri.Printf(PRINT_DEVELOPER, "r_entitySunSplit: %d grid cells lit from the sun direction, legacy entity light\n",
+		ri.Printf(PRINT_DEVELOPER, "r_entitySunLight: %d grid cells lit from the sun direction, legacy entity light\n",
 			(int)cells.size());
 		return;
 	}
@@ -468,7 +468,7 @@ void R_CalibrateEntitySun( world_t *world )
 	}
 	world->entitySunCells = (int)cells.size();
 	world->entitySunValid = qtrue;
-	ri.Printf(PRINT_DEVELOPER, "r_entitySunSplit: grid sun %.1f %.1f %.1f from %d cells\n",
+	ri.Printf(PRINT_DEVELOPER, "r_entitySunLight: grid sun %.1f %.1f %.1f from %d cells\n",
 		world->entitySunGrid[0], world->entitySunGrid[1], world->entitySunGrid[2], world->entitySunCells);
 }
 
@@ -515,7 +515,8 @@ static qboolean R_EntitySunProbe( const vec3_t point, const vec3_t sunDir )
 static void R_SetupEntitySunSplit( const trRefdef_t *refdef, trRefEntity_t *ent, const vec3_t lightOrigin )
 {
 	ent->sunSplit = qfalse;
-	if ( !R_EntitySunSplitWanted() || ent == &tr.worldEntity || ent->e.reType != RT_MODEL ||
+	// r_entitySunLightCompare 2: the light grid's merged light (u_EntitySun.w 0)
+	if ( !R_EntitySunSplitWanted() || R_CompareOff(RC_ENTITYSUNSPLIT) || ent == &tr.worldEntity || ent->e.reType != RT_MODEL ||
 		(refdef->rdflags & RDF_NOWORLDMODEL) || !tr.world || !tr.world->lightGridData ||
 		!tr.world->entitySunValid || r_fullbright->integer || tr.refdef.doLAGoggles )
 		return;

@@ -58,8 +58,8 @@ def launch(repo, installation, map_name, enabled, timeout):
         commands += [EXTRA_VIEWS[map_name], 'centerview', '+lookdown', 'wait 8', '-lookdown',
                      'wait 40', f'screenshot_tga waterfall-{map_name}-upper-{mode}', 'wait 10']
     if enabled:
-        commands += ['r_waterSurfaceDebug 9', 'r_waterSurfaceSplit 0.5', 'wait 5',
-                     f'screenshot_tga waterfall-{map_name}-split', 'r_waterSurfaceDebug 0']
+        commands += ['r_waterSurfaceCompare 1', 'r_compareSplit 0.5', 'wait 5',
+                     f'screenshot_tga waterfall-{map_name}-split', 'r_waterSurfaceCompare 0']
         for debug_mode, name in ((1, 'classified'), (2, 'flow'), (3, 'along'),
                            (5, 'thickness'), (7, 'turbulence'), (8, 'aeration'),
                            (9, 'foam-source'), (10, 'spray-source'),

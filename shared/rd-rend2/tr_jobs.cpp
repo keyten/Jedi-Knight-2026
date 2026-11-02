@@ -135,12 +135,8 @@ void WorkerMain() {
 }
 
 cvar_t *LoadThreadsCvar() {
-#ifdef REND2_SP
-	static cvar_t *threads = ri.Cvar_Get("r_loadThreads", "-1", CVAR_ARCHIVE);
-#else
-	static cvar_t *threads = ri.Cvar_Get("r_loadThreads", "-1", CVAR_ARCHIVE,
-		"Worker threads for load-time texture work: -1 = automatic, 0 = none");
-#endif
+	static cvar_t *threads = R_CvarInt("r_loadThreads", "0", CVAR_ARCHIVE, -1, 64,
+		"Worker threads for load-time texture work: -1 automatic, 0 none, N threads");
 	return threads;
 }
 

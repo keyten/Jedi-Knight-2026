@@ -891,7 +891,7 @@ frame) and adds the draw surface.
 */
 void R_AddWaterParticleSurfaces( const trRefdef_t *refdef, const viewParms_t *view )
 {
-	if ( !r_waterParticles->integer || !tr.world || !tr.waterParticleInternalShader )
+	if ( !r_waterParticles->integer || R_CompareOff(RC_WATERPARTICLES) || !tr.world || !tr.waterParticleInternalShader )
 	{
 		if ( s_wp.activeBody >= 0 )
 			WP_Deactivate("r_waterParticles 0");
@@ -1010,6 +1010,8 @@ void RB_SurfaceWaterParticles( surfaceType_t *surface )
 	SamplerBindingsWriter samplerBindingsWriter;
 	uniformDataWriter.Start(program);
 	uniformDataWriter.SetUniformVec4(UNIFORM_WATERPARTICLES, s_wp.drawParams[0], 2);
+	// x: r_waterParticlesCompare 1, no specks left of this window x
+	uniformDataWriter.SetUniformVec4(UNIFORM_COMPAREPARAMS, R_CompareSplitX(RC_WATERPARTICLES), 0.0f, 0.0f, 0.0f);
 	samplerBindingsWriter.AddStaticImage(s_wp.bubbleImage ? s_wp.bubbleImage : tr.whiteImage, TB_DIFFUSEMAP);
 	// the medium in front of the particles: the froxel volume lookup of the
 	// transparent layers (mode 1, 3 with RGB extinction), else none

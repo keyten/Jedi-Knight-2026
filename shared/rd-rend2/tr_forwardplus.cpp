@@ -410,7 +410,8 @@ void R_ForwardPlusBeginFrame( void )
 	if ( s_fp.testLights > 0 && !R_ForwardPlusCheatsEnabled() && s_fp.benchStep < 0 )
 		s_fp.testLights = 0;
 
-	s_fp.active = (qboolean)(r_forwardPlus->integer != 0 && !s_fp.gpuFailed);
+	// r_forwardPlusCompare 2: the original 32 light path for the frame
+	s_fp.active = (qboolean)(r_forwardPlus->integer != 0 && !s_fp.gpuFailed && !R_CompareOff(RC_FORWARDPLUS));
 
 	// LTC area lights depend on this frame's Forward+ state
 	R_AreaLightsBeginFrame();

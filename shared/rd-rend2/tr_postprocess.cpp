@@ -35,7 +35,8 @@ void RB_GetToneMapParams(vec4_t params)
 {
 	const float ev = r_exposureCompensation->value;
 
-	params[0] = (float)r_toneMapMode->integer;
+	// r_toneMapCompare 2: the original operator without touching r_toneMapMode
+	params[0] = R_CompareOff(RC_TONEMAP) ? 0.0f : (float)r_toneMapMode->integer;
 	params[1] = (float)r_toneMapDebug->integer;
 
 	// The legacy operator works directly on the HDR buffer, which holds
@@ -59,7 +60,7 @@ EV100 and does not alter the photographic camera settings.
 void RB_GetCameraParams(vec4_t params, vec4_t autoParams)
 {
 	const int mode = Com_Clampi(Rend2Camera::CAMERA_LEGACY,
-		Rend2Camera::CAMERA_PHYSICAL_AUTO, r_cameraMode->integer);
+		Rend2Camera::CAMERA_PHYSICAL_AUTO, R_CameraMode());
 	params[0] = (float)mode;
 	params[1] = Rend2Camera::EV100(r_cameraISO->value,
 		r_cameraAperture->value, r_cameraShutterSeconds->value);
@@ -75,7 +76,7 @@ void RB_GetCameraParams(vec4_t params, vec4_t autoParams)
 
 float RB_GetCameraBufferGain(void)
 {
-	const float legacyCameraEV = r_cameraMode->integer == Rend2Camera::CAMERA_LEGACY ?
+	const float legacyCameraEV = R_CameraMode() == Rend2Camera::CAMERA_LEGACY ?
 		r_cameraExposure->value : 0.0f;
 	return powf(2.0f, legacyCameraEV + tr.overbrightBits);
 }
@@ -95,12 +96,12 @@ static void RB_CameraDebug(const float encodedLevels[4])
 	const float physicalLum = sceneLum / r_pbrPhysicalToScene->value;
 	const float manualEV = Rend2Camera::EV100(r_cameraISO->value,
 		r_cameraAperture->value, r_cameraShutterSeconds->value);
-	const float targetEV = r_cameraMode->integer == Rend2Camera::CAMERA_PHYSICAL_AUTO ?
+	const float targetEV = R_CameraMode() == Rend2Camera::CAMERA_PHYSICAL_AUTO ?
 		Rend2Camera::AutoEV100(physicalLum, r_cameraAutoEVMin->value,
 			r_cameraAutoEVMax->value) : manualEV;
 	const float finalExposure = Rend2Camera::SceneExposure(targetEV,
 		r_pbrPhysicalToScene->value, r_exposureCompensation->value);
-	const char *modeName = r_cameraMode->integer == Rend2Camera::CAMERA_PHYSICAL_AUTO ?
+	const char *modeName = R_CameraMode() == Rend2Camera::CAMERA_PHYSICAL_AUTO ?
 		"physical-auto" : "physical-manual";
 
 	ri.Printf(PRINT_ALL,
@@ -123,18 +124,56 @@ void RB_GetColorGrading(image_t **lut, vec4_t params)
 	image_t *image = tr.colorGradingLutImage;
 	const float intensity = r_colorGradingIntensity->value;
 
-	if (!image || !r_colorGrading->integer || intensity <= 0.0f)
+	if (!image || !r_colorGrading->integer || intensity <= 0.0f || R_CompareOff(RC_COLORGRADING))
 	{
 		*lut = tr.identityLutImage;
 		VectorSet4(params, 0.0f, 0.0f, 2.0f, 0.0f);
 		return;
 	}
 
+	// r_colorGradingCompare 1: ungraded left of the split line (w)
+	const float splitX = R_CompareSplitX(RC_COLORGRADING);
 	*lut = image;
-	params[0] = r_colorGradingCompare->integer ? 2.0f : 1.0f;
+	params[0] = splitX >= 0.0f ? 2.0f : 1.0f;
 	params[1] = intensity;
 	params[2] = (float)image->width;
-	params[3] = 0.0f;
+	params[3] = splitX;
+}
+
+/*
+=============
+RB_GetOutputCompareParams
+
+u_CompareParams of the output transform (tonemap, refraction): x = split
+line, y = r_toneMapCompare (1 split, 2 strips, 0 none), z unused, w = split
+line of r_smaaCompare (-1 none)
+=============
+*/
+void RB_GetOutputCompareParams(vec4_t params)
+{
+	const int toneMap = R_CompareMode(RC_TONEMAP);
+	// w: r_smaaCompare 1 (SMAA 1x programs), not T2x: its jitter moves the whole view
+	VectorSet4(params, backEnd.refdef.compareSplitX,
+		toneMap == COMPARE_SPLIT ? 1.0f : (toneMap == COMPARE_OFF + 1 ? 2.0f : 0.0f),
+		-1.0f,
+		R_SMAAMode() == 1 ? R_CompareSplitX(RC_SMAA) : -1.0f);
+	if (toneMap == COMPARE_SPLIT && backEnd.refdef.compareSplitX < 0.0f)
+		params[1] = 0.0f;
+}
+
+/*
+=============
+R_BloomMode
+
+r_bloom as drawn: r_bloomCompare 2 turns HDR bloom (1) back into the original
+dynamic glow (-1) without touching r_bloom
+=============
+*/
+int R_BloomMode(void)
+{
+	if (r_bloom->integer == 1 && R_CompareOff(RC_BLOOM))
+		return -1;
+	return r_bloom->integer;
 }
 
 void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, int autoExposure)
@@ -144,7 +183,7 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 	static int lastFrameCount = 0;
 	static int lastMeterCameraMode = -1;
 	static qboolean warnedCameraExposure = qfalse;
-	const qboolean physicalCamera = (qboolean)(r_cameraMode->integer !=
+	const qboolean physicalCamera = (qboolean)(R_CameraMode() !=
 		Rend2Camera::CAMERA_LEGACY);
 	const qboolean meterScene = (qboolean)(autoExposure ||
 		(physicalCamera && r_cameraDebug->integer));
@@ -204,12 +243,12 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 		// exact legacy behavior, +/-24 for the physical meter). Do not blend
 		// incompatible encodings across a live mode switch.
 		const qboolean resetMeter = (qboolean)(
-			(lastMeterCameraMode >= 0 && lastMeterCameraMode != r_cameraMode->integer) ||
+			(lastMeterCameraMode >= 0 && lastMeterCameraMode != R_CameraMode()) ||
 			(lastMeterCameraMode < 0 && physicalCamera));
 		color[3] = resetMeter ? 1.0f :
 			Com_Clamp(0.0f, 1.0f, 0.001f * backEnd.refdef.frameTime);
 		FBO_Blit(tr.targetLevelsFbo, srcBox, NULL, tr.calcLevelsFbo, NULL,  NULL, color, GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA);
-		lastMeterCameraMode = r_cameraMode->integer;
+		lastMeterCameraMode = R_CameraMode();
 
 		if (physicalCamera && r_cameraDebug->integer)
 		{
@@ -245,7 +284,17 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 	shaderProgram_t *shader = srgbTransform ? &tr.tonemapShader[1] : &tr.tonemapShader[0];
 
 	if (r_smaa->integer == 1)
+	{
+		// r_smaaCompare 2 with the r_smaa 1 program: black blend weights
+		// blend nothing (RB_SMAAEdgesAndWeights is skipped)
+		if (R_SMAAMode() != 1)
+		{
+			FBO_Bind(tr.smaaBlendFbo);
+			GL_SetViewportAndScissor(0, 0, tr.smaaBlendFbo->width, tr.smaaBlendFbo->height);
+			qglClearBufferfv(GL_COLOR, 0, colorBlack);
+		}
 		GL_BindToTMU(tr.smaaBlendImage, 2);
+	}
 
 	FBO_Bind(NULL);
 	GL_SetViewportAndScissor(ldrBox[0], ldrBox[1], ldrBox[2], ldrBox[3]);
@@ -253,13 +302,18 @@ void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, in
 	GL_State(GLS_DEPTHTEST_DISABLE);
 	GLSL_BindProgram(shader);
 	GL_BindToTMU(hdrFbo->colorImage[0], TB_COLORMAP);
-	vec4_t bloomParams = {0, 0, 0, 0};
+	// y: r_bloomCompare 1, no HDR bloom left of this window x
+	vec4_t bloomParams = {0, -1, 0, 0};
 	if (RB_ModernBloomActive())
 	{
 		bloomParams[0] = r_bloomIntensity->value;
+		bloomParams[1] = R_CompareSplitX(RC_BLOOM);
 		GL_BindToTMU(tr.glowFboScaled[1]->colorImage[0], TB_SPECULARMAP);
 	}
 	GLSL_SetUniformVec4(shader, UNIFORM_BLOOMPARAMS, bloomParams);
+	vec4_t compareParams;
+	RB_GetOutputCompareParams(compareParams);
+	GLSL_SetUniformVec4(shader, UNIFORM_COMPAREPARAMS, compareParams);
 	GLSL_SetUniformVec4(shader, UNIFORM_COLOR, color);
 	GLSL_SetUniformVec2(shader, UNIFORM_AUTOEXPOSUREMINMAX, tr.refdef.autoExposureMinMax);
 	GLSL_SetUniformVec3(shader, UNIFORM_TONEMINAVGMAXLINEAR, tr.refdef.toneMinAvgMaxLinear);
@@ -710,9 +764,34 @@ void RB_BloomUpscale(FBO_t *sourceFBO, FBO_t *destFBO)
 	qglDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
+/*
+=============
+R_CameraMode
+
+r_cameraMode as drawn: r_cameraCompare 2 is the original exposure (0)
+=============
+*/
+int R_CameraMode(void)
+{
+	return R_CompareOff(RC_CAMERA) ? 0 : r_cameraMode->integer;
+}
+
+/*
+=============
+R_SMAAMode
+
+r_smaa as drawn: r_smaaCompare 2 turns it off without vid_restart (no
+jitter, no edges, no blending). Resources and programs follow r_smaa.
+=============
+*/
+int R_SMAAMode(void)
+{
+	return R_CompareOff(RC_SMAA) ? 0 : r_smaa->integer;
+}
+
 bool RB_ModernBloomActive()
 {
-	return r_bloom->integer == 1 && r_hdr->integer &&
+	return R_BloomMode() == 1 && r_hdr->integer &&
 		(r_toneMap->integer || r_forceToneMap->integer) && r_bloomIntensity->value > 0.0f;
 }
 

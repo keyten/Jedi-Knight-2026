@@ -391,7 +391,22 @@ void main()
 
 	mat3 inverseModel = inverse(mat3(u_ModelMatrix));
 
-	if (u_chromaticAberrationDelta > 0.0)
+	if (u_chromaticAberrationDelta < 0.0)
+	{
+		// Rend2's original fixed fringes (r_refractionChromaticAberration -1)
+		vec3 refraction_vec = normalize(refract(ws_ViewDir, ws_Normal, 1.0 / 1.35));
+		vec3 new_pos = (distance * refraction_vec) + wsPosition.xyz;
+		var_RefractPosR = MVP * vec4(inverseModel * new_pos, 1.0);
+
+		refraction_vec = normalize(refract(ws_ViewDir, ws_Normal, 1.0 / 1.20));
+		new_pos = (distance * refraction_vec) + wsPosition.xyz;
+		var_RefractPosG = MVP * vec4(inverseModel * new_pos, 1.0);
+
+		refraction_vec = normalize(refract(ws_ViewDir, ws_Normal, 1.0 / 1.05));
+		new_pos = (distance * refraction_vec) + wsPosition.xyz;
+		var_RefractPosB = MVP * vec4(inverseModel * new_pos, 1.0);
+	}
+	else if (u_chromaticAberrationDelta > 0.0)
 	{
 		vec3 refraction_vec = refract(ws_ViewDir, ws_Normal, etaG + u_chromaticAberrationDelta);
 		vec3 new_pos = (distance * refraction_vec) + wsPosition.xyz;
@@ -455,6 +470,7 @@ uniform vec4 u_CameraParams;
 uniform vec4 u_CameraAutoParams;
 uniform sampler3D u_ColorGradingLut;
 uniform vec4 u_ColorGradingParams;
+uniform vec4 u_CompareParams;
 uniform sampler2D u_BloomMap;
 uniform vec4 u_BloomParams;
 
@@ -513,7 +529,8 @@ void main()
 #endif
 
 #if defined(USE_TONEMAPPING)
-	if (u_BloomParams.x > 0.0)
+	// u_BloomParams.y: r_bloomCompare 1, no HDR bloom left of this window x
+	if (u_BloomParams.x > 0.0 && gl_FragCoord.x >= u_BloomParams.y)
 	{
 		vec3 bloom;
 		bloom.r = texture(u_BloomMap, texR).r;
@@ -525,7 +542,7 @@ void main()
 	vec3 minAvgMax = texture(u_LevelsMap, texG).rgb;
 	color.rgb = OutputTransform(color.rgb, minAvgMax, u_AutoExposureMinMax,
 		u_ToneMinAvgMaxLinear, u_ToneMapParams, u_CameraParams, u_CameraAutoParams,
-		u_ColorGradingLut, u_ColorGradingParams,
+		u_ColorGradingLut, u_ColorGradingParams, u_CompareParams,
 		gl_FragCoord.x);
 #endif
 

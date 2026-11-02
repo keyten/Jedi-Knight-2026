@@ -1863,12 +1863,22 @@ static void RB_SubmitRenderPass(
 		RB_DrawItems(numWaterLegacyItems, renderPass.drawItems, waterLegacyOrder);
 		RB_WaterSurfaceFinish();
 	}
+	// r_atmosphereCompare / r_cloudsCompare 1: the left of the split line is
+	// put back as it was before the composite
 	if (atmosphere)
+	{
+		const qboolean split = RB_CompareSaveScene(RC_ATMOSPHERE);
 		RB_AtmosphereComposite();
+		if (split)
+			RB_CompareRestoreScene(RC_ATMOSPHERE);
+	}
 	if (clouds)
 	{
 		RB_CloudsDrawSunEarly();
+		const qboolean split = RB_CompareSaveScene(RC_CLOUDS);
 		RB_CloudsComposite();
+		if (split)
+			RB_CompareRestoreScene(RC_CLOUDS);
 	}
 	if (froxelFog)
 		RB_VolumetricComposite();
@@ -1919,7 +1929,7 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 	// Four-stage waterfall shaders therefore need one extra item per surface;
 	// without this debug-only reserve the late legacy half can be dropped when
 	// the pass reaches its release-build capacity.
-	if (!backEnd.depthFill && r_waterSurfaceDebug->integer == 9)
+	if (!backEnd.depthFill && R_CompareSplit(RC_WATERSURFACE))
 		++estimatedNumShaderStages;
 
 	// Prepare memory for the current render pass
@@ -2828,7 +2838,7 @@ static void RB_UpdateTemporalConstants(gpuFrame_t *frame, gpuFrame_t *previousFr
 		memcpy(tempBlock.previousViewProjectionMatrix, frame->viewProjectionMatrix, sizeof(matrix_t));
 	tempBlock.previousTime = previousFrame->time;
 
-	if (r_smaa->integer == 2)
+	if (R_SMAAMode() == 2)
 	{
 		const vec2_t jitterPos[2] =
 		{
@@ -2865,15 +2875,20 @@ static void RB_UpdateSceneConstants(gpuFrame_t *frame, const trRefdef_t *refdef)
 	sceneBlock.currentTime = refdef->floatTime;
 	sceneBlock.frameTime = refdef->frameTime;
 	RB_AOSceneParams(sceneBlock.aoParams, sceneBlock.aoParams2);
+	sceneBlock.aoParams[3] = refdef->compareSplitX;
 	// r_entityShadowAmbient: the share of a model's grid ambient that the sun
 	// shadow darkens like the world lightmap (lightall, SHADOWMAP_MODULATE only)
-	sceneBlock.aoParams2[3] = r_sunlightMode->integer == 1 ?
+	sceneBlock.aoParams2[3] = r_sunlightMode->integer == 1 && !R_CompareOff(RC_ENTITYSHADOWAMBIENT) ?
 		Com_Clamp(0.0f, 1.0f, r_entityShadowAmbient->value) : 0.0f;
 	const float metersPerUnit = R_PBRMetersPerWorldUnit();
 	VectorSet4(sceneBlock.pbrParams, metersPerUnit, metersPerUnit * metersPerUnit,
 		tr.world ? tr.world->pbrLegacyCalibration : 1.0f,
 		r_pbrPhysical->integer ? 1.0f : 0.0f);
 	RB_SSGISceneParams(sceneBlock.ssgiParams);
+	// constants of this scene are built before its back end runs: the split
+	// line comes from refdef, not backEnd.refdef
+	R_CompareSceneParams(sceneBlock.compareSplit, sceneBlock.compareMask);
+	sceneBlock.compareSplit[0] = refdef->compareSplitX;
 	frame->time = refdef->floatTime;
 
 	tr.sceneUboOffset = RB_AppendConstantsData(
@@ -2909,7 +2924,7 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 	VectorSet4(lightsBlock.shadowPcss,
 		tanf(angularRadius),
 		Com_Clamp(0.0f, 256.0f, r_shadowPCSSMaxPenumbra->value),
-		r_shadowPCSS->integer ? 1.0f : 0.0f,
+		r_shadowPCSS->integer && !R_CompareOff(RC_PCSS) ? 1.0f : 0.0f,
 		(float)Com_Clampi(0, 2, r_shadowPCSSQuality->integer));
 	VectorSet4(lightsBlock.shadowDebug,
 		(float)Com_Clampi(0, 13, r_shadowDebug->integer),
@@ -3052,7 +3067,7 @@ static void RB_UpdateEntityLightConstants(
 	entityBlock.lightOrigin[3] = lightRadius;
 	if (refEntity->sunSplit)
 	{
-		// r_entitySunSplit: the directed light without its sun part, along its own
+		// r_entitySunLight: the directed light without its sun part, along its own
 		// direction; the sun is lit per pixel (lightall USE_ENTITY_SUN_SPLIT)
 		VectorScale(refEntity->residualLight, normalizeFactor, entityBlock.directedLight);
 		VectorCopy(refEntity->residualDir, entityBlock.lightOrigin);
@@ -3062,7 +3077,8 @@ static void RB_UpdateEntityLightConstants(
 	if (r_entityLightGrid->integer == 0 && r_entityLightGridDebug->integer == 0)
 		return;
 
-	int gridMode = r_entityLightGrid->integer;
+	// r_entityLightGridCompare 2: one grid sample per model, without vid_restart
+	int gridMode = R_CompareOff(RC_ENTITYLIGHTGRID) ? 0 : r_entityLightGrid->integer;
 	if (refEntity == &tr.worldEntity || refEntity->e.reType != RT_MODEL ||
 		!tr.world || !tr.world->lightGridData ||
 		(backEnd.refdef.rdflags & RDF_NOWORLDMODEL) ||
@@ -3824,6 +3840,41 @@ static const void	*RB_SwapBuffers( const void *data ) {
 
 /*
 =============
+RB_LegacyGlowPrepare
+
+The original dynamic glow chain (r_bloom -1) in glowFboScaled
+=============
+*/
+static void RB_LegacyGlowPrepare(image_t *sceneImage, qboolean rainLensFieldActive)
+{
+	GL_Cull(CT_TWO_SIDED);
+	RB_BloomDownscale(tr.glowImage, tr.glowFboScaled[0], rainLensFieldActive);
+
+	if (r_dynamicGlowBloom->value > 0.0f)
+	{
+		FBO_Bind(tr.glowFboScaled[0]);
+		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE);
+		GL_SetViewportAndScissor(0, 0, tr.renderFbo->width, tr.renderFbo->height);
+
+		GLSL_BindProgram(&tr.highpassShader);
+		GL_BindToTMU(sceneImage, 0);
+		GLSL_SetUniformVec3(&tr.highpassShader, UNIFORM_TONEMINAVGMAXLINEAR, tr.refdef.toneMinAvgMaxLinear);
+		GLSL_SetUniformFloat(&tr.highpassShader, UNIFORM_BLOOMSTRENGTH, r_dynamicGlowBloom->value);
+
+		// Draw fullscreen triangle
+		qglDrawArrays(GL_TRIANGLES, 0, 3);
+	}
+
+	int numPasses = Com_Clampi(1, ARRAY_LEN(tr.glowFboScaled), r_dynamicGlowPasses->integer);
+	for ( int i = 1; i < numPasses; i++ )
+		RB_BloomDownscale(tr.glowFboScaled[i - 1], tr.glowFboScaled[i]);
+
+	for ( int i = numPasses - 2; i >= 0; i-- )
+		RB_BloomUpscale(tr.glowFboScaled[i + 1], tr.glowFboScaled[i]);
+}
+
+/*
+=============
 RB_DynamicGlowPrepare
 
 Downscaled glow / bloom source for the dynamic glow composite
@@ -3860,33 +3911,10 @@ static void RB_DynamicGlowPrepare(image_t *sceneImage, qboolean rainLensFieldAct
 		return;
 	}
 
-	if (r_bloom->integer != -1 || !r_dynamicGlow->integer)
+	if (R_BloomMode() != -1 || !r_dynamicGlow->integer)
 		return;
 
-	GL_Cull(CT_TWO_SIDED);
-	RB_BloomDownscale(tr.glowImage, tr.glowFboScaled[0], rainLensFieldActive);
-
-	if (r_dynamicGlowBloom->value > 0.0f)
-	{
-		FBO_Bind(tr.glowFboScaled[0]);
-		GL_State(GLS_DEPTHTEST_DISABLE | GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE);
-		GL_SetViewportAndScissor(0, 0, tr.renderFbo->width, tr.renderFbo->height);
-
-		GLSL_BindProgram(&tr.highpassShader);
-		GL_BindToTMU(sceneImage, 0);
-		GLSL_SetUniformVec3(&tr.highpassShader, UNIFORM_TONEMINAVGMAXLINEAR, tr.refdef.toneMinAvgMaxLinear);
-		GLSL_SetUniformFloat(&tr.highpassShader, UNIFORM_BLOOMSTRENGTH, r_dynamicGlowBloom->value);
-
-		// Draw fullscreen triangle
-		qglDrawArrays(GL_TRIANGLES, 0, 3);
-	}
-
-	int numPasses = Com_Clampi(1, ARRAY_LEN(tr.glowFboScaled), r_dynamicGlowPasses->integer);
-	for ( int i = 1; i < numPasses; i++ )
-		RB_BloomDownscale(tr.glowFboScaled[i - 1], tr.glowFboScaled[i]);
-
-	for ( int i = numPasses - 2; i >= 0; i-- )
-		RB_BloomUpscale(tr.glowFboScaled[i + 1], tr.glowFboScaled[i]);
+	RB_LegacyGlowPrepare(sceneImage, rainLensFieldActive);
 }
 
 /*
@@ -3913,9 +3941,9 @@ static void RB_SMAAEdgesAndWeights(image_t *sceneImage)
 	qglClearBufferfv(GL_COLOR, 0, colorBlack);
 	GLSL_BindProgram(&tr.smaaBlendShader);
 	vec4_t subsamplesIndices;
-	if (r_smaa->integer == 1 || r_smaa->integer == 3)
+	if (R_SMAAMode() == 1 || R_SMAAMode() == 3)
 		VectorSet4(subsamplesIndices, 0.f, 0.f, 0.f, 0.f);
-	else if (r_smaa->integer == 2)
+	else if (R_SMAAMode() == 2)
 	{
 		if (backEndData->realFrameNumber % 2 == 0)
 			VectorSet4(subsamplesIndices, 1.f, 1.f, 1.f, 0.f);
@@ -3998,7 +4026,7 @@ const void *RB_PostProcess(const void *data)
 			GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 		srcFbo = tr.msaaResolveFbo;
 
-		if ( (r_bloom->integer == -1 && r_dynamicGlow->integer) || RB_ModernBloomActive() )
+		if ( (R_BloomMode() == -1 && r_dynamicGlow->integer) || RB_ModernBloomActive() )
 		{
 			FBO_FastBlitIndexed(tr.renderFbo, tr.msaaResolveFbo, 1, 1, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		}
@@ -4038,40 +4066,50 @@ const void *RB_PostProcess(const void *data)
 	// Lens rain (screen fixed) takes the same order: after the temporal
 	// resolve so the drops stay out of its history, before bloom scene
 	// extraction. The dedicated emissive MRT remains independent.
-	const qboolean rainLens = RB_RainLensUpdate(cmd ? &cmd->rainLens : NULL);
+	// r_rainLensCompare 2: the lens water keeps its simulation, not drawn
+	const qboolean rainLens = (qboolean)(RB_RainLensUpdate(cmd ? &cmd->rainLens : NULL) &&
+		(!R_CompareOff(RC_RAINLENS) || r_rainLensDebug->integer));
 	// Rain lens has color only. Keep the resolved scene FBO for the final
 	// depth blit even when subsequent color passes use rainLensFbo.
 	FBO_t *depthFbo = srcFbo;
 
 	if (motionBlur || rainLens)
 	{
-		if (r_smaa->integer == 2)
+		if (R_SMAAMode() == 2)
 		{
 			RB_SMAAEdgesAndWeights(srcFbo->colorImage[0]);
 			RB_SMAATemporalResolve(srcFbo, dstBox);
 		}
 
+		// r_motionBlurCompare / r_rainLensCompare 1: the unblurred / dry
+		// scene left of the split line
 		if (RB_MotionBlur(srcFbo) && !r_motionBlurDebug->integer)
+		{
+			RB_CompareRestoreLeft(RC_MOTIONBLUR, srcFbo, tr.motionBlurFbo);
 			srcFbo = tr.motionBlurFbo;
+		}
 		if (rainLens)
 		{
 			RB_RainLens(srcFbo);
 			if (!r_rainLensDebug->integer)
+			{
+				RB_CompareRestoreLeft(RC_RAINLENS, srcFbo, tr.rainLensFbo);
 				srcFbo = tr.rainLensFbo;
+			}
 		}
 		RB_DynamicGlowPrepare(srcFbo->colorImage[0], (qboolean)(rainLens && !r_rainLensDebug->integer));
 
-		if (r_smaa->integer && r_smaa->integer != 2)
+		if (R_SMAAMode() && R_SMAAMode() != 2)
 			RB_SMAAEdgesAndWeights(srcFbo->colorImage[0]);
 	}
 	else
 	{
 		RB_DynamicGlowPrepare(srcFbo->colorImage[0], qfalse);
 
-		if (r_smaa->integer)
+		if (R_SMAAMode())
 		{
 			RB_SMAAEdgesAndWeights(srcFbo->colorImage[0]);
-			if (r_smaa->integer == 2)
+			if (R_SMAAMode() == 2)
 				RB_SMAATemporalResolve(srcFbo, dstBox);
 		}
 	}
@@ -4081,7 +4119,7 @@ const void *RB_PostProcess(const void *data)
 	srcBox[2] = backEnd.viewParms.viewportWidth;
 	srcBox[3] = backEnd.viewParms.viewportHeight;
 
-	float exposure = (r_cameraMode->integer == 0 ? r_cameraExposure->value : 0.0f) +
+	float exposure = (R_CameraMode() == 0 ? r_cameraExposure->value : 0.0f) +
 		tr.overbrightBits;
 
 	if (srcFbo)
@@ -4093,12 +4131,12 @@ const void *RB_PostProcess(const void *data)
 		}
 		else if (r_hdr->integer && (r_toneMap->integer || r_forceToneMap->integer))
 		{
-			autoExposure = (qboolean)(r_cameraMode->integer == 2 ||
-				(r_cameraMode->integer == 0 &&
+			autoExposure = (qboolean)(R_CameraMode() == 2 ||
+				(R_CameraMode() == 0 &&
 					(r_autoExposure->integer || r_forceAutoExposure->integer)));
 			RB_ToneMap(srcFbo, srcBox, NULL, dstBox, autoExposure);
 		}
-		else if (r_smaa->integer == 1)
+		else if (R_SMAAMode() == 1)
 		{
 			FBO_Bind(NULL);
 			GL_SetViewportAndScissor(0, 0, srcFbo->width, srcFbo->height);
@@ -4210,7 +4248,15 @@ const void *RB_PostProcess(const void *data)
 	}
 #endif
 
-	if (r_bloom->integer == -1 && r_dynamicGlow->integer != 0 && !RB_AODebugBypassesToneMap())
+	// r_bloomCompare 1: HDR bloom right of the split line (tone map pass), the
+	// original glow (r_dynamicGlow) left of it, built now in the same images
+	const float bloomSplitX = RB_ModernBloomActive() && r_dynamicGlow->integer != 0 ?
+		R_CompareSplitX(RC_BLOOM) : -1.0f;
+	if (bloomSplitX >= 0.0f && !RB_AODebugBypassesToneMap())
+		RB_LegacyGlowPrepare(srcFbo->colorImage[0], (qboolean)(rainLens && !r_rainLensDebug->integer));
+
+	if (((R_BloomMode() == -1 && r_dynamicGlow->integer != 0) || bloomSplitX >= 0.0f) &&
+		!RB_AODebugBypassesToneMap())
 	{
 		// Composite the glow/bloom texture
 		int blendFunc = 0;
@@ -4236,7 +4282,21 @@ const void *RB_PostProcess(const void *data)
 			color[0] = color[1] = color[2] = r_dynamicGlowIntensity->value;
 		}
 
-		FBO_FastBlitFromTexture(tr.glowFboScaled[0]->colorImage[0], NULL, dstBox, color, blendFunc);
+		if (bloomSplitX >= 0.0f)
+		{
+			FBO_Bind(NULL);
+			GL_SetViewportAndScissor(dstBox[0], dstBox[1], dstBox[2], dstBox[3]);
+			GL_CompareScissor(dstBox[0], dstBox[1], (int)bloomSplitX - dstBox[0], dstBox[3]);
+			GL_Cull(CT_TWO_SIDED);
+			GL_State(GLS_DEPTHTEST_DISABLE | blendFunc);
+			GLSL_BindProgram(&tr.textureColorShader[TEXCOLORDEF_SCREEN_TRIANGLE]);
+			GL_BindToTMU(tr.glowFboScaled[0]->colorImage[0], TB_COLORMAP);
+			GLSL_SetUniformVec4(&tr.textureColorShader[TEXCOLORDEF_SCREEN_TRIANGLE], UNIFORM_COLOR, color);
+			RB_InstantTriangle();
+			GL_SetViewportAndScissor(dstBox[0], dstBox[1], dstBox[2], dstBox[3]);
+		}
+		else
+			FBO_FastBlitFromTexture(tr.glowFboScaled[0]->colorImage[0], NULL, dstBox, color, blendFunc);
 	}
 
 	RB_AODebugOverlay();
@@ -4253,6 +4313,9 @@ const void *RB_PostProcess(const void *data)
 		backEnd.refdef.drawSurfs + backEnd.refdef.fistDrawSurf,
 		backEnd.refdef.numDrawSurfs - tr.refdef.fistDrawSurf);
 	backEnd.refractionFill = qfalse;
+
+	// r_<feature>Compare: where the split screen is
+	RB_CompareDrawSplitLine();
 
 	return (const void *)(cmd + 1);
 }

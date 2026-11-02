@@ -566,6 +566,10 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 	if ( !tr.registered ) {
 		return;
 	}
+	// renderer cvar values (help on invalid ones) and r_<feature>Compare,
+	// before anything of this frame reads them
+	R_CvarValidateAll();
+	R_CompareValidate();
 	if (stereoFrame != STEREO_RIGHT)
 		R_SunShadowBenchmarkFrame();
 

@@ -73,16 +73,23 @@ int R_AOMode( void )
 		return AO_MODE_OFF;
 
 	int mode = r_aoMode->integer;
-	if ( mode < 0 )
+	// r_aoCompare 2: GTAO off without vid_restart, the original r_ssao again
+	if ( mode < 0 || (mode == AO_MODE_GTAO && R_CompareOff(RC_AO)) )
 		mode = r_ssao->integer ? AO_MODE_LEGACY : AO_MODE_OFF;
 	return Com_Clampi(AO_MODE_OFF, AO_MODE_GTAO, mode);
+}
+
+// r_aoCompare 1: the original (r_ssao) left of the split line, GTAO right
+static qboolean R_AOSplit( void )
+{
+	return (qboolean)(R_AOMode() == AO_MODE_GTAO && R_CompareSplit(RC_AO));
 }
 
 // Bent normals are a GTAO by-product for indirect lighting only; not in the
 // legacy / split screen comparison
 static float R_AOBentNormalStrength( void )
 {
-	if ( R_AOMode() != AO_MODE_GTAO || r_aoCompare->integer )
+	if ( R_AOMode() != AO_MODE_GTAO || R_AOSplit() )
 		return 0.0f;
 	return Com_Clamp(0.0f, 1.0f, r_gtaoBentNormals->value);
 }
@@ -443,7 +450,7 @@ static void RB_RenderAOComposite(
 	vec4_t settings, settings2;
 	VectorSet4(settings,
 		(float)aoSource,
-		info.viewport[0] + 0.5f * info.viewport[2],
+		backEnd.refdef.compareSplitX / (float)glConfig.vidWidth,
 		contactShadows ? 1.0f : 0.0f,
 		Com_Clamp(0.0f, 1.0f, r_contactShadowStrength->value));
 	VectorSet4(settings2,
@@ -453,11 +460,13 @@ static void RB_RenderAOComposite(
 		info.pixelViewSize);
 	GLSL_SetUniformVec4(sp, UNIFORM_AOSETTINGS, settings);
 	GLSL_SetUniformVec4(sp, UNIFORM_AOSETTINGS2, settings2);
-	// bent normals only where the AO is GTAO (not the split screen)
+	// bent normals only where the AO is GTAO (not the split screen); z: no
+	// contact shadows left of this uv x (r_contactShadowsCompare 1, -1 none)
+	const float contactSplit = R_CompareSplitX(RC_CONTACTSHADOWS);
 	const vec4_t settings3 = {
 		r_contactShadowSoft->integer ? 1.0f : 0.0f,
 		(bentResult && aoSource == 2) ? 1.0f : 0.0f,
-		0.0f, 0.0f };
+		contactSplit >= 0.0f ? contactSplit / (float)glConfig.vidWidth : -1.0f, 0.0f };
 	GLSL_SetUniformVec4(sp, UNIFORM_AOSETTINGS3, settings3);
 
 	const vec3_t *axis = backEnd.viewParms.ori.axis;
@@ -526,13 +535,16 @@ void RB_RenderScreenSpaceLighting( void )
 
 	const int debugView = r_aoDebug->integer;
 	const int mode = R_AOMode();
-	const qboolean compare = (qboolean)(r_aoCompare->integer != 0);
+	const qboolean compare = R_AOSplit();
+	// the original side: the legacy SSAO if r_ssao has it, else no AO
+	const qboolean compareLegacy = (qboolean)(compare && r_ssao->integer);
+	// r_contactShadowsCompare 2: off without vid_restart
 	const qboolean contact = (qboolean)(
-		r_contactShadows->integer &&
+		r_contactShadows->integer && !R_CompareOff(RC_CONTACTSHADOWS) &&
 		r_sunlightMode->integer &&
 		(viewParms.flags & VPF_USESUNLIGHT));
 
-	const qboolean needLegacy = (qboolean)(mode == AO_MODE_LEGACY || compare || debugView == 1);
+	const qboolean needLegacy = (qboolean)(mode == AO_MODE_LEGACY || compareLegacy || debugView == 1);
 	const qboolean needGtao = (qboolean)(mode == AO_MODE_GTAO || compare || (debugView >= 2 && debugView <= 5));
 
 	if ( !needLegacy && !needGtao && !contact )
@@ -570,7 +582,7 @@ void RB_RenderScreenSpaceLighting( void )
 
 	int aoSource = AO_MODE_OFF;
 	if ( compare )
-		aoSource = 3;
+		aoSource = compareLegacy ? 3 : 4;
 	else if ( mode == AO_MODE_LEGACY )
 		aoSource = 1;
 	else if ( mode == AO_MODE_GTAO )
@@ -623,13 +635,13 @@ void RB_AOSceneParams( vec4_t aoParams, vec4_t aoParams2 )
 		application = (mode == AO_MODE_GTAO) ? 1 : 0;
 	application = Com_Clampi(0, 1, application);
 
-	if ( r_aoCompare->integer )
+	if ( R_AOSplit() )
 		application = 2; // legacy application left, indirect-only right
 
 	aoParams[0] = (float)application;
 	aoParams[1] = Com_Clamp(0.0f, 1.0f, r_aoLightmapFraction->value);
 	aoParams[2] = r_aoMultiBounce->integer ? 1.0f : 0.0f;
-	aoParams[3] = 0.5f * glConfig.vidWidth;
+	aoParams[3] = -1.0f; // split line of the scene: RB_UpdateSceneConstants
 
 	// specular occlusion of the indirect-only application: 0 = scalar AO,
 	// 1 = Lagarde (AO, roughness, N.V), 2 = bent cone / specular cone

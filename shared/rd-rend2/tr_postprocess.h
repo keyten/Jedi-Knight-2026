@@ -30,6 +30,7 @@ void RB_GetToneMapParams(vec4_t params);
 void RB_GetCameraParams(vec4_t params, vec4_t autoParams);
 float RB_GetCameraBufferGain(void);
 void RB_GetColorGrading(image_t **lut, vec4_t params);
+void RB_GetOutputCompareParams(vec4_t params);
 void RB_ToneMap(FBO_t *hdrFbo, vec4i_t hdrBox, FBO_t *ldrFbo, vec4i_t ldrBox, int autoExposure);
 void RB_BokehBlur(FBO_t *src, vec4i_t srcBox, FBO_t *dst, vec4i_t dstBox, float blur);
 void RB_SunRays(FBO_t *srcFbo, vec4i_t srcBox, FBO_t *dstFbo, vec4i_t dstBox);
@@ -41,5 +42,8 @@ void RB_BloomDownscale(FBO_t *sourceFBO, FBO_t *destFBO);
 void RB_BloomUpscale(FBO_t *sourceFBO, FBO_t *destFBO);
 void RB_BloomUpscaleModern(FBO_t *sourceFBO, FBO_t *destFBO, float scatter);
 bool RB_ModernBloomActive();
+int R_BloomMode(void);
+int R_SMAAMode(void);
+int R_CameraMode(void);
 
 #endif

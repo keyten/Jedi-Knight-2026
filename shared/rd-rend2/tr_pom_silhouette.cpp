@@ -1227,7 +1227,8 @@ Front end
 
 qboolean R_PomSilhouetteActive( void )
 {
-	return (qboolean)(r_pomSilhouette->integer &&
+	// r_pomSilhouetteCompare 2: ordinary POM without vid_restart
+	return (qboolean)(r_pomSilhouette->integer && !R_CompareOff(RC_POMSILHOUETTE) &&
 		r_parallaxMapping->integer &&
 		tr.lightallSilhouetteShader[0].program != 0);
 }
@@ -1371,7 +1372,9 @@ int R_PomSilhouetteSurfaceMode( msurface_t *surf )
 
 	int mode = POM_SURF_SHELL;
 	const float fade = R_PomSilhouetteFadeWidth(range);
-	if ( dmax > range - fade || r_pomSilhouetteDebug->integer == 9 )
+	// r_pomSilhouetteCompare 1: the ordinary POM base under the shell too, the
+	// shell left of the split line is discarded
+	if ( dmax > range - fade || R_CompareSplit(RC_POMSILHOUETTE) )
 		mode |= POM_SURF_FADEBASE;
 	return mode;
 }
@@ -1483,8 +1486,7 @@ void RB_PomSilhouetteSetupDraw( const shaderStage_t *stage, UniformDataWriter& u
 	{
 		const float range = R_PomSilhouetteRange(shader);
 		const float width = R_PomSilhouetteFadeWidth(range);
-		const float split = (debugView == 9) ?
-			(float)viewParms.viewportX + 0.5f * (float)viewParms.viewportWidth : -1.0f;
+		const float split = R_CompareSplitX(RC_POMSILHOUETTE);
 		// .w: screen-space contact shadows on shell pixels (colour passes)
 		VectorSet4(fade, range - width, width > 0.0f ? 1.0f / width : 1e6f, split,
 			r_pomSilhouetteContactShadows->integer ? 1.0f : 0.0f);

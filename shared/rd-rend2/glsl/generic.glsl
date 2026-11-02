@@ -780,7 +780,7 @@ void main()
 		vec3 tint = (u_ParticleLight.w >= 3.0) ? vec3(0.0, 1.0, 1.0) : vec3(1.0, 0.0, 1.0);
 		color.rgb = tint * max(dot(color.rgb, vec3(0.3333)), 0.1);
 	}
-	else if (u_ParticleLight.w > 0.0)
+	else if (u_ParticleLight.w > 0.0 && gl_FragCoord.x >= u_ParticleLightSplit)
 	{
 		vec3 gain = ParticleLightLookup(var_WSPosition) * u_ParticleLight.x;
 		gain = clamp(gain, vec3(u_ParticleLight.y), vec3(u_ParticleLight.z));

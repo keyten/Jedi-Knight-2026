@@ -130,7 +130,8 @@ void R_AreaLightsBeginFrame( void )
 		s_al.unitsChecked = qtrue;
 	}
 
-	const qboolean wanted = (qboolean)(r_ltcAreaLights->integer != 0);
+	// r_ltcAreaLightsCompare 2: no area lights this frame (sabers give their point light)
+	const qboolean wanted = (qboolean)(r_ltcAreaLights->integer != 0 && !R_CompareOff(RC_LTC));
 	const qboolean fplus = R_ForwardPlusActive();
 
 	// one message per change of the cvars involved, not per frame; only the
@@ -695,7 +696,8 @@ its old point light, so the two never light the same frame twice.
 qboolean RE_AddLineLightToScene( const vec3_t start, const vec3_t end, float radius,
 	float range, float r, float g, float b )
 {
-	if ( !tr.registered || !s_al.active || !r_ltcSaberAreaLights->integer )
+	// r_ltcSaberCompare 2: the caller adds the original point light
+	if ( !tr.registered || !s_al.active || !r_ltcSaberAreaLights->integer || R_CompareOff(RC_LTCSABER) )
 		return qfalse;
 
 	vec3_t center, axis, up;

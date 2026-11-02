@@ -588,7 +588,7 @@ namespace
 	*/
 	bool RainSplashesEnabled(int weatherType)
 	{
-		return weatherType == WEATHER_RAIN && r_rainSplashes->integer != 0 &&
+		return weatherType == WEATHER_RAIN && r_rainSplashes->integer != 0 && !R_CompareOff(RC_RAINSPLASHES) &&
 			tr.weatherSystem->depthMapValid;
 	}
 
@@ -1048,6 +1048,8 @@ namespace
 			uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHPARAMS2, params2);
 			uniformDataWriter.SetUniformVec4(UNIFORM_RAINLIGHT, light);
 			RB_WeatherDynamicUniform(uniformDataWriter, true);
+			uniformDataWriter.SetUniformVec4(UNIFORM_COMPAREPARAMS,
+				R_CompareSplitX(RC_RAINSPLASHES), 0.0f, 0.0f, 0.0f);
 			if (surfaceResponse)
 			{
 				uniformDataWriter.SetUniformVec4(UNIFORM_SPLASHCLASSPARAMS, classParams);
@@ -1927,10 +1929,10 @@ void RB_SurfaceWeather( srfWeather_t *surf )
 		// streaks; snow, spacedust, sand and fog keep the legacy path
 		// LOD is allowed only when the far medium will actually render. If the
 		// volume is disabled/unsupported, every existing streak is retained.
-		const bool rainLod = rainSlot && r_rainLOD->integer != 0 &&
+		const bool rainLod = rainSlot && r_rainLOD->integer != 0 && !R_CompareOff(RC_RAINLOD) &&
 			R_VolumetricRainActive(&backEnd.refdef);
 		const bool rainStreaks = rainSlot &&
-			(r_rainStreaks->integer != 0 || rainLod);
+			((r_rainStreaks->integer != 0 && !R_CompareOff(RC_RAINSTREAKS)) || rainLod);
 
 		int stateBits = weatherType == WEATHER_SAND ?
 			GLS_DEPTHFUNC_LESS | GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA :
@@ -2231,7 +2233,7 @@ static void R_ResolvePrecipitationOptics(precipitationState_t *state)
 	state->optical.persistenceMultiplier = 1.0f;
 
 	if (state->subtype != RAIN_WEATHER_ACID || !r_acidRainVisuals ||
-		!r_acidRainVisuals->integer)
+		!r_acidRainVisuals->integer || R_CompareOff(RC_ACIDRAIN))
 		return;
 
 	vec3_t target;
@@ -2834,7 +2836,8 @@ geometry and world-anchored stream channels.
 
 qboolean R_WeatherWetnessEnabled(void)
 {
-	const bool weather = r_weatherWetness && r_weatherWetness->integer;
+	// r_weatherWetnessCompare 2: dry, without vid_restart
+	const bool weather = r_weatherWetness && r_weatherWetness->integer && !R_CompareOff(RC_WETNESS);
 	const bool shore = r_waterShoreline && r_waterShoreline->integer;
 	if (!weather && !shore)
 		return qfalse;
@@ -2960,7 +2963,9 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	// resolved scene state.
 	const bool raining = ws && ws->depthMapValid && tr.weatherDepthImage &&
 		precipitation.current;
-	const bool persistentMap = R_WeatherWetnessPersistenceEnabled() &&
+	// r_weatherWetnessPersistenceCompare 2: the wetness follows the rain at once
+	// (the stored water keeps being simulated)
+	const bool persistentMap = R_WeatherWetnessPersistenceEnabled() && !R_CompareOff(RC_WETNESSPERSISTENCE) &&
 		s_persistentWetness.resources && s_persistentWetness.valid;
 	const bool persistentWorld = !entity && persistentMap;
 	const bool wetnessActive = raining || persistentWorld;
@@ -3054,7 +3059,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	// weapons, props, movers). coverage < 0 marks an ineligible draw for
 	// r_weatherSurfaceDebug 10, 0 turns the layer off.
 	float coverage = 0.0f;
-	if (r_weatherPuddles->integer)
+	if (r_weatherPuddles->integer && !R_CompareOff(RC_PUDDLES))
 	{
 		const bool world = !backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity;
 		coverage = (eligible && world && scale[1] > 0.0f) ?
@@ -3112,7 +3117,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 		rippleFrame = tr.frameCount;
 		rippleTime = backEnd.refdef.floatTime;
 	}
-	const int rippleMode = Com_Clampi(0, 3, r_weatherPuddleRipples->integer);
+	const int rippleMode = R_CompareOff(RC_PUDDLERIPPLES) ? 0 : Com_Clampi(0, 3, r_weatherPuddleRipples->integer);
 	const bool realField = rippleMode >= 2 && s_persistentRipple.resources &&
 		s_persistentRipple.valid && coverage > 0.0f;
 	// Share of procedural cells that ring each cycle: light rain fewer than a
@@ -3147,7 +3152,7 @@ void RB_WeatherWetnessBind(const shader_t *shader, const shaderStage_t *pStage,
 	// walls. World geometry, and entities with r_weatherRunoffEntities, whose
 	// pattern frame follows their origin and yaw so it does not swim on them.
 	float runoffStrength = 0.0f;
-	if (r_weatherRunoff->integer)
+	if (r_weatherRunoff->integer && !R_CompareOff(RC_RUNOFF))
 	{
 		const bool world = !backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity;
 		runoffStrength = (eligible && (world || r_weatherRunoffEntities->integer) && scale[2] > 0.0f) ?

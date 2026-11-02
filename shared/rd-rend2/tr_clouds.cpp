@@ -427,6 +427,8 @@ const char *R_CloudsOffReason( void )
 {
 	if ( !R_CloudsEnabled() )
 		return "r_clouds 0";
+	if ( R_CompareOff(RC_CLOUDS) )
+		return "r_cloudsCompare 2";
 	if ( !tr.world )
 		return "no world";
 	if ( !s_clouds.resources || !tr.cloudMarchShader.program || !tr.cloudCompositeShader.program ||
@@ -530,7 +532,7 @@ portal and cubemap captures keep their look.
 */
 qboolean RB_CloudsActive( void )
 {
-	if ( !R_CloudsEnabled() || backEnd.cloudsComposited )
+	if ( !R_CloudsEnabled() || R_CompareOff(RC_CLOUDS) || backEnd.cloudsComposited )
 		return qfalse;
 	if ( !RB_CloudsMainView() || glState.currentFBO != tr.renderFbo )
 		return qfalse;
@@ -542,7 +544,7 @@ qboolean RB_CloudsActive( void )
 // the atmosphere builds its sky-view LUT for the clouds' ambient light
 qboolean RB_CloudsWantSkyView( void )
 {
-	return (qboolean)(R_CloudsEnabled() && s_clouds.resources && s_clouds.reason == NULL);
+	return (qboolean)(R_CloudsEnabled() && !R_CompareOff(RC_CLOUDS) && s_clouds.resources && s_clouds.reason == NULL);
 }
 
 // Histogram equalization of a generated channel into bytes: the rank of each
@@ -801,7 +803,7 @@ void RB_CloudsComposite( void )
 	// two alternating sub pixel offsets would only shake the history
 	matrix_t projection, viewProjection, invViewProjection;
 	Com_Memcpy(projection, view->projectionMatrix, sizeof(projection));
-	if ( r_smaa->integer == 2 )
+	if ( R_SMAAMode() == 2 )
 		projection[2] = projection[6] = 0.0f;
 	Matrix16Multiply(projection, view->world.modelViewMatrix, viewProjection);
 	// The rays come from a camera relative inverse (no translation): with the camera tens of
@@ -972,14 +974,17 @@ Cloud shadows (r_cloudShadows)
 
 static qboolean RB_CloudShadowsActive( void )
 {
+	// r_cloudsCompare / r_cloudShadowsCompare 2: no cloud shadows
 	return (qboolean)(R_CloudsEnabled() && r_cloudShadows->integer && s_clouds.shadowValid &&
+		!R_CompareOff(RC_CLOUDS) && !R_CompareOff(RC_CLOUDSHADOWS) &&
 		s_clouds.shadowWorld == tr.world && tr.cloudShadowImage && R_CloudShadowsAvailable());
 }
 
 // history key of the froxel fog: its sun changes with the cloud shadows
 int R_CloudShadowKey( void )
 {
-	return (R_CloudsEnabled() && r_cloudShadows->integer && R_CloudShadowsAvailable()) ? 1 : 0;
+	return (R_CloudsEnabled() && r_cloudShadows->integer && R_CloudShadowsAvailable() &&
+		!R_CompareOff(RC_CLOUDS) && !R_CompareOff(RC_CLOUDSHADOWS)) ? 1 : 0;
 }
 
 /*

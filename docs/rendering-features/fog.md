@@ -21,6 +21,10 @@ It lights the fog a map already has (its fog volumes). **A map without fog shows
 - `r_volumetricFogDlightShadows 1` — dynamic lights cast shadows into fog (needs `r_dlightMode 2`).
 - `r_volumetricFogBloom 0` — let bright fog glow add to bloom.
 
+**Compare:** `r_volumetricFogCompare 2` — no fog grid: surfaces get their own fog again (as with `r_volumetricFog 1`). No split screen: opaque surfaces get their fog either from one composite of the whole view or from their own fog passes.
+
+The features below build on the fog grid and can be split: their compare cvars split the grid by screen column, so the line is about one fog cell wide.
+
 **How it works.** The space in front of the camera is divided into a 3D grid of small cells shaped to the view (froxels: frustum voxels). Every frame each cell gets its fog density and the light that reaches it — baked light from the map's light grid, the sun with its shadow maps, dynamic lights with theirs — and then light and fog are summed along each view ray. Where the map's baked light includes the sun, that part is replaced by the realtime sun, so it can cast beams. The grid is coarse, so results are jittered and averaged over frames.
 
 - `r_volumetricFogGridScale 0` *(restart)* — screen pixels per cell; 0 from the quality.
@@ -52,6 +56,8 @@ Low mist that is thick near the ground and thins with height, on any map, withou
 - `r_volumetricFogHeightMaxDensity 1` — density cap below the base height.
 - `r_volumetricFogHeightTopHeight 0` — height where the haze fades out completely; 0 never.
 
+**Compare:** `r_volumetricFogHeightCompare` — 1 split screen, 2 off.
+
 **Debug**
 
 - `r_volumetricFogDebug 12` — ground-haze density.
@@ -68,6 +74,8 @@ Breaks uniform fog into drifting patches and wisps, so mist looks less like a sm
 - `r_volumetricFogNoiseWind "0 0 0"` — drift speed and direction, world units per second.
 - `r_volumetricFogNoiseDetailScale 900`, `r_volumetricFogNoiseDetailContrast 0` — a second, finer noise layer; 0 contrast turns it off (cheaper).
 
+**Compare:** `r_volumetricFogNoiseCompare` — 1 split screen (uniform fog left), 2 off.
+
 **Debug**
 
 - `r_volumetricFogDebug 13..15` — noise, density without and with noise.
@@ -80,6 +88,8 @@ In thick smoke or dense mist, the side facing the light should be bright and the
 
 - `r_volumetricSelfShadow 0` *(restart)* — **0** off, **1** from the sun, **2** from the sun and the strongest dynamic lights.
 - `r_volumetricSelfShadowMaxLights 2` — dynamic lights for mode 2 (0–4).
+
+**Compare:** `r_volumetricSelfShadowCompare` — 1 split screen, 2 off (light bouncing below turns off with it).
 
 **How it works.** For each fog cell the renderer samples density along a short ray toward the light and dims the light by what it passes through. More samples, longer rays and more lights cost more.
 
@@ -98,6 +108,8 @@ Real clouds and steam are white inside because light bounces around in them many
 **Cost:** medium.
 
 - `r_volumetricMultiScatter 0` — **0** off, **1** for the sun, **2** for the sun and self-shadowed dynamic lights.
+
+**Compare:** `r_volumetricMultiScatterCompare` — 1 split screen, 2 off.
 
 **How it works.** A few cheap extra scattering steps ("octaves") each let light penetrate deeper, with less energy and more evenly in all directions — an approximation of many bounces without tracing them.
 
@@ -120,6 +132,8 @@ Normally fog dims everything behind it evenly, so it can only darken or tint by 
 
 - `r_volumetricFogRGBExtinction 0` *(restart)* — 1 on.
 - `r_volumetricFogHeightExtinction "1 1 1"` — ground haze: relative absorption of red, green and blue.
+
+**Compare:** `r_volumetricFogRGBCompare` — 1 split screen (gray absorption left), 2 gray absorption.
 
 Underwater fog and water/slime/lava already define their colors; this lets the fog keep them. Effect smoke stays neutral.
 
@@ -145,6 +159,8 @@ Add a `FogVolumes` array to `cubemaps/<map>/env.json`:
 ~~~
 
 `Origin` and `Radius` place it, `Opaque` is the distance at which it becomes opaque, `Color` its color. Boxes use `Size` and optional `Angles`; ellipsoids are also supported.
+
+**Compare:** `r_fogVolumesCompare` — 1 split screen (no local volumes left), 2 off.
 
 **Debug**
 

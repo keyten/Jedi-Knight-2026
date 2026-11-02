@@ -91,7 +91,8 @@ static int FoliageInteractionDebug(void)
 
 bool R_FoliageInteractionActive(void)
 {
-	return r_foliageInteraction->integer && r_foliageInteractionStrength->value > 0.0f;
+	return r_foliageInteraction->integer && !R_CompareOff(RC_FOLIAGEINTERACTION) &&
+		r_foliageInteractionStrength->value > 0.0f;
 }
 
 // FOLIAGE_PLANT motion: the skinned MD3 plants and grass cards (tr_plantsim.cpp)
@@ -124,7 +125,7 @@ Force push / pull waves
 
 bool R_FoliageForceWavesEnabled(void)
 {
-	return R_FoliageInteractionActive() && r_foliageForceWaves->integer &&
+	return R_FoliageInteractionActive() && r_foliageForceWaves->integer && !R_CompareOff(RC_FORCEWAVES) &&
 		r_foliageForceWaveStrength->value > 0.0f;
 }
 

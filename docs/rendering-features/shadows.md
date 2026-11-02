@@ -14,11 +14,13 @@ Characters, props and the world cast realtime sun shadows that move with them. S
 
 - `r_forceSun 0` — 1 realtime sun on maps without `q3gl2_sun`. (2 is a test mode: the sun circles the sky.)
 - `r_forceSunAmbientScale 0.5` — with `r_forceSun`: brightness left in shadow; 0 black shadows, 1 no shadows.
-- `r_sunShadowMode 1` *(restart)* — **0** Rend2's original shadows, **1** the improved ones described here.
+- `r_sunShadowMode 0` *(restart)* — **0** Rend2's original shadows, **1** the improved ones described here. Everything below in this section needs 1.
 - `r_shadowPCSS 1` — soft shadows that harden near contact; 0 uniformly soft edges.
 - `r_shadowPCSSQuality 1` — 0 low, 1 high, 2 ultra.
 - `r_sunShadowAlphaCasters 1` *(restart)* — leaves, grates, grass and other see-through textures cast shadows with holes, not solid blocks.
 - `r_sunShadowCache 0` *(restart)* — reuse static world shadows instead of redrawing them every frame: **0** off, **1** exact reuse (safe), **2** scrolling cache, **3** scrolling cache with saved pages. 2 and 3 are experimental.
+
+**Compare:** `r_shadowPCSSCompare` — 1 split screen (uniformly soft edges left), 2 uniformly soft edges. The improved shadows themselves have no compare cvar: the two kinds use different shadow maps, so only `vid_restart` switches `r_sunShadowMode`.
 
 **How it works.** The sun's view is rendered into several shadow maps (cascades), each covering a larger area farther from the camera. Their position is snapped so the shadow texels don't swim, and neighbouring cascades are blended. PCSS (percentage-closer soft shadows) finds how far each shadowed point is from its blocker and widens the blur accordingly.
 
@@ -44,15 +46,16 @@ Design notes: [rend2-shadows2.md](../rend2-shadows2.md), [cache validation](../r
 
 ## Character sun shadows
 
-A soft shadow that suits a building makes a character's shadow look blurry and detached, and broad scenery shadows wash out a character's own contact shadow. By default characters and other models are drawn into a separate sharp shadow layer and combined with the softer scenery shadows.
+A soft shadow that suits a building makes a character's shadow look blurry and detached, and broad scenery shadows wash out a character's own contact shadow. Characters and other models can be drawn into a separate sharp shadow layer and combined with the softer scenery shadows. Needs `r_sunShadowMode 1`.
 
-- `r_sunShadowSplit 1` *(restart)* — 1 separate sharp layer for models (characters, NPCs, MD3 props); 0 one shared shadow.
-- `r_shadowPCSSCharacterLayers 1` *(restart)* — older variant: harder edges where character shadows meet scenery. Used only with `r_sunShadowSplit 0`.
+- `r_sunShadowModelLayer 0` *(restart)* — **0** one shared shadow. **1** a separate sharp layer for models (characters, NPCs, MD3 props). **2** the older variant: harder edges where character shadows meet scenery.
 - `r_shadowCasterLod 0` — 1: characters cast shadows with the same detail level you see. By default the shadow uses the detail level for its own distance, which can make it look simpler than the model.
+
+**Compare:** `r_sunShadowModelLayerCompare 2` — one shared shadow. No split screen: a model is drawn into one shadow map or the other.
 
 **Debug**
 
-- `r_shadowDebug 11`, `12`, `13` — character receivers and casters, model sun split, character layers.
+- `r_shadowDebug 11`, `12`, `13` — character receivers and casters, sun on characters (`r_entitySunLight`), model layer.
 - `r_shadowCasterStats 1` — print character shadow casters and their detail levels once per second.
 
 Design notes: [rend2-character-shadows.md](../rend2-character-shadows.md).
@@ -67,6 +70,8 @@ Adds small sun shadows where the shadow maps are too coarse: under feet, behind 
 - `r_contactShadowLength 16` — how far a contact shadow reaches, in world units.
 - `r_contactShadowStrength 0.85` — darkness.
 - `r_contactShadowSoft 0` — 1 softer edges.
+
+**Compare:** `r_contactShadowsCompare` — 1 split screen (none left), 2 off.
 
 **How it works.** For each pixel the shader steps a short way toward the sun through the on-screen depth image and checks whether something is in front. It can't see objects outside the screen.
 
@@ -86,12 +91,12 @@ Sabers, explosions and other dynamic lights can cast realtime shadows. This is a
 - `r_dlightMode 1` *(restart)* — 2 dynamic lights cast shadows. With [Forward+](lighting.md#many-dynamic-lights-forward), `r_forwardPlusMaxShadowLights` limits how many.
 - `r_dlightShadowBias 0` — 1 a more consistent offset, with less shadow acne and fewer detached shadows.
 
-These keep the same shadows but redraw less. All are on by default:
+These keep the same shadows but redraw less. They are off by default, like every new option; turning them on is safe and faster. They have no compare cvar (the picture is the same); switch them directly, none needs a restart:
 
-- `r_shadowCache 1` — reuse a light's shadow while nothing in it changes.
-- `r_shadowStaticCache 1` — keep the static world part and redraw only moving objects over it. Needs OpenGL 4.3 or `ARB_copy_image`.
-- `r_shadowSinglePass 1` — walk the scene once per light instead of once per cube face.
-- `r_shadowLayered 1` — draw all six cube faces in one call where supported.
+- `r_shadowCache 0` — 1: reuse a light's shadow while nothing in it changes.
+- `r_shadowStaticCache 0` — 1: keep the static world part and redraw only moving objects over it. Needs OpenGL 4.3 or `ARB_copy_image`.
+- `r_shadowSinglePass 0` — 1: walk the scene once per light instead of once per cube face.
+- `r_shadowLayered 0` — 1: draw all six cube faces in one call where supported.
 
 **How it works.** Each shadowed light renders the scene into a cube of six depth images. The caches above skip redrawing parts that haven't changed.
 

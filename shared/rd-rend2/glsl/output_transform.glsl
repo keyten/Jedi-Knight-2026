@@ -19,11 +19,13 @@
 #define CAMERA_PHYSICAL_AUTO   2
 
 #define TONEMAP_DEBUG_NONE        0
-#define TONEMAP_DEBUG_SPLIT       1
-#define TONEMAP_DEBUG_SPLIT3      2
-#define TONEMAP_DEBUG_RAW         3
-#define TONEMAP_DEBUG_EXPOSED     4
-#define TONEMAP_DEBUG_FALSE_COLOR 5
+#define TONEMAP_DEBUG_RAW         1
+#define TONEMAP_DEBUG_EXPOSED     2
+#define TONEMAP_DEBUG_FALSE_COLOR 3
+
+// r_toneMapCompare (u_CompareParams.y): 1 original operator left of the split line, 2 strips
+#define TONEMAP_COMPARE_SPLIT     1.0
+#define TONEMAP_COMPARE_STRIPS    2.0
 
 // Display gamma used to convert metering done on display-encoded buffers to scene-linear exposure
 #define DISPLAY_GAMMA 2.2
@@ -315,21 +317,16 @@ vec3 ExposureFalseColor(vec3 exposed, float exposureTarget, vec3 display)
 //
 // Color grading with a 3D LUT. The LUT maps display-encoded sRGB values to display-encoded sRGB
 // values (domain [0, 1], red along the width of the texture), like common .cube files.
-// params: x = mode (0 off, 1 on, 2 split with the original on the left), y = intensity, z = LUT size
+// params: x = mode (0 off, 1 on, 2 split: r_colorGradingCompare, the original left of w), y = intensity,
+// z = LUT size, w = split line in window pixels
 //
 vec3 ApplyColorGrading(vec3 display, sampler3D lut, vec4 params, float fragX)
 {
 	if (params.x < 0.5)
 		return display;
 
-	if (params.x > 1.5)
-	{
-		if (abs(fragX - 0.5 * r_FBufScale.x) < 1.0)
-			return vec3(0.5);
-
-		if (fragX < 0.5 * r_FBufScale.x)
-			return display;
-	}
+	if (params.x > 1.5 && fragX < params.w)
+		return display;
 
 	// Sample at texel centers, so 0 and 1 hit the first and last entries
 	vec3 coord = clamp(display, 0.0, 1.0) * ((params.z - 1.0) / params.z) + 0.5 / params.z;
@@ -353,27 +350,26 @@ vec3 ApplyColorGrading(vec3 display, sampler3D lut, vec4 params, float fragX)
 //                      w = ISO 2720 reflected-light meter constant K
 // colorGradingLut:     3D LUT, applied after the display encoding (see ApplyColorGrading)
 // colorGradingParams:  u_ColorGradingParams
+// compareParams:       u_CompareParams: x = split line in window pixels, y = r_toneMapCompare
+//                      (TONEMAP_COMPARE_*, 0 none)
 // fragX:               gl_FragCoord.x, used by the split screen comparisons
 //
 // Returns display-encoded values, not clamped yet.
 //
 vec3 OutputTransform(vec3 color, vec3 levels, vec2 autoExposureMinMax, vec3 toneMinAvgMaxLinear, vec4 params,
 	vec4 cameraParams, vec4 cameraAutoParams, sampler3D colorGradingLut,
-	vec4 colorGradingParams, float fragX)
+	vec4 colorGradingParams, vec4 compareParams, float fragX)
 {
 	int toneMapMode = int(params.x + 0.5);
 	int debugView = int(params.y + 0.5);
 
-	if (debugView == TONEMAP_DEBUG_SPLIT)
+	if (compareParams.y == TONEMAP_COMPARE_SPLIT)
 	{
-		// Legacy on the left, the selected operator on the right
-		if (abs(fragX - 0.5 * r_FBufScale.x) < 1.0)
-			return vec3(0.5);
-
-		if (fragX < 0.5 * r_FBufScale.x)
+		// the original operator left of the split line, the selected one right
+		if (fragX < compareParams.x)
 			toneMapMode = TONEMAP_LEGACY;
 	}
-	else if (debugView == TONEMAP_DEBUG_SPLIT3)
+	else if (compareParams.y == TONEMAP_COMPARE_STRIPS)
 	{
 		// Legacy | ACES | AgX
 		if (abs(fragX - r_FBufScale.x / 3.0) < 1.0 || abs(fragX - r_FBufScale.x * 2.0 / 3.0) < 1.0)

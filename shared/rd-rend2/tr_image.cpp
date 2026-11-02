@@ -199,12 +199,8 @@ void R_SourceScratchFlush( void ) {
 }
 
 qboolean R_LazyNormalsEnabled( void ) {
-#ifdef REND2_SP
-	static cvar_t *lazy = ri.Cvar_Get("r_genNormalMapsLazy", "0", CVAR_ARCHIVE);
-#else
-	static cvar_t *lazy = ri.Cvar_Get("r_genNormalMapsLazy", "0", CVAR_ARCHIVE,
-		"Experimental: generate normal maps (r_genNormalMaps) only for lit stages that need them");
-#endif
+	static cvar_t *lazy = R_CvarInt("r_genNormalMapsLazy", "0", CVAR_ARCHIVE, 0, 1,
+		"Experimental: generate normal maps (r_genNormalMaps) only for lit stages that need them: 0 off, 1 on");
 	return (qboolean)(lazy && lazy->integer != 0);
 }
 
@@ -373,13 +369,10 @@ void MaterialDdcHash(MaterialDdcKey &key, const void *data, std::size_t size) {
 }
 
 bool MaterialDdcEnabled() {
-#ifdef REND2_SP
-	static cvar_t *world = ri.Cvar_Get("r_materialDDCWorld", "0", CVAR_ARCHIVE);
-	static cvar_t *objects = ri.Cvar_Get("r_materialDDCObjects", "1", CVAR_ARCHIVE);
-#else
-	static cvar_t *world = ri.Cvar_Get("r_materialDDCWorld", "0", CVAR_ARCHIVE, "Cache prepared BSP surface textures on disk");
-	static cvar_t *objects = ri.Cvar_Get("r_materialDDCObjects", "1", CVAR_ARCHIVE, "Cache prepared NPC, object and other non-BSP textures on disk");
-#endif
+	static cvar_t *world = R_CvarInt("r_materialDDCWorld", "0", CVAR_ARCHIVE, 0, 1,
+		"Cache prepared BSP surface textures on disk: 0 off, 1 on");
+	static cvar_t *objects = R_CvarInt("r_materialDDCObjects", "0", CVAR_ARCHIVE, 0, 1,
+		"Cache prepared NPC, object and other non-BSP textures on disk: 0 off, 1 on");
 	const cvar_t *enabled = materialDdcWorldLoad ? world : objects;
 	return enabled && enabled->integer != 0;
 }
@@ -2505,11 +2498,8 @@ struct UploadRing {
 UploadRing s_uploadRing;
 
 bool UploadRingEnabled() {
-#ifdef REND2_SP
-	static cvar_t *cvar = ri.Cvar_Get("r_uploadPBO", "1", CVAR_ARCHIVE);
-#else
-	static cvar_t *cvar = ri.Cvar_Get("r_uploadPBO", "1", CVAR_ARCHIVE, "Upload textures through a persistently mapped pixel buffer");
-#endif
+	static cvar_t *cvar = R_CvarInt("r_uploadPBO", "0", CVAR_ARCHIVE, 0, 1,
+		"Upload textures through a persistently mapped pixel buffer: 0 off, 1 on");
 	return cvar && cvar->integer && glRefConfig.immutableBuffers && !s_uploadRing.failed;
 }
 
@@ -5204,8 +5194,8 @@ void R_CreateBuiltinImages( void ) {
 			NULL,
 			r_shadowMapSize->integer,
 			r_shadowMapSize->integer,
-			// cascades; r_sunShadowSplit adds the hard model layers 3-5
-			(r_sunShadowMode->integer && r_sunShadowSplit->integer) ? 6 : 3,
+			// cascades; r_sunShadowModelLayer adds the hard model layers 3-5
+			(r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 1) ? 6 : 3,
 			IMGTYPE_COLORALPHA,
 			sunShadowFlags,
 			r_sunShadowMode->integer ? GL_DEPTH_COMPONENT24 : GL_DEPTH_COMPONENT16);
@@ -5520,11 +5510,8 @@ std::uint64_t ImageChecksumHash(const byte *data, std::size_t size) {
 }
 
 qboolean R_ImageChecksumsEnabled( void ) {
-#ifdef REND2_SP
-	static cvar_t *checksums = ri.Cvar_Get("r_imageChecksums", "0", 0);
-#else
-	static cvar_t *checksums = ri.Cvar_Get("r_imageChecksums", "0", 0, "Write a hash of every loaded texture to imagechecksums/<map>.txt after registration");
-#endif
+	static cvar_t *checksums = R_CvarInt("r_imageChecksums", "0", 0, 0, 1,
+		"Write a hash of every loaded texture to imagechecksums/<map>.txt after registration: 0 off, 1 on");
 	return (qboolean)(checksums && checksums->integer != 0);
 }
 

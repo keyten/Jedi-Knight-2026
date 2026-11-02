@@ -1978,7 +1978,7 @@ qboolean R_IsStaticSunShadowCaster(
 =================
 R_IsSunHardShadowEntity
 
-r_sunShadowSplit: models (characters, NPCs, md3 / mdr / iqm entities) cast
+r_sunShadowModelLayer: models (characters, NPCs, md3 / mdr / iqm entities) cast
 into the hard sun layers 3-5, the BSP, brush models and everything else into
 the soft PCSS ones. A single depth per texel cannot hold both: where a high
 roof covers a leg in light space, the leg is gone from the map, and the roof's
@@ -1987,8 +1987,10 @@ penumbra shows through the leg's shadow. Two layers multiply instead.
 */
 static qboolean R_SunShadowSplitActive(void)
 {
-	return (r_sunShadowMode->integer && r_sunShadowSplit->integer && tr.sunShadowHardFbo[0]) ?
-		qtrue : qfalse;
+	// r_sunShadowModelLayerCompare 2: models back in the shared cascades (the
+	// hard layers get no casters, lightall finds them empty)
+	return (r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 1 && tr.sunShadowHardFbo[0] &&
+		!R_CompareOff(RC_SUNSHADOWSPLIT)) ? qtrue : qfalse;
 }
 
 static qboolean R_IsSunHardShadowEntity(const trRefEntity_t *ent)
@@ -2362,7 +2364,7 @@ static void R_AddEntitySurfaces(const trRefdef_t *refdef)
 	for (int i = entityStart; i < numEntities; i++)
 	{
 		trRefEntity_t *ent = refdef->entities + i;
-		// r_sunShadowSplit: Ghoul2 bodies are all in the hard layer, skip their
+		// r_sunShadowModelLayer: Ghoul2 bodies are all in the hard layer, skip their
 		// skinning setup here
 		if ((tr.viewParms.flags & VPF_SHADOWCASCADES) && ent->e.ghoul2 &&
 			R_SunShadowSplitActive() && R_IsSunHardShadowEntity(ent))
@@ -3397,6 +3399,8 @@ void R_RenderCubemapSide(int cubemapIndex, int cubemapSide, bool bounce)
 	RE_BeginScene(&refdef);
 
 	tr.refdef.colorScale = 1.0f;
+	// no r_<feature>Compare split screen baked into the cubemaps
+	tr.refdef.compareSplitX = -1.0f;
 
 	for (int i = 0; i < tr.numCachedViewParms; i++)
 	{
@@ -4609,14 +4613,14 @@ void R_ShadowCacheGetStats(int *hits, int *misses, int *uncacheable, int *static
 			s_shadowStaticBuilds = s_shadowStaticReuses = 0;
 }
 
-// r_shadowPCSSCharacterLayers: the Ghoul2 casters nearest the camera, as the
+// r_sunShadowModelLayer 2: the Ghoul2 casters nearest the camera, as the
 // conservative model spheres the sun cache restore uses. lightall filters the
 // blockers inside a sphere's light-space depth range with their own penumbra.
 static void R_GatherSunShadowCharacters(trRefdef_t *refdef)
 {
 	refdef->numSunShadowCharacters = 0;
-	if (!r_sunShadowMode->integer || !r_shadowPCSSCharacterLayers->integer || !r_drawentities->integer ||
-		R_SunShadowSplitActive())
+	if (!r_sunShadowMode->integer || r_sunShadowModelLayer->integer != 2 || !r_drawentities->integer ||
+		R_CompareOff(RC_SUNSHADOWSPLIT) || R_SunShadowSplitActive())
 		return;
 	const int first = (tr.world && tr.world->skyboxportal) ? tr.skyPortalEntities : 0;
 	float distanceSq[MAX_SUN_SHADOW_CHARACTERS];
@@ -5195,7 +5199,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 				}
 
 				tr.viewParms.viewParmType = VPT_SUN_SHADOWS;
-				// r_sunShadowSplit: the same cascade camera, models only, into
+				// r_sunShadowModelLayer: the same cascade camera, models only, into
 				// layer 3 + level; not cached, cleared and redrawn every frame
 				viewParms_t hardParms = tr.viewParms;
 				const qboolean cacheEnabled =
@@ -5336,7 +5340,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 		tr.viewParms.currentViewParm = tr.numCachedViewParms;
 		tr.viewParms.viewParmType = VPT_MAIN;
 
-		if (r_smaa->integer == 2)
+		if (R_SMAAMode() == 2)
 		{
 			const vec2_t jitterPos[2] =
 			{

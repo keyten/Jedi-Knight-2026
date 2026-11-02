@@ -264,6 +264,7 @@ struct Registration
 #undef LIGHTRECON_CONTROL
 namespace SP {
 struct Imports : Registration { cvar_t* Cvar_Get(const char* n, const char* v, int f) { return Get(n, v, f); } } ri;
+void R_CvarRange(cvar_t* c, int minimum, int maximum, bool integral) { ri.Cvar_CheckRange(c, minimum, maximum, integral); }
 void Register()
 {
 #define LIGHTRECON_GET(n, v, f, d) ri.Cvar_Get(n, v, f)
@@ -273,6 +274,7 @@ void Register()
 }
 namespace MP {
 struct Imports : Registration { cvar_t* Cvar_Get(const char* n, const char* v, int f, const char* d) { return Get(n, v, f, d); } } ri;
+void R_CvarRange(cvar_t* c, int minimum, int maximum, bool integral) { ri.Cvar_CheckRange(c, minimum, maximum, integral); }
 void Register()
 {
 #define LIGHTRECON_GET ri.Cvar_Get

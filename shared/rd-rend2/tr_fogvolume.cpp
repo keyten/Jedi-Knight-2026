@@ -489,7 +489,8 @@ scene, or one of the previous frame that vanished (its history is dropped).
 */
 qboolean R_FogVolumesInFrustum( const viewParms_t *view, const trRefdef_t *refdef, float farZ )
 {
-	if ( !view || !tr.world )
+	// r_fogVolumesCompare 2: no local volumes
+	if ( !view || !tr.world || R_CompareOff(RC_FOGVOLUMES) )
 		return qfalse;
 
 	vec3_t forward;
@@ -542,6 +543,11 @@ int R_FogVolumesBuild( VolumetricFogBlock *block, const viewParms_t *view, const
 	VectorSet4(block->localParams, 0.0f, 0.0f, 0.0f, 0.0f);
 	Com_Memset(block->extinctionPalette, 0, sizeof(block->extinctionPalette));
 	VectorSet4(block->extinctionPalette[0], 1.0f, 1.0f, 1.0f, 0.0f);
+	if ( R_CompareOff(RC_FOGVOLUMES) )
+	{
+		s_fv.numPrevious = 0;
+		return 0;
+	}
 	int paletteSize = 1;
 	int paletteOverflow = 0;
 	VectorSet4(block->localClusters, 8.0f, 1.0f, 1.0f, 0.0f);

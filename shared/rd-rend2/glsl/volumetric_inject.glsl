@@ -104,7 +104,7 @@ uniform vec4 u_CloudShadow[2];
 
 float CloudShadow(in vec3 position)
 {
-	if (u_CloudShadow[1].w < 0.5)
+	if (u_CloudShadow[1].w < 0.5 || FroxelOriginal(RC_CLOUDSHADOWS) || FroxelOriginal(RC_CLOUDS))
 		return 1.0;
 	vec2 q = position.xy - u_CloudShadow[1].xy * (position.z - u_CloudShadow[0].w);
 	vec2 uv = (q - u_CloudShadow[0].xy) * u_CloudShadow[0].z + 0.5;
@@ -412,7 +412,7 @@ bool FroxelRainVisibleInView(in int debugView)
 FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugView, in bool wantChange, out float noisyFraction,
 	out float localFraction, out float localChange, out float particleFraction, out float particleChange)
 {
-	bool noise = u_FroxelNoiseLod.w > 0.5 && debugView != 14;
+	bool noise = u_FroxelNoiseLod.w > 0.5 && debugView != 14 && !FroxelOriginal(RC_FOGNOISE);
 	float globalG = u_FroxelLightParams.x;
 	float extinction = 0.0;			// with the noise
 	float plainExtinction = 0.0;	// without the noise (the fractions)
@@ -440,7 +440,8 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	float localPrevious = 0.0;
 	float localDelta = 0.0;
 	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && debugView != 11 && debugView != 12 && debugView != 26 &&
-		!FroxelLiquidOnlyView(debugView) && !FroxelRainOnlyView(debugView)) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
+		!FroxelLiquidOnlyView(debugView) && !FroxelRainOnlyView(debugView) && !FroxelOriginal(RC_FOGVOLUMES)) ?
+		FroxelLocalCluster(p, var_Slice) : uvec2(0u);
 	if (any(notEqual(localMask, uvec2(0u))))
 	{
 		float fade = FroxelLocalFade(dot(p - u_FroxelViewOrigin.xyz, u_FroxelViewForward.xyz));
@@ -499,7 +500,8 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	float particlePrevious = 0.0;
 	float particleDelta = 0.0;
 	int particleHeader = (u_FroxelParticleParams.x > 0.5 && debugView != 11 && debugView != 12 &&
-		debugView != 16 && !FroxelLiquidOnlyView(debugView) && !FroxelRainOnlyView(debugView)) ? FroxelParticleSliceHeader(var_Slice) : 0;
+		debugView != 16 && !FroxelLiquidOnlyView(debugView) && !FroxelRainOnlyView(debugView) &&
+		!FroxelOriginal(RC_VOLPARTICLES)) ? FroxelParticleSliceHeader(var_Slice) : 0;
 	int particleCount = particleHeader >> 16;
 	if (particleCount > 0)
 	{
@@ -544,7 +546,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 	// Rain suspension is spatially bounded by the same top-down occlusion as
 	// the drops. It is a normal FroxelMedium term, so all existing sun,
 	// dynamic-light, shadow, HG and temporal code below applies unchanged.
-	if (u_FroxelRainParams.w > 0.5 && FroxelRainVisibleInView(debugView))
+	if (u_FroxelRainParams.w > 0.5 && FroxelRainVisibleInView(debugView) && !FroxelOriginal(RC_RAINVOLUME))
 	{
 		float clearance;
 		float exposure = FroxelRainExposure(p, clearance);
@@ -577,7 +579,7 @@ FroxelMediumSample FroxelMedium(in vec3 p, in vec2 heightSample, in int debugVie
 
 	// the height fog has no metadata: the global g
 	if (u_FroxelHeightFog.x > 0.0 && debugView != 11 && debugView != 16 && debugView != 26 &&
-		!FroxelLiquidOnlyView(debugView) && !FroxelRainOnlyView(debugView))
+		!FroxelLiquidOnlyView(debugView) && !FroxelRainOnlyView(debugView) && !FroxelOriginal(RC_HEIGHTFOG))
 	{
 		float e = heightSample.x;
 		float plain = e;
@@ -731,6 +733,8 @@ vec3 FroxelScatter(in FroxelMediumSample m, in vec3 light0, in vec3 light1, in v
 vec3 FroxelEmission(in vec3 p, in int debugView)
 {
 	vec3 emission = vec3(0.0);
+	if (FroxelOriginal(RC_EMISSION))
+		return emission;
 
 	uvec2 localMask = (u_FroxelLocalParams.x > 0.5 && u_FroxelLocalParams.w > 0.5 && debugView != 26 && !FroxelLiquidOnlyView(debugView)) ? FroxelLocalCluster(p, var_Slice) : uvec2(0u);
 	if (any(notEqual(localMask, uvec2(0u))))
@@ -970,7 +974,7 @@ vec3 SpotCookieUV(in vec3 d, in vec4 spot, in float roll)
 
 vec3 SpotCookie(in vec3 d, in vec4 spot, in vec4 spot2, in float viewDist)
 {
-	if (spot2.z < -0.5 || u_LightCookieParams.x < 0.5)
+	if (spot2.z < -0.5 || u_LightCookieParams.x < 0.5 || FroxelOriginal(RC_SPOTCOOKIES))
 		return vec3(1.0);
 	vec3 uvr = SpotCookieUV(d, spot, spot2.w);
 	if (uvr.z <= 0.0)
@@ -1164,8 +1168,10 @@ void DynamicLights(in uint cluster, in vec3 p, in vec3 viewDir, in vec4 g, in fl
 		// media self-shadow of the strongest few lights (r_volumetricSelfShadow 2, chosen by
 		// R_VolumetricBuildLightLists), half the sun samples; the others only get their geometry shadow.
 		// The octaves may lighten a geometry shadow a little, so the march also runs in it when they are on.
-		bool msLight = u_FroxelMultiScatter.x > 1.5 && msMedium.x > 0.0;
-		if (u_FroxelSelfShadow.x > 1.5 && (shadow > 0.0 || (msLight && u_FroxelMultiScatter2.z > 0.0)) && any(equal(vec4(float(i)), u_FroxelSelfShadowLights)))
+		bool msLight = u_FroxelMultiScatter.x > 1.5 && msMedium.x > 0.0 && !FroxelOriginal(RC_MULTISCATTER) &&
+			!FroxelOriginal(RC_SELFSHADOW);
+		if (u_FroxelSelfShadow.x > 1.5 && !FroxelOriginal(RC_SELFSHADOW) &&
+			(shadow > 0.0 || (msLight && u_FroxelMultiScatter2.z > 0.0)) && any(equal(vec4(float(i)), u_FroxelSelfShadowLights)))
 		{
 			int steps = max(3, int(u_FroxelSelfShadow.y) / 2);
 			mediaTau = FroxelMediaOpticalDepth(p, L / dist, min(dist, u_FroxelSelfShadow.z), dist, steps, jitter);
@@ -1334,6 +1340,7 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 float FroxelMediaExtinction(in ivec2 cell, in int slice, in int debugView)
 {
 	float unused0, unused1, unused2, unused3, unused4;
+	FroxelCompareSetup(cell.x);
 #if defined(USE_LIQUIDS)
 	froxelMediaPass = true;
 #endif
@@ -1353,6 +1360,10 @@ void FroxelInject(ivec2 cell)
 void main()
 {
 	ivec2 cell = ivec2(gl_FragCoord.xy);
+#endif
+	FroxelCompareSetup(cell.x);
+#if defined(USE_LIQUIDS)
+	g_liquidCausticOriginal = FroxelOriginal(RC_WATERCAUSTICS);
 #endif
 	float temporal = u_FroxelJitter.w;
 	int debugView = int(u_FroxelDebugParams.x);
@@ -1446,7 +1457,7 @@ void main()
 	float mediaTau = 0.0;
 	float mediaT = 1.0;
 	vec3 sunGeometry = staticLight.sun;
-	if (u_FroxelSelfShadow.x > 0.5 && u_FroxelSunDirection.w > 0.5 &&
+	if (u_FroxelSelfShadow.x > 0.5 && u_FroxelSunDirection.w > 0.5 && !FroxelOriginal(RC_SELFSHADOW) &&
 		((medium.extinction > 0.0 && any(greaterThan(staticLight.sunUnshadowed, vec3(0.0)))) || u_ParticleLight.x > 0.5))
 	{
 		mediaTau = FroxelMediaOpticalDepth(p, u_FroxelSunDirection.xyz, u_FroxelSelfShadow.z, 32768.0,
@@ -1470,6 +1481,7 @@ void main()
 	vec3 msSunGlobal = vec3(0.0);
 	float msThickness = 0.0;
 	if (u_FroxelMultiScatter.x > 0.5 && u_FroxelSelfShadow.x > 0.5 && u_FroxelSunDirection.w > 0.5 &&
+		!FroxelOriginal(RC_MULTISCATTER) && !FroxelOriginal(RC_SELFSHADOW) &&
 		medium.extinction > 0.0 && any(greaterThan(staticLight.sunUnshadowed, vec3(0.0))))
 	{
 		float albedo = Luma(medium.scatter0 + medium.scatter1 + medium.scatter2) / medium.extinction;
@@ -1601,7 +1613,8 @@ void main()
 	// j_scatter = sum_k S_k * L * P(g_k) (FroxelMediumSample)
 	vec4 current = vec4(FroxelScatter(medium, static0 + sun0, static1 + sun1, static2 + sun2), medium.extinction);
 #if defined(USE_FROXEL_RGB)
-	vec3 currentExtinction = medium.extinctionRGB;
+	// r_volumetricFogRGBCompare 1: gray absorption (the mean) in the original columns
+	vec3 currentExtinction = FroxelOriginal(RC_RGBEXTINCTION) ? vec3(medium.extinction) : medium.extinctionRGB;
 #endif
 
 	// emission j_e at the froxel center: no jitter and no history (it goes to the dynamic volume), so

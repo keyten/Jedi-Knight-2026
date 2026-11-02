@@ -5207,6 +5207,8 @@ Called directly from cgame
 =================
 */
 void RE_LoadWorldMap( const char *name ) {
+	// values set since the last frame (map configs) are read by the load
+	R_CvarValidateAll();
 	LightReconWorldLoad reconstructedWorld(name); // unwinds on ERR_DROP in SP and MP
 	const int loadStart = ri.Milliseconds();
 	R_ShadowCacheInvalidate();
@@ -5283,7 +5285,7 @@ void RE_LoadWorldMap( const char *name ) {
 	// Independent legacy/physical PBR calibration and ordinary fog input.
 	R_PBRCalibrateLegacyMap(world);
 	R_BuildBakedFogLighting(world);
-	// r_entitySunSplit: the sun of the light grid
+	// r_entitySunLight: the sun of the light grid
 	R_CalibrateEntitySun(world);
 	R_LoadProfilePrint("world static lighting", staticLightingStart);
 	R_LoadProfilePrint("world post-BSP and lighting", postBspStart);

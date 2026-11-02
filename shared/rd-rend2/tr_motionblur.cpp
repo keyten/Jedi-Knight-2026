@@ -222,7 +222,7 @@ static void RB_MotionBlurEndTimer( int handle )
 // motion during the exposure
 static float RB_MotionBlurExposureScale( void )
 {
-	if ( r_motionBlurPhysicalShutter->integer && r_cameraMode->integer != 0 )
+	if ( r_motionBlurPhysicalShutter->integer && R_CameraMode() != 0 )
 	{
 		const double interval = s_frameInterval > 0.0 ? s_frameInterval : 1.0 / 60.0;
 		const float scale = (float)(r_cameraShutterSeconds->value / interval) *
@@ -297,6 +297,10 @@ qboolean RB_MotionBlurActive( void )
 
 	if ( r_motionBlurDebug->integer )
 		return qtrue;
+
+	// r_motionBlurCompare 2: off without vid_restart
+	if ( R_CompareOff(RC_MOTIONBLUR) )
+		return qfalse;
 
 	return (qboolean)(tr.temporalHistoryValid && RB_MotionBlurExposureScale() > 0.0f);
 }

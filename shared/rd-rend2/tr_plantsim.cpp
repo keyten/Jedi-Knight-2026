@@ -252,7 +252,8 @@ static int PlantDebug(void)
 bool R_PlantSimActive(void)
 {
 	return r_autoFoliage->integer &&
-		(R_FoliageInteractionActive() || (r_plantWind->integer && r_plantWindStrength->value > 0.0f));
+		(R_FoliageInteractionActive() || (r_plantWind->integer && !R_CompareOff(RC_PLANTWIND) &&
+			r_plantWindStrength->value > 0.0f));
 }
 
 /*
@@ -939,7 +940,7 @@ static void SimulateInstance(PlantInstance &inst, float distance, bool waveNear)
 		inst.prevBones = inst.bones;
 
 	// r_foliageInteractionDebug 4: interaction only
-	const bool wind = r_plantWind->integer && r_plantWindStrength->value > 0.0f &&
+	const bool wind = r_plantWind->integer && !R_CompareOff(RC_PLANTWIND) && r_plantWindStrength->value > 0.0f &&
 		!(R_FoliageInteractionActive() && (r_foliageInteractionDebug->integer & 4));
 	Capsule nearCapsules[MAX_FOLIAGE_INTERACTORS];
 	int numNear = 0;

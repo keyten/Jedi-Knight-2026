@@ -101,22 +101,14 @@ struct PrefetchState {
 PrefetchState state;
 
 cvar_t *PrefetchCvar() {
-#ifdef REND2_SP
-	static cvar_t *cvar = ri.Cvar_Get("r_loadPrefetch", "1", CVAR_ARCHIVE);
-#else
-	static cvar_t *cvar = ri.Cvar_Get("r_loadPrefetch", "1", CVAR_ARCHIVE,
-		"Decode predicted textures on worker threads during map load");
-#endif
+	static cvar_t *cvar = R_CvarInt("r_loadPrefetch", "0", CVAR_ARCHIVE, 0, 1,
+		"Decode predicted textures on worker threads during map load: 0 off, 1 on");
 	return cvar;
 }
 
 cvar_t *PrefetchBudgetCvar() {
-#ifdef REND2_SP
-	static cvar_t *cvar = ri.Cvar_Get("r_loadPrefetchMB", "512", CVAR_ARCHIVE);
-#else
-	static cvar_t *cvar = ri.Cvar_Get("r_loadPrefetchMB", "512", CVAR_ARCHIVE,
-		"Memory for textures decoded ahead of use, in MB");
-#endif
+	static cvar_t *cvar = R_CvarInt("r_loadPrefetchMB", "512", CVAR_ARCHIVE, 16, 4096,
+		"Memory for textures decoded ahead of use (r_loadPrefetch), in MB");
 	return cvar;
 }
 
@@ -404,13 +396,10 @@ bool Enabled() {
 // surfaces, r_materialDDCObjects for the rest) are not decoded on a cache hit,
 // so decoding them ahead would be wasted: no prefetch for that category
 static bool MaterialDdcOn( bool world ) {
-#ifdef REND2_SP
-	static cvar_t *worldCvar = ri.Cvar_Get("r_materialDDCWorld", "0", CVAR_ARCHIVE);
-	static cvar_t *objectsCvar = ri.Cvar_Get("r_materialDDCObjects", "1", CVAR_ARCHIVE);
-#else
-	static cvar_t *worldCvar = ri.Cvar_Get("r_materialDDCWorld", "0", CVAR_ARCHIVE, "Cache prepared BSP surface textures on disk");
-	static cvar_t *objectsCvar = ri.Cvar_Get("r_materialDDCObjects", "1", CVAR_ARCHIVE, "Cache prepared NPC, object and other non-BSP textures on disk");
-#endif
+	static cvar_t *worldCvar = R_CvarInt("r_materialDDCWorld", "0", CVAR_ARCHIVE, 0, 1,
+		"Cache prepared BSP surface textures on disk: 0 off, 1 on");
+	static cvar_t *objectsCvar = R_CvarInt("r_materialDDCObjects", "0", CVAR_ARCHIVE, 0, 1,
+		"Cache prepared NPC, object and other non-BSP textures on disk: 0 off, 1 on");
 	const cvar_t *cvar = world ? worldCvar : objectsCvar;
 	return cvar && cvar->integer != 0;
 }

@@ -434,6 +434,11 @@ void FBO_Init(void)
 		ri.Cvar_SetValue("r_ext_framebuffer_multisample", (float)multisample);
 	}
 
+	// r_<feature>Compare split screens copy renderFbo color (tr_compare.cpp)
+	tr.compareFbo = NULL;
+	tr.compareFboFormat = hdrFormat;
+	tr.compareFboSamples = multisample;
+
 	// only create a render FBO if we need to resolve MSAA or do HDR
 	// otherwise just render straight to the screen (tr.renderFbo = NULL)
 	if (multisample)
@@ -1297,6 +1302,58 @@ void FBO_FastBlit(FBO_t *src, vec4i_t srcBox, FBO_t *dst, vec4i_t dstBox, int bu
 
 	qglBindFramebuffer(GL_FRAMEBUFFER, FBO_WindowFramebuffer());
 	glState.currentFBO = NULL;
+}
+
+/*
+============
+FBO_BlitColorRect
+
+Copies a rectangle (x, y, width, height) of one color attachment of src to
+the same place of one attachment of dst (same sample count), then rebinds
+the FBO bound before. r_<feature>Compare split screens (tr_compare.cpp).
+============
+*/
+void FBO_BlitColorRect(FBO_t *src, int srcReadBuffer, FBO_t *dst, int dstDrawBuffer, const int box[4])
+{
+	FBO_t *oldFbo = glState.currentFBO;
+
+	qglBindFramebuffer(GL_READ_FRAMEBUFFER, src->frameBuffer);
+	qglReadBuffer(GL_COLOR_ATTACHMENT0 + srcReadBuffer);
+	qglBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst->frameBuffer);
+	qglDrawBuffer(GL_COLOR_ATTACHMENT0 + dstDrawBuffer);
+	qglBlitFramebuffer(box[0], box[1], box[0] + box[2], box[1] + box[3],
+		box[0], box[1], box[0] + box[2], box[1] + box[3],
+		GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	qglReadBuffer(GL_COLOR_ATTACHMENT0);
+
+	glState.currentFBO = dst;
+	FBO_SetupDrawBuffers();
+	qglBindFramebuffer(GL_FRAMEBUFFER, FBO_WindowFramebuffer());
+	glState.currentFBO = NULL;
+	FBO_Bind(oldFbo);
+}
+
+/*
+============
+FBO_CompareScratch
+
+The scene color copy of r_<feature>Compare split screens, created on first
+use with the format and samples of renderFbo (FBO_Init).
+============
+*/
+FBO_t *FBO_CompareScratch(void)
+{
+	if (!tr.compareFbo && tr.renderFbo)
+	{
+		FBO_t *oldFbo = glState.currentFBO;
+		tr.compareFbo = FBO_Create("_compare", tr.renderFbo->width, tr.renderFbo->height);
+		FBO_Bind(tr.compareFbo);
+		FBO_CreateBuffer(tr.compareFbo, tr.compareFboFormat, 0, tr.compareFboSamples);
+		FBO_SetupDrawBuffers();
+		R_CheckFBO(tr.compareFbo);
+		FBO_Bind(oldFbo);
+	}
+	return tr.compareFbo;
 }
 
 void FBO_FastBlitIndexed(FBO_t *src, FBO_t *dst, int srcReadBuffer, int dstDrawBuffer, int buffers, int filter)

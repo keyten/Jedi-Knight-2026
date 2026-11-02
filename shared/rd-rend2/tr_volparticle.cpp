@@ -313,9 +313,15 @@ Does the froxel view need a volume for the FX particles: one of this scene,
 or one of the previous frame that vanished (its history is dropped).
 =================
 */
+// r_volumetricParticles as drawn: r_volumetricParticlesCompare 2 turns it off
+qboolean R_VolParticlesEnabled( void )
+{
+	return (qboolean)(r_volumetricParticles->integer && !R_CompareOff(RC_VOLPARTICLES));
+}
+
 qboolean R_VolParticlesInFrustum( const viewParms_t *view, const trRefdef_t *refdef, float farZ )
 {
-	if ( !view || !tr.world || !r_volumetricParticles->integer )
+	if ( !view || !tr.world || !R_VolParticlesEnabled() )
 		return qfalse;
 
 	vec3_t forward;
@@ -386,7 +392,7 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 	}
 
 	s_vp.statFrame = backEndData->realFrameNumber;
-	s_vp.statSubmitted = r_volumetricParticles->integer ? refdef->num_volParticles : 0;
+	s_vp.statSubmitted = R_VolParticlesEnabled() ? refdef->num_volParticles : 0;
 	s_vp.statRejected = r_volumetricParticlesRejected;
 	s_vp.statCulled = 0;
 	s_vp.statCapped = 0;
@@ -420,7 +426,7 @@ int R_VolParticlesBuild( VolumetricParticlesBlock *block, const viewParms_t *vie
 		if (c->changed && c->previous)
 			R_VolParticleSphereUnion(e->center, e->radius, c->previous->center, c->previous->radius, c->center, &c->radius);
 	};
-	const int numSubmitted = r_volumetricParticles->integer ? refdef->num_volParticles : 0;
+	const int numSubmitted = R_VolParticlesEnabled() ? refdef->num_volParticles : 0;
 	for (int i = 0; i < numSubmitted && numCurrent < MAX_REF_VOL_PARTICLES; ++i) {
 		volParticleEval_t* e = &current[numCurrent];
 		if (R_VolParticleEvaluate(&refdef->volParticles[i], e)) {
@@ -632,7 +638,7 @@ r_volparticles: statistics of the last froxel frame
 */
 void R_VolParticles_f( void )
 {
-	if ( !r_volumetricParticles->integer )
+	if ( !R_VolParticlesEnabled() )
 		ri.Printf(PRINT_ALL, "r_volumetricParticles is 0: FX particles add no media\n");
 	if ( !R_VolumetricFroxelEnabled() )
 		ri.Printf(PRINT_ALL, "the froxel fog is off (r_volumetricFog 2 needed)\n");

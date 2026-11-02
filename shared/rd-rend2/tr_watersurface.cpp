@@ -70,6 +70,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <set>
 #include "json.h"
 
+static qboolean R_WaterWavesOn(void);
+
 // GL 4.3 depth contact readback: frames in flight, bodies (r_waterInteractionMaxBodies)
 #define WATER_INTERSECTION_HIT_RING	4
 #define WATER_INTERSECTION_MAX_SLOTS	32
@@ -4622,12 +4624,12 @@ qboolean R_WaterCausticsBrushParams(int bspBrushNum, float time, vec4_t params[8
 	const waterDynamics_t& dynamics = s_dynamics[body->dynamics];
 	const float legacyWaveScale = body->legacy.deformAmplitude > 0.5f ? 0.2f : 1.0f;
 	const float multiplier = body->waveMultiplier;
-	VectorSet4(params[0], r_waterWaves->integer ? 1.0f : 0.0f,
+	VectorSet4(params[0], R_WaterWavesOn() ? 1.0f : 0.0f,
 		Com_Clamp(0.0f, 4.0f, r_waterWaveAmplitude->value), Com_Clamp(0.25f, 4.0f, r_waterWaveLength->value),
 		Com_Clamp(0.0f, 4.0f, r_waterWaveSpeed->value));
 	VectorSet4(params[1], dynamics.amplitude * 8.0f * legacyWaveScale * multiplier,
 		dynamics.wavelength, dynamics.speed, Com_Clamp(0.0f, 2.0f, dynamics.microNormal * multiplier));
-	VectorSet4(params[2], Com_Clamp(0.0f, 2.0f, r_waterWaveChoppiness->value),
+	VectorSet4(params[2], 1.0f /* horizontal displacement scale, reserved */,
 		(float)Com_Clampi(0, 2, r_waterWaveQuality->integer), body->depthAverage, dynamics.choppiness);
 	const float flowScale = Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value);
 	VectorSet4(params[3], body->flowVelocity[0] * flowScale, body->flowVelocity[1] * flowScale,
@@ -6047,7 +6049,9 @@ qboolean RB_WaterSurfaceDraws( const shader_t *shader )
 {
 	if ( !backEnd.waterSurfaceView || !shader || !(tess.waterKey & WATERKEY_INTERFACE) )
 		return qfalse;
-	if ((tess.waterKey & WATERKEY_WATERFALL) ? (!r_waterfall || !r_waterfall->integer) : !r_waterSurface->integer)
+	// r_waterSurfaceCompare / r_waterfallCompare 2: the original stages again
+	if ((tess.waterKey & WATERKEY_WATERFALL) ? (!r_waterfall || !r_waterfall->integer || R_CompareOff(RC_WATERFALL)) :
+		(!r_waterSurface->integer || R_CompareOff(RC_WATERSURFACE)))
 		return qfalse;
 	if ( backEnd.depthFill || backEnd.refractionFill || backEnd.projection2D )
 		return qfalse;
@@ -6068,7 +6072,8 @@ shaderProgram_t *RB_WaterSurfaceProgram( const shader_t *shader )
 		index |= WATERDEF_USE_TESSELLATION;
 	if ( shader->numDeforms && !ShaderRequiresCPUDeforms(shader) )
 		index |= WATERDEF_USE_DEFORM_VERTEXES;
-	if ( r_waterSnell->integer )
+	// r_waterSnellCompare 2: the program without Snell's window
+	if ( r_waterSnell->integer && !R_CompareOff(RC_WATERSNELL) )
 		index |= WATERDEF_USE_SNELL;
 	// the SSR of the view walks the closest depth mips: so does the water
 	if ( backEnd.waterSurfaceSSR && RB_SSRDepthLevels() > 1 && tr.waterSurfaceShader[index | WATERDEF_USE_HIZ].program )
@@ -6117,9 +6122,8 @@ static void RB_WaterSurfaceCacheView( void )
 	VectorSet4(water[5], proj[14], proj[10],
 		r_waterWaveTime->value >= 0.0f ? r_waterWaveTime->value : backEnd.refdef.floatTime,
 		tr.linearLight ? 1.0f : 0.0f);
-	const int debug = r_waterSurfaceDebug->integer;
-	VectorSet4(water[6], debug == 9 ? 0.0f : (float)debug,
-		debug == 9 ? v.viewportX + Com_Clamp(0.0f, 1.0f, r_waterSurfaceSplit->value) * v.viewportWidth : -1.0f,
+	// y: r_waterSurfaceCompare 1, the original stages left of this window x
+	VectorSet4(water[6], (float)r_waterSurfaceDebug->integer, R_CompareSplitX(RC_WATERSURFACE),
 		0.0f, 8192.0f);
 	vec3_t right, up;
 	VectorScale(v.ori.axis[1], -1.0f, right);
@@ -6145,11 +6149,11 @@ static void RB_WaterSurfaceCacheView( void )
 		(float)v.viewportY / tr.waterSceneImage->height,
 		(float)v.viewportWidth / tr.waterSceneImage->width,
 		(float)v.viewportHeight / tr.waterSceneImage->height);
-	VectorSet4(water[13], r_waterWaves->integer ? 1.0f : 0.0f,
+	VectorSet4(water[13], R_WaterWavesOn() ? 1.0f : 0.0f,
 		Com_Clamp(0.0f, 4.0f, r_waterWaveAmplitude->value),
 		Com_Clamp(0.25f, 4.0f, r_waterWaveLength->value),
 		Com_Clamp(0.0f, 4.0f, r_waterWaveSpeed->value));
-	VectorSet4(water[14], Com_Clamp(0.0f, 2.0f, r_waterWaveChoppiness->value),
+	VectorSet4(water[14], 1.0f /* horizontal displacement scale, reserved */,
 		(float)Com_Clampi(0, 2, r_waterWaveQuality->integer),
 		Com_Clamp(0.0f, 4.0f, r_waterWaveMicro->value),
 		r_waterWaveShallow->integer ? 1.0f : 0.0f);
@@ -6408,10 +6412,16 @@ static float R_WaterlineShoreAttenuation(const waterBody_t& body, const vec3_t p
 	return attenuation;
 }
 
+// r_waterWaves as drawn: r_waterWavesCompare 2 is the original scrolling surface
+static qboolean R_WaterWavesOn(void)
+{
+	return (qboolean)(r_waterWaves->integer && !R_CompareOff(RC_WATERWAVES));
+}
+
 static float R_WaterlineWaveHeight(const waterBody_t& body, const vec3_t position,
 	float time, float shoreAttenuation, vec4_t *water)
 {
-	if (!r_waterWaves->integer || !r_waterGeometry->integer || body.geometryVerts <= 0)
+	if (!R_WaterWavesOn() || !r_waterGeometry->integer || R_CompareOff(RC_WATERGEOMETRY) || body.geometryVerts <= 0)
 		return 0.0f;
 	const int shadingCount = r_waterWaveQuality->integer <= 0 ? 2 : (r_waterWaveQuality->integer == 1 ? 4 : 8);
 	const int geometryCount = R_WaterGeometryComponentCount(body, &water[WATER_U_TARGET_TERMS]);
@@ -6597,13 +6607,15 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	VectorSet4(water[WATER_U_WAVE_DEBUG], (float)r_waterWaveDebug->integer, (float)bodyId,
 		dynamics.choppiness, body ? body->waveMultiplier : 1.0f);
 	VectorSet4(water[WATER_U_GEOMETRY_FOAM], body ? body->legacy.deformAmplitude : 0.0f,
-		body && body->geometryVerts > 0 && ((body->waterfall && r_waterfallGeometry->integer) || (!body->waterfall && r_waterGeometry->integer)) ? 1.0f : 0.0f,
+		// r_waterGeometryCompare 2: the mesh stays, the waves don't move it
+		body && body->geometryVerts > 0 && !R_CompareOff(RC_WATERGEOMETRY) &&
+			((body->waterfall && r_waterfallGeometry->integer) || (!body->waterfall && r_waterGeometry->integer)) ? 1.0f : 0.0f,
 		(float)r_waterGeometryDebug->integer, body ? body->foamMultiplier : 1.0f);
 	const float flowScale = Com_Clamp(0.0f, 4.0f, r_waterFlowSpeed->value);
 	VectorSet4(water[WATER_U_FLOW], body ? body->flowVelocity[0] * flowScale : 0.0f,
 		body ? body->flowVelocity[1] * flowScale : 0.0f,
 		body ? body->flowVelocity[2] * flowScale : 0.0f,
-		r_waterFlow->integer && body && body->flowSpeed > 0.0f ? 1.0f : 0.0f);
+		r_waterFlow->integer && !R_CompareOff(RC_WATERFLOW) && body && body->flowSpeed > 0.0f ? 1.0f : 0.0f);
 	VectorSet4(water[WATER_U_FLOW + 1], body ? body->flowSpeed * flowScale : 0.0f,
 		Com_Clamp(0.0f, 4.0f, r_waterFlowDetail->value), (float)r_waterFlowDebug->integer,
 		body ? (float)(body->flowSource * 4 + body->flowConfidence) : 0.0f);
@@ -6613,7 +6625,8 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	VectorSet4(water[WATER_U_BODY_MAPPING], body ? body->bounds[0][0] : 0.0f, body ? body->bounds[0][1] : 0.0f,
 		1.0f / extentX, 1.0f / extentY);
 	VectorSet4(water[WATER_U_BODY_MAPPING + 1], interaction ? interaction->texelX : 1.0f, interaction ? interaction->texelY : 1.0f,
-		interaction && r_waterInteraction->integer ? 1.0f : 0.0f, (float)r_waterInteractionDebug->integer);
+		interaction && r_waterInteraction->integer && !R_CompareOff(RC_WATERINTERACTION) ? 1.0f : 0.0f,
+		(float)r_waterInteractionDebug->integer);
 	if (interaction) VectorCopy4(interaction->lastSource, water[WATER_U_BODY_MAPPING + 2]); else VectorClear4(water[WATER_U_BODY_MAPPING + 2]);
 	if (interaction && s_water.interactionAtlas)
 		VectorSet4(water[WATER_U_BODY_MAPPING + 3], (interaction->atlasX + 0.5f) / s_water.interactionAtlasWidth,
@@ -6621,20 +6634,21 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 			(interaction->width - 1.0f) / s_water.interactionAtlasWidth,
 			(interaction->height - 1.0f) / s_water.interactionAtlasHeight);
 	else VectorSet4(water[WATER_U_BODY_MAPPING + 3], 0, 0, 1, 1);
-	VectorSet4(water[WATER_U_SHORELINE], r_waterShoreline->integer ? 1.0f : 0.0f,
+	VectorSet4(water[WATER_U_SHORELINE], r_waterShoreline->integer && !R_CompareOff(RC_WATERSHORELINE) ? 1.0f : 0.0f,
 		MAX(r_waterShoreAttenuation->value, 1.0f), MAX(r_waterShoreContactSoftness->value, 0.25f),
 		(float)r_waterShoreDebug->integer);
-	VectorSet4(water[WATER_U_INTERSECTION_FOAM], r_waterIntersectionFoam->integer ? 1.0f : 0.0f,
+	VectorSet4(water[WATER_U_INTERSECTION_FOAM], r_waterIntersectionFoam->integer && !R_CompareOff(RC_WATERFOAM) ? 1.0f : 0.0f,
 		MAX(r_waterIntersectionFoamWidth->value, 0.5f),
 		Com_Clamp(0.0f, 4.0f, r_waterIntersectionFoamStrength->value),
 		(float)r_waterIntersectionFoamDebug->integer);
 	const waterFoamState_t *foam = body && body->foam.active ? &body->foam : nullptr;
-	VectorSet4(water[WATER_U_FOAM], foam && r_waterFoamField->integer ? 1.0f : 0.0f,
+	VectorSet4(water[WATER_U_FOAM], foam && r_waterFoamField->integer && !R_CompareOff(RC_WATERFOAM) ? 1.0f : 0.0f,
 		(float)r_waterFoamDebug->integer, foam ? foam->texelX : 1.0f, foam ? foam->texelY : 1.0f);
 	const bool waterfallImpact = foam && R_WaterfallImpactTargetsBody(body);
 	const bool impactTurbulence = waterfallImpact && r_waterfallImpactTurbulence->value > 0.0f;
-	const float whitewaterStrength = r_waterWhitewater->integer ? r_waterWhitewaterStrength->value : 0.0f;
-	VectorSet4(water[WATER_U_WHITEWATER], foam && (r_waterWhitewater->integer || impactTurbulence) ? 1.0f : 0.0f,
+	const qboolean whitewaterOn = (qboolean)(r_waterWhitewater->integer && !R_CompareOff(RC_WHITEWATER));
+	const float whitewaterStrength = whitewaterOn ? r_waterWhitewaterStrength->value : 0.0f;
+	VectorSet4(water[WATER_U_WHITEWATER], foam && (whitewaterOn || impactTurbulence) ? 1.0f : 0.0f,
 		Com_Clamp(0.0f, 4.0f, impactTurbulence ? MAX(whitewaterStrength,
 			r_waterfallImpactTurbulence->value) : whitewaterStrength),
 		Com_Clamp(0.0f, 4.0f, r_waterWhitewaterFoam->value),
@@ -6873,7 +6887,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		vec4_t settings2;
 		VectorCopy4(s_water.ssrSettings[1], settings2);
 		image_t *source, *dynamic, *extinction;
-		if (R_WaterSSRReflectedFog() && (r_waterSSROptimize->integer & 4) &&
+		if (R_WaterSSRReflectedFog() && !R_CompareOff(RC_SSRREFLECTEDFOG) && (r_waterSSROptimize->integer & 4) &&
 			RB_VolumetricMediaImages(&source, &dynamic, &extinction))
 		{
 			samplers.AddStaticImage(source, TB_WATER_FROXELSOURCE);
@@ -7399,8 +7413,8 @@ void RB_WaterSurfaceFinish( void )
 =================
 RB_WaterSurfaceLegacyScissor
 
-r_waterSurfaceDebug 9: the legacy stages of the classified surfaces are drawn
-left of the split only (RB_DrawItems), the water program right of it.
+r_waterSurfaceCompare 1: the legacy stages of the classified surfaces are
+drawn left of the split only (RB_DrawItems), the water program right of it.
 =================
 */
 void RB_WaterSurfaceLegacyScissor( qboolean enable )
@@ -7408,8 +7422,8 @@ void RB_WaterSurfaceLegacyScissor( qboolean enable )
 	const viewParms_t& viewParms = backEnd.viewParms;
 	if ( enable )
 	{
-		const int split = (int)(Com_Clamp(0.0f, 1.0f, r_waterSurfaceSplit->value) * (float)viewParms.viewportWidth);
-		qglScissor(viewParms.viewportX, viewParms.viewportY, split, viewParms.viewportHeight);
+		const int split = (int)backEnd.refdef.compareSplitX - viewParms.viewportX;
+		qglScissor(viewParms.viewportX, viewParms.viewportY, Q_max(0, split), viewParms.viewportHeight);
 	}
 	else
 	{

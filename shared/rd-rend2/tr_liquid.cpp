@@ -758,7 +758,7 @@ static image_t *R_LiquidsCausticSamplerImage( void )
 {
 	const int sources = r_waterCausticsLightMask->integer;
 	const bool surfaceDriven =
-		((sources & 3) && r_waterCausticsMode->integer == 2) ||
+		((sources & 3) && r_waterCausticsMode->integer == 2 && !R_CompareOff(RC_WATERCAUSTICS)) ||
 		((sources & 4) && r_waterCausticsBakedMode->integer == 1);
 	image_t *surfaceAtlas = surfaceDriven ? R_WaterCausticsInteractionAtlas() : nullptr;
 	return surfaceAtlas ? surfaceAtlas : &s_liq.causticImage;
@@ -1064,7 +1064,8 @@ int R_LiquidsBuild( LiquidsBlock *block, const viewParms_t *view, const vec3_t f
 		Com_Clamp(0.0f, 1.0f, r_volumetricWaterCaustics->value));
 	const float spacing = r_waterCausticsQuality->integer <= 0 ? 32.0f :
 		(r_waterCausticsQuality->integer == 1 ? 16.0f : 8.0f);
-	VectorSet4(block->causticSurface, (float)r_waterCausticsMode->integer, spacing,
+	// r_waterCausticsCompare 2: no caustics (mode 0)
+	VectorSet4(block->causticSurface, R_CompareOff(RC_WATERCAUSTICS) ? 0.0f : (float)r_waterCausticsMode->integer, spacing,
 		r_waterCausticsMaxDepth->value, r_waterCausticsSlope->value);
 	VectorSet4(block->causticDebug, r_waterCausticsFilter->value, (float)r_waterCausticsDebug->integer,
 		r_waterSurfaceIOR->value, r_waterSurface->integer ? 1.0f : 0.0f);

@@ -319,6 +319,8 @@ static const char *R_AtmosphereOffReason( qboolean froxelComposite )
 {
 	if ( !r_atmosphere->integer )
 		return "r_atmosphere 0";
+	if ( R_CompareOff(RC_ATMOSPHERE) )
+		return "r_atmosphereCompare 2";
 	if ( !tr.world )
 		return "no world";
 	if ( !tr.atmosphereCompositeFbo || !tr.atmosphereTransmittanceImage ||
@@ -437,7 +439,7 @@ their look.
 */
 qboolean RB_AtmosphereActive( void )
 {
-	if ( !r_atmosphere->integer || backEnd.atmosphereComposited )
+	if ( !r_atmosphere->integer || R_CompareOff(RC_ATMOSPHERE) || backEnd.atmosphereComposited )
 		return qfalse;
 	if ( backEnd.projection2D || backEnd.depthFill || backEnd.refractionFill || backEnd.framePostProcessed )
 		return qfalse;
@@ -520,7 +522,7 @@ static void RB_AtmosphereUpdateLuts( const atmosphereParams_t *p, const viewParm
 
 qboolean RB_AtmosphereWaterSetup(UniformDataWriter& uniforms, SamplerBindingsWriter& samplers)
 {
-	if (!r_atmosphere->integer || !r_waterSnell->integer || !tr.world || r_waterSnellOptics->integer < 2 ||
+	if (!r_atmosphere->integer || R_CompareOff(RC_ATMOSPHERE) || !r_waterSnell->integer || !tr.world || r_waterSnellOptics->integer < 2 ||
 		backEnd.viewParms.viewParmType != VPT_MAIN || backEnd.viewParms.isPortal || backEnd.viewParms.isSkyPortal)
 		return qfalse;
 	atmosphereParams_t params;

@@ -585,8 +585,10 @@ void SSRReflectedFog(vec3 P, vec3 Q, out vec3 S, out vec3 T)
 {
 	S = vec3(0.0);
 	T = vec3(1.0);
-	// u_SSRSettings2.w: the froxel volume of this view is built and bound (tr_ssr.cpp)
-	if (u_SSRSettings2.w < 0.5 || u_FroxelViewOrigin.w < 0.5)
+	// u_SSRSettings2.w: the froxel volume of this view is built and bound (tr_ssr.cpp); above 1.5,
+	// r_ssrReflectedFogCompare 1: no fog left of x = w - 2 (pixels of this pass)
+	if (u_SSRSettings2.w < 0.5 || u_FroxelViewOrigin.w < 0.5 ||
+		(u_SSRSettings2.w > 1.5 && gl_FragCoord.x < u_SSRSettings2.w - 2.0))
 		return;
 
 	vec3 a = SSRViewToWorld(P);

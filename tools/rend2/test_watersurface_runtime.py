@@ -161,8 +161,8 @@ def main():
         captures = ['r_waterWaveTime 4', 'r_waterWaveDebug 1', 'wait 8',
                     'screenshot_tga water-wave-height', 'r_waterWaveDebug 4', 'wait 8',
                     'screenshot_tga water-wave-combined', 'r_waterWaveDebug 5', 'wait 8',
-                    'screenshot_tga water-wave-profile', 'r_waterWaveDebug 8', 'wait 8',
-                    'screenshot_tga water-wave-split', 'r_waterWaveDebug 0', 'r_waterWaveTime -1']
+                    'screenshot_tga water-wave-profile', 'r_waterWaveDebug 0', 'r_waterWavesCompare 1', 'wait 8',
+                    'screenshot_tga water-wave-split', 'r_waterWavesCompare 0', 'r_waterWaveTime -1']
         commands[commands.index('r_waterSurfaceDebug 0')] += '\n' + '\n'.join(captures)
     if args.flow:
         flow_captures = ['r_waterWaveTime 4', 'r_waterFlow 0', 'wait 8', 'screenshot_tga water-flow-off',

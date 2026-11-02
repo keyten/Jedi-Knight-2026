@@ -1858,7 +1858,8 @@ void RB_ShadowTessEnd(shaderCommands_t *input, const VertexArraysProperties *ver
 
 static bool IsAutoEmissiveStage( const shaderStage_t *stage )
 {
-	if (!r_autoEmissive->integer && !(r_pbrPhysical->integer &&
+	// r_autoEmissiveCompare 2: glow layers as plain added color again
+	if ((!r_autoEmissive->integer || R_CompareOff(RC_AUTOEMISSIVE)) && !(r_pbrPhysical->integer &&
 		stage->emissiveProvenance == EMISSIVE_AUTO_INFERRED))
 		return false;
 
@@ -2208,7 +2209,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			vec4_t color;
 			color[0] =
 			color[1] =
-			color[2] = r_cameraMode->integer == 0 ?
+			color[2] = R_CameraMode() == 0 ?
 				powf(2.0f, r_cameraExposure->value) : powf(2.0f, (float)tr.overbrightBits);
 			color[3] = 10.0f;
 			uniformDataWriter.SetUniformVec4(UNIFORM_COLOR, color);
@@ -2228,13 +2229,17 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			RB_GetColorGrading(&colorGradingLut, colorGradingParams);
 			uniformDataWriter.SetUniformVec4(UNIFORM_COLORGRADINGPARAMS, colorGradingParams);
 			samplerBindingsWriter.AddStaticImage(colorGradingLut, TB_COLORGRADINGLUT);
-			vec4_t bloomParams = {0, 0, 0, 0};
+			vec4_t bloomParams = {0, -1, 0, 0};
 			if (RB_ModernBloomActive())
 			{
 				bloomParams[0] = r_bloomIntensity->value;
+				bloomParams[1] = R_CompareSplitX(RC_BLOOM);
 				samplerBindingsWriter.AddStaticImage(tr.glowFboScaled[1]->colorImage[0], TB_SPECULARMAP);
 			}
 			uniformDataWriter.SetUniformVec4(UNIFORM_BLOOMPARAMS, bloomParams);
+			vec4_t compareParams;
+			RB_GetOutputCompareParams(compareParams);
+			uniformDataWriter.SetUniformVec4(UNIFORM_COMPAREPARAMS, compareParams);
 		}
 
 #ifdef REND2_SP_GORE
@@ -2281,9 +2286,20 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		if (!R_AutoPBRSpecularScale(pStage, specularScale))
 			VectorCopy4(pStage->specularScale, specularScale);
 		uniformDataWriter.SetUniformVec4(UNIFORM_SPECULARSCALE, specularScale);
+		// r_autoPBRCompare / r_autoPBRRoughnessCompare 1: the material of the
+		// original side and whether u_SpecularMap is the generated map
+		{
+			vec4_t originalScale;
+			R_AutoPBRCompareMaterial(pStage, specularScale, originalScale);
+			uniformDataWriter.SetUniformVec4(UNIFORM_COMPARESPECULARSCALE, originalScale);
+			uniformDataWriter.SetUniformVec4(UNIFORM_COMPAREPARAMS,
+				R_AutoPBRRoughnessImage(pStage) ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f);
+		}
+		const qboolean energyCompensation = (qboolean)(r_brdfEnergyCompensation->integer &&
+			!R_CompareOff(RC_ENERGYCOMPENSATION));
 		uniformDataWriter.SetUniformVec4(UNIFORM_PBRMATERIAL,
 			(float)pStage->pbrMaterialVersion, (float)r_pbrLegacyRoughness->integer,
-			(float)r_brdfEnergyCompensation->integer, (float)r_pbrEnergyDebug->integer);
+			energyCompensation ? 1.0f : 0.0f, (float)r_pbrEnergyDebug->integer);
 
 		// r_autoPBRDebug: lightall stages show their material, lit stages still
 		// on the vertex lit generic path show up red (generic.glsl)
@@ -2305,11 +2321,14 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 
 		if (pStage->glslShaderGroup == tr.lightallShader)
 		{
-			uniformDataWriter.SetUniformInt(UNIFORM_DIFFUSEBRDF, r_diffuseBRDF->integer);
+			uniformDataWriter.SetUniformInt(UNIFORM_DIFFUSEBRDF,
+				R_CompareOff(RC_DIFFUSEBRDF) ? 0 : r_diffuseBRDF->integer);
 			if (r_specularAA->integer)
 			{
-				vec4_t specularAAParams = { r_specularAAStrength->value,
-					r_specularAAMaxAdded->value, (float)r_specularAADebug->integer, 0.0f };
+				// r_specularAACompare 2: no added roughness, without vid_restart
+				const qboolean specularAA = (qboolean)!R_CompareOff(RC_SPECULARAA);
+				vec4_t specularAAParams = { specularAA ? r_specularAAStrength->value : 0.0f,
+					specularAA ? r_specularAAMaxAdded->value : 0.0f, (float)r_specularAADebug->integer, 0.0f };
 				uniformDataWriter.SetUniformVec4(UNIFORM_SPECULARAAPARAMS, specularAAParams);
 			}
 			R_MaterialModelSetupDraw(pStage, uniformDataWriter, samplerBindingsWriter);
@@ -2339,10 +2358,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 
 			samplerBindingsWriter.AddStaticImage(srcFbo->colorImage[0], TB_COLORMAP);
 			samplerBindingsWriter.AddStaticImage(tr.renderDepthImage, TB_SHADOWMAP);
-			qboolean autoExposure = (qboolean)(r_cameraMode->integer == 2 ||
-				(r_cameraMode->integer == 0 &&
+			qboolean autoExposure = (qboolean)(R_CameraMode() == 2 ||
+				(R_CameraMode() == 0 &&
 					(r_autoExposure->integer || r_forceAutoExposure->integer)));
-			uniformDataWriter.SetUniformFloat(UNIFORM_CHROMATICABERRATIONDELTA, r_refractionChromaticAberration->value);
+			// r_refractionChromaticAberrationCompare 2: Rend2's original fringes (-1)
+			uniformDataWriter.SetUniformFloat(UNIFORM_CHROMATICABERRATIONDELTA,
+				R_CompareOff(RC_REFRACTIONCA) ? -1.0f : r_refractionChromaticAberration->value);
 
 			if (autoExposure)
 				samplerBindingsWriter.AddStaticImage(tr.calcLevelsImage, TB_LEVELSMAP);
@@ -2404,6 +2425,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 				&& input->cubemapIndex > 0
 				&& pStage->rgbGen != CGEN_LIGHTMAPSTYLE);
 			bool enableDiffuseIBL = (r_diffuseIBL->integer
+				&& !R_CompareOff(RC_DIFFUSEIBL)
 				&& !(tr.viewParms.flags & (VPF_NOCUBEMAPS | VPF_NODIFFUSEIBL))
 				&& input->cubemapIndex > 0
 				&& input->cubemapIndex <= tr.numCubemaps
@@ -2824,8 +2846,8 @@ void RB_StageIteratorGeneric( void )
 			RB_IterateStagesWater(input, &vertexArrays);
 			backEnd.waterItemTag = qfalse;
 
-			// r_waterSurfaceDebug 9: the legacy stages left of the split
-			if (r_waterSurfaceDebug->integer == 9)
+			// r_waterSurfaceCompare 1: the legacy stages left of the split
+			if (R_CompareSplit(RC_WATERSURFACE) && backEnd.refdef.compareSplitX >= 0.0f)
 			{
 				backEnd.waterLegacyClipTag = qtrue;
 				RB_IterateStagesGeneric(input, &vertexArrays);

@@ -674,7 +674,7 @@ when the froxel volume is built.
 =====================
 */
 void RE_AddVolumetricParticleToScene( const refVolParticle_t *particle ) {
-	if ( !tr.registered || !particle || !r_volumetricParticles->integer ) {
+	if ( !tr.registered || !particle || !R_VolParticlesEnabled() ) {
 		return;
 	}
 	if ( r_numvolparticles >= MAX_REF_VOL_PARTICLES ) {
@@ -726,6 +726,10 @@ void RE_BeginScene(const refdef_t *fd)
 	tr.refdef.time = fd->time;
 	tr.refdef.rdflags = fd->rdflags;
 	tr.refdef.frameTime = MIN(fd->time - tr.refdef.lastTime, 50.f);
+	// r_<feature>Compare split line: world scenes only (R_RenderCubemapSide
+	// clears it for its captures)
+	tr.refdef.compareSplitX = (fd->rdflags & RDF_NOWORLDMODEL) ? -1.0f :
+		R_CompareSplitPosition(fd->x, fd->width);
 
 	// copy the areamask data over and note if it has changed, which
 	// will force a reset of the visible leafs even if the view hasn't moved

@@ -18,7 +18,7 @@ Stock water is a scrolling texture with a fixed tint. Modern water reflects its 
 - `r_waterSurfaceNormal 1` — strength of small ripples; 0 removes them.
 - `r_waterSurfaceExperimental 0` — 1: also treat surfaces with water-like shader names (`pool`, `lake`, `river`…) as water, for maps where detection misses some.
 
-`r_waterSurfaceDebug 9` compares old and new water side by side.
+**Compare:** `r_waterSurfaceCompare` — 1 split screen (the original water shaders left; waterfalls split with it), 2 the original water.
 
 **Mod authors:** water-body and `Liquids` rules in `cubemaps/<map>/env.json` choose which surfaces form one body and its look and motion; see the design notes.
 
@@ -32,7 +32,7 @@ Stock water is a scrolling texture with a fixed tint. Modern water reflects its 
 
 **Debug**
 
-- `r_waterSurfaceDebug 1..11` — classification, normals, reflection, depth, refraction, roughness; 9 old/new split at `r_waterSurfaceSplit 0.5`.
+- `r_waterSurfaceDebug 1..8`, `10`, `11` — classification, normals, reflection, depth, refraction, roughness (the old split 9 is `r_waterSurfaceCompare 1`).
 - `r_waterMotionDebug 1..10` — water motion and history validity.
 - `r_waterInfo` — list modern-water surfaces. `r_waterBodies` — bodies and profiles. `r_waterOverride` — inspect or override classification (run without arguments for syntax).
 
@@ -48,8 +48,10 @@ Underwater the original game tints the whole screen one color. With this, water,
 - `r_volumetricWaterExtinction 0.0014` — how fast water hides distant objects.
 - `r_volumetricWaterAlbedo "0.10 0.45 0.75"` — color of light scattered by water.
 - `r_volumetricWaterColor` — relative absorption of red, green and blue; by default red goes first.
-- `r_volumetricWaterCaustics 0.35` — strength of the caustic pattern from the sun; 0 off.
+- `r_volumetricWaterCaustics 0.35` — strength of the [caustic pattern](#underwater-light-patterns-caustics) from the sun.
 - `cg_underwaterTint 1` — the original full-screen tint; skipped automatically for liquids drawn as fog.
+
+**Compare:** `r_volumetricWaterCompare 2` — the original screen tint. No split screen: the game draws that tint over the whole screen.
 
 **How it works.** Liquid brushes add absorption and scattering to the fog cells inside them. Sun and dynamic light lose strength with the distance they travel through the liquid.
 
@@ -77,6 +79,8 @@ From below, the world above is visible only through a bright circle overhead (Sn
 - `r_waterSnell 0` — 1 on.
 - `r_waterSnellOptics 0` *(restart)* — **0** basic, **1** sunlight passes through the surface, **2** also the atmosphere along the path above.
 
+**Compare:** `r_waterSnellCompare 2` — the plain surface from below. No split screen: Snell's window is a water program of its own.
+
 **How it works.** Light bends when crossing the water surface (Snell's law); beyond a critical angle it can't leave and reflects back (total internal reflection).
 
 **Debug**
@@ -96,6 +100,8 @@ Coherent waves roll across the water instead of a scrolling texture. Wind can tu
 - `r_waterWind 0` — 1: outdoor waves follow the wind.
 - `r_waterWaveQuality 1` — 0, 1, 2: 2, 4 or 8 wave layers.
 
+**Compare:** `r_waterWavesCompare` — 1 split screen (the original surface left; with wave geometry the shape still moves on both sides), 2 off.
+
 **How it works.** A few analytic wave trains are summed to give height and slope. Dispersion makes long waves faster than short ones and all waves slower in shallow water; wind changes are crossfaded.
 
 - `r_waterWaveDispersion 1` — **0** all waves the same speed, **1** speed depends on wavelength and depth, **2** physically calibrated (still water only).
@@ -104,11 +110,10 @@ Coherent waves roll across the water instead of a scrolling texture. Wind can tu
 - `r_waterWaveMicro 1` — fine slope detail, on top of `r_waterSurfaceNormal`.
 - `r_waterWindScale 1` — strength of the wind response.
 - `r_waterWindTransition 4` — seconds to blend into a new wind.
-- `r_waterWaveChoppiness 1` — reserved; no effect yet.
 
 **Debug**
 
-- `r_waterWaveDebug 1..10` — height, normals, profile, depth mask, displacement, split, multiplier, legacy deform.
+- `r_waterWaveDebug 1..7`, `9`, `10` — height, normals, profile, depth mask, displacement, multiplier, legacy deform (the old split 8 is `r_waterWavesCompare 1`).
 - `r_waterWaveTime -1` — freeze waves at a time in seconds; -1 running.
 - `r_waterWindDebug 1..4` — wind, current and target direction, blend.
 
@@ -124,6 +129,8 @@ Lets waves actually move the water surface, so its outline rises and falls again
 - `r_waterTessellation 0` *(restart)* — 1: let the GPU add detail near the camera and less far away (OpenGL 4.3). Faster and finer than the fixed mesh alone.
 - `r_waterTessPixels 96` — tessellation: target edge length on screen; smaller is denser and slower.
 - `r_waterGeometryEdge 64` *(restart)* — fixed mesh: longest edge in world units.
+
+**Compare:** `r_waterGeometryCompare 2` — a flat surface (the mesh stays, the waves don't move it). No split screen: the mesh moves for the whole view.
 
 **How it works.** The water is subdivided within vertex budgets, and each vertex is moved by the wave height. Waves shorter than the mesh stay in shading only. The waterline uses a small tolerance band so the screen doesn't flicker between above and below water.
 
@@ -151,6 +158,8 @@ Shots, falling objects and characters send real ripples across a pool, which spr
 - `r_waterInteractionStrength 1` — strength of all disturbances.
 - `r_waterInteractionQuality 1` *(restart)* — detail: 0 coarse, 1 medium, 2 fine.
 - `r_waterBathymetry 0` *(restart)* — 1: measure the depth under each body, so that with `r_waterInteractionVariableDepth 1` ripples slow down in shallow water as real waves do.
+
+**Compare:** `r_waterInteractionCompare` — 1 split screen (no ripples or rain rings on the water left), 2 off.
 
 **How it works.** Each body gets a small grid of water height and vertical speed that is simulated every frame.
 
@@ -180,6 +189,8 @@ Jumping in or climbing out throws spray, shots raise splashes, characters leave 
 - `r_waterRainRipples 1` — rain on real water bodies.
 - `r_waterRainRippleQuality 1` *(restart)* — 0, 1, 2.
 
+No separate compare cvar: splashes and spray are spawned for the whole world, and `r_waterInteractionCompare` covers the wakes and rain rings.
+
 **How it works.** Game events push impulses into the body's ripple grid and spawn spray particles. Rain adds a statistical sample of its impacts plus fine disturbance.
 
 - `r_waterWakeMinSpeed 35`, `r_waterWakeFoamSpeed 260` — speed where wakes start and where wake foam is full.
@@ -206,6 +217,8 @@ Rivers and streams move along their channel, carrying ripples and foam with them
 - `r_waterFlowSpeed 1` — flow speed.
 - `r_waterFlowDetail 1` — how strongly small detail is carried by the flow.
 
+**Compare:** `r_waterFlowCompare 2` — still water. No split screen: the flow moves the waves, foam and ripples of a whole body.
+
 **Mod authors:** set flow direction and speed in the water-body data when the automatic guess is wrong; `r_waterFlowOverride` helps while testing.
 
 **How it works.** Each body gets a flow direction, or a flow map computed at load, that moves its surface detail, ripples and foam. Wall impact adds local disturbance and wetness; it is not a full fluid simulation.
@@ -227,6 +240,8 @@ White foam where water meets objects, along shores, behind wakes and under water
 - `r_waterIntersectionFoam 0` — 1: a foam ring where objects stand in shallow water.
 - `r_waterFoamDecay 0.55` — how fast foam fades.
 - `r_waterFoamShoreline 1`, `r_waterFoamWaterfall 1`, `r_waterFoamImpact 1`, `r_waterFoamIntersection 1`, `r_waterFoamSteepness 0` — foam from shores, waterfalls, splashes and wakes, objects, steep waves; 0 turns a source off.
+
+**Compare:** `r_waterFoamCompare` — 1 split screen (no foam left), 2 off; both kinds of foam.
 
 **How it works.** Each body has a small foam texture: sources add foam, flow moves it, and it decays. Objects are found where their depth meets the water surface.
 
@@ -253,6 +268,8 @@ With wave geometry, the water edge moves up and down the shore. This softens the
 - `r_waterShoreAttenuation 96` — distance over which waves recover from a bank.
 - `r_waterShoreContactSoftness 6` — width of the soft water edge.
 
+**Compare:** `r_waterShorelineCompare 2` — a hard edge and no wet band. No split screen: the shoreline also lowers the waves of the surface mesh.
+
 **Debug**
 
 - `r_waterShoreDebug 1..9` — depth, shore distance, wave reduction, contact, wet edges, foam.
@@ -261,11 +278,13 @@ Design notes: [rend2-water-shoreline.md](../rend2-water-shoreline.md).
 
 ## Underwater light patterns (caustics)
 
-Rippling bright lines on the bottom of pools, made by waves focusing sunlight. By default a generic pattern is used; mode 2 derives it from the actual waves above. Needs [underwater fog](#underwater-fog) with `r_volumetricWaterSurfaces 1`; mode 2 also modern water.
+Rippling bright lines on the bottom of pools, made by waves focusing sunlight. Mode 1 uses a generic pattern; mode 2 derives it from the actual waves above. Needs [underwater fog](#underwater-fog) with `r_volumetricWaterSurfaces 1`; mode 2 also modern water.
 
 **Cost:** medium; more light sources cost more.
 
-- `r_waterCausticsMode 1` — **0** off, **1** generic pattern, **2** from the real water surface.
+- `r_waterCausticsMode 0` — **0** off, **1** generic pattern, **2** from the real water surface.
+
+**Compare:** `r_waterCausticsCompare` — 1 split screen (no caustics left, on surfaces and in the fog), 2 off.
 - `r_waterCausticsLightMask 1` *(restart)* — light sources, add: **1** sun, **2** dynamic lights, **4** baked light.
 - `r_waterCausticsQuality 1` — mode 2 detail: 0, 1, 2.
 
@@ -295,6 +314,8 @@ Falling water breaks up into streaks, turns white where it is aerated, throws mi
 - `r_waterfallImpact 0` — 1 ripples, turbulence and foam where it lands (needs ripples or the foam field).
 - `r_waterWhitewater 0` *(restart)* — 1 white water in rapids and turbulent streams.
 - `r_waterfallQuality 1` — 0–2.
+
+**Compare:** `r_waterfallCompare 2` — the original waterfall shaders (split screen: `r_waterSurfaceCompare 1`, which splits waterfalls and water together). `r_waterWhitewaterCompare` — 1 split screen, 2 off.
 
 **Mod authors:** `Waterfalls` data in `cubemaps/<map>/env.json` selects sheets and places mist and impact points.
 
@@ -329,6 +350,8 @@ Drifting specks and tiny rising bubbles around the camera underwater, so clear a
 - `r_waterParticlesDensity 1`, `r_waterParticlesSize 1`, `r_waterParticlesSpeed 1` — amount, size, drift and rise speed.
 - `r_waterParticlesBubbles -1` — share of bubbles 0–1; -1 from the profile.
 - `r_waterParticlesDistance 160` — radius of the particle cloud around the camera.
+
+**Compare:** `r_waterParticlesCompare` — 1 split screen, 2 off.
 
 **Debug**
 

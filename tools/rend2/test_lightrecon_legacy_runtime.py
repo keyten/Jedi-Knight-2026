@@ -38,7 +38,7 @@ def settings(profile, policy):
         r_weatherWetness=0, r_waterSurface=0, r_volumetricWater=0,
         r_atmosphere=0, r_clouds=0, r_ssao=0, r_aoMode=0, r_contactShadows=0,
         r_entityLightProbes=0,
-        r_entityLightGrid=0, r_entitySunSplit=0,
+        r_entityLightGrid=0, r_entitySunLight=0,
         r_volumetricFogTemporal=0, r_volumetricFogRGBExtinction=0,
         r_sunShadowCache=0, r_shadowMapSize=1024, r_sunShadowMode=0,
         r_dynamiclight=1, r_ltcSaberAreaLights=0, r_lightReconBuild=policy, r_lightReconUse=0,

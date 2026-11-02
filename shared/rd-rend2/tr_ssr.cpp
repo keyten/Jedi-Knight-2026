@@ -199,11 +199,14 @@ qboolean R_WaterSSRReflectedFog( void )
 }
 
 // Binds the froxel media and fog block for the programs that fog the reflected
-// ray (SSR_REFLECTED_FOG). Returns the value of their "volume available" flag.
-static float RB_SSRBindReflectedFog( void )
+// ray (SSR_REFLECTED_FOG). Returns the value of their "volume available" flag:
+// 0 none, 1 fog, 2 + x: fog right of x only (r_ssrReflectedFogCompare 1, x in
+// the pixels of a pass of passScale times the window width)
+static float RB_SSRBindReflectedFog( float passScale = 1.0f )
 {
 	image_t *source, *dynamic, *extinction;
-	if ( !R_SSRReflectedFog() || !RB_VolumetricMediaImages(&source, &dynamic, &extinction) )
+	if ( !R_SSRReflectedFog() || R_CompareOff(RC_SSRREFLECTEDFOG) ||
+		!RB_VolumetricMediaImages(&source, &dynamic, &extinction) )
 		return 0.0f;
 	GL_BindToTMU(source, TB_SSR_FROXELSOURCE);
 	GL_BindToTMU(dynamic, TB_SSR_FROXELDYNAMIC);
@@ -211,7 +214,8 @@ static float RB_SSRBindReflectedFog( void )
 		GL_BindToTMU(extinction, TB_SSR_FROXELEXTINCTION);
 	const UniformBlockBinding binding = RB_GetVolumetricFogBlockUniformBinding();
 	RB_BindUniformBlock(binding.ubo, binding.block, binding.offset);
-	return 1.0f;
+	const float splitX = R_CompareSplitX(RC_SSRREFLECTEDFOG);
+	return splitX >= 0.0f ? 2.0f + splitX * passScale : 1.0f;
 }
 
 float R_SSRTraceScale( void )
@@ -379,8 +383,10 @@ qboolean RB_SSRWantsView( void )
 		return qfalse;
 
 	// SSR at zero strength without debug views is the legacy look: skip
-	// the work (the split screen compare still needs it)
-	return (qboolean)((r_ssr->integer && (r_ssrBlendStrength->value > 0.0f || r_ssrDebug->integer || r_ssrCompare->integer)) ||
+	// the work (the split screen compare still needs it); r_ssrCompare 2 is
+	// r_ssr 0 without vid_restart
+	const qboolean ssr = (qboolean)(r_ssr->integer && !R_CompareOff(RC_SSR));
+	return (qboolean)((ssr && (r_ssrBlendStrength->value > 0.0f || r_ssrDebug->integer || R_CompareSplit(RC_SSR))) ||
 		(R_WaterSurfaceResourcesEnabled() && r_waterSurface->integer && backEnd.waterInterfacesVisible && r_waterSurfaceSSR->value > 0.0f));
 }
 
@@ -608,7 +614,8 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 
 	R_PushDebugGroup(AL_STAGE, "SSR");
 
-	if (!r_ssr->integer || (r_ssrBlendStrength->value <= 0.0f && !r_ssrDebug->integer && !r_ssrCompare->integer))
+	if (!r_ssr->integer || R_CompareOff(RC_SSR) ||
+		(r_ssrBlendStrength->value <= 0.0f && !r_ssrDebug->integer && !R_CompareSplit(RC_SSR)))
 	{
 		int timer = RB_ScreenBeginTimer("SSR inputs");
 		RB_SSRBuildColorPyramid(info);
@@ -808,7 +815,8 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 			vec4_t texelSize, settings, settings2;
 			RB_ScreenTexelSize(texelSize, width, height, traceWidth, traceHeight);
 			VectorSet4(settings, traceScale, maxDistance, (float)(SSR_COLOR_MIPS - 1), footprintHiZ);
-			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, jitterFrame, RB_SSRBindReflectedFog());
+			VectorSet4(settings2, r_ssrMaxRoughness->value, phase, jitterFrame,
+				RB_SSRBindReflectedFog((float)traceWidth / (float)glConfig.vidWidth));
 			GLSL_SetUniformVec4(radiance, UNIFORM_SSRTEXELSIZE, texelSize);
 			GLSL_SetUniformVec4(radiance, UNIFORM_SSRSETTINGS, settings);
 			GLSL_SetUniformVec4(radiance, UNIFORM_SSRSETTINGS2, settings2);
@@ -892,8 +900,7 @@ void RB_RenderSSR( const screenViewInfo_t& info )
 	timer = RB_ScreenBeginTimer("SSR composite");
 	{
 		const qboolean sceneDebug = (qboolean)(debugView >= 7 && debugView <= 11);
-		const float splitX = r_ssrCompare->integer ?
-			viewParms.viewportX + 0.5f * viewParms.viewportWidth : -1.0f;
+		const float splitX = R_CompareSplitX(RC_SSR);
 
 		shaderProgram_t *sp = fusedResolve ?
 			&tr.ssrCompositeFusedShader[resolveCache ? 1 : 0] : &tr.ssrCompositeShader;

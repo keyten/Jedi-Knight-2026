@@ -170,6 +170,9 @@ void R_MaterialModelSetupDraw( const shaderStage_t *stage, UniformDataWriter& un
 	}
 
 	materialType_t type = R_ResolvedMaterialType(stage);
+	// r_materialModels 0 / r_materialModelsCompare 2: every stage is standard
+	if ( !r_materialModels->integer || R_CompareOff(RC_MATERIALMODELS) )
+		type = MATERIAL_TYPE_STANDARD;
 	const qboolean compatibleSkinMap = (qboolean)(!stage->skinMaskImage ||
 		stage->skinMaskImage == stage->materialMapImage);
 	const qboolean hasMap = (qboolean)(type != MATERIAL_TYPE_STANDARD &&
@@ -205,7 +208,8 @@ static const materialDefaults_t *R_AutoPBRDefaults( const shaderStage_t *stage )
 
 qboolean R_AutoPBRSpecularScale( const shaderStage_t *stage, vec4_t out )
 {
-	if ( !R_IsAutoPBRSource( stage->pbrSource ) || !r_autoPBR->integer )
+	// r_autoPBRCompare 2: Rend2's own material, without touching r_autoPBR
+	if ( !R_IsAutoPBRSource( stage->pbrSource ) || !r_autoPBR->integer || R_CompareOff(RC_AUTOPBR) )
 		return qfalse;
 
 	const materialDefaults_t *m = R_AutoPBRDefaults( stage );
@@ -226,9 +230,31 @@ qboolean R_AutoPBRSpecularScale( const shaderStage_t *stage, vec4_t out )
 image_t *R_AutoPBRRoughnessImage( const shaderStage_t *stage )
 {
 	if ( !stage->autoRoughnessImage || !r_autoPBR->integer || !r_autoPBRRoughness->integer ||
-		stage->pbrSource != PBR_SOURCE_LEGACY )
+		stage->pbrSource != PBR_SOURCE_LEGACY || R_CompareOff(RC_AUTOPBR) || R_CompareOff(RC_AUTOPBRROUGHNESS) )
 		return NULL;
 	return stage->autoRoughnessImage;
+}
+
+/*
+=================
+R_AutoPBRCompareMaterial
+
+u_CompareSpecularScale: the material of the original side of the split line,
+for the drawn scale `current`. r_autoPBRCompare: Rend2's own (the stage's
+specularScale); r_autoPBRRoughnessCompare: the class value without the
+generated map (lightall then samples white instead of it).
+=================
+*/
+void R_AutoPBRCompareMaterial( const shaderStage_t *stage, const vec4_t current, vec4_t out )
+{
+	VectorCopy4(current, out);
+	if ( !R_IsAutoPBRSource( stage->pbrSource ) || !r_autoPBR->integer )
+		return;
+
+	if ( R_CompareSplit(RC_AUTOPBR) )
+		VectorCopy4(stage->specularScale, out);
+	else if ( R_CompareSplit(RC_AUTOPBRROUGHNESS) && R_AutoPBRRoughnessImage( stage ) )
+		out[3] = R_AutoPBRDefaults( stage )->roughness;
 }
 
 qboolean R_AutoPBRDebugColor( const shaderStage_t *stage, vec4_t out )

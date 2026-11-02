@@ -887,7 +887,7 @@ static qboolean UI_LazyMenuAssets( void )
 {
 	static cvar_t *lazy = NULL;
 	if ( !lazy )
-		lazy = Cvar_Get( "ui_lazyMenuAssets", "1", CVAR_ARCHIVE );
+		lazy = Cvar_Get( "ui_lazyMenuAssets", "0", CVAR_ARCHIVE );
 	return (qboolean)( lazy->integer != 0 );
 }
 

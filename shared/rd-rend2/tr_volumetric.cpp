@@ -191,6 +191,9 @@ are clamped, black (or no color) is neutral (1 1 1).
 */
 void R_VolumetricExtinctionColor( const float *in, vec3_t out )
 {
+	// r_volumetricFogRGBCompare 2: gray absorption without vid_restart
+	if ( R_CompareOff(RC_RGBEXTINCTION) )
+		in = NULL;
 	vec3_t c;
 	for ( int i = 0; i < 3; i++ )
 		c[i] = (in && in[i] > 0.0f) ? in[i] : 0.0f;
@@ -1751,7 +1754,7 @@ static qboolean R_VolumetricHeightFog( vec4_t fog, vec4_t color, vec4_t top )
 	VectorSet4(top, 0.0f, 0.0f, 0.0f, 0.0f);
 
 	const float opaque = R_VolumetricHeightSetting(1, r_volumetricFogHeightOpaqueDistance);
-	if ( !r_volumetricFogHeight->integer || opaque <= 0.0f )
+	if ( !r_volumetricFogHeight->integer || R_CompareOff(RC_HEIGHTFOG) || opaque <= 0.0f )
 		return qfalse;
 
 	const float extinction = (-logf(1.5f / 255.0f)) / opaque *
@@ -2090,7 +2093,8 @@ static qboolean R_VolumetricNoise( VolumetricFogBlock *block, const trRefdef_t *
 	vec3_t wind = { 0.0f, 0.0f, 0.0f };
 	sscanf(r_volumetricFogNoiseWind->string, "%f %f %f", &wind[0], &wind[1], &wind[2]);
 	R_VolumetricNoiseWind(block, refdef->time, wind, macroPeriod, detailPeriod);
-	if ( !mask || !tr.froxelNoiseImage || (macroContrast <= 0.0f && detailContrast <= 0.0f) )
+	if ( !mask || R_CompareOff(RC_FOGNOISE) || !tr.froxelNoiseImage ||
+		(macroContrast <= 0.0f && detailContrast <= 0.0f) )
 		return qfalse;
 
 	VectorSet4(block->noiseParams, 1.0f / macroPeriod, 1.0f / detailPeriod, macroContrast, detailContrast);
@@ -2164,7 +2168,7 @@ qboolean R_VolumetricRainActive( const trRefdef_t *refdef )
 		r_drawfog && r_drawfog->integer && tr.renderFbo &&
 		(!r_volumetricFogFreeze || !r_volumetricFogFreeze->integer) &&
 		!(refdef->rdflags & (RDF_NOWORLDMODEL | RDF_HYPERSPACE)) && !refdef->doLAGoggles &&
-		r_rainVolume && r_rainVolume->integer && refdef->precipitation.primaryView &&
+		r_rainVolume && r_rainVolume->integer && !R_CompareOff(RC_RAINVOLUME) && refdef->precipitation.primaryView &&
 		refdef->precipitation.current && R_VolumetricRainProfile(refdef->precipitation) > 0.0f &&
 		tr.weatherSystem && tr.weatherSystem->depthMapValid && tr.weatherDepthImage &&
 		R_VolumetricRainSupported());
@@ -2223,6 +2227,19 @@ static unsigned int R_VolumetricMediumKey( const trRefdef_t *refdef, qboolean ra
 	const int cloudShadows = R_CloudShadowKey();
 	if ( cloudShadows )
 		key = R_VolumetricHashBytes(key, &cloudShadows, sizeof(cloudShadows));
+	// r_<feature>Compare of the media: a new mode or split line is a new medium
+	static const rendererCompare_t mediaCompares[] = {
+		RC_HEIGHTFOG, RC_FOGNOISE, RC_SELFSHADOW, RC_MULTISCATTER, RC_RGBEXTINCTION, RC_FOGVOLUMES,
+		RC_EMISSION, RC_VOLPARTICLES, RC_RAINVOLUME, RC_CLOUDSHADOWS, RC_VOLUMETRICWATER };
+	int compareModes = 0;
+	for ( size_t i = 0; i < ARRAY_LEN(mediaCompares); i++ )
+		compareModes = compareModes * 3 + Com_Clampi(0, 2, R_CompareMode(mediaCompares[i]));
+	if ( compareModes )
+	{
+		key = R_VolumetricHashBytes(key, &compareModes, sizeof(compareModes));
+		if ( refdef )
+			key = R_VolumetricHashBytes(key, &refdef->compareSplitX, sizeof(refdef->compareSplitX));
+	}
 	return key;
 }
 
@@ -2308,6 +2325,8 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 		!refdef->doLAGoggles &&
 		r_depthPrepass->integer &&
 		r_drawfog->integer &&
+		// r_volumetricFogCompare 2: no froxel volume, the surfaces' own fog
+		!R_CompareOff(RC_VOLUMETRICFOG) &&
 		view->targetFbo == NULL);
 
 	if ( !worldView )
@@ -2458,6 +2477,12 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	VectorSet4(block.sliceParams, nearZ, farZ, log2f(farZ / nearZ), skyDistance);
 	VectorSet4(block.gridSize, (float)s_vf.width, (float)s_vf.height, (float)s_vf.depth, (float)(s_vf.frameIndex & 1023));
 
+	// r_<feature>Compare split screens of the media: the froxel columns left
+	// of the split line of this scene are injected as the original
+	R_CompareSceneParams(block.compareSplit, block.compareMask);
+	block.compareSplit[0] = refdef->compareSplitX < 0.0f ? -1.0f :
+		(refdef->compareSplitX - (float)view->viewportX) / (float)MAX(1, view->viewportWidth) * (float)s_vf.width;
+
 	// jitter inside the froxel, a new position every frame (8 frame cycle)
 	if ( temporal )
 	{
@@ -2472,7 +2497,8 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	VectorSet4(block.temporalParams,
 		historyValid ? r_volumetricFogHistoryWeight->value : 0.0f,
 		historyValid ? 1.0f : 0.0f,
-		MAX(r_volumetricEmission->value, 0.0f),	// emission of local volumes / FX particles
+		// emission of local volumes / FX particles (r_volumetricEmissionCompare 2: none)
+		R_CompareOff(RC_EMISSION) ? 0.0f : MAX(r_volumetricEmission->value, 0.0f),
 		4.0f);	// history radiance clamped to [current / 4, current * 4]
 
 	const float globalAnisotropy = Com_Clamp(-0.9f, 0.9f, r_volumetricFogAnisotropy->value);
@@ -2528,8 +2554,10 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 
 	// media self-shadow: the media pass builds the extinction of this frame
 	// before the injection (RB_VolumetricBuild)
+	// r_volumetricSelfShadowCompare 2: off without vid_restart (so are the
+	// multiple scattering octaves, which need it)
 	VectorSet4(block.selfShadow,
-		tr.froxelMediaImage ? (float)r_volumetricSelfShadow->integer : 0.0f,
+		tr.froxelMediaImage && !R_CompareOff(RC_SELFSHADOW) ? (float)r_volumetricSelfShadow->integer : 0.0f,
 		(float)Com_Clampi(2, 16, r_volumetricSelfShadowSamples->integer),
 		Com_Clamp(32.0f, 8192.0f, r_volumetricSelfShadowDistance->value),
 		r_volumetricSelfShadowOutsideHeightFog->integer ? 1.0f : 0.0f);
@@ -2541,8 +2569,8 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 	{
 		static qboolean warnedNoSelfShadow = qfalse;
 		static qboolean warnedAttenuation = qfalse;
-		int msMode = r_volumetricMultiScatter->integer;
-		if ( msMode && !block.selfShadow[0] )
+		int msMode = R_CompareOff(RC_MULTISCATTER) ? 0 : r_volumetricMultiScatter->integer;
+		if ( msMode && !block.selfShadow[0] && !R_CompareOff(RC_SELFSHADOW) )
 		{
 			if ( !warnedNoSelfShadow )
 				ri.Printf(PRINT_ALL, "r_volumetricMultiScatter needs r_volumetricSelfShadow (vid_restart), ignored\n");
@@ -2593,7 +2621,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 			rain.optical.atmosphericMediumTint[1], rain.optical.atmosphericMediumTint[2], intensity);
 		const float lodNear = MAX(0.0f, r_rainLODNear->value);
 		const float lodMid = MAX(lodNear + 1.0f, r_rainLODMid->value);
-		const qboolean lodActive = (qboolean)(r_rainLOD->integer != 0);
+		const qboolean lodActive = (qboolean)(r_rainLOD->integer != 0 && !R_CompareOff(RC_RAINLOD));
 		VectorSet4(block.rainLod, lodNear, lodMid,
 			Com_Clamp(0.0f, 1.0f, r_rainLODFarVolumeCoupling->value), lodActive ? 1.0f : 0.0f);
 	}
@@ -2950,7 +2978,7 @@ void RB_ParticleLightSetupDraw( const shader_t *shader, const shaderStage_t *sta
 		{
 			params[3] = (particleClass == PARTICLE_LIGHT_LIT) ? 2.0f : 3.0f;
 		}
-		else
+		else if ( !R_CompareOff(RC_PARTICLELIGHTING) )
 		{
 			// the field carries the baked light times r_volumetricFogStaticScale
 			const float reference = MAX(0.05f,
@@ -2963,6 +2991,8 @@ void RB_ParticleLightSetupDraw( const shader_t *shader, const shaderStage_t *sta
 		samplers.AddStaticImage(tr.froxelParticleLightImage, TB_SHADOWMAPARRAY);
 	}
 	uniforms.SetUniformVec4(UNIFORM_PARTICLELIGHT, params);
+	// r_particleLightingCompare 1: the sprites keep their painted color left of the split line
+	uniforms.SetUniformFloat(UNIFORM_PARTICLELIGHTSPLIT, R_CompareSplitX(RC_PARTICLELIGHTING));
 }
 
 /*

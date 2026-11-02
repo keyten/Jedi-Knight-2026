@@ -73,7 +73,7 @@ layout(std140) uniform Entity
 	vec4 u_GridMinimum;
 	vec4 u_GridScale;
 	#if defined(USE_ENTITY_SUN_SPLIT)
-	vec4 u_EntitySun;		// r_entitySunSplit: sun rgb, w 1 = split (0 = legacy light)
+	vec4 u_EntitySun;		// r_entitySunLight: sun rgb, w 1 = split (0 = legacy light)
 	#endif
 };
 
@@ -471,12 +471,14 @@ layout(std140) uniform Scene
 	vec4 u_AOParams2;
 	// common scene contract: metres/unit, squared, legacy map calibration, mode
 	vec4 u_PBRParams;
-#if defined(USE_SSGI)
 	// screen-space GI source (tr_ssgi.cpp, RB_SSGISceneParams): x = source bits
 	// (1 dynamic light, 2 emissive, 4 legacy glow), y = 1 linear scene / 0 legacy
-	// display encoded, z = emissive scale, w = legacy glow scale
+	// display encoded, z = emissive scale, w = legacy glow scale (USE_SSGI)
 	vec4 u_SSGIParams;
-#endif
+	// r_<feature>Compare split screen (tr_compare.cpp): x = split line in window
+	// pixels; bit RC_x of the mask: R_CompareOriginal(RC_x) left of the line
+	vec4 u_CompareSplit;
+	ivec4 u_CompareMask;
 };
 
 layout(std140) uniform Camera
@@ -512,7 +514,7 @@ layout(std140) uniform Entity
 	vec4 u_GridMinimum;
 	vec4 u_GridScale;
 	#if defined(USE_ENTITY_SUN_SPLIT)
-	vec4 u_EntitySun;		// r_entitySunSplit: sun rgb, w 1 = split (0 = legacy light)
+	vec4 u_EntitySun;		// r_entitySunLight: sun rgb, w 1 = split (0 = legacy light)
 	#endif
 };
 
@@ -541,8 +543,8 @@ layout(std140) uniform Lights
 	int u_NumLights;
 	Light u_Lights[32];
 	mat4 u_SpotShadowVP[32];	// spot light shadow views, by shadow slot (layer 6 * slot)
-	vec4 u_ShadowCharacters[8];	// r_shadowPCSSCharacterLayers: world sphere (center, radius)
-	vec4 u_ShadowCharacterInfo;	// count, r_sunShadowSplit cascade mask
+	vec4 u_ShadowCharacters[8];	// r_sunShadowModelLayer 2: world sphere (center, radius)
+	vec4 u_ShadowCharacterInfo;	// count, r_sunShadowModelLayer cascade mask
 };
 
 uniform int u_LightMask;
@@ -812,7 +814,8 @@ uniform vec4 u_CloudShadow[2];
 
 float CloudShadow(in vec3 position)
 {
-	if (u_CloudShadow[1].w < 0.5)
+	// r_cloudShadowsCompare 1: no cloud shadow left of the split line
+	if (u_CloudShadow[1].w < 0.5 || R_CompareOriginal(RC_CLOUDSHADOWS) || R_CompareOriginal(RC_CLOUDS))
 		return 1.0;
 	vec2 q = position.xy - u_CloudShadow[1].xy * (position.z - u_CloudShadow[0].w);
 	vec2 uv = (q - u_CloudShadow[0].xy) * u_CloudShadow[0].z + 0.5;
@@ -906,6 +909,57 @@ uniform vec4 u_PomTraversal;	// adaptive steps (0 = legacy 16 + 8), min steps, m
 uniform vec4 u_PomLod;			// fade start, 1 / fade width (0 = no fade), self shadowed local lights (>= 256 all)
 uniform vec4 u_PomDebug;		// frozen sun direction (0 = live), r_pomDebug view
 #endif
+
+// r_<feature>Compare split screen (tr_compare.cpp): the per draw values of the compared features,
+// with the original ones left of the split line (R_CompareOriginal). R_CompareSetup fills them first
+// thing in main; the rest of the shader reads these instead of the uniforms.
+uniform vec4 u_CompareSpecularScale;	// r_autoPBR(Roughness)Compare: the material of the original side
+uniform vec4 u_CompareParams;			// x = 1: u_SpecularMap is the generated r_autoPBRRoughness map
+vec4 g_SpecularScale;
+vec4 g_MaterialModel;
+vec4 g_PBRMaterial;
+int g_DiffuseBRDF;
+bool g_OriginalMaterial;	// the original side of r_autoPBRCompare / r_autoPBRRoughnessCompare
+#if defined(USE_GGX_SPECULAR_AA)
+vec4 g_SpecularAAParams;
+#endif
+#if defined(PER_PIXEL_LIGHTING) && defined(USE_DIFFUSE_IBL) && defined(USE_LIGHT_VECTOR)
+vec4 g_DiffuseIBLParams;
+#endif
+#if defined(USE_PARALLAXMAP)
+vec4 g_PomShadow;
+#endif
+
+void R_CompareSetup()
+{
+	g_OriginalMaterial = R_CompareOriginal(RC_AUTOPBR) || R_CompareOriginal(RC_AUTOPBRROUGHNESS);
+	g_SpecularScale = g_OriginalMaterial ? u_CompareSpecularScale : u_SpecularScale;
+	g_MaterialModel = u_MaterialModel;
+	if (R_CompareOriginal(RC_MATERIALMODELS))
+		g_MaterialModel.x = 0.0;	// standard material
+	g_PBRMaterial = u_PBRMaterial;
+	if (R_CompareOriginal(RC_ENERGYCOMPENSATION))
+		g_PBRMaterial.z = 0.0;
+	g_DiffuseBRDF = R_CompareOriginal(RC_DIFFUSEBRDF) ? 0 : u_DiffuseBRDF;
+#if defined(USE_GGX_SPECULAR_AA)
+	g_SpecularAAParams = u_SpecularAAParams;
+	if (R_CompareOriginal(RC_SPECULARAA))
+		g_SpecularAAParams.xy = vec2(0.0);	// no added roughness
+#endif
+#if defined(PER_PIXEL_LIGHTING) && defined(USE_DIFFUSE_IBL) && defined(USE_LIGHT_VECTOR)
+	g_DiffuseIBLParams = u_DiffuseIBLParams;
+	if (R_CompareOriginal(RC_DIFFUSEIBL))
+		g_DiffuseIBLParams.w = 0.0;
+#endif
+#if defined(USE_PARALLAXMAP)
+	g_PomShadow = u_PomShadow;
+	if (R_CompareOriginal(RC_POMSELFSHADOW))
+		g_PomShadow.x = 0.0;
+#endif
+#if defined(USE_LIQUIDS)
+	g_liquidCausticOriginal = R_CompareOriginal(RC_WATERCAUSTICS);
+#endif
+}
 
 #if defined(PER_PIXEL_LIGHTING) && defined(USE_CUBEMAP)
 uniform vec4 u_CubeMapInfo;
@@ -1115,7 +1169,7 @@ struct SunCascadeResult
 	float cascade;
 #if defined(USE_PCSS_CHARACTER_LAYERS) || defined(USE_SUN_SHADOW_SPLIT)
 	float layers;		// 1 where a character's blockers got their own penumbra,
-						// r_sunShadowSplit: the hard layer's occlusion
+						// r_sunShadowModelLayer: the hard layer's occlusion
 #endif
 };
 
@@ -1377,7 +1431,9 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 	ShadowSampleCounts(blockerSamples, filterSamples);
 	float uvPerWorld = u_ShadowTexelSize.w / max(worldTexel, 1e-5);
 	float fixedRadiusUv = 1.5 * u_ShadowTexelSize.w;
-	bool pcssEnabled = u_ShadowPcss.z >= 0.5 && u_ShadowPcss.x > 0.0 && u_ShadowPcss.y > 0.0;
+	// r_shadowPCSSCompare 1: uniformly soft edges left of the split line
+	bool pcssEnabled = u_ShadowPcss.z >= 0.5 && u_ShadowPcss.x > 0.0 && u_ShadowPcss.y > 0.0 &&
+		!R_CompareOriginal(RC_PCSS);
 
 	if (debugMode == 3 || !pcssEnabled)
 		result.fixedPcf = ShadowManualPcf(cascade, shadowPos, receiverGradient,
@@ -1389,7 +1445,7 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 	}
 
 #if defined(USE_SUN_SHADOW_SPLIT)
-	// r_sunShadowSplit: models (characters, NPCs, md3) cast into their own
+	// r_sunShadowModelLayer: models (characters, NPCs, md3) cast into their own
 	// layer, 3 + cascade, without the rest of the scene. One depth per texel
 	// cannot hold both: where a high roof covers a leg in light space, the leg
 	// is gone from this layer and the roof's penumbra shows through the leg's
@@ -1437,7 +1493,7 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 		return result;
 
 #if defined(USE_PCSS_CHARACTER_LAYERS)
-	// r_shadowPCSSCharacterLayers: one averaged blocker depth gives a single
+	// r_sunShadowModelLayer 2: one averaged blocker depth gives a single
 	// penumbra, so a character standing in a tree top's soft shadow would blur
 	// like the tree top. The nearest character sphere (tr_main.cpp) between the
 	// receiver and the sun, close enough to reach the search disc, gives a
@@ -1891,7 +1947,7 @@ float GetPomSelfShadow(in vec3 L)
 #if !defined(USE_POM_SELFSHADOW)
 	return 1.0;
 #else
-	float strength = clamp(u_PomShadow.x, 0.0, 1.0) * g_pom.fade;
+	float strength = clamp(g_PomShadow.x, 0.0, 1.0) * g_pom.fade;
 	if (!g_pom.valid || strength <= 0.0)
 		return 1.0;
 
@@ -1901,7 +1957,7 @@ float GetPomSelfShadow(in vec3 L)
 	const float minElevation = 0.05;
 	float horizon = clamp(Lt.z / minElevation, 0.0, 1.0);
 	float visibility = 0.0;
-	float s0 = g_pom.depth - u_PomShadow.z;
+	float s0 = g_pom.depth - g_PomShadow.z;
 	if (horizon > 0.0)
 	{
 		visibility = 1.0;
@@ -1909,7 +1965,7 @@ float GetPomSelfShadow(in vec3 L)
 		{
 			// texture offset per unit of s climbed towards the light
 			vec2 duv = Lt.xy / max(Lt.z, minElevation) * g_pom.scale;
-			int steps = int(u_PomShadow.y);
+			int steps = int(g_PomShadow.y);
 			float invSteps = 1.0 / float(steps);
 			float occlusion = 0.0;
 			for (int i = 0; i < POM_SHADOW_MAX_STEPS; i++)
@@ -1921,7 +1977,7 @@ float GetPomSelfShadow(in vec3 L)
 				// height is flipped before uploaded to the gpu
 				float h = SampleMaterialDepth(u_NormalMap, g_pom.uv + duv * (g_pom.depth - s), g_pom.gradX, g_pom.gradY);
 				g_pom.shadowSamples += 1.0;
-				occlusion = max(occlusion, (s - h) * u_PomShadow.w * (1.0 - f));
+				occlusion = max(occlusion, (s - h) * g_PomShadow.w * (1.0 - f));
 			}
 			visibility = 1.0 - clamp(occlusion, 0.0, 1.0);
 		}
@@ -2182,10 +2238,10 @@ vec3 CalcMaterialSpecular(
 	in float materialMask)
 {
 	vec3 isotropic = CalcSpecular(specular, energyCompensation, NH, NL, NE, LH, VH, perceptualRoughness);
-	if (int(u_MaterialModel.x + 0.5) != 1 || materialMask <= 0.0)
+	if (int(g_MaterialModel.x + 0.5) != 1 || materialMask <= 0.0)
 		return isotropic;
 	vec3 hair = CalcHairSpecular(specular, N, T, H, NL, NE, VH,
-		perceptualRoughness, u_MaterialModel.z);
+		perceptualRoughness, g_MaterialModel.z);
 	return mix(isotropic, hair, materialMask);
 }
 
@@ -2210,7 +2266,7 @@ vec3 CalcDiffuse(
 {
 	//Using #if to define our diffuse's is a good idea.
 #if !defined(USE_CLOTH_BRDF) //should define this as the base BRDF
-	if (u_DiffuseBRDF == 1)
+	if (g_DiffuseBRDF == 1)
 	{
 		return diffuse * Diff_Burley(perceptualRoughness, clamp(NE, 0.0, 1.0), NL, LH);
 	}
@@ -2287,7 +2343,8 @@ vec3 SpotCookieUV(in vec3 d, in vec4 spot, in float roll)
 // spot2: cos inner, projected shadow, cookie layer (-1 none), roll. 1 without cookie
 vec3 SpotCookie(in vec3 d, in vec4 spot, in vec4 spot2, in float viewDist)
 {
-	if (spot2.z < -0.5 || u_LightCookieParams.x < 0.5)
+	// r_spotLightCookiesCompare 1: no pattern left of the split line
+	if (spot2.z < -0.5 || u_LightCookieParams.x < 0.5 || R_CompareOriginal(RC_SPOTCOOKIES))
 		return vec3(1.0);
 	vec3 uvr = SpotCookieUV(d, spot, spot2.w);
 	if (uvr.z <= 0.0)
@@ -2658,7 +2715,7 @@ float PomLocalLightCut(in vec3 position, in bool fplus, in ivec2 list)
 	return -1.0;
 #else
 	int maxLights = int(u_PomLod.z);
-	if (clamp(u_PomShadow.x, 0.0, 1.0) * g_pom.fade <= 0.0 || !g_pom.valid || maxLights <= 0)
+	if (clamp(g_PomShadow.x, 0.0, 1.0) * g_pom.fade <= 0.0 || !g_pom.valid || maxLights <= 0)
 		return -1.0;
 	if (maxLights >= list.y)
 		return 0.0;
@@ -2830,7 +2887,7 @@ vec3 EvaluateDynamicLight(
 	float LH = clamp(dot(L, H), 0.0, 1.0);
 	#elif !defined(USE_CLOTH_BRDF)
 	float LH = 0.0;
-	if (u_DiffuseBRDF == 1)
+	if (g_DiffuseBRDF == 1)
 	{
 		vec3 H = normalize(L + s.E);
 		LH = clamp(dot(L, H), 0.0, 1.0);
@@ -2874,7 +2931,7 @@ vec3 EvaluateDynamicLight(
 		H, NH, NL, s.NE, LH, VH, s.perceptualRoughness, s.materialMask) * attenuation * NL;
 	lit += specularLight;
 	g_energySpecular += specularLight;
-	if (int(u_MaterialModel.x + 0.5) != 0)
+	if (int(g_MaterialModel.x + 0.5) != 0)
 		g_materialSpecular += specularLight;
 	  #endif
 	return lit;
@@ -2886,7 +2943,7 @@ vec3 EvaluateDynamicLight(
 		H, NH, NL, s.NE, LH, VH, s.perceptualRoughness, s.materialMask);
 	reflectance += specularBrdf;
 	g_energySpecular += lightColor * specularBrdf * attenuation * NL;
-	if (int(u_MaterialModel.x + 0.5) != 0)
+	if (int(g_MaterialModel.x + 0.5) != 0)
 		g_materialSpecular += lightColor * specularBrdf * attenuation * NL;
 	#endif
 	return lightColor * reflectance * attenuation * NL;
@@ -3260,7 +3317,7 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 
 	#if defined(USE_SPECULARMAP)
 	#if !defined(USE_CLOTH_BRDF)
-	if (int(u_MaterialModel.x + 0.5) == 1 && s.materialMask > 0.0)
+	if (int(g_MaterialModel.x + 0.5) == 1 && s.materialMask > 0.0)
 	{
 		// The isotropic LTC table cannot represent an elongated lobe.  For
 		// hair use the closest point of the rectangle/saber as a stable
@@ -3324,7 +3381,7 @@ vec3 EvaluateAreaLight(in DLightSurface s, in FPlusLight light, in int lightInde
 	#endif
 	#endif
 	#if defined(USE_SPECULARMAP)
-	if (int(u_MaterialModel.x + 0.5) != 0)
+	if (int(g_MaterialModel.x + 0.5) != 0)
 		g_materialSpecular += specularOut;
 	#endif
 	#if defined(USE_SKIN_SSS)
@@ -3385,7 +3442,7 @@ vec3 CalcDynamicLightContribution(
 	s.diffuse = diffuse;
 	s.specular = specular;
 	s.energyCompensation = energyCompensation;
-	s.energyCompensationEnabled = u_PBRMaterial.z;
+	s.energyCompensationEnabled = g_PBRMaterial.z;
 	s.standardEnergyPartition = standardEnergyPartition;
 	s.viewDiffuseTransmission = viewDiffuseTransmission;
 	s.averageDiffuseTransmission = averageDiffuseTransmission;
@@ -3438,7 +3495,10 @@ vec3 CalcDynamicLightContribution(
 				continue;
 			if (light.type != 0.0)
 			{
-				// area light (r_ltcAreaLights): only in the USE_LTC programs
+				// area light (r_ltcAreaLights): only in the USE_LTC programs.
+				// r_ltcAreaLightsCompare 1: no map area lights left of the split line
+				if (R_CompareOriginal(RC_LTC) && (light.flags & AREALIGHT_DYNAMIC) == 0)
+					continue;
 #if defined(USE_LTC)
 #if defined(USE_PARALLAXMAP)
 				g_pomLightWeight = pomCut < 0.0 ? 0.0 :
@@ -4331,6 +4391,7 @@ void PomSilhouetteFragment(inout vec2 texCoords, inout vec2 lmCoords, out vec3 v
 
 void main()
 {
+	R_CompareSetup();
 	vec3 viewDir, lightColor, ambientColor;
 	vec3 L, N, E;
 
@@ -4490,7 +4551,7 @@ void main()
 	#else
 	N = CalcNormal(vertexNormal, var_Tangent, texCoords);
 	#endif
-	int materialType = int(u_MaterialModel.x + 0.5);
+	int materialType = int(g_MaterialModel.x + 0.5);
 	vec3 materialT = var_Tangent.xyz - N * dot(N, var_Tangent.xyz);
 	if (dot(materialT, materialT) < 1e-8)
 		materialT = abs(N.z) < 0.999 ? cross(vec3(0.0, 0.0, 1.0), N) : vec3(1.0, 0.0, 0.0);
@@ -4498,7 +4559,7 @@ void main()
 	float tangentSign = var_Tangent.w < 0.0 ? -1.0 : 1.0;
 	vec3 materialB = normalize(cross(N, materialT)) * tangentSign;
 	float materialMask = materialType == 0 ? 0.0 : 1.0;
-	if (u_MaterialModel.y > 0.5)
+	if (g_MaterialModel.y > 0.5)
 	{
 		vec3 materialMap = texture(u_SkinMaskMap, texCoords).rgb;
 		vec2 direction = materialMap.rg * 2.0 - 1.0;
@@ -4581,13 +4642,16 @@ void main()
     #else
 		wetness = rainExposure * max(u_WetnessParams.x, 0.0) * facing;
     #endif
-		if (u_WaterContact[0].x > 0.0)
+		// r_weatherWetnessCompare 1: dry left of the split line (puddles and runoff too)
+		bool dryOriginal = R_CompareOriginal(RC_WETNESS);
+		if (dryOriginal)
+			wetness = 0.0;
+		// r_waterShorelineCompare 1: no shoreline wet band left of the split line
+		if (u_WaterContact[0].x > 0.0 && !R_CompareOriginal(RC_WATERSHORELINE))
 		{
 			waterContact = ComputeWaterContact(u_ViewOrigin - viewDir);
 			wetness = max(wetness, waterContact * u_WaterContact[0].x);
 		}
-		if (u_WetnessParams2.z == 4.0 && gl_FragCoord.x < u_WetnessParams2.w)
-			wetness = 0.0;	// dry / wet split
 		N = normalize(mix(N, wetGeoNormal, wetness * u_WetnessParams.w));
 
 		// Puddles: rain exposure x flat geometric normal x world noise x
@@ -4624,7 +4688,8 @@ void main()
 				flatten = micro.z;
 			}
     #endif
-			if (u_WetnessParams2.z == 4.0 && gl_FragCoord.x < u_WetnessParams2.w)
+			// r_weatherPuddlesCompare 1: no puddles left of the split line
+			if (dryOriginal || R_CompareOriginal(RC_PUDDLES))
 				puddle = puddleEdge = flatten = 0.0;
 			if (u_PuddleParams2.y > 0.5)
 			{
@@ -4645,7 +4710,8 @@ void main()
 
 			// rain ripples: only on the submerged core, fading out before its
 			// edge, so no ring reaches the fringe film or dry stone
-			if (u_PuddleRipple.x > 0.0 && (puddle > 0.35 ||
+			// r_weatherPuddleRipplesCompare 1: still puddles left of the split line
+			if (u_PuddleRipple.x > 0.0 && !R_CompareOriginal(RC_PUDDLERIPPLES) && (puddle > 0.35 ||
 				(u_WetnessParams2.z >= 17.0 && u_WetnessParams2.z <= 20.0) ||
 				(u_WetnessParams2.z >= 37.0 && u_WetnessParams2.z <= 40.0)))
 			{
@@ -4726,7 +4792,8 @@ void main()
 			runoffTrail = clamp(runoffField.z * trailGate, 0.0, 1.0);
 			runoff = max(runoff, runoffTrail);
 			runoffCore = max(runoffCore, runoffTrail);
-			if (u_WetnessParams2.z == 4.0 && gl_FragCoord.x < u_WetnessParams2.w)
+			// r_weatherRunoffCompare 1: no runoff left of the split line
+			if (dryOriginal || R_CompareOriginal(RC_RUNOFF))
 				runoff = runoffCore = runoffTrail = 0.0;
 			// the film smooths the surface detail, most in the streams
 			N = normalize(mix(N, wetGeoNormal, 0.4 * runoff + 0.4 * runoffCore));
@@ -4801,7 +4868,7 @@ void main()
 	shadowValue *= pomSunShadow;
 	#endif
 	#if defined(USE_ENTITY_SUN_SPLIT)
-	// r_entitySunSplit: the visibility of the analytic sun, its cosine is NL2
+	// r_entitySunLight: the visibility of the analytic sun, its cosine is NL2
 	// below. A view without the sun (no cascades of its own) leaves it unshadowed.
 	bool entitySunSplit = u_EntitySun.w > 0.5;
 	float entitySunVisibility = cascadeShadow * contactShadow;
@@ -4848,7 +4915,7 @@ void main()
 	ambientSunVisibility *= liquidSun;
 	#endif
 	ambientColor *= mix(vec3(1.0), ambientScale,
-		u_AOParams2.w * (vec3(1.0) - ambientSunVisibility));
+		(R_CompareOriginal(RC_ENTITYSHADOWAMBIENT) ? 0.0 : u_AOParams2.w) * (vec3(1.0) - ambientSunVisibility));
 	#endif
 	#if defined(USE_ENTITY_SUN_SPLIT)
 	if (entitySunSplit)
@@ -4917,14 +4984,17 @@ void main()
     #else
 	vec4 ORMS = texture(u_SpecularMap, texCoords);
     #endif
-	ORMS.xyzw *= u_SpecularScale.zwxy;
+	// the original side of r_autoPBR(Roughness)Compare: no generated roughness map
+	if (g_OriginalMaterial && u_CompareParams.x > 0.5)
+		ORMS = vec4(1.0);
+	ORMS.xyzw *= g_SpecularScale.zwxy;
 
 	specular.rgb = mix(vec3(0.08) * ORMS.w, diffuse.rgb, ORMS.z);
 	diffuse.rgb *= vec3(1.0 - ORMS.z);
 
 	// r_autoPBRRoughness scales past 1 to keep the class mean (tr_autopbr.cpp)
 	roughness = mix(0.01, 1.0, clamp(ORMS.y, 0.0, 1.0));
-	if (u_PBRMaterial.x < 1.5 && u_PBRMaterial.y > 0.5)
+	if (g_PBRMaterial.x < 1.5 && g_PBRMaterial.y > 0.5)
 		roughness = LegacyAlphaToPerceptualRoughness(roughness);
 	AO = min(ORMS.x, AO);
   #else
@@ -4933,9 +5003,9 @@ void main()
     #else
 	specular = texture(u_SpecularMap, texCoords);
     #endif
-	specular.rgb *= u_SpecularScale.xyz;
-	roughness = mix(1.0, 0.01, specular.a * (1.0 - u_SpecularScale.w));
-	if (u_PBRMaterial.x < 1.5 && u_PBRMaterial.y > 0.5)
+	specular.rgb *= g_SpecularScale.xyz;
+	roughness = mix(1.0, 0.01, specular.a * (1.0 - g_SpecularScale.w));
+	if (g_PBRMaterial.x < 1.5 && g_PBRMaterial.y > 0.5)
 		roughness = LegacyAlphaToPerceptualRoughness(roughness);
   #endif
   #endif
@@ -5040,17 +5110,17 @@ void main()
 	float geometricVariance = min(geometricDerivativeVariance, 0.01);
 	float detailVariance = min(max(shadingDerivativeVariance -
 		geometricDerivativeVariance, 0.0), 0.25);
-	float normalVariance = u_SpecularAAParams.x * min(geometricVariance +
+	float normalVariance = g_SpecularAAParams.x * min(geometricVariance +
 		detailVariance + min(normalMapMipVariance, 1.0), 1.0);
 	float materialAlpha = PerceptualRoughnessToAlpha(roughness);
 	float effectiveAlpha = FilterGgxAlphaVariance(materialAlpha, normalVariance);
 	float effectiveRoughness = sqrt(effectiveAlpha);
 	roughness = max(roughness, min(effectiveRoughness,
-		min(1.0, roughness + u_SpecularAAParams.y)));
+		min(1.0, roughness + g_SpecularAAParams.y)));
 	effectiveAlpha = PerceptualRoughnessToAlpha(roughness);
 
     #if defined(USE_LIGHTALL_DEBUG)
-	int specularAADebug = int(u_SpecularAAParams.z + 0.5);
+	int specularAADebug = int(g_SpecularAAParams.z + 0.5);
 	if (specularAADebug > 0)
 	{
 		float debugRoughness = specularAADebug == 1 ? materialRoughness :
@@ -5078,19 +5148,17 @@ void main()
   #if defined(USE_SPECULARMAP)
 	envBrdf = texture(u_EnvBrdfMap, vec2(roughness, NE)).rgb;
     #if !defined(USE_CLOTH_BRDF)
-	float standardMaterial = int(u_MaterialModel.x + 0.5) == 0 ? 1.0 : 0.0;
-	// Debug 5 is a true old/new A/B: legacy unpartitioned diffuse on the
-	// left, conserved standard lobes on the right. It does not alter specular.
-	float standardEnergyPartition = standardMaterial;
-	if (int(u_PBRMaterial.w + 0.5) == 5 && gl_FragCoord.x < r_FBufScale.x * 0.5)
-		standardEnergyPartition = 0.0;
-	float standardCompensation = u_PBRMaterial.z * standardMaterial;
+	float standardMaterial = int(g_MaterialModel.x + 0.5) == 0 ? 1.0 : 0.0;
+	// The diffuse / specular energy split belongs to r_brdfEnergyCompensation: 0 (and the original
+	// side of r_brdfEnergyCompensationCompare) is Rend2's unpartitioned diffuse. Specular is unaltered.
+	float standardEnergyPartition = g_PBRMaterial.z > 0.5 ? standardMaterial : 0.0;
+	float standardCompensation = g_PBRMaterial.z * standardMaterial;
 	energyCompensation = GgxEnergyCompensation(specular.rgb, envBrdf.rg,
 		standardCompensation);
 	vec3 viewDiffuseTransmission = GgxDirectionalDiffuseTransmission(
 		specular.rgb, envBrdf.rg, energyCompensation, standardEnergyPartition);
 	vec3 averageDiffuseTransmission = GgxAverageDiffuseTransmission(
-		specular.rgb, roughness, u_PBRMaterial.z, standardEnergyPartition);
+		specular.rgb, roughness, g_PBRMaterial.z, standardEnergyPartition);
 	vec3 indirectDiffuse = diffuse.rgb * viewDiffuseTransmission;
 	vec3 transportDiffuse = diffuse.rgb * averageDiffuseTransmission;
     #endif
@@ -5157,11 +5225,11 @@ void main()
 #if defined(USE_DIFFUSE_IBL) && defined(USE_LIGHT_VECTOR)
 	vec3 probeIrradiance = vec3(0.0);
 	vec3 directionalFactor = vec3(1.0);
-	if (u_DiffuseIBLParams.w > 0.5)
+	if (g_DiffuseIBLParams.w > 0.5)
 	{
 		probeIrradiance = max(texture(u_DiffuseIrradianceMap, indirectN).rgb, vec3(0.0));
 		vec3 averageIrradiance = max(texelFetch(u_ProbeAverageMap,
-			ivec2(int(u_DiffuseIBLParams.z), 0), 0).rgb, vec3(0.0));
+			ivec2(int(g_DiffuseIBLParams.z), 0), 0).rgb, vec3(0.0));
 		float averageLuma = dot(averageIrradiance, vec3(0.2126, 0.7152, 0.0722));
 		if (averageLuma > 1e-4)
 		{
@@ -5172,7 +5240,7 @@ void main()
 				vec3(0.25), vec3(4.0));
 		}
 		diffuseAmbientColor *= mix(vec3(1.0), directionalFactor,
-			clamp(u_DiffuseIBLParams.x, 0.0, 1.0));
+			clamp(g_DiffuseIBLParams.x, 0.0, 1.0));
 	}
 #endif
 
@@ -5182,12 +5250,12 @@ void main()
 
   #if defined(USE_GGX_SPECULAR_AA)
 	vec3 directDiffuse = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
-		roughness, NL, u_PBRMaterial.z, standardEnergyPartition,
+		roughness, NL, g_PBRMaterial.z, standardEnergyPartition,
 		viewDiffuseTransmission, averageDiffuseTransmission);
 	vec3  Fd = CalcDiffuse(directDiffuse, NE, NL, LH, materialRoughness);
   #else
 	vec3 directDiffuse = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
-		roughness, NL, u_PBRMaterial.z, standardEnergyPartition,
+		roughness, NL, g_PBRMaterial.z, standardEnergyPartition,
 		viewDiffuseTransmission, averageDiffuseTransmission);
 	vec3  Fd = CalcDiffuse(directDiffuse, NE, NL, LH, roughness);
   #endif
@@ -5295,12 +5363,12 @@ void main()
     #if defined(USE_SKIN_SSS)
     #if defined(USE_GGX_SPECULAR_AA)
 	vec3 sunAlbedo = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
-		roughness, NL2, u_PBRMaterial.z, standardEnergyPartition,
+		roughness, NL2, g_PBRMaterial.z, standardEnergyPartition,
 		viewDiffuseTransmission, averageDiffuseTransmission);
 	vec3 sunDiffuse = CalcDiffuse(sunAlbedo, NE, NL2, L2H2, materialRoughness);
     #else
 	vec3 sunAlbedo = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
-		roughness, NL2, u_PBRMaterial.z, standardEnergyPartition,
+		roughness, NL2, g_PBRMaterial.z, standardEnergyPartition,
 		viewDiffuseTransmission, averageDiffuseTransmission);
 	vec3 sunDiffuse = CalcDiffuse(sunAlbedo, NE, NL2, L2H2, roughness);
     #endif
@@ -5308,12 +5376,12 @@ void main()
     #else
     #if defined(USE_GGX_SPECULAR_AA)
 	vec3 sunAlbedo = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
-		roughness, NL2, u_PBRMaterial.z, standardEnergyPartition,
+		roughness, NL2, g_PBRMaterial.z, standardEnergyPartition,
 		viewDiffuseTransmission, averageDiffuseTransmission);
 	reflectance  = CalcDiffuse(sunAlbedo, NE, NL2, L2H2, materialRoughness);
     #else
 	vec3 sunAlbedo = diffuse.rgb * GgxDirectDiffuseTransmission(specular.rgb,
-		roughness, NL2, u_PBRMaterial.z, standardEnergyPartition,
+		roughness, NL2, g_PBRMaterial.z, standardEnergyPartition,
 		viewDiffuseTransmission, averageDiffuseTransmission);
 	reflectance  = CalcDiffuse(sunAlbedo, NE, NL2, L2H2, roughness);
     #endif
@@ -5400,7 +5468,7 @@ void main()
 		}
 		else if (u_ShadowDebug.x == 12.0)
 		{
-			// r_entitySunSplit: the analytic sun's share of the model's direct
+			// r_entitySunLight: the analytic sun's share of the model's direct
 			// light (r), its visibility (g); legacy light and the world dark blue
 			#if defined(USE_ENTITY_SUN_SPLIT)
 			if (entitySunSplit)
@@ -5425,9 +5493,9 @@ void main()
 		}
 		else if (u_ShadowDebug.x == 13.0)
 		{
-			// r_shadowPCSSCharacterLayers: red where a character's blockers got
+			// r_sunShadowModelLayer 2: red where a character's blockers got
 			// their own penumbra, grey elsewhere (always grey when it is off);
-			// r_sunShadowSplit: red where the hard model layer occludes
+			// r_sunShadowModelLayer: red where the hard model layer occludes
 			#if defined(USE_PCSS_CHARACTER_LAYERS) || defined(USE_SUN_SHADOW_SPLIT)
 			debugColor = mix(vec3(0.6), vec3(1.0, 0.2, 0.2), sunInfo.layers) *
 				(0.15 + 0.85 * sunInfo.visibility);
@@ -5445,20 +5513,20 @@ void main()
   #endif
 
 #if defined(USE_DIFFUSE_IBL) && defined(USE_LIGHT_VECTOR)
-	if (u_DiffuseIBLParams.y >= 1.0 && u_DiffuseIBLParams.y <= 5.0)
+	if (g_DiffuseIBLParams.y >= 1.0 && g_DiffuseIBLParams.y <= 5.0)
 	{
 		vec3 debugColor;
-		if (u_DiffuseIBLParams.y == 1.0)
+		if (g_DiffuseIBLParams.y == 1.0)
 			debugColor = probeIrradiance;
-		else if (u_DiffuseIBLParams.y == 2.0)
+		else if (g_DiffuseIBLParams.y == 2.0)
 			debugColor = directionalFactor * 0.5; // neutral response = middle gray
-		else if (u_DiffuseIBLParams.y == 3.0)
+		else if (g_DiffuseIBLParams.y == 3.0)
 			debugColor = ambientColor * diffuse.rgb;
-		else if (u_DiffuseIBLParams.y == 4.0)
+		else if (g_DiffuseIBLParams.y == 4.0)
 			debugColor = diffuseAmbientColor * diffuse.rgb;
-		else if (u_DiffuseIBLParams.w > 0.5)
+		else if (g_DiffuseIBLParams.w > 0.5)
 		{
-			float id = u_DiffuseIBLParams.z + 1.0;
+			float id = g_DiffuseIBLParams.z + 1.0;
 			debugColor = fract(sin(id * vec3(12.9898, 78.233, 39.3467)) * 43758.5453);
 		}
 		else
@@ -5765,7 +5833,7 @@ void main()
   #endif
 
   #if defined(USE_LIGHTALL_DEBUG)
-	int energyDebugView = int(u_PBRMaterial.w + 0.5);
+	int energyDebugView = int(g_PBRMaterial.w + 0.5);
 	if (energyDebugView >= 1 && energyDebugView <= 4)
 	{
 		vec3 debugColor = energyDebugView == 1 ? g_energyDiffuse :
@@ -5773,7 +5841,7 @@ void main()
 			energyDebugView == 3 ? g_energyDiffuse + g_energySpecular :
 			max(vec3(1.0) - (transportDiffuse +
 				(vec3(1.0) - GgxAverageDiffuseTransmission(specular.rgb,
-				roughness, u_PBRMaterial.z, standardEnergyPartition))), vec3(0.0));
+				roughness, g_PBRMaterial.z, standardEnergyPartition))), vec3(0.0));
 		out_Color = vec4(debugColor, diffuse.a);
 		out_Glow = vec4(0.0, 0.0, 0.0, diffuse.a);
     #if defined(USE_SSR) && defined(USE_SPECULARMAP)
@@ -5783,7 +5851,7 @@ void main()
 		return;
 	}
 
-	int materialDebugView = int(u_MaterialModel.w + 0.5);
+	int materialDebugView = int(g_MaterialModel.w + 0.5);
 	if (materialDebugView > 0)
 	{
 		vec3 debugColor = vec3(0.0);
@@ -5819,7 +5887,7 @@ void main()
 	if (u_MaterialDebug.a > 0.0)
 	{
 		vec3 debugColor = u_MaterialDebug.rgb;
-		// r_autoPBRDebug 3: final perceptual roughness (ORMS.y after u_SpecularScale)
+		// r_autoPBRDebug 3: final perceptual roughness (ORMS.y after g_SpecularScale)
 		if (u_MaterialDebug.a > 1.5)
 		#if defined(USE_GGX_SPECULAR_AA)
 			debugColor = vec3(materialRoughness);
@@ -5858,7 +5926,7 @@ void main()
 		else if (pomView == 6)	// view ray height samples
 			debugColor = g_pom.valid ? PomDebugHeat(g_pom.viewSamples / 74.0) : vec3(0.3) * shade;
 		else if (pomView == 7)	// self shadow height samples, all lights
-			debugColor = PomDebugHeat(g_pom.shadowSamples / (3.0 * max(u_PomShadow.y, 1.0)));
+			debugColor = PomDebugHeat(g_pom.shadowSamples / (3.0 * max(g_PomShadow.y, 1.0)));
 		else	// distance fade
 			debugColor = PomDebugHeat(g_pom.fade) * shade;
 		out_Color = vec4(debugColor, 1.0);

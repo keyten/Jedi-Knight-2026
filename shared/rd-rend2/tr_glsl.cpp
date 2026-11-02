@@ -274,6 +274,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_CameraAutoParams",    GLSL_VEC4, 1 },
 	{ "u_ColorGradingLut",     GLSL_INT,  1 },
 	{ "u_ColorGradingParams",  GLSL_VEC4, 1 },
+	{ "u_CompareParams",       GLSL_VEC4, 1 },
+	{ "u_CompareSpecularScale", GLSL_VEC4, 1 },
 
 	{ "u_CubeMapInfo", GLSL_VEC4, 1 },
 	{ "u_DiffuseIBLParams", GLSL_VEC4, 1 },
@@ -346,6 +348,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_SSGISourceMap",		GLSL_INT, 1 },
 
 	{ "u_ParticleLight",		GLSL_VEC4, 1 },
+	{ "u_ParticleLightSplit",	GLSL_FLOAT, 1 },
 	{ "u_ParticleLightVolume",	GLSL_INT, 1 },
 
 	{ "u_FroxelFogMode",		GLSL_INT, 1 },
@@ -761,6 +764,23 @@ static size_t GLSL_GetShaderHeader(
 		va("#define DSHADOW_MAP_SIZE %i\n",
 			DSHADOW_MAP_SIZE));
 
+	// r_<feature>Compare (tr_compare.cpp): the RC_* ids, and the split test of
+	// programs that declare u_CompareSplit / u_CompareMask of the Scene block
+	{
+		static char compareDefines[8192];
+		if ( !compareDefines[0] )
+		{
+#define COMPARE_FEATURE(id, cvar, master, activeMin, split, title, original, note) \
+			Q_strcat(compareDefines, sizeof(compareDefines), va("#define " #id " %i\n", (int)id));
+#include "tr_compare.inc"
+#undef COMPARE_FEATURE
+			Q_strcat(compareDefines, sizeof(compareDefines),
+				"#define R_CompareOriginal(feature) (gl_FragCoord.x < u_CompareSplit.x && "
+				"(u_CompareMask[(feature) >> 5] & (1 << ((feature) & 31))) != 0)\n");
+		}
+		GLSL_HeaderCat(dest, size, compareDefines);
+	}
+
 	// window size in pixels, set once after linking (GLSL_SetFBufScale): as a
 	// uniform the sources, and so the cache keys, do not depend on the resolution
 	GLSL_HeaderCat(dest, size, "uniform vec2 r_FBufScale;\n");
@@ -802,11 +822,11 @@ static size_t GLSL_GetShaderHeader(
 	if (r_sunShadowMode->integer)
 		GLSL_HeaderCat(dest, size, "#define USE_SHADOWS2\n");
 	// a permutation, not a uniform branch: off leaves lightall unchanged
-	// r_sunShadowSplit: models are not in the soft layers, so the character
+	// r_sunShadowModelLayer: models are not in the soft layers, so the character
 	// layers have nothing to separate there
-	if (r_sunShadowMode->integer && r_sunShadowSplit->integer)
+	if (r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 1)
 		GLSL_HeaderCat(dest, size, "#define USE_SUN_SHADOW_SPLIT\n");
-	else if (r_sunShadowMode->integer && r_shadowPCSSCharacterLayers->integer)
+	else if (r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 2)
 		GLSL_HeaderCat(dest, size, "#define USE_PCSS_CHARACTER_LAYERS\n");
 
 	// screen-space AO / contact shadow map (u_SSAOMap), tr_ao.cpp
@@ -4187,7 +4207,7 @@ static int GLSL_LoadGPUProgramLightAll(
 			else if (r_sunlightMode->integer == 2)
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_PRIMARY_LIGHT\n");
 
-			// r_entitySunSplit: models light the sun apart from the grid (tr_light.cpp)
+			// r_entitySunLight: models light the sun apart from the grid (tr_light.cpp)
 			if (lightType == LIGHTDEF_USE_LIGHT_VECTOR && R_EntitySunSplitWanted())
 			{
 				Q_strcat(name, sizeof(name), "_ESUN");
@@ -5963,7 +5983,7 @@ static int GLSL_LoadGPUProgramSMAA(
 			"#define SMAA_LOCAL_CONTRAST_ADAPTATION_FACTOR 2.0\n"
 			"#define SMAA_REPROJECTION_WEIGHT_SCALE 30.0\n"
 			"#define SMAA_RT_METRICS vec4(1.0 / r_FBufScale, r_FBufScale)\n");
-	if (r_smaa_quality->integer == 0)
+	if (r_smaaQuality->integer == 0)
 	{
 		Q_strcat(extradefines, sizeof(extradefines),
 			"#define SMAA_THRESHOLD 0.15\n"
@@ -5972,7 +5992,7 @@ static int GLSL_LoadGPUProgramSMAA(
 			"#define SMAA_DISABLE_CORNER_DETECTION\n"
 		);
 	}
-	else if (r_smaa_quality->integer == 1)
+	else if (r_smaaQuality->integer == 1)
 	{
 		Q_strcat(extradefines, sizeof(extradefines),
 			"#define SMAA_THRESHOLD 0.1\n"
@@ -5981,7 +6001,7 @@ static int GLSL_LoadGPUProgramSMAA(
 			"#define SMAA_DISABLE_CORNER_DETECTION\n"
 		);
 	}
-	else if (r_smaa_quality->integer == 2)
+	else if (r_smaaQuality->integer == 2)
 	{
 		Q_strcat(extradefines, sizeof(extradefines),
 			"#define SMAA_THRESHOLD 0.1\n"

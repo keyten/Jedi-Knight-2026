@@ -28,7 +28,7 @@ CASES = [
         r_entityLightGrid=2, r_entityLightProbes=1, r_forwardPlus=1,
         r_normalMapping=1, r_specularMapping=1)),
     ('sun-raster', 'hoth2', 0, dict(r_volumetricFog=2, r_gl43=0, r_sunlightMode=1,
-        r_sunShadows=1, r_sunShadowMode=0, r_entitySunSplit=1,
+        r_sunShadows=1, r_sunShadowMode=0, r_entitySunLight=1,
         r_normalMapping=1, r_specularMapping=1)),
     ('sun-physical-ltc', 'hoth2', 2, dict(r_pbrPhysical=1, r_volumetricFog=2,
         r_sunlightMode=1, r_sunShadows=1, r_sunShadowMode=1, r_ltcAreaLights=1,

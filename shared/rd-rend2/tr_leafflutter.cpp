@@ -50,7 +50,7 @@ static float LeafFlutterAmplitude(void)
 
 bool R_LeafFlutterActive(void)
 {
-	return r_leafFlutter->integer && r_autoFoliage->integer &&
+	return r_leafFlutter->integer && !R_CompareOff(RC_LEAFFLUTTER) && r_autoFoliage->integer &&
 		r_leafFlutterStrength->value > 0.0f;
 }
 

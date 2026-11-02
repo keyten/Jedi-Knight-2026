@@ -20,6 +20,8 @@ Stock effects have no volume data, so the game recognizes known smoke effects au
 - `fx_physicalizationEmission 0` — 1: known stock flames and fireballs [glow](#glowing-gas).
 - `fx_physicalizationAdaptive 0` — 1: fit size, softness and density of automatic smoke to each effect.
 
+**Compare:** `r_volumetricParticlesCompare` — 1 split screen (flat sprites only left), 2 off. It covers the automatic smoke too.
+
 **Mod authors:** add this to an EFX `Particle` or `OrientedParticle`; it works even with `fx_physicalization 0`:
 
 ~~~text
@@ -64,6 +66,8 @@ Ordinary smoke sprites keep their painted color everywhere: bright white smoke i
 - `r_particleLightingScale 1` — brightness of the light; 1 leaves smoke in average map light unchanged.
 - `r_particleLightingFloor 0.03` — minimum brightness, so smoke never goes fully black.
 
+**Compare:** `r_particleLightingCompare` — 1 split screen (painted color left), 2 off.
+
 **How it works.** Each sprite samples baked, sun and dynamic light from the volumetric fog's light grid at its position. Only the color changes, not shape or motion.
 
 **Debug**
@@ -76,7 +80,9 @@ Lets fog and smoke glow by themselves: luminous gas, a fireball volume, hot smok
 
 **Cost:** light.
 
-- `r_volumetricEmission 1` — global glow strength; 0 off.
+- `r_volumetricEmission 0` — global glow strength; 0 off, 1 as authored.
+
+**Compare:** `r_volumetricEmissionCompare` — 1 split screen, 2 off.
 
 **Mod authors:** local fog volumes take `"Emissive": [r,g,b]` and `"EmissiveDensity": value`. In EFX `volumetricMedia` add `emissive 6 3 1.2`, `emissiveDensity 0.02` and optionally `emissiveTint 1`.
 

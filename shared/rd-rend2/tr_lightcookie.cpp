@@ -79,7 +79,8 @@ static qboolean R_LightCookieUnitsOk( void )
 
 qboolean R_LightCookiesActive( void )
 {
-	return (qboolean)(r_spotLightCookies->integer && tr.lightCookieArray && R_LightCookieUnitsOk());
+	return (qboolean)(r_spotLightCookies->integer && !R_CompareOff(RC_SPOTCOOKIES) &&
+		tr.lightCookieArray && R_LightCookieUnitsOk());
 }
 
 // new renderer (vid_restart, map change with R_DeleteTextures): the array

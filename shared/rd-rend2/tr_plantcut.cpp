@@ -162,7 +162,7 @@ static struct
 
 bool R_PlantCutEnabled(void)
 {
-	return r_foliageSaberCut && r_foliageSaberCut->integer && R_PlantSimActive();
+	return r_foliageSaberCut && r_foliageSaberCut->integer && !R_CompareOff(RC_SABERCUT) && R_PlantSimActive();
 }
 
 /*

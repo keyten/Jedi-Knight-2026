@@ -47,6 +47,10 @@ layout(std140) uniform Scene
 	vec4 u_AOParams;
 	vec4 u_AOParams2;
 	vec4 u_PBRParams;
+	vec4 u_SSGIParams;
+	// r_<feature>Compare split screen (tr_compare.cpp), R_CompareOriginal(RC_x)
+	vec4 u_CompareSplit;
+	ivec4 u_CompareMask;
 };
 
 layout(std140) uniform Camera
@@ -919,6 +923,10 @@ layout(std140) uniform Scene
 	vec4 u_AOParams;
 	vec4 u_AOParams2;
 	vec4 u_PBRParams;
+	vec4 u_SSGIParams;
+	// r_<feature>Compare split screen (tr_compare.cpp), R_CompareOriginal(RC_x)
+	vec4 u_CompareSplit;
+	ivec4 u_CompareMask;
 };
 
 layout(std140) uniform Camera
@@ -1256,7 +1264,7 @@ vec3 WaterLiquidPath(vec3 dir, float d, vec3 Ng, vec3 sigma, vec3 albedo, float 
 float WaterShadowTap(vec3 s, float layer)
 {
 #if defined(USE_SHADOWS2) && defined(USE_SUN_SHADOW_SPLIT)
-	// r_sunShadowSplit: models are in their own layers, 3 + cascade
+	// r_sunShadowModelLayer: models are in their own layers, 3 + cascade
 	return step(s.z - 0.0005, texture(u_ShadowMap, vec3(s.xy, layer)).r) *
 		step(s.z - 0.0005, texture(u_ShadowMap, vec3(s.xy, layer + 3.0)).r);
 #elif defined(USE_SHADOWS2)
@@ -1611,7 +1619,7 @@ vec4 WaterInteractionSample(vec3 worldPosition, out vec2 worldSlope)
 // silhouettes and the usual screen-space halo around every object.
 float WaterIntersectionFoam(vec3 P, vec3 Ng, vec3 Tw, vec3 Bw, vec2 uv)
 {
-	if (u_Water[WATER_U_INTERSECTION_FOAM].x < 0.5 || WATER_PREPASS)
+	if (u_Water[WATER_U_INTERSECTION_FOAM].x < 0.5 || WATER_PREPASS || R_CompareOriginal(RC_WATERFOAM))
 		return 0.0;
 	float width = max(u_Water[WATER_U_INTERSECTION_FOAM].y, 0.5);
 	vec2 targetSize = vec2(textureSize(u_WaterDepthMap, 0));
@@ -1886,8 +1894,11 @@ void main()
 	float foamSharp0 = clamp(0.35 / max(fwidth(foamStructure0), 1e-3), 1.5, 8.0);
 	float foamSharp1 = clamp(0.35 / max(fwidth(foamStructure1), 1e-3), 1.5, 8.0);
 	float foamPhaseWeight = flowField ? flowWeight0 : 0.5;
-	float persistentFoam = u_Water[WATER_U_FOAM].x > 0.5 ? clamp(foamSample.r * u_Water[WATER_U_GEOMETRY_FOAM].w, 0.0, 1.0) : 0.0;
-	float whitewater = u_Water[WATER_U_WHITEWATER].x > 0.5 ? clamp(foamSample.b * u_Water[WATER_U_WHITEWATER].y, 0.0, 1.0) : 0.0;
+	// r_waterFoamCompare / r_waterWhitewaterCompare 1: none left of the split line
+	float persistentFoam = u_Water[WATER_U_FOAM].x > 0.5 && !R_CompareOriginal(RC_WATERFOAM) ?
+		clamp(foamSample.r * u_Water[WATER_U_GEOMETRY_FOAM].w, 0.0, 1.0) : 0.0;
+	float whitewater = u_Water[WATER_U_WHITEWATER].x > 0.5 && !R_CompareOriginal(RC_WHITEWATER) ?
+		clamp(foamSample.b * u_Water[WATER_U_WHITEWATER].y, 0.0, 1.0) : 0.0;
 	float waterfallAlong = waterfall ? clamp((dot(var_BasePosition, normalize(u_Water[WATER_U_WATERFALL + 1].xyz)) - u_Water[WATER_U_WATERFALL + 3].x) * u_Water[WATER_U_WATERFALL + 2].w, 0.0, 1.0) : 0.0;
 	float waterfallMiddle = waterfall ? smoothstep(0.16, 0.48, waterfallAlong) *
 		(1.0 - smoothstep(0.66, 0.86, waterfallAlong)) : 0.0;
@@ -1931,10 +1942,16 @@ void main()
 	vec3 rainGradient = vec3(rainWorldSlope, 0.0);
 	vec2 rainSlope = vec2(dot(rainGradient, Tw), dot(rainGradient, Bw)) *
 		u_WaterRainParams.x * var_ShoreData.y;
+	// r_waterInteractionCompare 1: no ripples (nor rain on the water) left of the split line
+	if (R_CompareOriginal(RC_WATERINTERACTION))
+	{
+		interactionSlope = vec2(0.0);
+		rainSlope = vec2(0.0);
+	}
 	vec2 oldSlope = (l0.xy + 0.6 * l1.xy + 0.5 * l2.xy) * oldStrength;
 	vec3 oldNormal = normalize(Ng - oldSlope.x * Tw - oldSlope.y * Bw);
-	if (int(u_Water[WATER_U_WAVE_DEBUG].x + 0.5) == 8 && gl_FragCoord.x <
-		(u_Water[WATER_U_VIEWPORT].x + u_Water[WATER_U_VIEWPORT].z * 0.5) * float(textureSize(u_WaterSceneMap, 0).x))
+	// r_waterWavesCompare 1: the original surface slopes left of the split line
+	if (R_CompareOriginal(RC_WATERWAVES))
 	{
 		macroSlope = vec2(0.0);
 		slope = oldSlope;

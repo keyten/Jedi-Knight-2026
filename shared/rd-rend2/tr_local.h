@@ -252,6 +252,44 @@ extern cvar_t	*r_volumetricFogStaticScale;
 #include "tr_lightrecon_cvars.inc"
 #undef LIGHTRECON_CONSUMER
 #undef LIGHTRECON_CONTROL
+
+// renderer cvar registry: descriptions, value checks and help (tr_cvarhelp.cpp)
+cvar_t *R_Cvar( const char *name, const char *value, int flags, const char *description = "" );
+void R_CvarRange( cvar_t *cv, float minValue, float maxValue, qboolean integral );
+cvar_t *R_CvarInt( const char *name, const char *value, int flags, int minValue, int maxValue, const char *description );
+void R_CvarHelpText( cvar_t *cv, const char *text );
+cvar_t *R_CvarFind( const char *name );
+void R_CvarValidateAll( void );
+qboolean R_CvarHelpPrint( const char *name );
+void R_CvarHelp_f( void );
+
+// r_<feature>Compare: 0 normal, 1 split screen, 2 off (tr_compare.cpp)
+enum rendererCompare_t
+{
+#define COMPARE_FEATURE(id, cvar, master, activeMin, split, title, original, note) id,
+#include "tr_compare.inc"
+#undef COMPARE_FEATURE
+	RC_COUNT
+};
+#define COMPARE_ON		0
+#define COMPARE_SPLIT	1
+#define COMPARE_OFF		2
+extern cvar_t *r_compareSplit;
+void R_CompareRegister( void );
+int R_CompareMode( rendererCompare_t feature );
+qboolean R_CompareOff( rendererCompare_t feature );
+qboolean R_CompareSplit( rendererCompare_t feature );
+float R_CompareSplitX( rendererCompare_t feature );
+float R_CompareSplitPosition( int viewportX, int viewportWidth );
+void R_CompareSceneParams( vec4_t split, int mask[4] );
+qboolean R_CompareAnySplit( void );
+void R_CompareValidate( void );
+void GL_CompareScissor( int x, int y, int width, int height );
+qboolean RB_CompareSaveScene( rendererCompare_t feature );
+void RB_CompareRestoreScene( rendererCompare_t feature );
+void RB_CompareRestoreLeft( rendererCompare_t feature, FBO_t *src, FBO_t *dst );
+void RB_CompareDrawSplitLine( void );
+void R_Compare_f( void );
 extern cvar_t	*r_entityLightProbes;
 extern cvar_t	*r_volumetricSelfShadow;
 extern cvar_t	*r_volumetricSelfShadowSamples;
@@ -338,7 +376,7 @@ extern cvar_t *r_waterTessMinEdge, *r_waterTessLodDistance;
 extern cvar_t *r_offscreenPresent;
 extern cvar_t *r_waterShoreline, *r_waterShoreAttenuation, *r_waterShoreContactSoftness;
 extern cvar_t *r_waterShoreWetStrength, *r_waterShoreWetPersistence, *r_waterShoreFoam, *r_waterShoreDebug;
-extern cvar_t *r_waterWaveChoppiness, *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
+extern cvar_t *r_waterWaveQuality, *r_waterWaveMicro, *r_waterWaveShallow, *r_waterWaveDebug;
 extern cvar_t *r_waterWaveTime;
 extern cvar_t *r_waterSSRWaveReprojection, *r_waterMotionDebug;
 extern cvar_t *r_waterSSROptimize;
@@ -351,7 +389,6 @@ extern cvar_t	*r_waterSurfaceAbsorption;
 extern cvar_t	*r_waterSurfaceDepthScale;
 extern cvar_t	*r_waterSurfaceExperimental;
 extern cvar_t	*r_waterSurfaceDebug;
-extern cvar_t	*r_waterSurfaceSplit;
 extern cvar_t	*r_waterSnell;
 extern cvar_t	*r_waterSnellDebug;
 extern cvar_t	*r_waterSnellOptics;
@@ -402,7 +439,7 @@ extern cvar_t  *r_ext_framebuffer_multisample;
 extern cvar_t  *r_arb_seamless_cube_map;
 
 extern cvar_t  *r_smaa;
-extern cvar_t  *r_smaa_quality;
+extern cvar_t  *r_smaaQuality;
 
 extern cvar_t  *r_cameraExposure;
 extern cvar_t  *r_cameraMode;
@@ -438,7 +475,6 @@ extern cvar_t  *r_toneMapDebug;
 extern cvar_t  *r_exposureCompensation;
 extern cvar_t  *r_linearLighting;
 extern cvar_t  *r_colorGrading;
-extern cvar_t  *r_colorGradingCompare;
 extern cvar_t  *r_colorGradingLUT;
 extern cvar_t  *r_colorGradingIntensity;
 extern cvar_t  *r_autoEmissive;
@@ -447,7 +483,6 @@ extern cvar_t  *r_depthPrepass;
 extern cvar_t  *r_ssao;
 extern cvar_t  *r_aoMode;
 extern cvar_t  *r_aoApply;
-extern cvar_t  *r_aoCompare;
 extern cvar_t  *r_aoMultiBounce;
 extern cvar_t  *r_aoLightmapFraction;
 extern cvar_t  *r_aoSpecOcclusion;
@@ -578,7 +613,6 @@ extern cvar_t  *r_ssrHiZ;
 extern cvar_t  *r_ssrTemporal;
 extern cvar_t  *r_ssrTemporalWeight;
 extern cvar_t  *r_ssrBlendStrength;
-extern cvar_t  *r_ssrCompare;
 extern cvar_t  *r_ssrDebug;
 extern cvar_t  *r_ssrEmitters;
 extern cvar_t  *r_ssrEmitterIntensity;
@@ -606,7 +640,6 @@ extern cvar_t  *r_ssgiHalfRes;
 extern cvar_t  *r_ssgiHiZ;
 extern cvar_t  *r_ssgiEmissiveScale;
 extern cvar_t  *r_ssgiGlowScale;
-extern cvar_t  *r_ssgiCompare;
 extern cvar_t  *r_ssgiDebug;
 extern cvar_t  *r_ssgiFreezeHistory;
 
@@ -618,12 +651,12 @@ extern cvar_t  *r_skinSSSQuality;
 extern cvar_t  *r_skinSSSWrap;
 extern cvar_t  *r_skinSSSFollowSurface;
 extern cvar_t  *r_skinSSSTransmission;
-extern cvar_t  *r_skinSSSCompare;
 extern cvar_t  *r_skinSSSDebug;
 
 extern cvar_t  *r_autoPBR;
 extern cvar_t  *r_autoPBRDebug;
 extern cvar_t  *r_materialModelDebug;
+extern cvar_t  *r_materialModels;
 extern cvar_t  *r_autoFoliage;
 extern cvar_t  *r_autoFoliageDebug;
 extern cvar_t  *r_grassCardMode;
@@ -776,8 +809,7 @@ extern cvar_t  *r_shadowPCSS;
 extern cvar_t  *r_shadowPCSSQuality;
 extern cvar_t  *r_shadowSunAngularDiameter;
 extern cvar_t  *r_shadowPCSSMaxPenumbra;
-extern cvar_t  *r_shadowPCSSCharacterLayers;
-extern cvar_t  *r_sunShadowSplit;
+extern cvar_t  *r_sunShadowModelLayer;
 extern cvar_t  *r_shadowDebug;
 extern cvar_t  *r_shadowCasterLod;
 extern cvar_t  *r_shadowCasterStats;
@@ -790,7 +822,7 @@ extern cvar_t  *r_shadowCache;
 extern cvar_t  *r_shadowStaticCache;
 extern cvar_t  *r_dlightShadowBias;
 extern cvar_t  *r_contactShadowSoft;
-extern cvar_t  *r_entitySunSplit;
+extern cvar_t  *r_entitySunLight;
 extern cvar_t  *r_entityShadowAmbient;
 extern cvar_t  *r_ignoreDstAlpha;
 extern cvar_t  *r_refractionChromaticAberration;
@@ -1143,7 +1175,7 @@ typedef struct trRefEntity_s {
 	vec3_t		ambientLight;	// color normalized to 0-255
 	int			ambientLightInt;	// 32 bit rgba packed
 	vec3_t		directedLight;
-	// r_entitySunSplit (R_SetupEntityLighting): the directed light without its sun part,
+	// r_entitySunLight (R_SetupEntityLighting): the directed light without its sun part,
 	// and the sun as an analytic light shadowed per pixel; sunSplit false = legacy light
 	qboolean	sunSplit;
 	vec3_t		residualLight;
@@ -1484,9 +1516,13 @@ struct SceneBlock
 	vec4_t aoParams2;	// debug view, unused, unused, unused
 	// metres/world-unit, squared conversion, baked legacy calibration, mode
 	vec4_t pbrParams;
-	// screen-space GI source, see RB_SSGISceneParams (tr_ssgi.cpp); only
-	// declared by lightall with USE_SSGI
+	// screen-space GI source, see RB_SSGISceneParams (tr_ssgi.cpp)
 	vec4_t ssgiParams;	// source bits, linear scene, emissive scale, glow scale
+	// r_<feature>Compare split screen (R_CompareSceneParams): x = split line
+	// in window pixels (-1 none); mask bit RC_x: that feature is drawn as the
+	// original left of it (R_CompareOriginal in GLSL)
+	vec4_t compareSplit;
+	int compareMask[4];
 };
 
 #define MAX_SUN_SHADOW_CHARACTERS 8	// u_ShadowCharacters[8] in lightall.glsl
@@ -1521,9 +1557,9 @@ struct LightsBlock
 	// spot light shadows (tr_spotlight.cpp): world to clip of the one
 	// perspective view in layer 6 * slot of pointShadowArrayImage
 	matrix_t spotShadowVP[MAX_DLIGHT_SHADOWS];
-	// r_shadowPCSSCharacterLayers: nearest Ghoul2 casters, world sphere
+	// r_sunShadowModelLayer 2: nearest Ghoul2 casters, world sphere
 	vec4_t shadowCharacters[MAX_SUN_SHADOW_CHARACTERS];
-	vec4_t shadowCharacterInfo;	// count, r_sunShadowSplit cascade mask
+	vec4_t shadowCharacterInfo;	// count, r_sunShadowModelLayer cascade mask
 };
 
 struct FogsBlock
@@ -1560,7 +1596,7 @@ struct EntityBlock
 	vec4_t gridParams;       // lower Z, inverse height, mode, forced linear
 	vec4_t gridMinimum;      // additive RGB, LDR ambient clamp
 	vec4_t gridScale;        // ambient scale, directed scale, HDR grid, debug
-	vec4_t entitySun;        // r_entitySunSplit: sun rgb, 1 = split (0 = legacy light)
+	vec4_t entitySun;        // r_entitySunLight: sun rgb, 1 = split (0 = legacy light)
 	bool operator == (const EntityBlock &other) const
 	{
 		return (
@@ -1704,6 +1740,11 @@ struct VolumetricFogBlock
 	// extinction colors of the local fog volumes (r_volumetricFogRGBExtinction), indexed
 	// by localShape.w: entry 0 = neutral (1 1 1)
 	vec4_t extinctionPalette[FROXEL_EXTINCTION_PALETTE];
+
+	// r_<feature>Compare split screen of the media: x = froxel column of the
+	// split line (-1 none), mask as SceneBlock::compareMask (FroxelOriginal)
+	vec4_t compareSplit;
+	int compareMask[4];
 };
 
 // below the 16 384 of GL_MAX_UNIFORM_BLOCK_SIZE guaranteed by GL 3.2 (13 760 with
@@ -2831,6 +2872,8 @@ typedef enum
 	UNIFORM_CAMERAAUTOPARAMS, // min EV100, max EV100, ISO 12232 calibration, ISO 2720 meter K
 	UNIFORM_COLORGRADINGLUT,
 	UNIFORM_COLORGRADINGPARAMS, // mode, intensity, LUT size
+	UNIFORM_COMPAREPARAMS, // r_<feature>Compare of a full-screen pass: split x (window pixels, -1 none), mask of the pass's split features, mode, unused
+	UNIFORM_COMPARESPECULARSCALE, // r_autoPBR(Roughness)Compare: the material of the original side (lightall)
 
 	UNIFORM_CUBEMAPINFO,
 	UNIFORM_DIFFUSEIBLPARAMS,
@@ -2904,6 +2947,7 @@ typedef enum
 	UNIFORM_SSGISOURCEMAP,
 
 	UNIFORM_PARTICLELIGHT,	// sprite particle lighting (tr_volumetric.cpp): scale, floor, max gain, mix; inject: field on, term, 0, 0
+	UNIFORM_PARTICLELIGHTSPLIT,	// r_particleLightingCompare 1: sprites unlit left of this window x (-1 none)
 	UNIFORM_PARTICLELIGHTVOLUME,	// particle light field (froxelParticleLightImage)
 
 	UNIFORM_FROXELFOGMODE,	// 0 = legacy fog, 1 = froxel volume lookup, 2 = none (composited), tr_volumetric.cpp
@@ -3196,9 +3240,9 @@ typedef struct {
 	float       sunShadowTexelSize[3];
 	float       sunShadowDepthSpan[3];
 	float       sunShadowDepthTop;		// [0, 1] cascade depth of the map's light-side bound, 0 unknown
-	float       sunShadowCharacters[MAX_SUN_SHADOW_CHARACTERS][4];	// r_shadowPCSSCharacterLayers spheres
+	float       sunShadowCharacters[MAX_SUN_SHADOW_CHARACTERS][4];	// r_sunShadowModelLayer 2 spheres
 	int         numSunShadowCharacters;
-	int         sunShadowHardMask;	// r_sunShadowSplit: cascades whose hard layer has casters
+	int         sunShadowHardMask;	// r_sunShadowModelLayer: cascades whose hard layer has casters
 	float       sunDir[4];
 	float       sunCol[4];
 	float       sunAmbCol[4];
@@ -3206,6 +3250,9 @@ typedef struct {
 
 	float       autoExposureMinMax[2];
 	float       toneMinAvgMaxLinear[3];
+	// r_<feature>Compare split line of this scene in window pixels, -1 when
+	// the scene is not split (no world, cubemap capture), RE_BeginScene
+	float       compareSplitX;
 	bool		doLAGoggles;
 	bool		doFullbright;
 	precipitationState_t precipitation;
@@ -3267,7 +3314,7 @@ enum viewParmFlag_t {
 	VPF_SUN_VERIFY_SHADOW = 0x400000, // Full reference render, including an empty depth clear
 	VPF_POINT_STATIC_SHADOW = 0x800000, // Point/spot slot: static world casters only (r_shadowStaticCache)
 	VPF_POINT_DYNAMIC_SHADOW = 0x1000000, // Point/spot slot: every other caster over the restored static depth
-	VPF_SUN_HARD_SHADOW = 0x2000000, // r_sunShadowSplit: models (characters, md3) into layer 3 + cascade
+	VPF_SUN_HARD_SHADOW = 0x2000000, // r_sunShadowModelLayer: models (characters, md3) into layer 3 + cascade
 };
 
 // r_shadowStaticCache: point/spot shadow slots that keep a static world copy
@@ -3888,7 +3935,7 @@ typedef struct {
 	image_t		*entityGridDirection;
 	color4ub_t	entityGridStyleColors[MAX_LIGHT_STYLES];
 	qboolean	entityGridL1;	// r_entityLightProbes: the three volumes hold L1 probes (R, G, B: C1.xyz, C0)
-	// r_entitySunSplit: directed light of a fully sunlit grid cell (raw grid units, style 0),
+	// r_entitySunLight: directed light of a fully sunlit grid cell (raw grid units, style 0),
 	// the median of the cells lit from the sun direction (R_CalibrateEntitySun)
 	qboolean	entitySunValid;
 	vec3_t		entitySunGrid;
@@ -4412,7 +4459,7 @@ typedef struct {
 */
 struct weatherSystem_t;
 // r_shadowStaticCache: a static build adds 6 views to the cube of its slot
-#define MAX_CACHED_VIEW_PARMS (3 + 3 /* r_sunShadowSplit */ + MAX_DLIGHTS * 6 + POINT_SHADOW_STATIC_MAX_SLOTS * 6 + 13 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS)
+#define MAX_CACHED_VIEW_PARMS (3 + 3 /* r_sunShadowModelLayer */ + MAX_DLIGHTS * 6 + POINT_SHADOW_STATIC_MAX_SLOTS * 6 + 13 + MAX_DRAWN_PSHADOWS + LTC_MAX_SHADOW_VIEWS)
 
 typedef struct trGlobals_s {
 	qboolean				registered;		// cleared at shutdown, set at beginRegistration
@@ -4606,7 +4653,7 @@ typedef struct trGlobals_s {
 	FBO_t					*targetLevelsFbo;
 	FBO_t					*sunShadowFbo[3];
 	FBO_t					*sunShadowStaticFbo[2][3];
-	FBO_t					*sunShadowHardFbo[3];	// r_sunShadowSplit: layers 3-5 of sunShadowArrayImage
+	FBO_t					*sunShadowHardFbo[3];	// r_sunShadowModelLayer: layers 3-5 of sunShadowArrayImage
 	FBO_t					*sunShadowPageFbo;
 	FBO_t					*screenSsaoFbo;
 	FBO_t					*hdrDepthFbo;
@@ -4628,6 +4675,11 @@ typedef struct trGlobals_s {
 	FBO_t					*temporalResolveFbo;
 	FBO_t					*historyFbo;
 	FBO_t					*motionBlurFbo;
+	// r_<feature>Compare split screen: scene color before a composite
+	// (tr_compare.cpp, created on first use), its format and MSAA samples
+	FBO_t					*compareFbo;
+	int						compareFboFormat;
+	int						compareFboSamples;
 	FBO_t					*rainLensFbo;
 	FBO_t					*rainLensFieldFbo;
 	FBO_t					*rainLensFilmFieldFbo;
@@ -6415,6 +6467,7 @@ AUTO PBR, tr_autopbr.cpp
 void R_ClassifyMaterial(shaderStage_t *stage, const char *shaderName, const char *diffuseName);
 typedef struct { materialClass_t cls; const char *reason; const char *token; } materialMatch_t;
 void R_ClassifyMaterialName(materialMatch_t *match, const char *shaderName, const char *diffuseName);
+void R_AutoPBRCompareMaterial( const shaderStage_t *stage, const vec4_t current, vec4_t out );
 qboolean R_AutoPBRSpecularScale(const shaderStage_t *stage, vec4_t out);
 qboolean R_AutoPBRDebugColor(const shaderStage_t *stage, vec4_t out);
 image_t *R_AutoPBRRoughnessImage(const shaderStage_t *stage);
@@ -6630,7 +6683,7 @@ void R_BuildBakedFogLighting(world_t *world);
 qboolean R_BuildEntityLightProbes(world_t *world); // original BSP directions only
 qboolean R_EntityLightProbesWanted(void);
 qboolean R_SunVisibleFromPoint(const vec3_t start, const vec3_t sunDir); // tr_light.cpp
-// tr_light.cpp: r_entitySunSplit
+// tr_light.cpp: r_entitySunLight
 qboolean R_EntitySunSplitWanted(void);
 void R_CalibrateEntitySun(world_t *world);
 void R_LightReconInfo_f(void);
@@ -6915,6 +6968,7 @@ VOLUMETRIC FX PARTICLES, tr_volparticle.cpp
 */
 
 void RE_AddVolumetricParticleToScene(const refVolParticle_t *particle);
+qboolean R_VolParticlesEnabled( void );
 qboolean R_VolParticlesInFrustum(const viewParms_t *view, const trRefdef_t *refdef, float farZ);
 int R_VolParticlesBuild(VolumetricParticlesBlock *block, const viewParms_t *view, const trRefdef_t *refdef,
 	const vec3_t forward, float nearZ, float farZ, int numSlices);

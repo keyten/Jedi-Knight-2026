@@ -100,8 +100,12 @@ flat in vec4 var_ParticleCenter;
 out vec4 out_Color;
 out vec4 out_Glow;
 
+uniform vec4 u_CompareParams;	// x: r_waterParticlesCompare 1, no specks left of this window x
+
 void main()
 {
+	if (gl_FragCoord.x < u_CompareParams.x)
+		discard;
 	vec2 q = var_TexCoord * 2.0 - 1.0;
 	float r2 = dot(q, q);
 	if (r2 >= 1.0)

@@ -63,6 +63,7 @@ uniform vec4 u_CameraParams;
 uniform vec4 u_CameraAutoParams;
 uniform sampler3D u_ColorGradingLut;
 uniform vec4 u_ColorGradingParams;
+uniform vec4 u_CompareParams;
 uniform sampler2D u_BloomMap;
 uniform vec4 u_BloomParams;
 
@@ -133,14 +134,20 @@ vec4 SMAANeighborhoodBlendingPS(  vec2 texcoord,
 void main()
 {
 	#if defined(USE_SMAA)
-	vec4 color = SMAANeighborhoodBlendingPS(var_TexCoords,
+	// r_smaaCompare 1: no anti-aliasing left of u_CompareParams.w
+	vec4 color;
+	if (gl_FragCoord.x < u_CompareParams.w)
+		color = texture(u_TextureMap, var_TexCoords) * u_Color;
+	else
+		color = SMAANeighborhoodBlendingPS(var_TexCoords,
 											var_offset,
 											u_TextureMap,
 											u_BlendMap) * u_Color;
 	#else
 	vec4 color = texture(u_TextureMap, var_TexCoords) * u_Color;
 	#endif
-	if (u_BloomParams.x > 0.0)
+	// u_BloomParams.y: r_bloomCompare 1, no HDR bloom left of this window x
+	if (u_BloomParams.x > 0.0 && gl_FragCoord.x >= u_BloomParams.y)
 	{
 		vec3 bloom = texture(u_BloomMap, var_TexCoords).rgb * u_Color.rgb * u_BloomParams.x;
 		color.rgb = AddBloomToScene(color.rgb, bloom);
@@ -151,7 +158,7 @@ void main()
 	vec3 minAvgMax = texture(u_LevelsMap, var_TexCoords).rgb;
 	color.rgb = OutputTransform(color.rgb, minAvgMax, u_AutoExposureMinMax,
 		u_ToneMinAvgMaxLinear, u_ToneMapParams, u_CameraParams, u_CameraAutoParams,
-		u_ColorGradingLut, u_ColorGradingParams,
+		u_ColorGradingLut, u_ColorGradingParams, u_CompareParams,
 		gl_FragCoord.x);
 
 	out_Color = clamp(color, 0.0, 1.0);

@@ -2,7 +2,7 @@
 
 [All rendering settings](../rendering-features.md)
 
-Grass and plants that look fuller, sway in a shared breeze, bend when you walk through them, and react to the Force and to sabers. Two kinds of vegetation exist in JKA:
+Grass and plants that look fuller, sway in a shared breeze, bend when you walk through them, and react to the Force and to sabers. Everything here moves geometry or simulates plants for the whole world, so the compare cvars have no split screen: `2` switches a feature off without touching its setting. Two kinds of vegetation exist in JKA:
 
 - **Grass** (Yavin and similar maps) is made of "surface sprites": small flat pictures scattered over the ground by the map's shaders.
 - **Plants** — ferns, bushes, vines, leaf cards — are ordinary 3D models (MD3). The renderer has to recognize them first ([below](#recognizing-stock-plants)).
@@ -30,6 +30,8 @@ Original grass sprites always turn to face the camera, so they swivel as you wal
 - `r_grassCardWidth 1` — card width.
 - `r_grassCardLodDist 600` — mode 3: distance where the third card fades out.
 
+**Compare:** `r_grassCardCompare 2` — the original sprites.
+
 **Debug**
 
 - `r_grassCardDebug 1..6` — color by card or direction, force 1/2/3 cards, distance level.
@@ -44,6 +46,8 @@ Original grass sways each tuft in its own small circle, all in step. With this, 
 - `r_foliageWindStrength 1` — sway strength.
 - `r_foliageWindSpeed 1` — gust speed.
 - `r_foliageWindDirection 30` — wind direction in degrees (0 = world +X). Plants use the same direction and speed.
+
+**Compare:** `r_foliageWindCompare 2` — the original sway.
 
 **Debug**
 
@@ -62,6 +66,8 @@ Leaves and vines on plant models tremble slightly in the air while trunks and br
 - `r_leafFlutterSpeed 1` — speed.
 - `r_leafFlutterNormal 0.25` — let lighting flicker with the motion; 0 motion only.
 
+**Compare:** `r_leafFlutterCompare 2` — still leaves.
+
 **Debug**
 
 - `r_leafFlutterDebug <bits>` — 1 exaggerate, 2 freeze, 4 highlight fluttering surfaces, 8 color by displacement.
@@ -77,6 +83,8 @@ Ferns and similar plants bend frond by frond in the wind and swing back naturall
 - `r_plantWind 0` — 1 wind on fronds.
 - `r_plantWindStrength 1` — wind strength, 0–4.
 - `r_plantStiffness 1` — higher is stiffer, with a faster swing.
+
+**Compare:** `r_plantWindCompare 2` — no wind on fronds.
 
 **How it works.** Each recognized plant gets a short chain of segments per frond, simulated on the CPU like a springy rod and used to bend the model and its shadow. Near plants get a full simulation, farther ones a coarse one, distant ones stay still.
 
@@ -100,6 +108,8 @@ Grass and ferns bend where your body or an NPC touches them and spring back afte
 - `r_foliageInteractionNPCs 1` — 0 only you, 1 also nearby NPCs and players.
 - `r_grassTrample 0.25` — how much bend trampled grass keeps; 0 none.
 - `r_grassTrampleRecovery 6` — seconds for trampled grass to stand up.
+
+**Compare:** `r_foliageInteractionCompare 2` — plants that don't react.
 
 **How it works.** The game sends simple capsule shapes for nearby characters. Plants push their frond chains away from them. Grass uses a small texture around the player that stores how far each spot is bent and lets it spring back; near grass is split into curved blades so it can bend smoothly.
 
@@ -125,11 +135,13 @@ Design notes: [rend2-foliage-interaction.md](../rend2-foliage-interaction.md).
 
 ## Force push and pull
 
-A Force push or pull, by you or an NPC, sweeps a wave through plants, grass and leaves in front of the caster: away for push, toward for pull, then they settle. Plants behind the caster or out of reach don't move. On by default once `r_foliageInteraction 1`.
+A Force push or pull, by you or an NPC, sweeps a wave through plants, grass and leaves in front of the caster: away for push, toward for pull, then they settle. Plants behind the caster or out of reach don't move. Needs `r_foliageInteraction 1`.
 
 **Cost:** light.
 
-- `r_foliageForceWaves 1` — 0 off.
+- `r_foliageForceWaves 0` — 1 on.
+
+**Compare:** `r_foliageForceWavesCompare 2` — plants ignore the Force.
 - `r_foliageForceWaveStrength 1` — strength, 0–4.
 
 **Debug**
@@ -138,11 +150,13 @@ A Force push or pull, by you or an NPC, sweeps a wave through plants, grass and 
 
 ## Cutting plants with a saber
 
-Attacking with a saber cuts fern fronds and plant cards it sweeps through. A partial cut stays attached; a severed piece falls, lies on the ground and sinks away. A blade simply resting in a plant doesn't cut. Cuts last until the map changes. On by default once plants move (`r_autoFoliage` with `r_plantWind 1` or `r_foliageInteraction 1`).
+Attacking with a saber cuts fern fronds and plant cards it sweeps through. A partial cut stays attached; a severed piece falls, lies on the ground and sinks away. A blade simply resting in a plant doesn't cut. Cuts last until the map changes. Needs moving plants (`r_autoFoliage` with `r_plantWind 1` or `r_foliageInteraction 1`).
 
 **Cost:** medium while cutting, limited by the piece count.
 
-- `r_foliageSaberCut 1` — 0 off.
+- `r_foliageSaberCut 0` — 1 on.
+
+**Compare:** `r_foliageSaberCutCompare 2` — no new cuts (cut plants stay cut until `r_foliageSaberCutReset`).
 - `r_foliageSaberCutPieces 48` — fallen pieces at once; 0 makes cut parts vanish.
 - `r_foliageSaberCutPieceTime 20` — seconds a piece lies on the ground.
 

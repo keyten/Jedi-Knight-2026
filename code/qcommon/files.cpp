@@ -2998,7 +2998,7 @@ void FS_Startup( const char *gameName ) {
 	fs_packFiles = 0;
 
 	fs_debug = Cvar_Get( "fs_debug", "0", 0 );
-	fs_looseImageIndex = Cvar_Get( "fs_looseImageIndex", "1", CVAR_ARCHIVE );
+	fs_looseImageIndex = Cvar_Get( "fs_looseImageIndex", "0", CVAR_ARCHIVE );
 	fs_copyfiles = Cvar_Get( "fs_copyfiles", "0", CVAR_INIT );
 	fs_cdpath = Cvar_Get ("fs_cdpath", "", CVAR_INIT|CVAR_PROTECTED );
 	fs_basepath = Cvar_Get ("fs_basepath", Sys_DefaultInstallPath(), CVAR_INIT|CVAR_PROTECTED );

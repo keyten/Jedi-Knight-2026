@@ -94,7 +94,20 @@ layout(std140) uniform VolumetricFog
 
 	// extinction colors of the local fog volumes (r_volumetricFogRGBExtinction), entry 0 = neutral
 	vec4 u_FroxelExtinctionPalette[FROXEL_EXTINCTION_PALETTE];
+
+	// r_<feature>Compare split screen of the media (tr_compare.cpp): x = froxel column of the split
+	// line (-1 none); mask bit RC_x: that feature is the original in the columns left of it
+	vec4 u_FroxelCompareSplit;
+	ivec4 u_FroxelCompareMask;
 };
+
+// the compare mask of this froxel column (FroxelCompareSetup), FroxelOriginal(RC_x)
+ivec4 g_froxelCompare = ivec4(0);
+void FroxelCompareSetup(in int cellX)
+{
+	g_froxelCompare = (float(cellX) + 0.5 < u_FroxelCompareSplit.x) ? u_FroxelCompareMask : ivec4(0);
+}
+#define FroxelOriginal(feature) ((g_froxelCompare[(feature) >> 5] & (1 << ((feature) & 31))) != 0)
 
 #if defined(USE_RAIN_VOLUME)
 uniform sampler2D u_WeatherDepthMap;
@@ -240,6 +253,7 @@ uniform int u_FroxelFogMode;
 // generic.glsl: x = gain, y = floor, z = max gain, w = mix (0 off, 2 / 3 classification tint).
 uniform sampler3D u_ParticleLightVolume;
 uniform vec4 u_ParticleLight;
+uniform float u_ParticleLightSplit;	// r_particleLightingCompare 1: unlit left of this window x
 
 #define FROXEL_DEPTH_HACK_MAX 0.3001
 

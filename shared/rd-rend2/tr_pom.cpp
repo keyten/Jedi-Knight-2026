@@ -85,7 +85,8 @@ void R_PomSetUniforms( const shaderStage_t *stage, UniformDataWriter& uniforms )
 
 	// global strength x material strength, never above 1 (no negative light)
 	float strength = 0.0f;
-	if ( lit && parallax && r_pomSelfShadow->integer )
+	// r_pomSelfShadowCompare 2: off without vid_restart
+	if ( lit && parallax && r_pomSelfShadow->integer && !R_CompareOff(RC_POMSELFSHADOW) )
 	{
 		const float material = stage->pomSelfShadowSet ? stage->pomSelfShadowStrength : 1.0f;
 		strength = Com_Clamp( 0.0f, 1.0f, r_pomSelfShadowStrength->value * material );

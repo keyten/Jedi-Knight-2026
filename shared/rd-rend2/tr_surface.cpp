@@ -2743,7 +2743,8 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 	// colour passes draw the same geometry.
 	int numInstances = 1;
 	vec4_t autoGrass = { 0.0f, 0.0f, 0.0f, 1.0f };
-	if (r_grassCardMode->integer &&
+	// r_grassCardCompare 2: the original camera-facing sprites
+	if (r_grassCardMode->integer && !R_CompareOff(RC_GRASSCARDS) &&
 		(ss->type == SURFSPRITE_VERTICAL || ss->type == SURFSPRITE_ORIENTED) &&
 		ss->facing != SURFSPRITE_FACING_UP &&
 		!(shaderFlags & SSDEF_ADDITIVE) &&
@@ -2847,8 +2848,9 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 			cosf(yaw), sinf(yaw),
 			r_foliageWindStrength->value * (windDebug == 1 ? 4.0f : 1.0f),
 			r_foliageWindSpeed->value };
+		// r_foliageWindCompare 2: the original sway
 		vec4_t foliageWindParams = {
-			(float)r_foliageWind->integer, 0.0f,
+			R_CompareOff(RC_FOLIAGEWIND) ? 0.0f : (float)r_foliageWind->integer, 0.0f,
 			MAX(frozenTime, 0.0f), (windDebug == 3) ? 1.0f : 0.0f };
 		if ((windDebug == 2 || windDebug == 4) &&
 			!backEnd.depthFill && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW))

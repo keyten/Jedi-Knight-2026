@@ -4027,7 +4027,8 @@ static void G2_RagDollSolve(CGhoul2Info_v &ghoul2V,int g2Index,float decay,int f
 #endif
 
 			// soft limits only where the hard clamp below would apply
-			const bool softLimits = r_ragSoftLimits && r_ragSoftLimits->integer &&
+			// r_ragSoftLimitsCompare 2: the hard limits only
+			const bool softLimits = r_ragSoftLimits && r_ragSoftLimits->integer && !R_CompareOff(RC_RAGSOFTLIMITS) &&
 				limitAngles && ( allSolidCount < 32 || (bone.RagFlags & RAG_UNSNAPPABLE) ) &&
 				(!bone.snapped || (bone.RagFlags & RAG_UNSNAPPABLE));
 			g2soft::RagParams softParams;

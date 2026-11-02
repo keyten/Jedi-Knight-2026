@@ -13,6 +13,8 @@ Characters aren't lit by the map's lightmaps. Instead the map stores a 3D grid o
 - `r_entityLightGrid 0` *(restart)* — **0** one sample per character (original). **1** three samples at feet, waist and head height, blended up the body: a character standing in a shaft of light gets a lit head and dark legs. **2** every pixel takes its own smoothly interpolated grid sample: light changes across the body and along outstretched limbs.
 - `r_entityLightProbes 1` *(restart)* — mode 2 only. The grid stores one main light direction plus flat ambient; this turns each sample into a smooth directional light, so the lit side wraps naturally around the body and the shadowed side isn't uniformly flat.
 
+**Compare:** `r_entityLightGridCompare 2` — one sample per model. No split screen: a model takes its light one way for the whole body.
+
 **Debug**
 
 - `r_entityLightGridDebug 1..11` *(restart)* — ambient, main light, direction, validity, grid cell, the three modes, the difference between them, probe brightness and direction.
@@ -27,12 +29,14 @@ The light grid merges the sun and every lamp into one main light whose direction
 
 **Cost:** light.
 
-- `r_entitySunSplit 0` *(restart)* — 1: take the sun out of the grid light and light models from the real sun direction, with per-pixel sun shadows. Only with `r_entityLightGrid 0`.
+- `r_entitySunLight 0` *(restart)* — 1: take the sun out of the grid light and light models from the real sun direction, with per-pixel sun shadows. Only with `r_entityLightGrid 0`.
 - `r_entityShadowAmbient 0` — in sun shadow the world loses its ambient light too, but characters keep theirs and look too bright. 0 darkens only the main light (original), 1 also the whole ambient, like the world, values in between partly.
+
+**Compare:** `r_entitySunLightCompare 2` — the grid's merged light (no split screen: a model's light is split once per model). `r_entityShadowAmbientCompare` — 1 split screen, 2 off.
 
 **Debug**
 
-- `r_shadowDebug 12` — model sun split.
+- `r_shadowDebug 12` — sun on characters.
 
 ## Ambient light from the surroundings
 
@@ -42,6 +46,8 @@ A character's ambient light from the grid is one color from every side. With thi
 
 - `r_diffuseIBL 0` *(restart)* — 1 on.
 - `r_diffuseIBLStrength 1` — how strongly the direction modulates the ambient.
+
+**Compare:** `r_diffuseIBLCompare` — 1 split screen (flat grid ambient left), 2 off.
 
 **How it works.** For each cubemap the renderer computes how much light arrives from each direction. Models use that to vary the original grid ambient around the body; it modulates, rather than replaces, the map's lighting.
 
@@ -61,7 +67,7 @@ In real life light enters skin, scatters under it and comes out a few millimetre
 - `r_skinSSSTransmission 0` — light shining through thin parts (ears, fingers) from behind; 0 off.
 - `r_skinSSSMixedHeads 0` *(restart)* — 1: also scatter `*_head` textures, which mix face, hair and ears in one image. Eyes and hair may then blur.
 
-`r_skinSSSCompare 1` shows the left half without and the right half with skin scattering.
+**Compare:** `r_skinSSSCompare` — 1 split screen (no scattering left), 2 off.
 
 **Mod authors:** `skinScatter <0..1>` sets a material's scattering strength (0 turns it off); `skinMask <image>` limits it to skin on a mixed texture (red channel).
 
@@ -81,9 +87,13 @@ Design notes: [rend2-skin-sss.md](../rend2-skin-sss.md).
 
 ## Hair and eyes
 
-Hair gets a stretched highlight shaped by the strand direction, like real hair, and eyes a smooth wet shine. There is no switch: it is always on where a material supports it. On stock models that is only the few hair surfaces named exactly `hair`/`hairs` (some Jedi, Ugnaught and Weequay heads). Most stock hair is painted into the head texture, and eyes share textures with the face, so they need modded assets.
+Hair gets a stretched highlight shaped by the strand direction, like real hair, and eyes a smooth wet shine, where a material supports it. On stock models that is only the few hair surfaces named exactly `hair`/`hairs` (some Jedi, Ugnaught and Weequay heads). Most stock hair is painted into the head texture, and eyes share textures with the face, so they need modded assets.
 
 **Cost:** light, on these materials only.
+
+- `r_materialModels 0` — 1 on.
+
+**Compare:** `r_materialModelsCompare` — 1 split screen (the standard material left), 2 off.
 
 **Mod authors:** declare `materialType hair` or `materialType eye` inside a lit stage; `materialType standard` opts out. `materialMap` holds hair direction in RG and coverage in B. On a mixed skin/eye texture use the same image as `skinMask`.
 
@@ -108,6 +118,8 @@ When a character dies, the ragdoll swings its limbs until each joint hits its ha
 
 The original hard limit stays as the final stop.
 
+**Compare:** `r_ragSoftLimitsCompare 2` — the hard limits only. No split screen: a ragdoll is simulated one way.
+
 ## Softer animation (SP)
 
 Animated limbs ease in and rebound slightly when they reach the end of their usual movement, instead of stopping abruptly. Works with the existing animations; single player only.
@@ -118,6 +130,8 @@ Animated limbs ease in and rebound slightly when they reach the end of their usu
 - `r_animSoftLimitBounce 0.35` — how much a stopped motion bounces back.
 - `r_animSoftLimitZone 0.18` — width of the soft zone at each end of the range.
 - `r_animSoftLimitMargin 0.1` — extra range allowed beyond the measured motion; applied when the animations are scanned.
+
+**Compare:** `r_animSoftLimitsCompare 2` — the unmodified animation. No split screen: a pose is computed one way.
 
 **How it works.** The renderer scans each animation file once to measure how far every joint moves, then eases motion near those limits. Only the displayed pose changes; gameplay and animation choice don't.
 
