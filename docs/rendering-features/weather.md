@@ -1,305 +1,279 @@
 # Rain, wet surfaces and lens water
 
-[All rendering features](../rendering-features.md)
+[All rendering settings](../rendering-features.md)
 
-Controls marked `vid_restart` need a renderer restart. Debug views use 0 to return to normal unless stated otherwise. Performance labels are rough relative costs, not benchmark guarantees.
+Better-looking rain, surfaces that get wet, puddles, splashes and drops on the camera. Everything here only shows while it rains. Rain comes from the map; to try it anywhere use `r_we rain` (or `lightrain`, `heavyrain`, `acidrain`) and `r_we clear` to stop.
 
-## Weather visibility optimization
-
-Avoids drawing distant or hidden weather chunks that cannot contribute to the view. The rain should look the same; this targets wasted rendering work.
-
-**Main controls**
-
-- `r_weatherCull 0 | 1` — draw every weather chunk / cull invisible chunks.
-
-**Debug**
-
-- `r_weatherDebugChunks 1 | 2` — visualize chunk bounds; mode 2 also prints detailed bounds.
-
-Weather geometry is grouped into bounded chunks and rejected when those bounds are outside the visible region, rather than submitting all chunks each frame.
+Most of these features know where rain can't reach: the renderer keeps a top-down depth map of the level (the weather map), so roofs, overhangs and interiors stay dry.
 
 ## Rain streaks
 
-*Requires active rain, because this changes existing precipitation rather than creating weather.*
+Original rain is thin bright lines that look the same in a lit street and a dark alley. Modern streaks are shaped by fall speed and wind, lit by the sun and the map's light, fade naturally up close and in the distance, and stop at roofs.
 
-Makes rain streaks respond more naturally to view direction, distance and nearby lights. It improves the original bright-line rain without changing the map assets. Light to medium performance cost in rain.
+**Cost:** light to medium in rain.
 
-**Main controls**
-
-- `r_rainStreaks 0 | 1` — legacy / modern rain streaks.
-- `r_rainStreakWidth <value>` — streak width.
-- `r_rainStreakLength <value>` — length multiplier.
-- `r_rainStreakOpacity <value>` — opacity.
-- `r_rainStreakLighting 0 | 1` — fixed brightness / light-grid + sun lighting.
-- `r_rainDynamicLighting 0 | 1 | 2` — 0 existing baked/sun light, 1 strongest nearby light, 2 limited nearby Forward+ lights. Also lights impact splashes.
-- `r_rainDynamicMaxLights 1..8` — Accepted lights per drop/splash in mode 2, 1..8; default 4.
+- `r_rainStreaks 0` — 1 modern streaks.
+- `r_rainStreakOpacity 1`, `r_rainStreakWidth 1`, `r_rainStreakLength 1` — opacity and size multipliers.
+- `r_rainStreakLighting 1` — 0 fixed brightness, as originally; 1 lit by the sun and the map.
+- `r_rainDynamicLighting 1` — dynamic lights (sabers, blasters) on drops and splashes: **0** none, **1** the strongest nearby light, **2** several nearby lights.
+- `r_rainDynamicMaxLights 4` — lights per drop in mode 2, 1–8.
 
 **Debug**
 
-- `r_rainStreakDebug 1..5` — coverage, distance, lighting, contact and variation views.
-- `r_rainDynamicDebug 1 | 2 | 3` — show the static/grid contribution, dynamic contribution, or normalized selected-light count.
+- `r_rainStreakDebug 1..5` — coverage, distance fade, lighting, roof contact, variation.
+- `r_rainDynamicDebug 1..3` — static light only, dynamic light only, number of lights used.
 
-The renderer shades stretched raindrop geometry with view-aware shape and lighting, using the weather-depth map to keep rain under roofs from showing.
+## Rain haze
+
+Heavy rain hides the distance: courtyards fade into grey, and lamps glow through the downpour. This adds that haze where rain falls; covered interiors stay clear instead of getting a screen-wide grey tint. Needs `r_volumetricFog 2`.
+
+**Cost:** light.
+
+- `r_rainVolume 0` — 1 on.
+- `r_rainVolumeStrength 0.00018` — haze density in normal rain.
+- `r_rainVolumeHeavyMultiplier 4` — extra density in heavy rain.
+- `r_rainVolumeGroundStrength 0` — splash mist close to the ground in heavy rain; 0 off.
+- `r_rainVolumeGroundHeight 96` — height of that mist layer.
+- `r_rainVolumeMaxDistance 6000` — how far the haze reaches.
+- `r_rainVolumeAnisotropy 0.72` — how strongly rain glows when you look toward a light.
+
+**Debug**
+
+- `r_volumetricFogDebug 71..74` — rain density, weather exposure, unshadowed light, final rain haze.
 
 ## Distant rain
 
-*Requires active rain haze, because distant streaks fade into the rain medium instead of disappearing.*
+Nearby rain is drawn as individual drops; farther away the drops thin out and the [rain haze](#rain-haze) takes over. This removes the wall of tiny distant lines and the cost of drawing them. On by default; without rain haze, the ordinary streaks stay.
 
-Keeps individual drops nearby while distant rain becomes a continuous haze. This reduces the wall of tiny lines and the work of drawing them far away.
-
-**Main controls**
-
-- `r_rainLOD 0 | 1` — master switch; default `1`.
-- `r_rainLODNear <units>` — full-density radius; default `1200`.
-- `r_rainLODMid <units>` — end of the streak/volume handoff; default `3600`.
-- `r_rainLODDensityFloor 0.05..1` — lowest stochastic density in the middle band; default `0.25`.
-- `r_rainLODFarVolumeCoupling 0..1` — `0` keeps the original all-distance medium, `1` fades the medium in across the LOD handoff.
-- `r_speeds 100` — prints the current LOD/fallback state and the existing weather submission counts.
+- `r_rainLOD 1` — 0 off.
+- `r_rainLODNear 1200` — full drop density up to this distance.
+- `r_rainLODMid 3600` — drops are gone beyond this distance.
+- `r_rainLODDensityFloor 0.25` — lowest drop density between the two.
+- `r_rainLODFarVolumeCoupling 1` — 1 rain haze fades in as drops fade out; 0 haze at every distance (the earlier behaviour).
 
 **Debug**
 
-- `r_rainLODDebug 0 | 1` — show green near, yellow-to-blue middle and blue far bands. Debug deliberately restores far streak markers.
-
-The near band keeps streaks; the middle band thins and fades them as the rain volume takes over. If that volume is unavailable, the renderer keeps the ordinary streaks.
+- `r_rainLODDebug 1` — distance bands: green near, yellow middle, blue far.
+- `r_speeds 100` — print the current rain distance state and weather counts.
 
 ## Wet surfaces
 
-*Requires active rain, because the response is driven by rain exposure.*
+Rain-exposed surfaces darken and become glossy: armor and metal gain sharp reflections, stone darkens, fabric mostly just darkens. Areas under roofs stay dry. Each surface reacts according to its [material class](materials.md#automatic-materials-from-stock-textures-auto-pbr), so it works best with `r_autoPBR 2`.
 
-Darkens exposed surfaces and makes suitable armor, metal and stone smoother and more reflective. Roofed areas stay drier; fabric mainly darkens instead of turning into a mirror. Light performance cost.
+**Cost:** light.
 
-**Main controls**
+- `r_weatherWetness 0` *(restart)* — 1 on.
+- `r_weatherWetnessStrength 1` — overall wetness, 0–1.
+- `r_weatherWetnessEntityFacing 0.85` — wetness of the vertical sides of characters and props.
 
-- `r_weatherWetness 0 | 1` — disable / enable wet materials. Requires `vid_restart`.
-- `r_weatherWetnessStrength 0..1` — overall wetness.
-- `r_weatherWetnessRoughness <value>` — scale of class-specific smoothing.
-- `r_weatherWetnessDarkening <value>` — scale of class-specific albedo darkening.
-- `r_weatherWetnessNormal <value>` — scale of class-specific normal flattening.
-- `r_weatherWetnessEntityFacing <value>` — wetness of vertical character/prop faces.
-- `r_weatherWetnessBias <units>` — rain-occlusion depth bias.
+**How it works.** The weather map tells how exposed each point is; the material class decides how much wetness darkens it, smooths it and flattens fine bumps.
 
-**Debug**
-
-- `r_weatherSurfaceDebug 1..4` — exposure, wetness, roughness and dry/wet split.
-- `r_weatherSurfaceDebug 16` — detected wet material class.
-- `r_weatherSurfaceDebug 21` — geometric normal.
-
-A weather-depth map estimates exposure. Material class determines how much wetness changes color, roughness and fine surface normals.
-
-## Wetness after rain
-
-*Requires `r_weatherWetness 1` and restart, because this allocates a field that remembers surface water.*
-
-Keeps surfaces wet after the rain stops and lets them dry gradually. The original immediate rain response cannot retain this history. Light additional performance cost.
-
-**Main controls**
-
-- `r_weatherWetnessPersistence` — Persist world wetness after rain stops (requires r_weatherWetness). Default `0`; `vid_restart`.
-- `r_weatherWetnessAccumulationRate` — Persistent world water deposited per second at full rain. Default `0.20`.
-- `r_weatherWetnessAcidAccumulationScale` — Acid-rain persistent wetness accumulation multiplier. Default `1`.
-- `r_weatherWetnessAcidDryScale` — Acid-rain persistent wetness drying multiplier. Default `1`.
-- `r_weatherWetnessDryRate` — Persistent world water removed per second (0.02 = about 50 seconds). Default `0.02`.
-- `r_weatherWetnessResolution` — Persistent world wetness texture resolution (64-1024). Default `256`; `vid_restart`.
-- `r_weatherWetnessSteepDryScale` — Drying multiplier for steep surfaces (selected from geometric normal). Default `2`.
-- `r_weatherWetnessUpdateHz` — Persistent world wetness simulation updates per second. Default `10`.
+- `r_weatherWetnessRoughness 1`, `r_weatherWetnessDarkening 1`, `r_weatherWetnessNormal 1` — scale the per-class smoothing, darkening and bump flattening.
+- `r_weatherWetnessBias 2` — tolerance of the roof test; raise it if exposed edges stay dry.
 
 **Debug**
 
-- `r_weatherWetnessPersistenceDebug` — 1 shows persistent world water amount. Default `0`.
+- `r_weatherSurfaceDebug 1..4` — exposure, wetness, roughness, dry/wet split.
+- `r_weatherSurfaceDebug 16`, `21` — detected material class, surface normal.
 
-A bounded world-space texture accumulates water from rain and removes it over time. Steep surfaces and acid rain can use different rates. [Details](../rend2-weather-wetness-persistence.md).
+Design notes: [rend2-weather-material.md](../rend2-weather-material.md).
+
+## Wet after the rain
+
+Surfaces get wet gradually when rain starts and dry slowly after it stops, instead of switching instantly. Steep surfaces dry faster. Needs `r_weatherWetness 1`.
+
+**Cost:** light.
+
+- `r_weatherWetnessPersistence 0` *(restart)* — 1 on.
+- `r_weatherWetnessAccumulationRate 0.20` — how fast surfaces get wet.
+- `r_weatherWetnessDryRate 0.02` — how fast they dry; 0.02 is about 50 seconds.
+- `r_weatherWetnessSteepDryScale 2` — steep surfaces dry this much faster.
+- `r_weatherWetnessAcidAccumulationScale 1`, `r_weatherWetnessAcidDryScale 1` — the same rates in acid rain.
+
+**How it works.** A world-space texture over the level stores how much water each spot holds; rain adds to it and time removes it.
+
+- `r_weatherWetnessResolution 256` *(restart)* — resolution of that texture (64–1024).
+- `r_weatherWetnessUpdateHz 10` — updates per second.
+
+**Debug**
+
+- `r_weatherWetnessPersistenceDebug 1` — stored water.
+
+Design notes: [rend2-weather-wetness-persistence.md](../rend2-weather-wetness-persistence.md).
+
+## Puddles
+
+Glossy puddles form on flat exposed floors and ground, with no map changes. On textures with a height map (texture packs), water fills cracks and low spots first. Needs `r_weatherWetness 1`.
+
+**Cost:** light.
+
+- `r_weatherPuddles 0` — 1 on.
+- `r_weatherPuddleCoverage 0.35` — share of flat exposed ground covered.
+- `r_weatherPuddleScale 192` — size of the puddle pattern.
+- `r_weatherPuddleEdgeModel 0` — 1: realistic edges, going from dry ground through a dark damp fringe and a thin film to standing water.
+- `r_weatherPuddleUseHeightMap 1` — follow texture height maps where available.
+
+**How it works.** A world-space noise pattern, limited to flat (`r_weatherPuddleSlope`) and rain-exposed surfaces, decides where water stands. With a height map, a virtual water level fills the relief from the bottom.
+
+- `r_weatherPuddleRoughness 0.04` — smoothness of standing water.
+- `r_weatherPuddleSlope "0.90 0.98"` — how flat a surface must be (surface normal Z where puddles begin and reach full size).
+- `r_weatherPuddleHeightSoftness 0.08` — sharpness of the water line in relief.
+- `r_weatherPuddleWaterLevelBias 0` — above 0 floods more of the relief, below 0 only the deepest cracks.
+- `r_weatherPuddleFringeDarkening 0.18`, `r_weatherPuddleFilmRoughness 0.18` — edge model: darkening of the damp fringe, smoothness of the thin film.
+
+**Debug**
+
+- `r_weatherSurfaceDebug 5..15` — slope, noise, exposure, mask, roughness, eligibility, height, low/high areas, pattern layers, final mask.
+- `r_weatherSurfaceDebug 33..36` — edge model: zones (grey dry, brown damp, cyan film, blue water), roughness, darkening, normal.
+
+## Rain rings in puddles
+
+Raindrops make spreading rings in puddles that distort reflections. On by default once puddles are on.
+
+**Cost:** light to medium.
+
+- `r_weatherPuddleRipples 1` — **0** off. **1** a repeating pattern of rings. **2** rings where drops actually land. **3** real rings nearby, pattern farther away.
+- `r_weatherPuddleRippleStrength 0.35` — how much rings bend reflections.
+- `r_weatherPuddleRippleScale 20` — ring size.
+- `r_weatherPuddleRippleRate 1.1` — rings per second (mode 1).
+- `r_weatherPuddleRippleDistance 1500` — modes 2–3: how far real rings are drawn.
+
+**How it works.** In modes 2 and 3 every rain impact pushes a small water-height field, which spreads and settles like waves.
+
+- `r_weatherPuddleRippleImpulse 0.45` — push per drop.
+- `r_weatherPuddleRipplePropagation 10` — wave speed.
+- `r_weatherPuddleRippleDamping 2.5` — how fast waves die out.
+- `r_weatherPuddleRippleFieldScale 1` — area covered by the field.
+- `r_weatherPuddleRippleResolution 256` *(restart)* — field resolution (64–1024).
+
+**Debug**
+
+- `r_weatherSurfaceDebug 17..20` — ring height, normal offset, masking, final normal.
+- `r_weatherPuddleRippleDebug 1..4` — impacts, height, velocity, final normal.
+
+Design notes: [rend2-puddle-ripples.md](../rend2-puddle-ripples.md).
+
+## Water running down walls
+
+Thin streams of water run down exposed slopes and walls in the direction of gravity. Needs `r_weatherWetness 1`.
+
+**Cost:** light.
+
+- `r_weatherRunoff 0` — 1 on.
+- `r_weatherRunoffStrength 1` — visibility of the streaks.
+- `r_weatherRunoffSpeed 24` — flow speed.
+- `r_weatherRunoffScale 48` — streak size.
+- `r_weatherRunoffEntities 0` — 1: also on characters, props and moving objects.
+- `r_weatherRunoffTrailPersistence 0` — seconds that trails stay dark and glossy after the water passes; needs [wet after the rain](#wet-after-the-rain).
+
+**How it works.** Gravity projected onto each surface gives the flow direction; an animated pattern of thin streaks moves along it and changes color and gloss. Walls check for rain a little in front of them.
+
+- `r_weatherRunoffProbe 1.5` — that distance; 0 off.
+
+**Debug**
+
+- `r_weatherSurfaceDebug 22..26` — slope class, gravity direction, mask, flow, roughness.
+- `r_weatherRunoffTrailDebug 1..2` — stored trails, final trail mask.
+
+Design notes: [rend2-weather-runoff.md](../rend2-weather-runoff.md).
+
+## Rain splashes
+
+Small splashes where drops hit the ground, roofs and puddles.
+
+**Cost:** light; medium in very heavy rain.
+
+- `r_rainSplashes 0` — 1 on.
+- `r_rainSplashSize 6`, `r_rainSplashLifetime 350`, `r_rainSplashOpacity 0.5` — radius, lifetime in ms, opacity.
+- `r_rainSplashSurfaceResponse 0` *(restart)* — 1: splashes depend on the surface: metal, soil, plants, puddles and real water each react differently.
+- `r_rainSplashHardDryStrength 1`, `r_rainSplashHardWetStrength 1`, `r_rainSplashMetalStrength 1`, `r_rainSplashSoilStrength 1`, `r_rainSplashVegetationStrength 1`, `r_rainSplashPuddleStrength 1`, `r_rainSplashWaterStrength 1` — splash strength per surface type.
+
+**How it works.** The GPU follows the falling drops and detects where they cross the weather map's surface; each crossing spawns a short-lived splash.
+
+**Debug**
+
+- `r_rainSplashDebug 1..3` — impact points, crossing test, drop paths.
+- `r_rainSplashSurfaceDebug 1` — surface-type map.
+
+Design notes: [rend2-rain-splashes.md](../rend2-rain-splashes.md).
+
+## Water on the camera lens
+
+Beads, running drops and a wet film on the screen when you stand in rain or come out of water. Under cover the water keeps running down and dries instead of vanishing. Needs `r_hdr 1`.
+
+**Cost:** light while wet; nothing when dry.
+
+- `r_rainLens 0` *(restart)* — 1 on.
+- `r_rainLensQuality 1` *(restart)* — 0–2: resolution, number of drops, blur quality.
+- `r_rainLensFilmModel 0` — **0** long-lived beads and drops. **1** mostly a draining film with short-lived small drops.
+- `r_rainLensDensity 1.0` — how much rain reaches the lens.
+- `r_rainLensDropSize 1.0` — drop size (not the amount of water).
+- `r_rainLensRefraction 1.0` — how strongly drops bend the image.
+- `r_rainLensBlur 1.0` — drop blur.
+- `r_rainLensFilm 1.0` — visibility of the film and trails.
+- `r_rainLensReflection 1.0` — reflections and glints of the sun and lights in drops; 0 bending only.
+- `r_rainLensInertia 0` — water lags behind sharp camera movement.
+- `r_rainLensPeripheralBias 1.0` — keep big drops and flows away from the screen center.
+
+Film model (`r_rainLensFilmModel 1`):
+
+- `r_rainLensEmergeTime 1.0`, `r_rainLensEmergeWater 1.0` — how long the lens drains and how much water stays after leaving water.
+- `r_rainLensFilmMicro 1.0` — fine distortion in the film.
+- `r_rainLensImpactSplat 0` — slanted drops splat and smear along their direction; 0 off.
+- `r_rainLensMist 0.04` — mist reaching the lens when not facing the rain.
+
+**Mod authors:** add `LensWaterEmitters` to `cubemaps/<map>/env.json` or an EFX `lensWater` primitive to wet the lens near a waterfall or spray. Scripts can call `r_we lenswater splash 1`.
+
+**How it works.** A small simulation of drops and film produces a distortion map, and the final image is bent, blurred and given reflections through it.
+
+**Debug**
+
+- `r_rainLensDebug 1..9` — blur weight, normal, offset, before/after split, drops, film, sticking, transient state, control panel. Forces the effect on.
+- `rainlens_event splash|spray|emerge`, `rainlens_profile light|rain|heavy|acid|auto`, `rainlens_clear`, `rainlens_stats` — test commands.
+- `r_rainLensFieldHeight`, `r_rainLensAgentLimit`, `r_rainLensPinning`, `r_rainLensMerge`, `r_rainLensFilmDecay`, `r_rainLensWetDecay`, `r_rainLensHeavyFlow` — tuning of resolution, drop budget, sticking, merging, drying and flows.
+- `r_rainLensPBO`, `r_rainLensMipBlur` — compare upload and blur methods for profiling.
+
+Design notes: [rend2-rain-lens.md](../rend2-rain-lens.md).
 
 ## Acid rain
 
-*Requires active acid-rain weather, because this changes its optical profile rather than creating rain or changing damage.*
+Gives acid rain one consistent sickly tint across streaks, haze, puddles, runoff, wet surfaces and lens water, instead of each using its own color. Only affects looks, not damage.
 
-Gives acid rain a consistent tint across streaks, haze, lens water and wet surfaces instead of several unrelated colors. Light additional performance cost.
+**Cost:** light.
 
-**Main controls**
-
-- `r_acidRainStrength` — Strength of the coherent acid-rain optical profile. Default `1`.
-- `r_acidRainTint` — Linear RGB optical tint of acid rain. Default `0.78 1.00 0.62`.
-- `r_acidRainVisuals` — Coherent optical acid-rain profile for rain, wet surfaces, puddles, runoff, volume and lens water. Default `0`.
+- `r_acidRainVisuals 0` — 1 on.
+- `r_acidRainTint "0.78 1.00 0.62"` — the tint.
+- `r_acidRainStrength 1` — its strength.
 
 **Debug**
 
-- `r_precipitationInfo` — Print resolved precipitation type, intensity and consumer state.
+- `r_precipitationInfo` — print the current precipitation type, intensity and what uses it.
 
-Rain consumers read one resolved precipitation state. The optional acid profile applies a shared tint and strength to that state’s visual responses. [Details](../rend2-acid-rain-profile.md).
+Design notes: [rend2-acid-rain-profile.md](../rend2-acid-rain-profile.md).
 
-## [For mod authors] Weather response overrides
+## Weather on specific materials (mod authors)
 
-*Requires the corresponding wetness, puddle or runoff feature, because the material only scales an already enabled response.*
+Keep a roof wet but free of puddles, a cloth dry of standing water, or an indoor shader completely dry. Without an override every material reacts automatically.
 
-Lets a roof get wet without collecting puddles, a fabric stay free of standing water, or a special indoor shader stay dry. Stock materials keep their automatic response until an override is supplied.
-
-**Main controls**
-
-- No separate switch; use the feature or asset settings described here.
-
-**Debug**
-
-- `r_weatherSurfaceDebug 27..31` — enabled/excluded state, wetness/puddle/runoff scales and exclusion reason.
-- `r_weatherMaterialList` — print drawn shaders with non-default response or automatic exclusion for one frame.
-
-Use `weatherResponse <wetness> [<puddle> [<runoff>]]` in the shader or a stage:
+Add `weatherResponse <wetness> [<puddle> [<runoff>]]` to a shader or stage, values 0–4, 1 normal:
 
 ~~~text
 weatherResponse 1.3 1 0.3
 ~~~
 
-Values range from 0 to 4; 1 keeps the normal response. A single `weatherResponse 0` disables all three channels.
-
-The shader multiplies the automatic wetness, puddle and runoff masks by the authored scales. This changes shading, not rainfall placement, and adds no meaningful extra cost. [Details](../rend2-weather-material.md).
-
-## Puddles
-
-*Requires `r_weatherWetness 1` and rain, because standing water is placed on exposed wet surfaces.*
-
-Adds glossy puddles to flat stock floors and ground without rebuilding the map. With a material height map, low cracks can fill before raised parts. Light additional performance cost.
-
-**Main controls**
-
-- `r_weatherPuddles 0 | 1` — disable / enable procedural puddles.
-- `r_weatherPuddleUseHeightMap 0 | 1` — ignore / use material height data.
-- `r_weatherPuddleCoverage 0..1` — approximate covered fraction.
-- `r_weatherPuddleRoughness <value>` — water roughness.
-- `r_weatherPuddleSlope "min max"` — geometric-normal range where puddles can form.
-- `r_weatherPuddleScale <units>` — macro puddle pattern size.
-- `r_weatherPuddleEdgeModel 0 | 1` — legacy response / continuous dry, damp fringe, thin film and standing-water response. Default `0` preserves the existing puddle shader.
-- `r_weatherPuddleFringeDarkening 0..1` — additional albedo darkening at the damp fringe (default `0.18`).
-- `r_weatherPuddleFilmRoughness 0.02..1` — target roughness of the thin film (default `0.18`); standing water continues to use `r_weatherPuddleRoughness`.
-- `r_weatherPuddleHeightSoftness <value>` — water-line transition width.
-- `r_weatherPuddleWaterLevelBias <value>` — bias the virtual water level.
+A single `weatherResponse 0` disables all three.
 
 **Debug**
 
-- `r_weatherSurfaceDebug 5..10` — slope, noise, exposure, mask, roughness and eligibility.
-- `r_weatherSurfaceDebug 13..15` — macro, micro and combined puddle masks.
-- `r_weatherSurfaceDebug 33` — four continuous region weights: dry grey, damp brown, thin film cyan, standing water blue.
-- `r_weatherSurfaceDebug 34..36` — final roughness, added puddle darkening and final normal for the layered edge model.
-- `r_weatherSurfaceDebug 11..12` — material height and low/high regions.
-- `r_weatherSurfaceDebug 15` — final combined puddle mask.
+- `r_weatherSurfaceDebug 27..31` — on/off, wetness, puddle and runoff scale, why a surface is excluded.
+- `r_weatherMaterialList` — print the drawn shaders with an override or automatic exclusion.
 
-Surface slope, exposure and world-space noise choose puddle patches. The optional height test follows existing texture relief; layered edges blend dry ground, damp fringes, thin film and standing water.
+## Rain culling
 
-## Rain rings in puddles
+Rain is drawn in chunks around the camera; chunks outside the view are skipped. The rain looks the same; on by default.
 
-*Requires wet puddles and active rain, because the ripples perturb the normal of standing water.*
-
-Adds spreading rings that move reflected lights and scenery. Mode 1 is a repeating procedural pattern; modes 2 and 3 can use actual rain impacts. Light to medium additional performance cost.
-
-**Main controls**
-
-- `r_weatherPuddleRipples 0 | 1 | 2 | 3` — off / procedural rings / real rain-impact field / real nearby impacts with procedural rings farther away.
-- `r_weatherPuddleRippleStrength <value>` — ring normal strength.
-- `r_weatherPuddleRippleScale <units>` — cell/ring scale.
-- `r_weatherPuddleRippleRate <value>` — ring cycles per second.
-- `r_weatherPuddleRippleDamping` — Real puddle ripple damping per second. Default `2.5`.
-- `r_weatherPuddleRippleDistance` — Real ripple draw distance; hybrid fades to procedural beyond it. Default `1500`.
-- `r_weatherPuddleRippleFieldScale` — World coverage of the real ripple field relative to the weather map. Default `1`.
-- `r_weatherPuddleRippleImpulse` — Velocity impulse deposited by each real rain impact. Default `0.45`.
-- `r_weatherPuddleRipplePropagation` — Real puddle ripple propagation in field texture cells per second. Default `10`.
-- `r_weatherPuddleRippleResolution` — Real puddle ripple field resolution (64..1024; vid_restart). Default `256`; `vid_restart`.
+- `r_weatherCull 1` — 0 draw every chunk.
 
 **Debug**
 
-- `r_weatherSurfaceDebug 17..20` — ripple height, normal offset, masking and final normal.
-- `r_weatherPuddleRippleDebug` — Real ripple debug: 1 impulses, 2 height, 3 velocity, 4 final normal. Default `0`.
-
-Real-impact modes feed a small height/velocity field. Hybrid mode uses that field nearby and procedural rings farther away; it does not simulate puddle drainage. [Details](../rend2-puddle-ripples.md).
-
-## Water running down walls
-
-*Requires `r_weatherWetness 1` and rain; retained trails also need persistent wetness, because they store where water has passed.*
-
-Adds thin moving water streaks on exposed slopes and walls. Trails can remain dark and smooth briefly after the flow passes. Light performance cost.
-
-**Main controls**
-
-- `r_weatherRunoff 0 | 1` — disable / enable runoff.
-- `r_weatherRunoffStrength <value>` — film/streak strength.
-- `r_weatherRunoffSpeed <units/s>` — flow speed.
-- `r_weatherRunoffScale <units>` — streak-cell size.
-- `r_weatherRunoffProbe <value>` — small outward rain-exposure probe for steep walls; `0` disables it.
-- `r_weatherRunoffEntities 0 | 1` — also apply runoff to characters, props and movers.
-- `r_weatherRunoffTrailPersistence` — Seconds world runoff trails remain dark and smooth after water passes (0 off; needs persistent wetness). Default `0`.
-
-**Debug**
-
-- `r_weatherSurfaceDebug 22..26` — slope class, projected gravity, runoff mask, animated flow and final roughness.
-- `r_weatherRunoffTrailDebug` — Persistent world runoff trail debug: 1 retained history, 2 final trail mask. Default `0`.
-
-Gravity projected onto the surface chooses the flow direction. Animated film changes roughness and color; optional history retains its trail without a full fluid simulation. [Details](../rend2-weather-runoff.md).
-
-## Rain splashes
-
-*Requires active rain and the weather-depth map, because splashes begin where falling drops cross a surface.*
-
-Adds small spray or rings where rain hits the world. Optional material response gives metal, soil, vegetation, puddles and real water different splash strengths. Light normally, medium in very heavy rain.
-
-**Main controls**
-
-- `r_rainSplashes 0 | 1` — disable / enable impact splashes.
-- `r_rainSplashSize <units>` — splash radius.
-- `r_rainSplashLifetime <ms>` — lifetime.
-- `r_rainSplashOpacity <value>` — opacity.
-- `r_rainSplashHardDryStrength` — Hard dry rain impact response scale. Default `1`.
-- `r_rainSplashHardWetStrength` — Hard wet rain impact response scale. Default `1`.
-- `r_rainSplashMetalStrength` — Metal rain impact response scale. Default `1`.
-- `r_rainSplashPuddleStrength` — Puddle rain impact response scale. Default `1`.
-- `r_rainSplashSoilStrength` — Soft soil rain impact response scale. Default `1`.
-- `r_rainSplashSurfaceResponse` — Surface-dependent rain impacts: 0 exact legacy splash, 1 class response (vid_restart). Default `0`; `vid_restart`.
-- `r_rainSplashVegetationStrength` — Vegetation rain impact response scale. Default `1`.
-- `r_rainSplashWaterStrength` — Real water rain impact response scale. Default `1`.
-
-**Debug**
-
-- `r_rainSplashDebug 1..3` — impact points, accepted/rejected crossings and recent trajectories.
-- `r_rainSplashSurfaceDebug` — Show the top-down R8 weather impact class map. Default `0`.
-
-GPU rain trajectories are checked against weather depth instead of tracing every drop on the CPU. An impact-class map selects the response. [Details](../rend2-rain-splashes.md).
-
-## Water on the camera lens
-
-*Requires `r_hdr 1` and the world view, because droplets distort and blur the scene image; new rain needs an exposed camera.*
-
-Adds beads, sliding drops and wet films to the view in rain or when leaving water. Under cover, remaining water keeps moving and dries instead of vanishing immediately. Light when wet, higher at the largest quality setting; a dry inactive pass costs nothing.
-
-**Main controls**
-
-- `r_rainLens 0 | 1` — disable / enable lens water. Requires `vid_restart`.
-- `r_rainLensQuality 0..2` — field resolution, drop count and defocus samples. Requires `vid_restart`.
-- `r_rainLensFilmModel` — 0 persistent beads and drops, 1 draining film with short-lived tiny drops. Default `0`.
-- `r_rainLensDensity 0..2` — rain input multiplier (default 1).
-- `r_rainLensRefraction 0..4` — refraction strength.
-- `r_rainLensDropSize 0.25..4` — drop size (geometry only).
-- `r_rainLensFilm 0..2` — thin film / trail visibility.
-- `r_rainLensBlur 0..2` — drop defocus.
-- `r_rainLensReflection 0..2` — reflection of the environment (nearest cubemap) with Fresnel, and glints of the sun and nearby lights; 0 = refraction only.
-- `r_rainLensInertia 0..2` — water lags behind strong camera acceleration (default 0).
-- `r_rainLensEmergeTime` — How long lens water drains after leaving a pool, 0.25..4. Default `1.0`.
-- `r_rainLensEmergeWater` — Amount of lens water after leaving a pool, 0.25..3. Default `1.0`.
-- `r_rainLensFilmMicro` — Fine distortion in film-first mode, 0..4. Default `1.0`.
-- `r_rainLensImpactSplat` — Directional impact streaks/spray in film-first mode, 0..2; 0 disables them. Default `0`.
-- `r_rainLensMist` — Peripheral mist reaching the lens in film-first mode, 0..1. Default `0.04`.
-
-**Debug**
-
-- `r_rainLensDebug 1..9` — optical weight / blur, normal, UV offset, scene/final split, agents, film/wetness, pinning, transient state and controller panel; forces the pass on.
-- `rainlens_event splash|spray|emerge`, `rainlens_profile light|rain|heavy|acid|auto`, `rainlens_clear`, `rainlens_stats`.
-- `r_rainLensFieldHeight`, `r_rainLensAgentLimit` — debug field/drop budgets (cheat).
-- `r_rainLensPinning`, `r_rainLensMerge` — debug drop sticking and merging (cheat).
-- `r_rainLensFilmDecay`, `r_rainLensWetDecay` — debug drying rates (cheat).
-- `r_rainLensHeavyFlow`, `r_rainLensPeripheralBias` — debug heavy flow and edge placement (cheat).
-- `r_rainLensPBO`, `r_rainLensMipBlur` — compare field upload and blur performance.
-
-### [Autodetectable] Rain and leaving water
-
-Enable `r_rainLens` and restart. Existing weather supplies rain; updated game/client modules submit water-entry/exit and nearby splash events. `r_rainLensFilmModel 1` selects the film-first look.
-
-### [For mod authors] Waterfall spray and scripted splashes
-
-Add `LensWaterEmitters` to `cubemaps/<map>/env.json` or use an EFX `lensWater` primitive for a local spray source. Scripts can submit `r_we lenswater splash 1`. These let authored effects wet the lens even outside normal rain.
-
-A bounded droplet simulation builds a small optical field. The final image samples that field for distortion, blur and reflections; the film-first model emphasizes draining water rather than long-lived large beads. [Details](../rend2-rain-lens.md).
+- `r_weatherDebugChunks 1` — show chunk bounds; 2 also prints them.

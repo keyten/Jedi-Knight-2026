@@ -1,13 +1,13 @@
 # Changes since the original audit
 
-[All rendering features](../rendering-features.md)
+[All rendering settings](../rendering-features.md)
 
 Reviewed range: `0387b3281..9787e7945`. This page describes committed work through that snapshot.
 
 - **Vegetation:** standing contact is steadier; Force push/pull bends plants and leaves; attacking sabers cut supported plants into attached and falling pieces. [Controls](foliage.md).
 - **Characters:** soft ragdoll limits in SP/MP and optional soft animation limits in SP. [Controls](characters.md).
-- **Sun shadows:** more robust cache/filter edges, separate sharp model layers over softer scenery, and an improved experimental scrolling-cache mode. The model split defaults on; the older character-layer option is used only when that split is off. [Controls](shadows.md).
-- **Point/spot shadows:** keep static world depth while updating moving casters. The static-world cache defaults on when the hardware supports it. Forward+ also skips lights outside their range earlier. [Controls](shadows.md#shadow-reuse).
+- **Sun shadows:** more robust cache/filter edges, separate sharp model layers over softer scenery, and an improved experimental scrolling-cache mode. The model split defaults on; the older character-layer option is used only when that split is off. [Controls](shadows.md#sun-shadows).
+- **Point/spot shadows:** keep static world depth while updating moving casters. The static-world cache defaults on when the hardware supports it. Forward+ also skips lights outside their range earlier. [Controls](shadows.md#dynamic-light-shadows).
 - **Reflections:** better emitter occlusion and foreground-safe rough blur; optional rough-surface ray sampling; fog along reflected rays, including water. Hit reuse now defaults off, and early pixel rejection defaults to automatic. [Controls](reflections.md).
 - **Offline lighting:** sun/sky and hidden-light proposals, several emitter shapes, intensity/position fitting, shadow evidence, bounced light, uncertainty checks, scene-wide sampling/scheduling, and per-source contribution records. Normal gameplay still does not consume these fitted assets. [Workflow](lighting-tools.md).
 

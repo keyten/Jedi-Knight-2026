@@ -1,95 +1,82 @@
-# Atmosphere and clouds
+# Sky, atmosphere and clouds
 
-[All rendering features](../rendering-features.md)
+[All rendering settings](../rendering-features.md)
 
-Controls marked `vid_restart` need a renderer restart. Debug views use 0 to return to normal unless stated otherwise. Performance labels are rough relative costs, not benchmark guarantees.
+Haze over long distances, a computed sky, and 3D clouds with shadows. Both need a sun: maps that define one in their sky shader work as they are; on others use `r_forceSun 1` ([Shadows](shadows.md#sun-shadows)). `r_atmosphereInfo` and `r_cloudInfo` say why nothing is drawn.
 
-## Atmosphere and sky
+## Atmosphere
 
-*Requires a usable map sun or `r_forceSun`, because sunlight drives the air scattering.*
+In real air distant mountains and buildings turn pale and bluish, and the sky is brighter near the horizon. JKA draws the far distance as crisp as the near one. This adds that haze, and optionally replaces the painted skybox with a computed sky that matches the sun.
 
-Adds a hazy horizon and distance fading, with an optional analytic sky. Mountains and distant buildings blend into the air instead of staying as clear as nearby ones. Light to medium performance cost.
+**Cost:** light to medium.
 
-**Main controls**
+- `r_atmosphere 0` — 1 on.
+- `r_atmosphereAerialScale 1` — **the main look setting.** 1 is physically correct, but JKA views span only a few hundred metres of air, so the haze is barely visible. 8–30 makes it clearly visible.
+- `r_atmosphereSky 0` — **0** keep the skybox, add horizon haze and sun glow. **1** blend skybox and computed sky. **2** computed sky only. Maps with sky portals always use 0.
+- `r_atmosphereSkyBlend 0.5` — mode 1: share of the computed sky.
+- `r_atmosphereStart 0` — no haze closer than this distance (world units).
+- `r_atmosphereSunGlow 1` — mode 0: glow around the sun over the skybox. Lower it if the skybox's painted sun is elsewhere.
 
-- `r_atmosphere` — Long range atmosphere: aerial perspective of distant surfaces and the sky (Rayleigh / Mie), composited before the froxel fog. Needs a map sun (or r_forceSun). Default `0`.
-- `r_atmosphereSky` — 0 keep the skybox with haze, 1 blend skybox and computed sky, 2 computed sky. Sky portals keep mode 0; the existing `r_drawSun` choice prevents duplicate sun discs. Default `0`.
-- `r_atmosphereAerialScale` — multiplier of the aerial perspective path length only (1 = physical; JA views are a few hundred metres of air, 8-30 makes the haze visible). Default `1`.
-- `r_atmosphereAltitude` — altitude of the ground in metres above sea level. Default `0`.
-- `r_atmosphereGroundZ` — world z of the ground (altitude 0 + r_atmosphereAltitude), auto = lowest floor of the map. Default `auto`.
-- `r_atmosphereMie` — Mie (aerosol, haze) density multiplier. Default `1`.
-- `r_atmosphereMieG` — Mie anisotropy g (Cornette-Shanks). Default `0.8`.
-- `r_atmosphereOzone` — ozone density multiplier (sky colour only). Default `1`.
-- `r_atmosphereRayleigh` — Rayleigh (air molecules) density multiplier. Default `1`.
-- `r_atmosphereSkyBlend` — Atmosphere sky 1: share of the analytic sky. Default `0.5`.
-- `r_atmosphereStart` — distance in world units before which there is no aerial perspective. Default `0`.
-- `r_atmosphereSunColor` — Atmosphere sun illuminance: 0 map sun at the top of the atmosphere, 1 map sun at the ground (the air above the camera is undone), 2 white. Default `1`.
-- `r_atmosphereSunGlow` — Atmosphere sky 0: scale of the Mie sun glow over the skybox (lower it when the painted sun is elsewhere). Default `1`.
-- `r_atmosphereSunIntensity` — sun illuminance multiplier. Default `1`.
-- `r_atmosphereSunSize` — angular diameter of the sun disc in degrees. Default `0.53`.
-- `r_atmosphereUnitScale` — metres per world unit (0.03: the 64 unit player box is ~1.8 m). Default `0.03`.
+**How it works.** The renderer models two kinds of scattering along long view paths: air molecules (Rayleigh), which make the sky blue and distances bluish, and dust/haze (Mie), which makes a whitish glow around the sun. The result is applied to distant surfaces and the sky before volumetric fog.
 
-**Debug**
+- `r_atmosphereRayleigh 1`, `r_atmosphereMie 1`, `r_atmosphereOzone 1` — density of air, of haze, and of ozone (sky color only).
+- `r_atmosphereMieG 0.8` — how tightly the haze glow hugs the sun.
+- `r_atmosphereSunIntensity 1` — sun brightness.
+- `r_atmosphereSunColor 1` — sun color: **0** the map's sun as seen above the atmosphere, **1** as seen on the ground, **2** white.
+- `r_atmosphereSunSize 0.53` — sun disc size in degrees.
+- `r_atmosphereUnitScale 0.03` — metres per world unit (a 64-unit player is about 1.8 m).
+- `r_atmosphereGroundZ auto` — world height of the ground; auto picks the lowest floor.
+- `r_atmosphereAltitude 0` — ground altitude above sea level, in metres.
 
-- `r_atmosphereDebug` — Views 1..8 inspect air/haze light, transmission, computed sky, overlap with local fog and distance bands. Default `0`.
-- `r_atmosphereInfo` — Print atmosphere configuration and runtime status.
-
-The renderer estimates scattering by air molecules and haze particles along long view paths. The skybox can remain, be blended with the computed sky, or be replaced; sky-portal maps use the overlay path. [Details](../rend2-atmosphere.md).
-
-## Clouds and their shadows
-
-*Requires a usable sun and `r_clouds 1` with restart, because the renderer allocates and lights a 3D cloud layer.*
-
-Adds clouds with depth and shaded interiors instead of only painted sky. Optional cloud shadows dim sunlit scenery and fog as clouds move overhead. Heavy performance cost.
-
-**Main controls**
-
-- `r_clouds` — Enable the 3D cloud layer; needs a map sun or `r_forceSun`. Default `0`; `vid_restart`.
-- `r_cloudShadows` — shadows of the clouds on the world (sun of lightall, froxel fog sun). Default `0`.
-- `r_cloudAmbient` — sky ambient multiplier. Default `1`.
-- `r_cloudAnisotropy` — scattering direction of the forward lobe (silver lining towards the sun). Default `0.6`.
-- `r_cloudBase` — altitude of the cloud base in metres above the ground (r_atmosphereGroundZ, r_atmosphereUnitScale). Default `1500`.
-- `r_cloudCoverage` — 0 clear, 0.5 the weather map, 1 overcast. Default `0.5`.
-- `r_cloudDensity` — extinction multiplier (1 = 60 per km in a full cloud). Default `1`.
-- `r_cloudDetail` — erosion by the detail noise (0 = off, cheaper). Default `1`.
-- `r_cloudDetailScale` — size in km of one tile of the detail (erosion) noise. Default `1.5`.
-- `r_cloudLegacy` — SP fx_cloudlayer entities: 0 ignored (legacy haze drawn), 1 style hint (tube: open sky overhead, alt: thin haze), 2 literal disc / ring at the entity height (debug). Default `1`.
-- `r_cloudMaxDistance` — march distance limit in km (faded out towards it). Default `60`.
-- `r_cloudMSOctaves` — multiple scattering octaves (1 = single scattering). Default `3`.
-- `r_cloudScale` — march resolution divisor per axis (1, 2, 4), vid_restart. Default `2`; `vid_restart`.
-- `r_cloudShadowExtent` — size in km of the cloud shadow map around the camera. Default `8`.
-- `r_cloudShadowInterval` — frames between cloud shadow map updates. Default `1`.
-- `r_cloudShadowSteps` — light march steps towards the sun (self shadow); the shadow map uses twice as many. Default `5`.
-- `r_cloudShapeScale` — size in km of one tile of the shape noise. Default `12`.
-- `r_cloudSkyPortal` — Clouds on sky portal maps: 0 off, 1 composited over the portal scene (approximate). Default `0`.
-- `r_cloudStepLength` — march step length in metres (the step count adapts to the path through the layer, at least 16, at most r_cloudSteps). Default `150`.
-- `r_cloudSteps` — max march steps per ray. Default `64`.
-- `r_cloudTemporal` — weight of the reprojected history (0 = no temporal filter). Default `0.9`.
-- `r_cloudTop` — altitude of the cloud tops in metres above the ground. Default `4000`.
-- `r_cloudWeatherScale` — size in km of one tile of the weather (coverage) map. Default `40`.
-- `r_cloudWindDir` — wind direction in degrees (world x axis = 0, y = 90). Default `45`.
-- `r_cloudWindSpeed` — wind speed in metres per second. Default `10`.
+The original `r_drawSun` still decides whether a sun disc is drawn, so it isn't drawn twice.
 
 **Debug**
 
-- `r_cloudDebug` — Views 1..11 inspect cloud bounds, density, noise, lighting, frame history and cloud shadows. Default `0`.
-- `r_cloudInfo` — Print cloud layer configuration and runtime status.
-- `r_cloudLayerTest` — Exercise cloud-layer/legacy-entity selection.
+- `r_atmosphereDebug 1..8` — air glow, haze glow, transparency, distance haze, computed sky alone, overlap with fog, lookup tables, distance bands.
+- `r_atmosphereInfo` — configuration and status.
 
-The renderer traces a layer of noisy cloud density, checks light toward the sun and blends the result over time. Lower tracing resolution saves work; sky-portal support is opt-in and approximate. [Details](../rend2-volumetric-clouds.md).
+Design notes: [rend2-atmosphere.md](../rend2-atmosphere.md).
 
-## Sky-portal visibility optimization
+## Volumetric clouds
 
-*Requires a sky-portal map, because this limits which part of its extra view is shaded.*
+Real 3D clouds above the map, with shaded undersides and bright edges toward the sun, drifting with the wind. Optional cloud shadows move across the ground and through fog.
 
-Avoids shading sky-portal scenery behind parts of the main world that already cover it. The intended visible image stays the same.
+**Cost:** heavy.
 
-**Main controls**
+- `r_clouds 0` *(restart)* — 1 on.
+- `r_cloudCoverage 0.5` — 0 clear sky, 0.5 scattered clouds, 1 overcast.
+- `r_cloudShadows 0` — 1: clouds shade the sunlit world and the sun in fog.
+- `r_cloudWindSpeed 10`, `r_cloudWindDir 45` — wind in m/s and its direction in degrees.
+- `r_cloudBase 1500`, `r_cloudTop 4000` — cloud layer height, in metres above the ground.
+- `r_cloudDensity 1` — how thick the clouds are.
+- `r_cloudScale 2` *(restart)* — render resolution divisor: 1 full, 2 half, 4 quarter. Lower numbers look sharper and cost much more.
+- `r_cloudSkyPortal 0` — 1: also draw clouds on maps with sky portals (approximate).
+- `r_cloudLegacy 1` — SP `fx_cloudlayer` entities: **0** ignored (their old haze is drawn), **1** used as a hint for the cloud style, **2** drawn as a literal ring (testing).
 
-- `r_skyPortalCull` — 1 = the skyportal view only shades the pixels the opaque world of the main view leaves uncovered. Default `1`.
+**How it works.** For each pixel a ray is marched through a layer of noise-shaped cloud density, checking light toward the sun at each step. The result is rendered at reduced resolution and averaged over frames.
+
+- `r_cloudSteps 64`, `r_cloudStepLength 150` — maximum steps per ray and step length in metres.
+- `r_cloudMaxDistance 60` — how far clouds are drawn, in km.
+- `r_cloudShadowSteps 5` — light steps toward the sun.
+- `r_cloudMSOctaves 3` — approximated multiple scattering; 1 single scattering only (darker clouds).
+- `r_cloudAmbient 1` — sky light on clouds.
+- `r_cloudAnisotropy 0.6` — strength of the bright edge toward the sun.
+- `r_cloudDetail 1` — 0 skip the fine erosion noise (cheaper, blobbier).
+- `r_cloudShapeScale 12`, `r_cloudDetailScale 1.5`, `r_cloudWeatherScale 40` — sizes (km) of the shape noise, detail noise and coverage map.
+- `r_cloudTemporal 0.9` — frame averaging; 0 off.
+- `r_cloudShadowExtent 8` — size of the cloud-shadow area around the camera, in km.
+- `r_cloudShadowInterval 1` — frames between cloud-shadow updates.
 
 **Debug**
 
-- No separate debug controls.
+- `r_cloudDebug 1..11` — ray interval, density, noises, sun light, scattering, history, radiance, legacy mask, coverage map, shadow map.
+- `r_cloudInfo` — configuration and status.
+- `r_cloudLayerTest` — test cloud-layer entity handling.
 
-A coverage mask restricts the extra portal view to gaps left by the opaque main view.
+Design notes: [rend2-volumetric-clouds.md](../rend2-volumetric-clouds.md).
+
+## Sky portal speed-up
+
+On maps with a sky portal (a separate scene shown through the sky), the portal scene is shaded only where the main view leaves the sky visible. The image is unchanged; on by default.
+
+- `r_skyPortalCull 1` — 0 always shade the whole portal view.

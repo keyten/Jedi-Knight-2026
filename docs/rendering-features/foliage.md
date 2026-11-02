@@ -1,167 +1,153 @@
-# Foliage, wind and interaction
+# Grass, plants and wind
 
-[All rendering features](../rendering-features.md)
+[All rendering settings](../rendering-features.md)
 
-Controls marked `vid_restart` need a renderer restart. Debug views use 0 to return to normal unless stated otherwise. Performance labels are rough relative costs, not benchmark guarantees.
+Grass and plants that look fuller, sway in a shared breeze, bend when you walk through them, and react to the Force and to sabers. Two kinds of vegetation exist in JKA:
 
-SP means single-player; MP means multiplayer.
+- **Grass** (Yavin and similar maps) is made of "surface sprites": small flat pictures scattered over the ground by the map's shaders.
+- **Plants** — ferns, bushes, vines, leaf cards — are ordinary 3D models (MD3). The renderer has to recognize them first ([below](#recognizing-stock-plants)).
 
 ## Recognizing stock plants
 
-Lets later wind and interaction features find likely leaves, ferns and plant surfaces without editing stock models. Classification by itself does not animate anything.
+Stock plant models aren't marked as plants, so the renderer guesses from their names and structure which parts are leaves, fronds or stems. On its own this changes nothing visible, but [leaf flutter](#leaf-flutter), [frond motion](#ferns-and-fronds), [walking through plants](#walking-through-vegetation) and [saber cuts](#cutting-plants-with-a-saber) need it.
 
-**Main controls**
-
-- `r_autoFoliage 0 | 1 | 2` — off / conservative stock-safe detection / broader experimental detection.
+- `r_autoFoliage 0` — **0** off, **1** only safe matches, **2** also uncertain ones (experimental; may move things that shouldn't).
 
 **Debug**
 
-- `r_autoFoliageDebug 1 | 2` — classified surfaces / classified plus uncertain candidates.
-- `r_autoFoliageList [filter]` — print detected foliage.
+- `r_autoFoliageDebug 1`, `2` — color recognized surfaces; 2 also uncertain candidates.
+- `r_autoFoliageList [filter]` — print recognized plants and their frond skeletons.
 
-Names and supported model structure select conservative foliage candidates at load time. The broader mode accepts more uncertain candidates; explicit shader choices remain available. [Details](../rend2-auto-grass.md).
+Design notes: [rend2-auto-grass.md](../rend2-auto-grass.md).
 
-## Grass that stays in place
+## Fuller grass
 
-*Requires existing surface-sprite grass, because this changes its billboard geometry.*
+Original grass sprites always turn to face the camera, so they swivel as you walk and look thin from above. This draws each tuft as two or three fixed, crossing cards, so grass stays put and looks like a clump of blades from every angle.
 
-Stops grass turning to face the camera and disappearing edge-on. Crossed cards make stock Yavin grass look more like a patch of blades. Medium performance cost in dense grass because there is more geometry and overdraw.
+**Cost:** medium in dense grass (more geometry and overdraw).
 
-**Main controls**
-
-- `r_grassCardMode 0 | 1 | 2 | 3` — legacy / two-card cross / three-card tuft / adaptive three-to-two cards.
-- `r_grassCardLodDist <units>` — third-card fade distance in adaptive mode.
-- `r_grassCardWidth <value>` — card width multiplier.
+- `r_grassCardMode 0` — **0** original camera-facing sprites, **1** two crossed cards, **2** three cards, **3** three near, two far.
+- `r_grassCardWidth 1` — card width.
+- `r_grassCardLodDist 600` — mode 3: distance where the third card fades out.
 
 **Debug**
 
-- `r_grassCardDebug 1..6` — card ID/direction, forced card counts and LOD visualization.
+- `r_grassCardDebug 1..6` — color by card or direction, force 1/2/3 cards, distance level.
 
-Instead of one camera-facing card, the renderer draws two or three fixed crossing cards. The adaptive mode removes the extra card with distance.
+## Wind through grass
 
-## Shared wind through grass
+Original grass sways each tuft in its own small circle, all in step. With this, gusts roll across a field: neighbouring grass leans together and waves of wind travel downwind. Works on stock grass.
 
-*Requires surface-sprite vegetation that supports wind, because it changes the existing wind deformation.*
+**Cost:** light.
 
-Makes neighboring plants share broad gusts instead of waving in synchronized circles. Stock grass can use it without new assets. Light performance cost.
-
-**Main controls**
-
-- `r_foliageWind 0 | 1` — legacy sway / coherent breeze.
-- `r_foliageWindStrength <value>` — global strength.
-- `r_foliageWindSpeed <value>` — time scale.
-- `r_foliageWindDirection <degrees>` — world-space yaw.
+- `r_foliageWind 0` — 1 on.
+- `r_foliageWindStrength 1` — sway strength.
+- `r_foliageWindSpeed 1` — gust speed.
+- `r_foliageWindDirection 30` — wind direction in degrees (0 = world +X). Plants use the same direction and speed.
 
 **Debug**
 
-- `r_foliageWindDebug 1..4` — exaggerated motion, bend color, frozen time and large-gust visualization.
+- `r_foliageWindDebug 1..4` — exaggerated motion, color by bend, freeze time, show large gusts.
 
-A world-space wind pattern combines a broad breeze with smaller motion. The vertex shader samples that common pattern at each plant. [Details](../rend2-foliage-wind.md).
+Design notes: [rend2-foliage-wind.md](../rend2-foliage-wind.md).
 
 ## Leaf flutter
 
-*Requires `r_autoFoliage 1` or `2`, because only classified leaves should flutter.*
+Leaves and vines on plant models tremble slightly in the air while trunks and branches stay still. Needs `r_autoFoliage 1` or `2`.
 
-Adds small quick leaf motion while trunks and branches stay still. Look at vines and leaf cards on stock Yavin models. Light performance cost.
+**Cost:** light.
 
-**Main controls**
-
-- `r_leafFlutter 0 | 1` — disable / enable leaf flutter.
-- `r_leafFlutterStrength <value>` — position amplitude.
-- `r_leafFlutterSpeed <value>` — animation speed.
-- `r_leafFlutterNormal <value>` — lighting-normal wobble.
+- `r_leafFlutter 0` — 1 on.
+- `r_leafFlutterStrength 1` — amplitude; 1 is about 1.5 units.
+- `r_leafFlutterSpeed 1` — speed.
+- `r_leafFlutterNormal 0.25` — let lighting flicker with the motion; 0 motion only.
 
 **Debug**
 
-- `r_leafFlutterDebug <bits>` — exaggerate, freeze, highlight fluttering surfaces and visualize displacement.
+- `r_leafFlutterDebug <bits>` — 1 exaggerate, 2 freeze, 4 highlight fluttering surfaces, 8 color by displacement.
 
-Small vertex and normal offsets imitate high-frequency leaf motion. Classification keeps the effect away from rigid non-leaf parts. [Details](../rend2-leaf-flutter.md).
+Design notes: [rend2-leaf-flutter.md](../rend2-leaf-flutter.md).
 
-## Bending ferns and fronds
+## Ferns and fronds
 
-*Requires automatic foliage classification, because the renderer must identify supported plant fronds; contact also needs `r_foliageInteraction 1`.*
+Ferns and similar plants bend frond by frond in the wind and swing back naturally after being pushed, instead of moving as one rigid model. Needs `r_autoFoliage 1` or `2`.
 
-Makes ferns bend frond by frond, swing back after contact and respond to wind without stretching around a character. Idle contact is steadier after the recent fern fix. Light to medium CPU cost near many plants.
+**Cost:** light to medium (CPU) near many plants.
 
-**Main controls**
+- `r_plantWind 0` — 1 wind on fronds.
+- `r_plantWindStrength 1` — wind strength, 0–4.
+- `r_plantStiffness 1` — higher is stiffer, with a faster swing.
 
-- `r_plantWind 0 | 1` — disable / enable the breeze on the fronds.
-- `r_plantWindStrength 0..4` — breeze strength.
-- `r_plantStiffness <value>` — frond stiffness (1 = default).
-- `r_plantSimDistance <units>` / `r_plantWindDistance <units>` — full simulation / coarse simulation / at rest.
-- `r_plantSimMaxPlants <count>` — plants simulated per frame.
+**How it works.** Each recognized plant gets a short chain of segments per frond, simulated on the CPU like a springy rod and used to bend the model and its shadow. Near plants get a full simulation, farther ones a coarse one, distant ones stay still.
+
+- `r_plantSimDistance 1500` — full simulation within this distance.
+- `r_plantWindDistance 3000` — beyond this, plants don't move.
+- `r_plantSimMaxPlants 96` — plants simulated per frame (touched plants always are).
 
 **Debug**
 
-- `r_plantDebug <bits>` — frond centerlines, segment or bone colors, contact sides, CPU cost.
-- `r_plantSimInfo` — print the simulated plants; `r_autoFoliageList` also prints the frond skeletons.
-
-The renderer builds short segment chains from supported MD3 plants and simulates nearby chains on the CPU. Shared poses are used for the visible plant and its shadows. [Details](../rend2-foliage-interaction.md).
+- `r_plantDebug <bits>` — 1 frond lines, 2 color by segment, 4 by bone, 8 by contact side, 16 print cost, 32 saber cut steps.
+- `r_plantSimInfo` — list simulated plants, cut plants and fallen pieces.
 
 ## Walking through vegetation
 
-*Requires matching updated game/client modules, because they send character contact shapes; fern contact also needs classified plant models.*
+Grass and ferns bend where your body or an NPC touches them and spring back after you pass. Grass you stood on stays a little flattened for a few seconds. Plants need `r_autoFoliage`; grass works as is.
 
-Makes grass and ferns move only where bodies touch them. Grass bends at the legs, springs back and can retain a short trampled trail instead of remaining rigid. Light to medium performance cost in dense nearby foliage.
+**Cost:** light to medium in dense nearby vegetation.
 
-**Main controls**
+- `r_foliageInteraction 0` — 1 on.
+- `r_foliageInteractionStrength 1` — how far stems bend; 1 is about 45° at full contact.
+- `r_foliageInteractionNPCs 1` — 0 only you, 1 also nearby NPCs and players.
+- `r_grassTrample 0.25` — how much bend trampled grass keeps; 0 none.
+- `r_grassTrampleRecovery 6` — seconds for trampled grass to stand up.
 
-- `r_foliageInteraction 0 | 1` — disable / enable character interaction.
-- `r_foliageInteractionStrength <value>` — contact depth scale.
-- `r_foliageInteractionRadius <value>` — character capsule radius scale.
-- `r_foliageInteractionMaxInteractors <count>` — uploaded character limit.
-- `r_foliageInteractionNPCs 0 | 1` — player only / player + nearby NPCs and players.
-- `r_grassTrample 0..1` — how much of the bend trampled grass keeps; `r_grassTrampleRecovery <seconds>` — its recovery.
-- `r_grassBendSegments 1..8` — segments of a near grass sprite (1 = flat cards); `r_grassBendLodDist <units>` — how far the curved strips are used.
-- `r_foliageBendFieldSize 64 | 128 | 256` — grass state texture size. Requires `vid_restart`.
-- `r_foliageBendFieldExtent <units>` — world size of the grass state around the player.
-- `r_foliageBendFieldStrength <value>` — grass displacement scale.
-- `r_foliageBendFieldRecoveryTime <seconds>` / `r_foliageBendFieldDamping <value>` / `r_foliageBendFieldImpulse <value>` — grass spring back.
+**How it works.** The game sends simple capsule shapes for nearby characters. Plants push their frond chains away from them. Grass uses a small texture around the player that stores how far each spot is bent and lets it spring back; near grass is split into curved blades so it can bend smoothly.
 
-**Debug**
-
-- `r_foliageInteractionDebug <bits>` — capsules, exaggerated interaction, interaction-only view, grass contact heat, freeze and player-only modes.
-- `r_foliageBendFieldDebug <bits>` — grass state overlay, covered square, freeze, exaggeration.
-- `r_foliageBendFieldClear` — clear the grass state.
-- `r_foliageInteractionList` — print submitted/uploaded interactors and the grass state.
-
-Character capsules push plant chains and a small local grass-state texture. The texture stores bend and recovery, while nearby grass is split into curved strips. [Details](../rend2-foliage-interaction.md).
-
-## Force push and pull through vegetation
-
-*Requires `r_foliageInteraction 1` and updated game/client modules, because Force events must submit their direction and reach.*
-
-Makes player and NPC Force push/pull sweep through plants, grass and leaves. Vegetation moves away from the caster for push and toward them for pull, then settles. Light additional performance cost.
-
-**Main controls**
-
-- `r_foliageForceWaves 0 | 1` — Enable Force waves; default 1, with foliage interaction.
-- `r_foliageForceWaveStrength 0..4` — Wave strength; default 1.
+- `r_foliageInteractionRadius 1` — size of the character shapes.
+- `r_foliageInteractionMaxInteractors 8` — characters per frame, you first.
+- `r_grassBendSegments 4` — segments per nearby grass blade; 1 flat cards.
+- `r_grassBendLodDist 800` — distance where curved blades become flat cards.
+- `r_foliageBendFieldSize 256` *(restart)* — grass bend texture resolution (64, 128, 256).
+- `r_foliageBendFieldExtent 1024` — area it covers around you.
+- `r_foliageBendFieldStrength 1` — grass bend strength; 0 grass doesn't react.
+- `r_foliageBendFieldRecoveryTime 0.8` — seconds for grass to come back.
+- `r_foliageBendFieldDamping 0.6` — 1 no overshoot, lower more sway.
+- `r_foliageBendFieldImpulse 1` — extra drag when running through.
 
 **Debug**
 
-- `r_foliageInteractionDebug 1` — Draw the wave front and reach: orange push, magenta pull.
-- `r_foliageInteractionList` — Print live waves alongside contact information.
+- `r_foliageInteractionDebug <bits>` — 1 shapes, 2 exaggerate, 4 interaction only, 8 contact heat, 16 freeze, 32 player only.
+- `r_foliageBendFieldDebug <bits>` — 1 bend overlay, 2 covered area, 4 freeze, 8 exaggerate.
+- `r_foliageBendFieldClear` — reset grass.
+- `r_foliageInteractionList` — characters sent, grass state, active Force waves.
 
-An expanding front inside the Force cone applies a bounded impulse to nearby plants and the local grass field. It does not affect plants behind the caster or beyond the event’s reach. [Details](../rend2-foliage-interaction.md).
+Design notes: [rend2-foliage-interaction.md](../rend2-foliage-interaction.md).
+
+## Force push and pull
+
+A Force push or pull, by you or an NPC, sweeps a wave through plants, grass and leaves in front of the caster: away for push, toward for pull, then they settle. Plants behind the caster or out of reach don't move. On by default once `r_foliageInteraction 1`.
+
+**Cost:** light.
+
+- `r_foliageForceWaves 1` — 0 off.
+- `r_foliageForceWaveStrength 1` — strength, 0–4.
+
+**Debug**
+
+- `r_foliageInteractionDebug 1` — wave front and reach: orange push, magenta pull.
 
 ## Cutting plants with a saber
 
-*Requires classified MD3 plants with the plant simulation active, and matching updated game/client modules, because a real attacking blade sweep must reach the renderer.*
+Attacking with a saber cuts fern fronds and plant cards it sweeps through. A partial cut stays attached; a severed piece falls, lies on the ground and sinks away. A blade simply resting in a plant doesn't cut. Cuts last until the map changes. On by default once plants move (`r_autoFoliage` with `r_plantWind 1` or `r_foliageInteraction 1`).
 
-Lets saber attacks cut fern fronds and supported plant cards. A partial cut stays attached; a severed piece falls, lands and later fades. A blade merely resting in a plant does not cut. Medium CPU and geometry cost while cutting, bounded by the piece limit.
+**Cost:** medium while cutting, limited by the piece count.
 
-**Main controls**
-
-- `r_foliageSaberCut 0 | 1` — Enable cuts; default 1. Needs `r_autoFoliage` with `r_plantWind` or `r_foliageInteraction`.
-- `r_foliageSaberCutPieces <count>` — Maximum live fallen pieces; default 48, 0 makes severed parts vanish.
-- `r_foliageSaberCutPieceTime <seconds>` — How long a piece lies on the ground; default 20.
+- `r_foliageSaberCut 1` — 0 off.
+- `r_foliageSaberCutPieces 48` — fallen pieces at once; 0 makes cut parts vanish.
+- `r_foliageSaberCutPieceTime 20` — seconds a piece lies on the ground.
 
 **Debug**
 
-- `r_foliageSaberCutReset` — Restore cut plants.
-- `r_foliageSaberCutTest [height] [partial]` — Cut the nearest plant with a test sweep; height is a fraction, default 0.5.
-- `r_plantDebug 32` — Draw recent blade steps; red means they cut a plant.
-- `r_plantSimInfo` — List cut plants and fallen pieces.
-
-The blade’s swept plane cuts the plant mesh in its current pose. Pieces still connected to the base remain simulated; detached pieces become falling geometry. Cuts stay until map change or reset. [Details](../rend2-foliage-interaction.md).
+- `r_foliageSaberCutReset` — restore all cut plants.
+- `r_foliageSaberCutTest [height] [partial]` — cut the nearest plant; height is a fraction, default 0.5.
+- `r_plantDebug 32` — recent blade sweeps; red ones cut.

@@ -1,210 +1,152 @@
 # Lighting
 
-[All rendering features](../rendering-features.md)
+[All rendering settings](../rendering-features.md)
 
-Controls marked `vid_restart` need a renderer restart. Debug views use 0 to return to normal unless stated otherwise. Performance labels are rough relative costs, not benchmark guarantees.
+Soft shading in corners, dynamic lights from sabers and blasters, bounced light, and lights with a real shape. How characters are lit is on [Characters](characters.md); shadows are on [Shadows](shadows.md).
 
-## Soft corner shading (GTAO)
+## Ambient occlusion (GTAO)
 
-*Requires the depth/normal information from the world view, because this estimates nearby occlusion from visible surfaces.*
+Darkens corners, wall joints, the ground under feet and crates, and small recesses, so objects look grounded instead of evenly lit. The map's baked lighting already has some of this, but it can't follow moving characters or props. GTAO is a more accurate replacement for Rend2's original SSAO, with fewer halos.
 
-Makes wall joints, feet, crates and small recesses feel grounded instead of evenly lit. This adds local soft shading that the original baked lighting cannot update for moving objects. Medium performance cost.
+**Cost:** medium.
 
-**Main controls**
+- `r_aoMode -1` — **-1** follow the original `r_ssao` setting (off unless `r_ssao 1`). **0** off. **1** original SSAO. **2** GTAO. Turning it on from off needs `vid_restart`.
+- `r_gtaoQuality 2` — 0 low, 1 medium, 2 high, 3 ultra.
+- `r_gtaoRadius 32` — how far an object reaches to darken its surroundings, in world units (a player is about 64 tall).
+- `r_gtaoPower 1.5` — strength; higher is darker.
 
-- `r_aoMode -1 | 0 | 1 | 2` — follow legacy `r_ssao` / off / legacy SSAO / GTAO.
-- `r_aoApply -1 | 0 | 1` — automatic / legacy application / indirect-light-only application.
-- `r_aoMultiBounce 0 | 1` — preserve more indirect light on bright surfaces.
-- `r_aoLightmapFraction <value>` — share of baked light treated as indirect.
-- `r_aoSpecOcclusion -1 | 0 | 1 | 2` — auto / scalar / Lagarde / bent-normal cone specular occlusion.
-- `r_gtaoQuality 0..3` — low / medium / high / ultra.
-- `r_gtaoHalfRes 0 | 1` — full / half resolution. Requires `vid_restart`.
-- `r_gtaoRadius <units>` — world-space radius.
-- `r_gtaoFalloff <value>` — distance falloff.
-- `r_gtaoThickness <value>` — thin-occluder compensation.
-- `r_gtaoPower <value>` — visibility contrast.
-- `r_gtaoDenoise 0..3` — edge-aware denoise passes.
-- `r_gtaoBentNormals 0..1` — bent-normal strength for indirect lighting.
+`r_aoCompare 1` shows original SSAO on the left and GTAO on the right.
 
-**Debug**
+**How it works.** For each pixel the shader looks around in the depth image to estimate how much of the surrounding sky of light is blocked by nearby geometry. It only knows what is on screen, so occlusion from objects just outside the view is missing. GTAO darkens only indirect light (ambient light, the indirect share of baked light and reflections), not direct sun or lamps, as in reality.
 
-- `r_aoCompare 0 | 1` — split-screen legacy SSAO vs GTAO.
-- `r_aoDebug 1..10` — AO, depth, normal, contact and bent-normal views.
-
-Ground-truth ambient occlusion estimates how much nearby geometry blocks the surrounding light. It searches the depth image rather than tracing the whole map. [Details](../rend2-ambient-occlusion.md).
-
-## Small contact shadows
-
-*Requires the sun-lighting path, because these short rays refine its existing shadows.*
-
-Adds small shadow details where objects touch and where the normal sun-shadow map misses thin features. Look under feet, around props and on carved surfaces. Light to medium performance cost.
-
-**Main controls**
-
-- `r_contactShadows 0 | 1` — disable / enable sun contact shadows.
-- `r_contactShadowLength <units>` — maximum ray length.
-- `r_contactShadowSteps <count>` — ray samples.
-- `r_contactShadowThickness <units>` — assumed blocker thickness.
-- `r_contactShadowStrength <value>` — shadow strength.
-- `r_contactShadowSoft 0 | 1` — first-hit / softer depth-weighted result.
+- `r_gtaoHalfRes 1` *(restart)* — compute at half resolution; 0 full resolution, sharper and slower.
+- `r_gtaoFalloff 0.6` — how quickly occlusion fades toward the radius.
+- `r_gtaoThickness 0.2` — treat objects as thin, so things in front of a wall don't darken it as much (fewer dark halos around characters).
+- `r_gtaoDenoise 2` — smoothing passes, 0–3.
+- `r_gtaoBentNormals 1` — also tilt ambient light toward the open direction; 0 off, up to 1 full.
+- `r_aoApply -1` — **-1** automatic. **0** original: darken ambient light and reflections. **1** physically based: darken only indirect light.
+- `r_aoMultiBounce 1` — bright surfaces keep more light in creases, as light bounces inside them.
+- `r_aoLightmapFraction 0.5` — share of baked lighting treated as indirect and therefore darkened by AO.
+- `r_aoSpecOcclusion -1` — how AO darkens reflections: **-1** automatic, **0** plain AO, **1** from AO, roughness and view angle, **2** from the bent-normal cone.
 
 **Debug**
 
-- No separate debug controls.
+- `r_aoDebug 1..12` — original SSAO, raw / denoised GTAO, normals, depth, contact shadows, cascade shadows, sun visibility, ambient visibility, final AO, bent normals, reflection occlusion.
 
-The shader searches the visible depth image a short distance toward the sun. This fills nearby gaps but cannot shadow from things outside the screen.
+Design notes: [rend2-ambient-occlusion.md](../rend2-ambient-occlusion.md).
 
-## More dynamic lights (Forward+)
+## Many dynamic lights (Forward+)
 
-Allows more saber, blaster and explosion lights to coexist, and avoids spending as much work on lights that cannot affect a pixel. It improves the older renderer’s small per-surface light lists. Usually light overhead and can improve performance in busy light scenes.
+Rend2 allows at most 32 dynamic lights per frame — sabers, blaster bolts, explosions, muzzle flashes. In big fights the extra lights are simply dropped. Forward+ raises the limit to 256 and makes every pixel check only the lights that actually reach it. [Lamp-shaped lights](#lamp-shaped-lights-ltc) and [blade-shaped saber light](#saber-light-along-the-blade) need it.
 
-**Main controls**
+**Cost:** light; it can be faster than the original in busy scenes.
 
-- `r_forwardPlus 0 | 1` — legacy dynamic-light masks / clustered Forward+.
-- `r_forwardPlusTileSize <pixels>` — screen tile size.
-- `r_forwardPlusSlices <count>` — depth layers.
-- `r_forwardPlusNearSlice <units>` — depth covered by the first slice.
-- `r_forwardPlusMaxLightsPerCluster <count>` — light cap per cluster.
-- `r_forwardPlusMaxShadowLights <count>` — strongest dynamic lights allowed shadow cubes when `r_dlightMode 2` is active.
+- `r_forwardPlus 0` — 1 on.
+- `r_forwardPlusMaxShadowLights 4` — with dynamic-light shadows (`r_dlightMode 2`, see [Shadows](shadows.md#dynamic-light-shadows)), how many of the strongest lights cast them.
+
+**How it works.** The view is split into screen tiles and depth slices (clusters). Each frame every light is added to the clusters it touches, and each pixel loops only over its cluster's list.
+
+- `r_forwardPlusTileSize 64` — tile size in pixels.
+- `r_forwardPlusSlices 16` — depth slices.
+- `r_forwardPlusNearSlice 48` — depth covered by the first slice.
+- `r_forwardPlusMaxLightsPerCluster 64` — lights kept per cluster; the least important ones are dropped.
 
 **Debug**
 
-- `r_forwardPlusDebug 1..9` — tiles, slices, clusters, light counts, overflow, shadows and selected light. Requires `vid_restart`.
-- `r_forwardPlusDebugLight <index>` — selected light for debug mode 9.
+- `r_forwardPlusDebug 1..9` *(restart)* — tiles, slices, clusters, lights per cluster, overflow, shadowed and unshadowed lights, light spheres, one light (`r_forwardPlusDebugLight <index>`).
 - `r_forwardPlusStats` — print cluster statistics.
-- `r_forwardPlusBenchmark [frames]` — benchmark the lighting path.
+- `r_forwardPlusBenchmark [frames]` — time the lighting path.
 - `r_forwardPlusSpawnTestLights <count> [spread]` — spawn test lights.
 
-Forward+ divides the space in front of the camera into small screen tiles and depth layers. Each cell receives a list of nearby lights, so a surface checks only the relevant ones. [Details](../rend2-forward-plus.md).
+Design notes: [rend2-forward-plus.md](../rend2-forward-plus.md).
 
 ## Bounced light (SSGI)
 
-*Requires HDR and the feature’s screen-space buffers, because it gathers light from surfaces already drawn in the view.*
+A saber or explosion near a wall lights the wall — and with this, the wall also throws a weaker, colored glow onto the floor and characters next to it. Glowing materials can light their surroundings the same way. The map's own baked lighting already contains bounced light, so by default only dynamic lights and glowing surfaces bounce. Works best with `r_hdr 1`; without it bright sources are clipped.
 
-Lets a saber lighting a wall also cast a weaker colored glow onto nearby surfaces. The original game’s baked light cannot follow a new explosion or moving saber this way. Medium to heavy performance cost.
+**Cost:** medium to heavy.
 
-**Main controls**
+- `r_ssgi 0` *(restart)* — 1 on.
+- `r_ssgiIntensity 1` — strength of the bounce.
+- `r_ssgiQuality 1` — 0 low, 1 medium, 2 high, 3 ultra.
+- `r_ssgiSource 0` — what bounces: **0** dynamic lights and glowing materials, **1** glowing materials only, **2** everything, including baked lighting (experimental: baked bounce is counted twice).
 
-- `r_ssgi 0 | 1` — disable / enable SSGI. Requires `vid_restart`.
-- `r_ssgiSource 0 | 1 | 2` — dynamic + emissive / emissive only / full scene, with mode 2 experimental.
-- `r_ssgiIntensity <value>` — indirect-light strength.
-- `r_ssgiQuality 0..3` — low / medium / high / ultra.
-- `r_ssgiRays <count>` — rays per traced pixel; `0` uses the quality preset.
-- `r_ssgiSteps <count>` — ray-march steps; `0` uses the preset.
-- `r_ssgiMaxDistance <units>` — bounce distance.
-- `r_ssgiThickness <units>` — assumed depth-buffer surface thickness.
-- `r_ssgiTemporal 0 | 1` — averaging across frames.
-- `r_ssgiHistoryWeight <value>` — history weight.
-- `r_ssgiDenoise -1..4` — denoise passes; `-1` uses the preset.
-- `r_ssgiHalfRes -1 | 0 | 1` — preset / full / half-resolution tracing; changing trace resolution takes effect after `vid_restart`.
-- `r_ssgiHiZ -1 | 0 | 1` — preset / linear / hierarchical tracing.
-- `r_ssgiEmissiveScale <value>` — physical emissive contribution.
-- `r_ssgiGlowScale <value>` — legacy glow/auto-emissive contribution.
+`r_ssgiCompare 1` shows the screen without SSGI on the left and with it on the right.
 
-**Debug**
+**How it works.** For each pixel the shader traces a few short rays through the on-screen depth image and picks up the light of the surfaces they hit. It only sees what is on screen, and the noisy result is averaged over several frames and smoothed.
 
-- `r_ssgiCompare 0 | 1` — split screen without / with SSGI.
-- `r_ssgiDebug 1..10` — hit, distance, raw GI, history, denoise, source and final GI views.
-- `r_ssgiFreezeHistory 0 | 1` — freeze temporal history.
-
-Screen-space global illumination traces short paths through the visible depth image and gathers dynamic light and glow from nearby hits. Its default source mode avoids bouncing the already baked map lighting again. [Details](../rend2-ssgi.md).
-
-## Light from the surrounding environment
-
-*Requires usable runtime cubemap probes, because these provide the surrounding colors and directions of light.*
-
-Makes opposite sides of a character receive different soft ambient light instead of one flat room color. This is noticeable in doorways and beside bright colored surroundings. Light performance cost.
-
-**Main controls**
-
-- `r_diffuseIBL 0 | 1` — disable / enable directional probe ambient. Requires `vid_restart`.
-- `r_diffuseIBLStrength <value>` — modulation strength.
+- `r_ssgiMaxDistance 256` — how far light bounces, in world units.
+- `r_ssgiEmissiveScale 1` — strength of materials with their own glow maps as sources.
+- `r_ssgiGlowScale 0` — strength of stock glow layers (and [auto-emissive](materials.md#glowing-surfaces)) as sources; 0 ignores them.
+- `r_ssgiRays 0`, `r_ssgiSteps 0` — rays per pixel and steps per ray; 0 takes them from the quality.
+- `r_ssgiThickness 12` — assumed thickness of surfaces on screen.
+- `r_ssgiTemporal 1`, `r_ssgiHistoryWeight 0.9` — averaging over frames and how much history to keep.
+- `r_ssgiDenoise -1` — smoothing passes 0–4; -1 from the quality.
+- `r_ssgiHalfRes -1` — trace at half resolution: -1 from the quality, 0 full, 1 half (applied at `vid_restart`).
+- `r_ssgiHiZ -1` — faster hierarchical tracing: -1 from the quality, 0 off, 1 on.
 
 **Debug**
 
-- `r_diffuseIBLDebug 1..5` — incoming diffuse light, modulation, legacy/new ambient and selected probe.
+- `r_ssgiDebug 1..10` — hit mask, hit distance, raw / averaged / smoothed GI, history weight, dynamic and glow sources, final light, receiver color.
+- `r_ssgiFreezeHistory 1` — stop updating the frame history.
 
-Image-based lighting uses small panoramic environment captures. Here their broad directional light modulates the original light-grid ambient rather than replacing the whole map lighting.
+Design notes: [rend2-ssgi.md](../rend2-ssgi.md).
 
-## Rectangle and line lights (LTC)
+## Lamp-shaped lights (LTC)
 
-*Requires `r_forwardPlus 1` and `r_ltcAreaLights 1`, because shaped lights use the newer dynamic-light path.*
+A dynamic light in JKA is a point. Real lamps have size and shape: a long ceiling strip should leave a long highlight on a glossy floor, not a round spot. Area lights give lights a rectangle or line shape. On stock maps, glowing lamp surfaces are detected automatically and turned into rectangle lights that add only highlights, since the lightmap already has their light. Needs `r_forwardPlus 1`.
 
-The original game represents dynamic lamps as points. Real lights also have width and length: a long ceiling panel should make a long highlight, not a round spot. This adds rectangular and line-shaped light sources. Medium performance cost where many shaped lights overlap.
+**Cost:** medium where many shaped lights overlap.
 
-**Main controls**
+- `r_ltcAreaLights 0` *(restart)* — 1 on.
+- `r_ltcAutoAreaLights 1` — find lamps on maps without a light file: **0** off, **1** clear lamp shapes, **2** also doubtful ones (more lamps, more mistakes). Applied at map load.
+- `r_ltcIntensityScale 1` — brightness of map area lights.
+- `r_ltcStaticShadows 0` — shadows of map area lights: **0** off, **1** world shadows (cached), **2** also characters near up to four lights.
 
-- `r_ltcAreaLights 0 | 1` — disable / enable LTC rectangle and line lights. Requires `vid_restart`.
-- `r_ltcIntensityScale <value>` — overall light brightness.
-- `r_ltcStaticDiffuse 0 | 1` — also add diffuse for `static_specular` lights.
-- `r_ltcMaxLights <count>` — maximum map area lights used per scene.
-- `r_ltcAutoAreaLights 0 | 1 | 2` — off / confident lamp shapes / also looser candidates.
-- `r_ltcSaberIntensityScale` — LTC saber surface lighting: radiance multiplier. Default `1`.
-- `r_ltcSaberLuminance` — Physical mode: artistic saber blade luminance in cd/m^2 (nits). Default `40000`.
-- `r_ltcSaberShadows` — Saber shadow method: -1 center approximation, 0 off, 1 shaped approximation, 2 screen-space hybrid, 3 slower three-point reference. Default `-1`.
-- `r_ltcStaticShadows` — Static rectangle LTC shadows: 0 off, 1 cached world, 2 cached world plus dynamic characters. Default `0`.
-
-**Debug**
-
-- `r_ltcDebug 1..8` — specular/diffuse, source mode, cluster counts, bounds, outlines, axes and strongest ID. Requires `vid_restart`.
-- `r_ltcDebugLight <id>` — choose the highlighted map light; `-1` chooses the nearest.
-- `r_ltcReloadLights` — Reload authored lights, or rerun stock-lamp detection when there is no authored file.
-- `r_ltcList` — list loaded lights.
-- `r_ltcNearest` — print the nearest light.
-- `r_ltcExtractLights` — write detected candidates to `maps/<map>.arealights.generated.json` for review.
-- `r_ltcShadowStats` — Print LTC shadow selection/cache statistics.
-
-### [Autodetectable] Stock lamps
-
-Enable `r_ltcAutoAreaLights 1` to find confident lamp shapes in existing glow/emissive surfaces. Mode 2 also accepts looser candidates. No edited map is needed; a map’s authored area-light file takes priority.
-
-### [For mod authors] Custom rectangle and line lights
-
-Create `maps/<map>.arealights.json`. This example adds a warm rectangular lamp:
+**Mod authors:** a map's own `maps/<map>.arealights.json` replaces auto-detection. A warm rectangle lamp:
 
 ~~~json
 {"lights":[{"type":"rect","center":[0,0,128],"right":[1,0,0],"up":[0,1,0],
 "halfWidth":64,"halfHeight":8,"color":[1,0.85,0.7],"intensity":4,"mode":"static_specular"}]}
 ~~~
 
-Use `start`, `end` and `radius` for a line. `static_specular` adds highlights without relighting the baked diffuse; `static_full` and `dynamic` include their corresponding diffuse lighting. Support alone does not create a custom lamp.
+A line light uses `start`, `end` and `radius`. `static_specular` adds only highlights over the baked light; `static_full` and `dynamic` also light surfaces. `r_ltcExtractLights` writes the auto-detected lamps to `maps/<map>.arealights.generated.json` as a starting point.
 
-Linearly transformed cosines, or LTC, is a fast approximation for reflection from a light with a visible shape. It preserves the width and orientation of the emitter without tracing many separate point lights. [Details](../rend2-ltc-area-lights.md).
+**How it works.** LTC (linearly transformed cosines) computes the light from a whole polygon exactly in one step, instead of summing many point lights, so there is no quality setting.
 
-## Saber-shaped lights
-
-*Requires area lights, Forward+ and matching updated game/client modules, because the renderer needs the blade’s actual endpoints.*
-
-Makes a long saber cast a long highlight along floors, armor and walls instead of a point-shaped spot. It works with existing sabers. Medium performance cost near illuminated surfaces.
-
-**Main controls**
-
-- `r_ltcSaberAreaLights 0 | 1` — point-light sabers / LTC line-light sabers.
+- `r_ltcMaxLights 64` — map lights used per scene, most important first.
+- `r_ltcStaticDiffuse 0` — 1: auto-detected and `static_specular` lamps also light surfaces, although the lightmap usually contains that light already.
 
 **Debug**
 
-- No separate debug controls.
+- `r_ltcDebug 1..14` *(restart)* — specular/diffuse, light source, cluster counts, bounds, outlines, axes, strongest light, shadow and saber views. `r_ltcDebugLight <id>` picks the highlighted light; -1 the nearest.
+- `r_ltcList`, `r_ltcNearest` — list loaded lights / print the nearest.
+- `r_ltcReloadLights` — reload the light file or rerun detection.
+- `r_ltcShadowStats` — shadow selection and cache statistics.
 
-Game code sends the blade as a line emitter. The area-light shader evaluates that line; it does not need a new saber asset. [Details](../rend2-ltc-area-lights.md).
+Design notes: [rend2-ltc-area-lights.md](../rend2-ltc-area-lights.md).
 
-## [For mod authors] Spot lights
+## Saber light along the blade
 
-*Requires an authored light cone and updated game/client modules, because they define and submit the cone. Shadows also need `r_dlightMode 2`; a visible fog beam needs `r_volumetricFog 2`.*
+The saber light normally comes from one point at the middle of the blade, so floors and walls get a round spot. With this, the whole blade lights its surroundings: a long, even glow along the floor and long reflections in armor. Works with stock sabers. Needs `r_forwardPlus 1` and `r_ltcAreaLights 1`.
 
-Adds flashlight-like cones instead of lighting equally in every direction. Existing point-light effects keep their old shape; switching spot support on does not add flashlights to stock effects. Light cost for the cone; shadows and visible fog beams can have a medium cost.
+**Cost:** medium near lit surfaces.
 
-**Main controls**
+- `r_ltcSaberAreaLights 0` — **0** point light (original). **1** blade-shaped light on surfaces and in fog. **2** blade-shaped light on surfaces, point light with shadow in fog.
+- `r_ltcSaberShadows -1` — saber shadows: **-1** from a point at the blade middle (original), **0** off, **1** stretched along the blade, **2** plus screen-space blade visibility, **3** precise three-point shadows for up to two sabers (slow).
+- `r_ltcSaberIntensityScale 1` — brightness.
+- `r_ltcSaberLuminance 40000` — blade brightness in nits with `r_pbrPhysical 1`.
 
-- `r_spotLights 0 | 1` — submit authored spots as ordinary point lights / as spot lights.
-- `r_spotLightShadows 0 | 1` — disable / enable spot shadows.
+## Spot lights (mod authors)
 
-**Debug**
+Flashlight-like cones instead of lights that shine in every direction. Stock effects have no cones; a mod adds them in EFX files. Cones can cast shadows (`r_dlightMode 2`) and show a beam in [volumetric fog](fog.md).
 
-- `r_spotLightDebug 1..4` — cone list, shadow frustums, spot-only surface lighting and spot-only fog lighting.
-- `r_spot add|attach|spin|noshadow|list|clear` — renderer-side test spots.
-- `fxplay <efx> [distance|muzzle]` — developer test command for authored EFX spots.
+**Cost:** light; shadows and fog beams medium.
 
-Add a `spot` block inside an EFX `Light`:
+- `r_spotLights 1` — 0 draws authored spots as ordinary point lights.
+- `r_spotLightShadows 1` — 0 no spot shadows.
+
+Add a `spot` block inside an EFX `Light`; its size and color still set range and color:
 
 ~~~text
 spot
@@ -216,25 +158,25 @@ spot
 }
 ~~~
 
-The light’s existing size and RGB settings still set its range and color.
+**Debug**
 
-A spot light limits its point-light illumination to an inner/outer cone. The same projection can cast a shadow and illuminate fog. [Details](../rend2-spot-lights.md).
+- `r_spotLightDebug 1..4` — cones, shadow frustums, surfaces lit by spots only, fog lit by spots only.
+- `r_spot add|attach|spin|noshadow|list|clear` — place test spots.
+- `fxplay <efx> [distance|muzzle]` — play an EFX for testing (developer).
 
-## [For mod authors] Projected light patterns
+Design notes: [rend2-spot-lights.md](../rend2-spot-lights.md).
 
-*Requires an authored spot light, because a point light has no projection direction for the image.*
+## Projected patterns (mod authors)
 
-Lets a lamp project a grate, window pattern or colored image onto walls and through fog. Stock spots remain unchanged until a pattern is authored. Light performance cost.
+A spot light can project an image — a grate, a window frame, colored glass — onto walls and through fog. Needs an authored spot.
 
-**Main controls**
+**Cost:** light.
 
-- `r_spotLightCookies 0 | 1 | 2` — off / intensity-only cookie / colored cookie.
+- `r_spotLightCookies 1` — **0** off, **1** pattern brightness only, **2** in color.
+
+Inside the EFX `spot` block add `cookie textures/imperial/grate02`; `cookieRoll <degrees>` rotates it.
 
 **Debug**
 
-- `r_spotLightCookieDebug 1..3` — projected UV, cookie factor, cookie multiplied by geometry shadow.
-- `r_spot cookie <index> <image|none>` — assign a cookie to a renderer-side test spot.
-
-Inside the EFX `spot` block add `cookie textures/imperial/grate02`. `cookieRoll <degrees>` rotates the projected image. Mode 1 uses brightness only; mode 2 preserves its colors.
-
-A cookie, also called a gobo, is an image projected through the light cone. Its pattern is multiplied by ordinary geometry shadows. [Details](../rend2-spot-lights.md).
+- `r_spotLightCookieDebug 1..3` — projected coordinates, pattern, pattern × shadow.
+- `r_spot cookie <index> <image|none>` — put a pattern on a test spot.

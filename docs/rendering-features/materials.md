@@ -1,89 +1,60 @@
 # Materials and surface detail
 
-[All rendering features](../rendering-features.md)
+[All rendering settings](../rendering-features.md)
 
-Controls marked `vid_restart` need a renderer restart. Debug views use 0 to return to normal unless stated otherwise. Performance labels are rough relative costs, not benchmark guarantees.
+How surfaces reflect light: metal vs cloth vs plastic, glossy highlights, glowing parts and depth in flat textures.
 
-## Material classification (PBR)
+## Automatic materials from stock textures (Auto PBR)
 
-Stock armor, fabric, leather and plastic can react differently to the same light instead of sharing one generic shiny response. PBR means physically based rendering: roughness and material type help decide how light reflects.
+Stock JKA textures are only color pictures: nothing tells the renderer whether a surface is metal, leather or cloth. Rend2 therefore lights them all as the same fully matte, non-metallic material. Auto PBR guesses the material from texture and model names — `metal`, `leather`, `cloth`, `helmet`, droids, stormtroopers, weapons and so on — and gives each kind its own glossiness and metalness. Armor then shines differently from a robe under the same lamp.
 
-**Main controls**
+Textures that already come with material maps (PBR texture packs) are never changed.
 
-- `r_autoPBR 0 | 1 | 2` — legacy fallback / generic dielectric / heuristic material classes.
+- `r_autoPBR 0` — **0** original Rend2: everything fully matte, non-metal. **1** everything slightly less matte, still non-metal. **2** guess the material per texture.
 
-**Debug**
-
-- `r_autoPBRDebug 1` — material classes.
-- `r_autoPBRDebug 2` — source of the PBR parameters.
-- `r_pbrDumpMaterials [used|all|auto|authored|gouraud|<class>]` — list registered material sources and values.
-
-The renderer classifies legacy material names and supplies missing material parameters. Authored roughness or metal/specular maps take priority. Classification happens when materials load, with no meaningful frame-time cost. [Details](../rend2-auto-pbr.md).
-
-## Automatic roughness detail
-
-*Requires `r_autoPBR 1` or `2`, because this fills in roughness only for legacy materials without authored material maps.*
-
-Adds small dull and glossy variations to stock surfaces, so a wall or armor panel is less uniformly shiny. It does not turn bright pixels into metal.
-
-**Main controls**
-
-- `r_autoPBRRoughness 0 | 1` — constant class roughness / generate an automatic roughness map. Turning it on requires `vid_restart`.
+**How it works.** When a material loads, its shader and texture names are split into words and matched against lists: material words (`steel`, `leather`, `robe`…), `models/weapons2` (metal), whole characters (droids → metal, troopers and vehicles → painted plastic, Wookiees → fur) and body parts (`head`, `hands` → skin; `torso`, `legs` → cloth). Each class has a fixed roughness and metalness. Nothing is computed per frame.
 
 **Debug**
 
-- `r_autoPBRDebug 3` — final generated roughness in grey; blue means the material is not using auto roughness.
-- `r_pbrDumpMaterials` — also reports generated roughness maps and generation time.
+- `r_autoPBRDebug 1` — color by guessed class: yellow metal, salmon skin, blue cloth, brown leather, green plastic, purple hair, grey generic, white authored.
+- `r_autoPBRDebug 2` — where the values came from: authored map, automatic guess, converted legacy shine. Red means the surface is still drawn with the old vertex lighting (see [shiny models](#shiny-stock-models-troopers-droids-weapons)).
+- `r_pbrDumpMaterials [used|all|auto|authored|gouraud|<class>]` — list materials with their class and values.
 
-Texture detail is converted into a restrained roughness map at load time. Existing authored material data is kept; generation adds loading work rather than a new rendering pass. [Details](../rend2-auto-pbr.md).
+Design notes: [rend2-auto-pbr.md](../rend2-auto-pbr.md).
 
-## Legacy shiny materials
+## Shiny stock models (troopers, droids, weapons)
 
-Old shiny shaders can use the newer material response while keeping their intended highlights. This is most visible on polished floors, metal panels and armor.
+In Rend2, about 130 stock shaders that use the original "shiny" effect are still drawn the old way, with lighting computed only at mesh vertices: every stormtrooper and droid, Boba Fett, most weapons, vehicles and some map objects. They get no normal maps, no sun shadows on themselves and no reflections, which is why they look flat next to everything else. This option converts them to the modern per-pixel path, and their old highlight mask decides which parts are glossy or metallic.
 
-**Main controls**
+**Cost:** light.
 
-- `r_autoPBRConvert 0 | 1` — keep the old vertex-lit path / convert compatible shaders to per-pixel PBR. Requires `vid_restart`.
+- `r_autoPBRConvert 0` *(restart)* — 1 convert.
 
-**Debug**
+Combine it with `r_autoPBR 2` so the converted parts get the right material class.
 
-- No separate debug controls.
+**How it works.** The old shaders draw a lit color layer plus an additive "specular" layer masked by a `_spec` texture, and sometimes a fake chrome layer. The conversion removes those layers and turns the `_spec` mask into a per-pixel glossiness/metal map: bright areas of the mask become glossier and, on metal classes, metallic. With `r_cubeMapping 1`, the fake chrome layer is dropped because real reflections replace it.
 
-The renderer converts compatible legacy specular settings into the shared material parameters instead of drawing an unrelated extra shine layer. It adds little work to ordinary material shading.
+## Roughness variation
 
-## Matte-surface lighting
+With Auto PBR, a whole texture gets one glossiness value, so a wall or armor plate shines evenly. This adds subtle dull and glossy patches derived from the texture's own detail. It does not turn bright pixels into metal.
 
-Changes how broad light spreads across rough surfaces such as cloth, painted walls and stone. This can soften the flat or plastic look of the original lighting.
+- `r_autoPBRRoughness 0` — 1 on. Turning it on needs `vid_restart`; needs `r_autoPBR 1` or `2`.
 
-**Main controls**
-
-- `r_diffuseBRDF 0 | 1` — Lambert / Burley-Disney diffuse.
-
-**Debug**
-
-- No separate debug controls.
-
-A BRDF is a rule for how a surface reflects light. The selected diffuse rule handles rough matte surfaces differently from the simple legacy diffuse response.
-
-## Glowing materials
-
-Lets glowing panels and effect surfaces carry actual scene brightness, so bloom and reflected/bounced light can respond to them. Enabling support alone does not add glow maps to every stock texture. Light performance cost on affected surfaces.
-
-**Main controls**
-
-- `r_autoEmissive 0 | 1` — legacy behavior / expose compatible legacy glow stages as emissive sources.
+**How it works.** At load time the renderer measures local contrast in each color texture — creases, scratches, painted detail — and turns it into a glossiness map that varies about ±0.1 around the class value. Materials with authored maps or converted shine are left alone. This adds loading time, not frame time.
 
 **Debug**
 
-- No separate debug controls.
+- `r_autoPBRDebug 3` — final roughness in grey; blue means the surface doesn't use auto roughness.
 
-### [Autodetectable] Existing glow stages
+## Glowing surfaces
 
-Set `r_autoEmissive 1` to reuse compatible stock glow and safe additive stages. This works without changing those assets.
+Stock lamps, screens, lava and control panels are drawn with "glow" layers that the newer features don't see as light. This option marks them as light-emitting surfaces, so HDR [bloom](post-processing.md#bloom), [bounced light](lighting.md#bounced-light-ssgi) and [area lights](lighting.md#lamp-shaped-lights-ltc) can use them.
 
-### [For mod authors] Authored glow maps
+**Cost:** light, on glowing surfaces only.
 
-Add these inside a material stage; black parts of the map do not glow:
+- `r_autoEmissive 0` — 1 on.
+
+**Mod authors:** give a stage its own glow map; black parts don't glow.
 
 ~~~text
 emissiveMap textures/example/panel_e
@@ -91,129 +62,135 @@ emissiveColor 1 0.25 0.05
 emissiveScale 4
 ~~~
 
-`emissiveMap` chooses the image, `emissiveColor` tints it, and `emissiveScale` sets brightness.
+`emissiveMap` is the glow image, `emissiveColor` tints it, `emissiveScale` sets brightness (or `emissiveNits` for real units with `r_pbrPhysical 1`).
 
-Emission is a surface brightness term separate from reflected light. Compatible old glow stages can supply it automatically; authored maps can define it directly. [Details](../rend2-emissive-materials.md).
-
-## Shared light and material brightness
-
-Makes sun, lamps and glowing surfaces use a common brightness scale instead of unrelated multipliers. Existing maps use a compatibility conversion; switching modes can change the overall look. No extra image pass is added.
-
-**Main controls**
-
-- `r_pbrPhysical` — 0 exact Rend2 compatibility, 1 unified scene-referred physical PBR contract (vid_restart). Default `0`; `vid_restart`.
-- `r_emissiveLegacyNits` — Reference-white nits represented by legacy emissiveScale 1 in physical mode. Default `1000`; `vid_restart`.
-- `r_pbrLegacyReference` — Reference brightness used to convert legacy lights. Default `1`; `vid_restart`.
-- `r_pbrPhysicalToScene` — Scale from physical light units to the stored scene brightness. Default `0.0001`; `vid_restart`.
-- `r_pbrSunIlluminance` — Physical sun illuminance in lux; 0 migrates the map sun. Default `0`.
-- `r_pbrWorldUnitsPerMeter` — Game-world units per metre, used for physical distance and light size. Default `33.333333`; `vid_restart`.
+**How it works.** Shader stages with the legacy `glow` keyword, and standalone unlit additive stages, are exported as emission instead of plain added color. Emission is a brightness of its own, added after lighting and shadows, and written to the bloom buffer.
 
 **Debug**
 
-- `r_emissiveDebug` — Emissive debug: 1 provenance, 2 false-color nits, 3 confidence. Default `0`.
-- `r_pbrInfo` — Print physical PBR calibration and unit state.
-- `r_pbrLight` — Inspect/test calibrated physical lights; run without arguments for syntax.
+- `r_emissiveDebug 1..3` — where the emission comes from, its brightness in false color, and classification confidence.
 
-`r_pbrPhysical` converts game distances and legacy light values into a shared scene-light scale. These are calibration controls, not a way to recover the original map designer’s real lamp wattage. [Details](../rend2-physical-pbr.md).
+Design notes: [rend2-emissive-materials.md](../rend2-emissive-materials.md).
 
-## Stable highlights and roughness
+## Stable highlights
 
-Reduces sparkling on fine normal-map detail and keeps rough metal from becoming too dark. Look at armor and glossy floors while moving the camera. Light performance cost.
+Fine normal-map detail on glossy surfaces makes highlights sparkle and crawl when you move. Specular anti-aliasing widens highlights that are too small for a pixel, so armor and polished floors stay calm. Energy compensation keeps rough metal from looking too dark. Both are on by default.
 
-**Main controls**
+**Cost:** light.
 
-- `r_pbrLegacyRoughness` — Convert older roughness conventions to the shared material scale; 0 is an alternative comparison interpretation. Default `1`.
-- `r_specularAA` — Reduce sparkling in glossy normal-map detail. Default `1`; `vid_restart`.
-- `r_brdfEnergyCompensation` — Restore light lost by the simplified glossy reflection; 0 disables only that restoration. Default `1`.
-- `r_specularAAMaxAdded` — Maximum extra roughness from highlight antialiasing. Default `0.25`.
-- `r_specularAAStrength` — How strongly fine normal detail broadens glossy highlights. Default `0.15`.
+- `r_specularAA 1` *(restart)* — 0 off.
+- `r_brdfEnergyCompensation 1` — 0 off: rough metal gets darker.
+
+**How it works.** The renderer estimates how much the surface normal varies inside one pixel (from screen derivatives and the normal map's mip levels) and raises the roughness of that pixel to match. The simple reflection model loses light on rough surfaces that would really bounce more than once inside the surface; energy compensation adds that light back.
+
+- `r_specularAAStrength 0.15` — how much normal variation widens highlights.
+- `r_specularAAMaxAdded 0.25` — limit on the added roughness.
+- `r_pbrLegacyRoughness 1` — convert older glossiness conventions (Auto PBR, spec-gloss maps) to one roughness scale; 0 is a comparison mode.
 
 **Debug**
 
-- `r_pbrEnergyDebug` — Views 1..5 inspect matte/glossy/combined energy and compare energy conservation. Default `0`.
-- `r_specularAADebug` — Specular AA debug: 1 material roughness, 2 material alpha, 3 effective roughness, 4 added roughness, 5 fine normal-map variation, 6 effective alpha. Default `0`.
+- `r_specularAADebug 1..6` — material roughness, material alpha, effective roughness, added roughness, normal variation, effective alpha.
+- `r_pbrEnergyDebug 1..5` — diffuse, specular and total energy, lost energy, split legacy/compensated.
 
-GGX is the shape used for many glossy highlights. Specular antialiasing slightly broadens highlights that are too fine for a pixel; energy compensation returns light lost by its simplified reflection model. [Details](../rend2-specular-aa.md).
+Design notes: [rend2-specular-aa.md](../rend2-specular-aa.md).
+
+## Matte surfaces
+
+Changes how rough matte surfaces — cloth, plaster, stone — catch light. With the Burley model rough surfaces brighten a little toward grazing angles and smooth ones darken slightly at their edges, which looks less like plastic. The difference is subtle.
+
+- `r_diffuseBRDF 0` — 0 Lambert (the classic model), 1 Burley/Disney.
+
+## Physical light units
+
+Mostly for mod authors. Normally every light, the sun and glowing surfaces use the game's own unrelated brightness scales. This mode puts them on one real-world scale (lux, candela, nits), so authored lights and materials can be given real values. Stock content is converted to keep its look, but the image can change a little. Leave it at 0 if you only play stock content.
+
+- `r_pbrPhysical 0` *(restart)* — 1 physical units.
+
+**How it works.** Game distances are converted to metres and legacy light values to physical units around a reference brightness, then scaled to the renderer's internal range. These are calibration settings; they don't recover the real brightness of the lamps the original mappers imagined.
+
+- `r_pbrWorldUnitsPerMeter 33.333333` *(restart)* — game units per metre, used for light falloff and emitter size.
+- `r_pbrLegacyReference 1` *(restart)* — reference brightness for converting legacy lights.
+- `r_pbrPhysicalToScene 0.0001` *(restart)* — physical units to internal brightness.
+- `r_pbrSunIlluminance 0` — sun brightness in lux; 0 converts the map's own sun.
+- `r_emissiveLegacyNits 1000` *(restart)* — nits labelled for a legacy `emissiveScale 1` in debug views.
+
+**Debug**
+
+- `r_pbrInfo` — print the calibration.
+- `r_pbrLight` — inspect or test calibrated lights; run without arguments for syntax.
+
+Design notes: [rend2-physical-pbr.md](../rend2-physical-pbr.md).
 
 ## Relief detail (POM)
 
-*Requires parallax mapping and a material height map, because the renderer needs surface-depth information to draw grooves.*
+Makes cracks, brick joints and panel grooves look recessed instead of painted on, and shift correctly as you move. It only works on textures that come with a height map (`_nh` images from texture packs, or the `heightMap` shader keyword). Stock JKA textures have none, so without such a pack nothing changes.
 
-Makes cracks, brick joints and panel grooves appear recessed instead of painted flat. Compared with the original game, nearby textured surfaces can look deeper. Medium performance cost on large close-up surfaces.
+**Cost:** medium on large surfaces close to the camera.
 
-**Main controls**
+- `r_parallaxMapping 0` — 1 on.
+- `r_pomAdaptiveSteps 0` — 1: spend fewer samples when looking straight at a surface and more at shallow angles, where steps would show. Usually better quality for the same cost.
+- `r_pomFadeStart 0`, `r_pomFadeEnd 0` — distances where relief starts to flatten and where it switches off (plain normal mapping). 0 = never.
 
-- `r_pomAdaptiveSteps 0 | 1` — legacy fixed traversal / angle-adaptive traversal.
-- `r_pomMinSteps <count>` — linear samples at normal incidence.
-- `r_pomMaxSteps <count>` — linear samples at grazing angles.
-- `r_pomBinarySteps <count>` — final hit refinement.
-- `r_pomFadeStart <distance>` — distance where relief begins flattening.
-- `r_pomFadeEnd <distance>` — distance where POM becomes normal mapping only.
+**How it works.** For each pixel the shader walks a short ray into the texture's height map until it hits the surface, then draws the texture from that point. More steps remove stair-step artifacts at shallow angles.
 
-**Debug**
-
-- No separate debug controls.
-
-Parallax occlusion mapping follows a short ray through a texture height field. Adaptive stepping spends fewer samples looking straight at a surface and more at a grazing angle. [Details](../rend2-pom.md).
-
-## Shadows inside relief detail
-
-*Requires working POM height detail, because the shadows are traced through that same height map.*
-
-Lets raised parts of a material shadow their own grooves. Turning a light across brick, stone or carved panels reveals depth that the original flat surface cannot shadow. Medium to heavy performance cost with many local lights.
-
-**Main controls**
-
-- `r_pomSelfShadow 0 | 1` — disable / enable relief self-shadowing. Requires `vid_restart`.
-- `r_pomSelfShadowLightMode 0..3` — sun only / sun + strongest local / sun + limited local lights / all local lights.
-- `r_pomSelfShadowMaxLocalLights <count>` — local-light budget for mode 2.
-- `r_pomSelfShadowSteps <count>` — samples per shadow ray.
-- `r_pomSelfShadowStrength <value>` — global shadow strength.
-- `r_pomSelfShadowBias <value>` — ray-start bias inside the height field.
-- `r_pomSelfShadowSoftness <value>` — penetration-to-shadow scale.
+- `r_pomMinSteps 8`, `r_pomMaxSteps 32` — ray steps when looking straight at a surface / along it (adaptive mode).
+- `r_pomBinarySteps 8` — final refinement of the hit point.
 
 **Debug**
 
-- `r_pomDebug 1..8` — height, displaced UV, hit depth, sun/local self-shadow, sample counts and distance fade. Requires `vid_restart` when enabling this debug view.
-- `r_pomDebugFreezeLight 0 | 1` — freeze the sun direction for comparison.
+- `r_pomDebug 1..8` — height, displaced texture coordinates, ray depth, sun / local-light self-shadow, view steps, shadow steps, distance fade. Turning it on needs `vid_restart`.
 
-After finding the visible point in the height field, the shader checks towards the light for higher material that blocks it. Each extra light can need another short trace. [Details](../rend2-pom.md).
+Design notes: [rend2-pom.md](../rend2-pom.md).
+
+## Shadows inside relief
+
+Raised parts of a POM texture cast shadows into its grooves, so brick and carved stone show depth when a light moves across them. Needs `r_parallaxMapping 1` and height-mapped textures, as above.
+
+**Cost:** medium to heavy with many local lights.
+
+- `r_pomSelfShadow 0` *(restart)* — 1 on.
+- `r_pomSelfShadowLightMode 1` — which lights cast relief shadows: **0** sun only, **1** sun + the strongest nearby light, **2** sun + the strongest few (`r_pomSelfShadowMaxLocalLights`), **3** all lights.
+- `r_pomSelfShadowStrength 1` — 0 none … 1 full.
+
+**How it works.** After finding the visible point in the height map, the shader walks a second short ray toward each light and checks whether higher relief blocks it. Every extra light costs another ray.
+
+- `r_pomSelfShadowMaxLocalLights 2` — lights for mode 2.
+- `r_pomSelfShadowSteps 12` — samples per shadow ray.
+- `r_pomSelfShadowSoftness 4` — edge hardness; higher is harder.
+- `r_pomSelfShadowBias 0.02` — start offset of the shadow ray; raise it if grooves get speckled shadow.
+
+**Debug**
+
+- `r_pomDebug 4`, `5` — sun / local-light self-shadow.
+- `r_pomDebugFreezeLight 1` — freeze the sun direction for comparisons.
 
 ## Relief silhouettes
 
-*Requires `r_pomSilhouette 1`, `r_parallaxMapping 1`, normal mapping and suitable height data, because this draws an expanded surface around the original mesh.*
+Ordinary POM only fakes depth inside a surface; its outline stays flat. This draws the relief as a thin shell, so rocks and broken panels look uneven at their edges too, and the shell casts sun shadows. Far away it falls back to ordinary POM. Needs `r_parallaxMapping 1` and height-mapped textures.
 
-Makes chunky rocks and broken panels look uneven around their edges, not just inside their texture. Distant surfaces fall back to ordinary relief mapping. Heavy performance cost on large close-up areas.
+**Cost:** heavy on large surfaces close to the camera.
 
-**Main controls**
+- `r_pomSilhouette 0` *(restart)* — 1 on, for materials that ask for it (`pomSilhouette` keyword).
+- `r_autoPOMSilhouette 1` — console command: also use it on every material that has an ordinary POM height map. Run after `r_pomSilhouette 1` and a map load; saved in `r_autoPOMSilhouetteMode`.
+- `r_pomSilhouetteDistance 512` — shells are drawn this close; farther surfaces use ordinary POM.
 
-- `r_pomSilhouette 0 | 1` — disable / enable shell rendering. Requires `vid_restart`.
-- `r_pomSilhouetteDistance <units>` — shell range; farther surfaces use ordinary POM.
-- `r_pomSilhouetteFade <units>` — crossfade width.
-- `r_pomSilhouetteSteps <count>` — normal-angle ray samples.
-- `r_pomSilhouetteMaxSteps <count>` — grazing-angle ray samples.
-- `r_pomSilhouetteBinarySteps <count>` — hit refinement.
-- `r_pomSilhouetteViewDependence <value>` — how quickly samples increase toward grazing angles.
-- `r_pomSilhouetteShadows 0 | 1` — displaced shells cast into sun cascades.
-- `r_pomSilhouetteContactShadows 0 | 1` — apply screen-space sun contact shadows to shell pixels.
-- `r_autoPOMSilhouette 0 | 1` — disable / enable automatic mode globally.
-- `r_autoPOMSilhouette <shader> 0 | 1 | default` — per-shader override; a trailing `*` acts as a prefix.
-- `r_autoPOMSilhouette clear` — remove per-shader overrides.
-- `r_autoPOMSilhouetteMode` — Silhouette POM for every material with an ordinary POM height map (set with the r_autoPOMSilhouette command, needs r_pomSilhouette 1). Default `0`.
+**Mod authors:** add the shader keyword `pomSilhouette` and a stage with `normalHeightMap`, `parallaxDepth` and `parallaxBias`. Optional `pomSilhouetteDistance` and `pomSilhouetteSteps` override range and quality per shader. Use it for deep edge relief and keep ordinary POM for flat detail.
+
+**How it works.** The renderer extrudes a shell above the mesh, traces the height map through it and discards empty parts. Unlike ordinary POM this can change the visible outline.
+
+- `r_pomSilhouetteFade 96` — width of the crossfade to ordinary POM.
+- `r_pomSilhouetteSteps 12`, `r_pomSilhouetteMaxSteps 48` — ray steps looking straight / along the surface.
+- `r_pomSilhouetteViewDependence 1` — how fast steps grow toward shallow angles.
+- `r_pomSilhouetteBinarySteps 6` — hit refinement.
+- `r_pomSilhouetteShadows 1` — shells cast into the sun shadows.
+- `r_pomSilhouetteContactShadows 0` — 1: apply contact shadows to shell pixels (tends to blacken grooves).
+- `r_autoPOMSilhouette <shader> 0|1|default`, `r_autoPOMSilhouette clear` — per-shader override (a trailing `*` matches a prefix) and clearing them.
+- `r_autoPOMSilhouetteMode 0` — stores the global choice of `r_autoPOMSilhouette`; set it with the command.
 
 **Debug**
 
-- `r_pomSilhouetteDebug 1..11` — shell, wireframe, walls, discarded pixels, virtual depth, sample count and comparison views.
-- `r_pomSilhouetteInfo` — print shell counts, memory, fallbacks and last-frame statistics.
-- `r_autoPOMSilhouette list` — list active candidates and fallback reasons.
-- `r_autoPOMSilhouette <shader>` — print matching shader state.
+- `r_pomSilhouetteDebug 1..11` — shell, wireframes, walls, discarded pixels, hit depth, step count, split POM / silhouette, depth, normal.
+- `r_pomSilhouetteInfo` — shell counts, memory, fallbacks, last-frame statistics.
+- `r_autoPOMSilhouette list` — candidates and why others were rejected; `r_autoPOMSilhouette <shader>` — one shader's state.
 
-### [Autodetectable] Existing height-mapped surfaces
-
-Use `r_autoPOMSilhouette 1` after enabling silhouette support and loading a map. Only suitable materials that already have a height map qualify; this cannot create relief from an ordinary color texture. The command stores its global choice in `r_autoPOMSilhouetteMode`.
-
-### [For mod authors] Explicit relief shells
-
-Add the shader-level `pomSilhouette` keyword and a stage with `normalHeightMap`, `parallaxDepth` and `parallaxBias`. Optional shader-level `pomSilhouetteDistance` and `pomSilhouetteSteps` override its range and sampling. Use this for deep edge relief, and keep ordinary POM for flatter detail.
-
-The renderer draws a thin shell and traces its height field, discarding empty parts. Unlike ordinary POM, this can change the visible outline; the prepared shell is limited to compatible surfaces. [Details](../rend2-silhouette-pom.md).
+Design notes: [rend2-silhouette-pom.md](../rend2-silhouette-pom.md).

@@ -1,146 +1,140 @@
-# Color, exposure and post-processing
+# Image and camera
 
-[All rendering features](../rendering-features.md)
+[All rendering settings](../rendering-features.md)
 
-Controls marked `vid_restart` need a renderer restart. Debug views use 0 to return to normal unless stated otherwise. Performance labels are rough relative costs, not benchmark guarantees.
+How the finished frame is turned into the picture on your screen: brightness, contrast, glow, color, blur and edge smoothing.
 
 ## Tone mapping
 
-*Requires `r_hdr 1` and `r_toneMap 1`, because this maps the extra brightness of HDR rendering onto your display.*
+The renderer computes light far brighter than a monitor can show: sky, lamps, saber blades. The tone mapper squeezes that range onto your screen and decides how contrasty the image looks and what happens to very bright colors. Pick the look you like; every curve costs the same. Needs `r_hdr 1` and `r_toneMap 1`.
 
-Keeps bright skies, lamps and saber glows readable instead of clipping them to flat white. Compared with the original game, ACES gives stronger contrast; AgX-like keeps colors more neutral. Changing the curve has no meaningful frame-time cost.
+- `r_toneMapMode 0` — **0** Rend2's original filmic curve. **1** ACES, the film look of many modern games: stronger contrast; very bright colored lights can shift hue. **2** AgX-like: gentler contrast; bright colored lights fade to white without changing hue.
 
-**Main controls**
-
-- `r_autoExposure 0 | 1` — manual / automatically adapted exposure.
-- `r_exposureCompensation <stops>` — overall brightness bias; +1 doubles exposure.
-- `r_cameraExposure <value>` — legacy manual exposure, used in camera mode 0.
-- `r_toneMapMode 0 | 1 | 2` — 0 legacy Rend2 filmic, 1 ACES fitted, 2 AgX-like.
+`r_toneMapDebug 2` shows legacy / ACES / AgX side by side.
 
 **Debug**
 
-- `r_toneMapDebug 1` — legacy vs selected tone mapper split.
-- `r_toneMapDebug 2` — legacy / ACES / AgX comparison.
-- `r_toneMapDebug 3..5` — raw HDR, exposure-adjusted and exposure false-color views.
+- `r_toneMapDebug 1` — left legacy, right the current `r_toneMapMode`.
+- `r_toneMapDebug 2` — legacy / ACES / AgX strips.
+- `r_toneMapDebug 3..5` — raw HDR image, image after exposure, exposure in false color.
 
-A tone mapper is a brightness-and-color curve applied near the end of the frame. It compresses bright values while keeping midtones and shadow detail. [Details](../rend2-tonemapping.md).
+Design notes: [rend2-tonemapping.md](../rend2-tonemapping.md).
 
-## [For mod authors] Color grading (LUTs)
+## Brightness and exposure
 
-*Requires a `.cube` color table, because it supplies the new palette; without one, enabling support leaves the image unchanged.*
+Like your eyes, the renderer adapts to the scene: dark rooms are brightened, sunny exteriors darkened. This is on by default. Everything in this section needs `r_hdr 1` and `r_toneMap 1`; without them brightness is fixed.
 
-Changes the overall palette: make a map warmer, colder, faded or more contrasty without editing its textures. A LUT is a color lookup table: a small file that says which output color to use for each input color. Light performance cost.
+- `r_autoExposure 1` — 0 fixed brightness, 1 adapt to the scene.
+- `r_exposureCompensation 0` — the simplest brightness control, in stops: `1` is twice as bright, `-1` half. Works in every mode below.
 
-**Main controls**
+### Physical camera (optional)
 
-- `r_colorGrading 0 | 1` — disable / enable color grading.
-- `r_colorGradingLUT "<file>.cube"` — select a LUT manually; empty uses `maps/<map>.cube` if present; `*identity` is neutral.
-- `r_colorGradingIntensity 0..1` — blend between the original image and the LUT.
+Instead of the original adaptation you can use real camera settings, mostly useful for screenshots and fixed shots.
 
-**Debug**
+- `r_cameraMode 0` — **0** original exposure (above). **1** manual camera: brightness comes from ISO, aperture and shutter time. **2** automatic camera: meters the scene and adapts within the limits below.
+- `r_cameraISO 100`, `r_cameraAperture 16`, `r_cameraShutterSeconds 0.008` — mode 1. Higher ISO, a smaller f-number or a longer shutter make the image brighter. The aperture does not blur anything: there is no depth of field yet.
+- `r_cameraAutoEVMin -6` — mode 2: the darkest scene it fully adapts to. Raise it to keep dark areas dark.
+- `r_cameraAutoEVMax 20` — mode 2: the brightest scene it fully adapts to. Lower it to keep bright areas bright.
+- `r_motionBlurPhysicalShutter 0` — 1: in modes 1–2, [motion blur](#motion-blur) length follows `r_cameraShutterSeconds` instead of the shutter angle.
 
-- `r_colorGradingCompare 0 | 1` — disable / enable split-screen comparison, original on the left.
+**How it works.** Manual mode converts ISO, aperture and shutter into an exposure value (EV100), as a light meter would. Automatic mode measures the average scene brightness and moves toward it, clamped to the EV range. Exposure compensation is applied on top.
 
-The renderer blends the finished image with the colors from a 3D lookup table. It loads `maps/<map>.cube` automatically, or uses a chosen `.cube` file; `*identity` leaves colors unchanged. [Details](../rend2-tonemapping.md).
-
-## Linear lighting
-
-*Requires `r_hdr 1` and `r_toneMap 1`, because the corrected light values need the HDR output path.*
-
-Makes light and dark surfaces combine more naturally, especially in gradients, bright rooms and shaded corners. Stock textures can look different from the original game even though the assets are unchanged. No meaningful frame-time cost.
-
-**Main controls**
-
-- `r_linearLighting 0 | 1` — legacy / linear-light handling of non-HDR lightmaps. Requires `vid_restart`.
+- `r_cameraExposure 0` — mode 0 only: a fixed gain in stops.
 
 **Debug**
 
-- No separate debug controls.
+- `r_cameraDebug 1` — print the camera and meter state once per second.
 
-Lighting is added in linear brightness rather than directly in display-encoded color. This avoids treating a display color value as a physical amount of light.
+Design notes: [rend2-physical-camera.md](../rend2-physical-camera.md).
 
-## HDR bloom
+## Bloom
 
-*Requires `r_hdr 1` and tone mapping (`r_toneMap` or `r_forceToneMap`), because this glow is extracted from brightness above the ordinary display range.*
+A soft halo around sabers, lamps and glowing panels. The original JKA "dynamic glow" blurs only surfaces whose shader is marked as glowing, with the same strength whatever their brightness. HDR bloom works from actual brightness: a brighter light glows more, and the halo is wider and smoother.
 
-Adds soft glow around bright sabers, lights and explosions. Unlike the original glow effect, it can react to actual scene brightness and glowing material surfaces. Light performance cost.
+**Cost:** light.
 
-**Main controls**
+- `r_bloom -1` — **-1** original dynamic glow (switched by the original `r_dynamicGlow`). **0** off. **1** HDR bloom; needs `r_hdr 1` and `r_toneMap 1`.
 
-- `r_bloom -1 | 0 | 1` — legacy glow / off / HDR bloom.
-- `r_bloomIntensity <value>` — bloom strength.
-- `r_bloomThreshold <value>` — scene-linear brightness where optional scene bloom begins.
-- `r_bloomKnee <value>` — softness around the threshold.
-- `r_bloomScatter <value>` — how widely the bloom pyramid spreads.
-- `r_bloomSceneIntensity <value>` — contribution from bright non-emissive scene pixels; `0` keeps bloom emissive-only.
+HDR bloom (`r_bloom 1`):
 
-**Debug**
+- `r_bloomIntensity 0.15` — strength of the halo.
+- `r_bloomScatter 0.7` — how wide it spreads.
+- `r_bloomSceneIntensity 0` — by default only glowing materials bloom. Raise it to let any very bright pixel bloom too: sun glints, bright sky, lit fog.
 
-- No separate debug controls.
+Original glow (`r_bloom -1`):
 
-The renderer extracts bright pixels before tone mapping, blurs smaller copies of the image and blends them back. Scene bloom and glow-only bloom can be tuned separately. [Details](../rend2-bloom.md).
+- `r_dynamicGlowBloom 0.0` — also let bright parts of the scene glow, not only glow-marked surfaces.
+
+**How it works.** HDR bloom takes the image before tone mapping, blurs progressively smaller copies of its bright parts and adds them back. Glowing materials always contribute; other pixels contribute only above a brightness threshold, scaled by `r_bloomSceneIntensity`.
+
+- `r_bloomThreshold 2.0` — brightness where scene bloom starts.
+- `r_bloomKnee 0.5` — how softly it fades in around the threshold.
+
+Design notes: [rend2-bloom.md](../rend2-bloom.md).
+
+## Color grading
+
+Applies a color filter to the whole image — warmer, colder, faded, more contrast — from a LUT file (`.cube`), the format photo and video editors export. Stock maps have no LUT, so nothing changes until you provide one. Needs `r_hdr 1` and `r_toneMap 1`.
+
+**Cost:** light.
+
+- `r_colorGrading 1` — on; does nothing without a LUT.
+- `r_colorGradingLUT ""` — a `.cube` file in the game data, for example `luts/warm.cube` in `base/` or a pk3. Empty uses the map's own LUT if it has one; `*identity` is neutral.
+- `r_colorGradingIntensity 1` — 0 original colors … 1 the full LUT.
+- `r_colorGradingCompare 0` — 1: original on the left, graded on the right.
+
+**Mod authors:** put `maps/<map>.cube` next to the `.bsp`; it loads with the map unless the player sets `r_colorGradingLUT`.
+
+**How it works.** A 3D LUT is a table that gives an output color for every input color. The renderer looks up each pixel of the final image in it and blends the result with the original by `r_colorGradingIntensity`.
 
 ## Motion blur
 
-*Requires `r_hdr 1`, because the blur runs in the HDR image before final display conversion.*
+Fast camera turns and moving characters or sabers leave short streaks, like film. The HUD and menus stay sharp. The original game has no motion blur. Needs `r_hdr 1`.
 
-Fast turns and moving characters leave short motion streaks while menus and the HUD stay sharp. The original game has no comparable per-object velocity blur. Medium performance cost; higher resolution and sample counts increase it.
+**Cost:** medium; grows with resolution and sample count.
 
-**Main controls**
+- `r_motionBlur 0` *(restart)* — 1 on.
+- `r_motionBlurShutterAngle 180` — streak length. 180° blurs half a frame of motion (the film standard); 360 is longer, 90 shorter.
+- `r_motionBlurReferenceFps 60` — the frame rate the shutter angle refers to, so the blur looks the same at 60 and 144 fps. 0 uses your real frame time: blur gets shorter as fps rises.
+- `r_motionBlurMaxPixels 32` — longest streak, in pixels at 1080p.
+- `r_motionBlurQuality 1` — 0 low, 1 medium, 2 high. Higher removes graininess in long streaks.
+- `r_motionBlurViewModelScale 0.5` — blur on your own hands, weapon and saber in first person.
 
-- `r_motionBlur 0 | 1` — disable / enable velocity motion blur. Requires `vid_restart`.
-- `r_motionBlurShutterAngle <degrees>` — exposure length.
-- `r_motionBlurReferenceFps <fps>` — FPS the shutter angle refers to; `0` uses the current frame interval.
-- `r_motionBlurMaxPixels <pixels>` — maximum streak length at 1080p.
-- `r_motionBlurQuality 0 | 1 | 2` — low / medium / high.
-- `r_motionBlurSamples <count>` — sample override; `0` uses the quality preset.
-- `r_motionBlurViewModelScale <value>` — blur strength for first-person hands, weapons and saber.
-- `r_motionBlurCutDistance <units>` — one-frame translation treated as a camera cut.
-- `r_motionBlurCutAngle <degrees>` — one-frame rotation treated as a camera cut.
-- `r_motionBlurShutterScale <value>` — gameplay exposure multiplier, used by effects such as Force Speed.
+**How it works.** Every pixel stores how far its surface moved since the last frame. The blur samples along that movement. A camera cut or teleport would produce a huge false streak, so a jump bigger than the limits below resets the history instead.
 
-**Debug**
-
-- `r_motionBlurReset 1` — gameplay hook that clears motion history after a cut.
-- `r_motionBlurDebug 1..5` — velocity, camera/object velocity, sample count and blur contribution.
-
-Each pixel stores how far its surface moved between frames. The renderer samples along that movement; shutter length sets how long a streak should be. [Details](../rend2-motion-blur.md).
-
-## Camera exposure
-
-*Requires `r_hdr 1` and tone mapping, because camera exposure controls the brightness of the scene before display conversion.*
-
-Makes brightness behave more like a camera: use automatic exposure for play, or ISO, aperture and shutter time for a fixed shot. It does not add depth of field. Exposure math itself has no meaningful frame-time cost.
-
-**Main controls**
-
-- `r_cameraMode` — Camera exposure: 0 = legacy, 1 = physical manual, 2 = physical auto. Default `0`.
-- `r_cameraAperture` — Physical camera aperture f-number N (manual mode; reserved for future physical DOF). Default `16`.
-- `r_cameraAutoEVMax` — Maximum EV100 allowed in physical auto mode. Default `20`.
-- `r_cameraAutoEVMin` — Minimum EV100 allowed in physical auto mode. Default `-6`.
-- `r_cameraISO` — Physical camera ISO speed (manual mode). Default `100`.
-- `r_cameraShutterSeconds` — Physical camera shutter duration in seconds (manual mode; optional motion-blur coupling). Default `0.008`.
-- `r_motionBlurPhysicalShutter` — Use r_cameraShutterSeconds as motion-blur exposure duration in physical camera modes. Default `0`.
+- `r_motionBlurSamples 0` — exact samples per pixel; 0 takes them from the quality.
+- `r_motionBlurCutDistance 256`, `r_motionBlurCutAngle 75` — camera movement (units) or rotation (degrees) in one frame treated as a cut.
+- `r_motionBlurShutterScale 1`, `r_motionBlurReset 0` — set by the game (longer exposure during Force Speed, reset after cuts). Don't change them.
 
 **Debug**
 
-- `r_cameraDebug` — Print calibrated camera/meter state once per second. Default `0`.
+- `r_motionBlurDebug 1..5` — velocity, camera velocity, object velocity, sample count, blur contribution.
 
-Manual mode converts camera settings into an exposure value; automatic mode meters the scene and adapts within the chosen limits. Exposure compensation remains the simple brighten/darken control. [Details](../rend2-physical-camera.md).
+Design notes: [rend2-motion-blur.md](../rend2-motion-blur.md).
 
-## Edge smoothing, legacy glow and refraction
+## Anti-aliasing (SMAA)
 
-Smooths jagged edges, optionally adds bright-scene glow to the older glow path, and controls color separation in distortion effects. These are independent switches. Light performance cost for edge smoothing and glow.
+Smooths jagged geometry edges.
 
-**Main controls**
+**Cost:** light.
 
-- `r_dynamicGlowBloom` — Bright-scene contribution to legacy dynamic glow; active with r_bloom -1 and r_dynamicGlow enabled. Default `0.0`.
-- `r_refractionChromaticAberration` — Chromatic offset in the generic refractive-material/distortion shader. Default `0.05`.
-- `r_smaa` — Disable/enable SMAA. Default `0`; `vid_restart`.
-- `r_smaa_quality` — LOW | 1: MEDIUM | 2: HIGH | 3: ULTRA. Default `2`; `vid_restart`.
+- `r_smaa 0` *(restart)* — 1 on.
+- `r_smaa_quality 2` *(restart)* — 0 low, 1 medium, 2 high, 3 ultra.
 
-**Debug**
+**How it works.** SMAA finds edges in the finished image and blends pixels along them. It does not fix shimmering of very thin moving details, such as distant fences or grass.
 
-- No separate debug controls.
+## Linear lighting (experimental)
 
-SMAA means subpixel morphological antialiasing: it finds image edges and blends them. Legacy glow adds a bright-image layer; refraction shifts color samples to separate red, green and blue slightly.
+Every stock map stores its lighting in screen color values, and the game mixes textures and light in those values. Linear lighting converts everything to real light amounts first, as on HDR-lit maps. Overlapping lights, dynamic lights on lightmapped walls and soft gradients add up more naturally, but stock maps can look noticeably different.
+
+Known side effects: sabers, blaster bolts, explosions and other effects drawn by game code look brighter and paler; the original dynamic glow gets weaker; 3D models in menus look darker.
+
+- `r_linearLighting 0` *(restart)* — 1 on. Needs `r_hdr 1`, `r_toneMap 1` and `r_overBrightBits 0`; otherwise it is ignored.
+
+Design notes: [rend2-tonemapping.md](../rend2-tonemapping.md#linear-lighting-r_linearlighting-experimental).
+
+## Distortion color fringes
+
+Screen-distortion effects (Force push, some weapon shots, refractive shaders) split red, green and blue slightly, like a cheap lens.
+
+- `r_refractionChromaticAberration 0.05` — fringe width; 0 turns it off.

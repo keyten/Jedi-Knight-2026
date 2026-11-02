@@ -1,139 +1,141 @@
 # Fog and light beams
 
-[All rendering features](../rendering-features.md)
+[All rendering settings](../rendering-features.md)
 
-Controls marked `vid_restart` need a renderer restart. Debug views use 0 to return to normal unless stated otherwise. Performance labels are rough relative costs, not benchmark guarantees.
+Fog that fills the air with light: sun beams through windows, glowing haze around sabers, mist on the ground, thick smoke. Smoke from effects is on [Smoke and effects](effects.md), rain haze on [Weather](weather.md#rain-haze), underwater fog on [Water](water.md#underwater-fog).
 
-## Spatial fog and light beams
+## Volumetric fog
 
-*Requires `r_volumetricFog 2`, because this selects the new spatial fog renderer.*
+The original fog only fades surfaces toward a color with distance. Volumetric fog fills the space itself: sun beams fall through windows and are cut by shadows, sabers and blaster bolts glow in the haze around them, and lamps light the fog near them.
 
-Makes fog occupy the scene: beams pass through doorways, shadows cut into haze, and moving lights color smoke around them. The original fog mostly colors surfaces by distance and cannot show the same detailed beams. Medium performance cost; fine grids and extra shadow options can be heavy.
+It lights the fog a map already has (its fog volumes). **A map without fog shows nothing new** until you add a fog source: [ground haze](#ground-haze), [rain haze](weather.md#rain-haze) or authored [local fog](#local-fog-volumes-mod-authors). Sun beams need realtime sun ([`r_forceSun 1`](shadows.md#sun-shadows) on stock maps).
 
-**Main controls**
+**Cost:** medium; fine grids and the extra options below can make it heavy.
 
-- `r_volumetricFog 0 | 1 | 2` — off / legacy light-grid ray march / froxel volumetric fog. Requires `vid_restart`.
-- `r_volumetricFogQuality 0..2` — low / medium / high. Requires `vid_restart`.
-- `r_volumetricFogGridScale <pixels>` — manual screen pixels per froxel; `0` uses the preset. Requires `vid_restart`.
-- `r_volumetricFogSlices <count>` — manual depth slices; `0` uses the preset. Requires `vid_restart`.
-- `r_volumetricFogFar <units>` — froxel range; `0` uses the automatic default.
-- `r_volumetricFogAnisotropy <g>` — default scattering direction; 0 scatters evenly in all directions.
-- `r_volumetricFogTemporal 0 | 1` — averaging across frames.
-- `r_volumetricFogHistoryWeight <value>` — history weight.
-- `r_volumetricFogSunScale <value>` — sun scattering multiplier.
-- `r_volumetricFogDlightScale <value>` — dynamic-light scattering multiplier.
-- `r_volumetricFogStaticScale <value>` — baked-light scattering multiplier.
-- `r_volumetricFogDlightShadows 0 | 1` — dynamic-light shadows inside fog; needs `r_dlightMode 2`.
-- `r_volumetricFogBloom <value>` — add bright in-scattering to bloom.
+- `r_volumetricFog 0` *(restart)* — **0** off. **1** Rend2's original volumetric fog: fog lit only by the map's baked light, no sun beams or dynamic lights (see [the end of this page](#original-rend2-volumetric-fog)). **2** the volumetric fog described here.
+- `r_volumetricFogQuality 1` *(restart)* — 0 low, 1 medium, 2 high: the size of the 3D grid the fog is computed in.
+- `r_volumetricFogSunScale 1` — strength of sunlight in fog (beams).
+- `r_volumetricFogDlightScale 1` — strength of dynamic lights in fog.
+- `r_volumetricFogStaticScale 1` — strength of the map's baked light in fog.
+- `r_volumetricFogAnisotropy 0.2` — how much fog glows when you look toward a light: 0 the same from every side, higher brighter toward the light (stronger beams against the sun), negative brighter with the light behind you.
+- `r_volumetricFogDlightShadows 1` — dynamic lights cast shadows into fog (needs `r_dlightMode 2`).
+- `r_volumetricFogBloom 0` — let bright fog glow add to bloom.
 
-**Debug**
+**How it works.** The space in front of the camera is divided into a 3D grid of small cells shaped to the view (froxels: frustum voxels). Every frame each cell gets its fog density and the light that reaches it — baked light from the map's light grid, the sun with its shadow maps, dynamic lights with theirs — and then light and fog are summed along each view ray. Where the map's baked light includes the sun, that part is replaced by the realtime sun, so it can cast beams. The grid is coarse, so results are jittered and averaged over frames.
 
-- `r_volumetricFogReset 1` — gameplay hook to clear temporal history after a camera cut.
-- `r_volumetricFogDebug 1..56` — density, lighting, history, media, particle, self-shadow, multiple-scattering and RGB-extinction views.
-- `r_volumetricFogFreeze 0 | 1` — freeze the current volume and camera.
-- `r_vfog` — inspect/control the active volumetric fog state.
-
-The space in front of the camera is divided into small 3D cells called froxels, meaning camera-frustum voxels. Each stores fog and illumination; the renderer adds their contributions along the view ray instead of tinting everything with one distance formula. [Details](../rend2-volumetric-fog.md).
-
-## Rain haze
-
-*Requires `r_volumetricFog 2` and active rain, because the rain haze is another medium in the same fog volume.*
-
-Makes distant rainy courtyards look hazy and lets lights glow through the rain. Covered interiors remain clearer rather than receiving a screen-wide grey overlay. Light additional performance cost.
-
-**Main controls**
-
-- `r_rainVolume 0 | 1` — disable / enable the rain medium.
-- `r_rainVolumeStrength <value>` — normal-rain light absorption per world unit at full normalized intensity.
-- `r_rainVolumeHeavyMultiplier <value>` — additional heavy-rain density multiplier.
-- `r_rainVolumeAnisotropy <g>` — rain light-scattering direction; default `0.72`.
-- `r_rainVolumeGroundStrength <value>` — optional heavy-rain splash-mist density; `0` disables it.
-- `r_rainVolumeGroundHeight <units>` — height of that layer above the exposed surface.
-- `r_rainVolumeMaxDistance <units>` — camera range with a soft fade over the outer 15%.
+- `r_volumetricFogGridScale 0` *(restart)* — screen pixels per cell; 0 from the quality.
+- `r_volumetricFogSlices 0` *(restart)* — depth slices; 0 from the quality.
+- `r_volumetricFogFar 0` — how far the grid reaches; 0 automatic (4096). Beyond it, the last slice is extended.
+- `r_volumetricFogTemporal 1` — jitter and average over frames; 0 is noisier but reacts instantly.
+- `r_volumetricFogHistoryWeight 0.9` — how much history to keep.
+- `r_volumetricFogReset 0` — set by the game to clear history after a camera cut.
 
 **Debug**
 
-- `r_volumetricFogDebug 71..74` — rain-only density, weather exposure, unattenuated in-scattering source and final integrated rain contribution.
+- `r_volumetricFogDebug 1..29` — density, sun (unshadowed / shadowed), dynamic lights, baked light, scattering, transmittance, history, slices, density by source (map fog, ground haze, noise, local volumes, effects), dynamic lights per cell. Later numbers are listed in the sections below.
+- `r_volumetricFogFreeze 1` — freeze the current fog volume and camera.
+- `r_vfog` — inspect or change the fog state.
 
-The renderer uses the shared rain state and weather-occlusion map to place a thin scattering medium only where rain can reach. It receives the same lights and shadows as other fog.
-
-## Baked room light in fog
-
-*Requires `r_volumetricFog 2` and a usable BSP light grid, because existing baked samples supply the room illumination.*
-
-Lets stock room colors illuminate haze while the sun can still be shadowed separately. No recovered hidden lamps are added automatically.
-
-**Main controls**
-
-- No separate switch; use the feature or asset settings described here.
-
-**Debug**
-
-- No separate debug controls.
-
-The renderer separates a usable authored-sun contribution from the original merged light grid and keeps the rest as baked room light. When it cannot make a valid split, it uses the ordinary grid. [Details](../rend2-grid-reconstruction-removal.md).
+Design notes: [rend2-volumetric-fog.md](../rend2-volumetric-fog.md).
 
 ## Ground haze
 
-*Requires `r_volumetricFog 2`, because this adds a medium to the spatial fog volume.*
+Low mist that is thick near the ground and thins with height, on any map, without fog brushes. A simple way to get visible beams on maps without fog. Needs `r_volumetricFog 2`.
 
-Adds low mist that is thick near the ground and thins higher up. It works on existing maps without adding fog brushes. Light additional performance cost.
+**Cost:** light.
 
-**Main controls**
-
-- `r_volumetricFogHeight 0 | 1` — disable / enable height fog.
-- `r_volumetricFogHeightOpaqueDistance <units>` — opaque distance at the base height.
-- `r_volumetricFogHeightBase <z>` — base world height.
-- `r_volumetricFogHeightFalloff <units>` — exponential scale height.
-- `r_volumetricFogHeightMaxDensity <value>` — density cap below the base.
-- `r_volumetricFogHeightTopHeight <units>` — optional soft upper cutoff.
-- `r_volumetricFogHeightColor "r g b"` — scattering color.
+- `r_volumetricFogHeight 0` — 1 on.
+- `r_volumetricFogHeightOpaqueDistance 3000` — at ground level, the distance where the haze becomes opaque. Lower is thicker.
+- `r_volumetricFogHeightFalloff 256` — how quickly it thins with height; larger means a taller layer.
+- `r_volumetricFogHeightColor "0.7 0.75 0.8"` — haze color.
+- `r_volumetricFogHeightBase auto` — world height of the ground; auto picks the lowest floor (a map's `env.json` can override it).
+- `r_volumetricFogHeightMaxDensity 1` — density cap below the base height.
+- `r_volumetricFogHeightTopHeight 0` — height where the haze fades out completely; 0 never.
 
 **Debug**
 
-- No separate debug controls.
-
-Fog density decreases with height above a chosen base level. This supplies a continuous ground layer rather than a full-screen tint.
+- `r_volumetricFogDebug 12` — ground-haze density.
 
 ## Uneven fog
 
-*Requires spatial fog, because the noise varies its density rather than creating a separate effect.*
+Breaks uniform fog into drifting patches and wisps, so mist looks less like a smooth wall. Choose which fog sources get it.
 
-Breaks a uniform haze into drifting patches, so smoke and mist look less like a smooth wall. Light to medium additional performance cost.
+**Cost:** light to medium.
 
-**Main controls**
-
-- `r_volumetricFogNoise <bits>` — 1 height fog, 2 BSP fog, 4 global fog, 8 noise-enabled local volumes; bits can be combined.
-- `r_volumetricFogNoiseScale <units>` — macro-noise period.
-- `r_volumetricFogNoiseContrast <value>` — macro contrast.
-- `r_volumetricFogNoiseDetailScale <units>` — detail-noise period.
-- `r_volumetricFogNoiseDetailContrast <value>` — detail strength; `0` avoids the second fetch.
-- `r_volumetricFogNoiseWind "x y z"` — world-space drift speed.
+- `r_volumetricFogNoise 0` — add bits: **1** ground haze, **2** map fog volumes, **4** whole-map fog, **8** local volumes marked for noise. Example: `3` for ground haze and map fog.
+- `r_volumetricFogNoiseScale 4096` — size of the large patches, in world units.
+- `r_volumetricFogNoiseContrast 1` — patchiness: 0 uniform, 1 between none and double density, higher sparser clumps. Average density stays the same.
+- `r_volumetricFogNoiseWind "0 0 0"` — drift speed and direction, world units per second.
+- `r_volumetricFogNoiseDetailScale 900`, `r_volumetricFogNoiseDetailContrast 0` — a second, finer noise layer; 0 contrast turns it off (cheaper).
 
 **Debug**
 
-- No separate debug controls.
+- `r_volumetricFogDebug 13..15` — noise, density without and with noise.
 
-World-space noise changes fog density, and a wind vector moves the pattern. Broad and fine noise can be tuned separately.
+## Shadows inside thick fog
 
-## [For mod authors] Local smoke and mist
+In thick smoke or dense mist, the side facing the light should be bright and the far side dark, because the fog itself blocks light. Plain volumetric fog lets light through every cell unhindered, so dense clouds glow evenly. This makes the fog shadow itself.
 
-*Requires `r_volumetricFog 2`, because these shapes are inserted into the spatial fog volume.*
+**Cost:** heavy.
 
-Lets a mod place a pocket of steam, a low smoke bank or a box of dusty air without rebuilding the map. Enabling fog does not create these custom shapes by itself. Light cost for a few small volumes; many overlapping ones can be medium.
+- `r_volumetricSelfShadow 0` *(restart)* — **0** off, **1** from the sun, **2** from the sun and the strongest dynamic lights.
+- `r_volumetricSelfShadowMaxLights 2` — dynamic lights for mode 2 (0–4).
 
-**Main controls**
+**How it works.** For each fog cell the renderer samples density along a short ray toward the light and dims the light by what it passes through. More samples, longer rays and more lights cost more.
 
-- No separate switch; use the feature or asset settings described here.
+- `r_volumetricSelfShadowSamples 6` — samples along the sun ray (dynamic lights use half).
+- `r_volumetricSelfShadowDistance 768` — length of that ray, in world units.
+- `r_volumetricSelfShadowOutsideHeightFog 1` — beyond the ray, count ground haze analytically; 0 ignore it.
 
 **Debug**
 
-- `r_fogvol` — print volume state and statistics.
-- `r_fogvol add ...` — spawn a test volume.
-- `r_fogvol test <count> [spread]` — deterministic stress test.
-- `r_fogvol remove <index> | clear` — remove test volumes.
-- `r_fogvol slices` — inspect per-slice lists.
-- `r_fogvol dump` — print test volumes as an env.json `FogVolumes` array.
+- `r_volumetricFogDebug 40..45` — density, optical depth toward the sun, fog shadow, geometry shadow, both.
+
+## Light bouncing inside fog
+
+Real clouds and steam are white inside because light bounces around in them many times. With self-shadowing alone thick white fog gets unnaturally dark at its core. This adds back the light those bounces would bring, while dark smoke stays dark. Needs `r_volumetricSelfShadow 1` or `2`.
+
+**Cost:** medium.
+
+- `r_volumetricMultiScatter 0` — **0** off, **1** for the sun, **2** for the sun and self-shadowed dynamic lights.
+
+**How it works.** A few cheap extra scattering steps ("octaves") each let light penetrate deeper, with less energy and more evenly in all directions — an approximation of many bounces without tracing them.
+
+- `r_volumetricMultiScatterOctaves 2` — extra steps, 1–3.
+- `r_volumetricMultiScatterAttenuation 0.25` — how much deeper each step reaches; lower is deeper.
+- `r_volumetricMultiScatterContribution 0.5` — light returned per step.
+- `r_volumetricMultiScatterPhase 0.5` — how quickly the steps lose their direction.
+- `r_volumetricMultiScatterLength 64` — typical size of a dense cloud; thin fog gets almost none.
+- `r_volumetricMultiScatterShadowFill 0.25` — how far it may brighten geometry shadows inside thick fog (0–0.5).
+
+**Debug**
+
+- `r_volumetricFogDebug 46..50` — single, multiple and combined scattering, their ratio, optical depth.
+
+## Colored fog absorption
+
+Normally fog dims everything behind it evenly, so it can only darken or tint by its own glow. With this, fog can absorb colors differently: deep water swallows red first and turns things blue-green, colored smoke tints the scene behind it.
+
+**Cost:** heavy (memory and time).
+
+- `r_volumetricFogRGBExtinction 0` *(restart)* — 1 on.
+- `r_volumetricFogHeightExtinction "1 1 1"` — ground haze: relative absorption of red, green and blue.
+
+Underwater fog and water/slime/lava already define their colors; this lets the fog keep them. Effect smoke stays neutral.
+
+**Mod authors:** `fogExtinctionColor 3 0.5 0.5` in a map fog shader, `"Extinction": [3,0.5,0.5]` in a local volume.
+
+**How it works.** Each fog cell stores three transparencies, one per color channel, instead of one; compositing then needs two draws.
+
+**Debug**
+
+- `r_volumetricFogDebug 51..56` — absorption, transparency, color shift, difference, chroma, far transparency.
+
+## Local fog volumes (mod authors)
+
+Place a pocket of steam, a low smoke bank or a box of dusty air on a map without recompiling it. Volumes are lit and shadowed like any other fog. Needs `r_volumetricFog 2`.
+
+**Cost:** light for a few small volumes; many overlapping ones medium.
 
 Add a `FogVolumes` array to `cubemaps/<map>/env.json`:
 
@@ -142,109 +144,30 @@ Add a `FogVolumes` array to `cubemaps/<map>/env.json`:
 "Opaque":250,"Color":[0.55,0.55,0.58],"Softness":0.6}]}
 ~~~
 
-`Origin` and `Radius` place the cloud; `Opaque` sets its fog depth and `Color` its scattering color. Boxes use `Size` and optional `Angles`. The `r_fogvol dump` command exports test volumes.
-
-Each authored sphere, ellipsoid or box contributes density inside its bounds. It receives the existing fog lighting and shadows rather than drawing a stack of flat smoke pictures. [Details](../rend2-volumetric-fog.md).
-
-## [For mod authors] Different kinds of fog
-
-*Requires spatial fog, because these properties belong to individual fog media.*
-
-Lets steam scatter light differently from dusty air or dark smoke, even where they overlap. Existing fog keeps the global fallback until an override is authored. Light additional performance cost for overlapping media.
-
-**Main controls**
-
-- No separate switch; use the feature or asset settings described here.
+`Origin` and `Radius` place it, `Opaque` is the distance at which it becomes opaque, `Color` its color. Boxes use `Size` and optional `Angles`; ellipsoids are also supported.
 
 **Debug**
 
-- `r_volumetricFogDebug 35..39` — extinction, albedo, phase-lobe slots, mixed anisotropy and sun phase.
+- `r_volumetricFogDebug 16..19` — local density, share, bounds, volumes per slice.
+- `r_fogvol` — print volumes and statistics. `r_fogvol add ...` adds a test volume, `r_fogvol test <count> [spread]` a stress test, `r_fogvol remove <index> | clear` removes them, `r_fogvol slices` shows per-slice lists, `r_fogvol dump` prints test volumes as a `FogVolumes` array to paste into `env.json`.
 
-BSP fog shaders can add `fogAlbedo 0.9 0.4 0.3` and `fogAnisotropy 0.6` next to their existing `fogParms`. Local volumes use `"Anisotropy": 0.6`; EFX `volumetricMedia` uses `anisotropy 0.6`. Without an override the renderer uses `r_volumetricFogAnisotropy`.
+## Different kinds of fog (mod authors)
 
-Albedo controls how much light is scattered rather than absorbed. Anisotropy controls whether it scatters mostly forward or in other directions, changing how strongly a beam shows from different views.
+Steam, dust and dark smoke scatter light differently: steam is bright and glows toward the light, smoke absorbs. Fog sources can set this individually; without it the global `r_volumetricFogAnisotropy` applies.
 
-## Shadows inside smoke
-
-*Requires spatial fog, because light must be checked through the density of the medium.*
-
-Makes the far side of thick smoke darker than the side facing a lamp or the sun. Ordinary geometry shadows alone cannot create this effect inside a cloud. Heavy performance cost.
-
-**Main controls**
-
-- `r_volumetricSelfShadow 0 | 1 | 2` — off / sun / sun + strongest dynamic lights. Requires `vid_restart`.
-- `r_volumetricSelfShadowSamples <count>` — density samples along the sun ray.
-- `r_volumetricSelfShadowDistance <units>` — maximum light-ray march.
-- `r_volumetricSelfShadowOutsideHeightFog 0 | 1` — ignore / analytically include height fog beyond the march.
-- `r_volumetricSelfShadowMaxLights <count>` — strongest dynamic lights self-shadowed in mode 2.
+- Map fog shaders: `fogAlbedo 0.9 0.4 0.3` (share of light scattered rather than absorbed, per color) and `fogAnisotropy 0.6` (how strongly it glows toward the light), next to `fogParms`.
+- Local volumes: `"Anisotropy": 0.6`. Effect media: `anisotropy 0.6`.
 
 **Debug**
 
-- `r_volumetricFogDebug 40..45` — density, optical depth, media transmittance and geometry/media shadow separation.
+- `r_volumetricFogDebug 35..39` — absorption, albedo, scattering lobes, mixed anisotropy, sun phase.
 
-The renderer samples density toward the light to estimate how much the cloud itself blocks. More samples, longer rays and more dynamic lights increase the work.
+## Original Rend2 volumetric fog
 
-## Light bouncing inside fog
+`r_volumetricFog 1` keeps Rend2's original volumetric fog: the map's fog volumes are lit by its baked light only, with no sun beams, shadows or dynamic lights. It is still used for views without the new fog grid (portals, mirrors, sky portals).
 
-*Requires `r_volumetricSelfShadow 1` or `2`, because this restores part of the light that self-shadowing removed.*
+**Cost:** medium.
 
-Stops thick white steam or cloud interiors becoming unnaturally black, while dark absorptive smoke remains much darker. Medium additional performance cost.
-
-**Main controls**
-
-- `r_volumetricMultiScatter 0 | 1 | 2` — off / sun / sun + self-shadowed dynamic lights.
-- `r_volumetricMultiScatterOctaves 1..3` — scattering orders beyond single scattering.
-- `r_volumetricMultiScatterAttenuation <value>` — absorption reduction per extra scattering step.
-- `r_volumetricMultiScatterContribution <value>` — returned energy per octave.
-- `r_volumetricMultiScatterPhase <value>` — anisotropy reduction per octave.
-- `r_volumetricMultiScatterLength <units>` — characteristic dense-medium size.
-- `r_volumetricMultiScatterShadowFill <value>` — limited fill into geometry shadows.
-
-**Debug**
-
-- `r_volumetricFogDebug 46..50` — single scattering, multiple scattering, combined result, ratio and optical depth.
-
-A small series of approximate extra scattering steps returns some blocked light to the medium. It imitates light bouncing within a cloud without tracing a full chain of physical bounces.
-
-## Colored light absorption
-
-*Requires spatial fog and supported texture resources, because the renderer must keep separate red, green and blue transmission.*
-
-Lets deep water lose red light and lets colored fog tint the scene behind it. The ordinary single-density path can darken a background but cannot absorb each color differently. Heavy memory and performance cost.
-
-**Main controls**
-
-- `r_volumetricFogRGBExtinction 0 | 1` — scalar / per-channel extinction and transmittance. Requires `vid_restart`.
-- `r_volumetricFogHeightExtinction "r g b"` — relative RGB extinction for procedural height fog.
-
-**Debug**
-
-- `r_volumetricFogDebug 51..56` — RGB extinction, transmittance, color shift, difference heat, chroma and tail transmittance.
-
-### [Autodetectable] Existing liquid profiles
-
-With volumetric liquids enabled, water/slime/lava profiles already supply their absorption colors. `r_volumetricFogRGBExtinction 1` lets the volume retain those color differences.
-
-### [For mod authors] Colored media
-
-Use `fogExtinctionColor 3 0.5 0.5` in a BSP fog shader or `"Extinction": [3,0.5,0.5]` in a local volume. Height fog has `r_volumetricFogHeightExtinction`. EFX particle media currently keep neutral absorption.
-
-The fog stores three transmission values instead of one. Existing liquid profiles supply useful absorption colors; authored fog can supply its own.
-
-## Older ray-marched fog
-
-*Requires the older volumetric-fog mode, because these tune its ray sampling rather than the froxel grid.*
-
-Keeps the earlier light-grid fog path available for comparison and tuning. These settings are independent of the new fog-grid resolution. Medium performance cost when active.
-
-**Main controls**
-
-- `r_volumetricFogDefaultScale` — Scales volumetric fog density unless scale has been explicitly defined. Default `1.0`; `vid_restart`.
-- `r_volumetricFogSamples` — How many ray samples to take. Default `48`; `vid_restart`.
-- `r_volumetricFogScale` — Temporarily scales volumetric fog density. Default `1.0`.
-
-**Debug**
-
-- No separate debug controls.
-
-The older path samples the light grid along each view ray. More samples reduce stepping but increase work, while its scale settings change density.
+- `r_volumetricFogSamples 48` *(restart)* — samples per ray; fewer is faster but banded.
+- `r_volumetricFogDefaultScale 1.0` *(restart)* — density of fog volumes that don't set their own scale.
+- `r_volumetricFogScale 1.0` — temporary density multiplier (not saved).

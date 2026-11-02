@@ -1,391 +1,337 @@
 # Water, waves and waterfalls
 
-[All rendering features](../rendering-features.md)
+[All rendering settings](../rendering-features.md)
 
-Controls marked `vid_restart` need a renderer restart. Debug views use 0 to return to normal unless stated otherwise. Performance labels are rough relative costs, not benchmark guarantees.
+Pools, rivers and waterfalls that reflect, refract, move and react to you, and what you see underwater. Almost everything here builds on **modern water** (`r_waterSurface 1`), so start with the first section.
 
-## Water surfaces
+## Modern water
 
-*Requires `r_waterSurface 1` and restart, because this replaces the old water stages and allocates reflection/refraction resources.*
+Stock water is a scrolling texture with a fixed tint. Modern water reflects its surroundings, bends the view of the bottom, is clear where shallow and darker where deep, and gets the brighter reflections at grazing angles that real water has. Stock water and slime are found automatically; nothing has to be edited.
 
-Makes stock pools and rivers reflect their surroundings, bend the scene behind them and become darker with depth. The original scrolling water textures cannot react to actual water thickness this way. Medium performance cost; reflection quality can make it heavy.
+**Cost:** medium; high reflection quality can make it heavy.
 
-**Main controls**
+- `r_waterSurface 0` *(restart)* — 1 on; 0 restores the original water.
+- `r_waterSurfaceSSR 1` — weight of on-screen reflections over cubemap reflections; 0 cubemap only. Independent of `r_ssr`.
+- `r_waterSurfaceRoughness 0.06` — smaller gives sharper highlights and reflections.
+- `r_waterSurfaceAbsorption 1` — how fast water gets darker with depth (shared with [underwater fog](#underwater-fog)).
+- `r_waterSurfaceReflection 1`, `r_waterSurfaceRefraction 1` — strength of reflection and of bending; 1 physically correct.
+- `r_waterSurfaceNormal 1` — strength of small ripples; 0 removes them.
+- `r_waterSurfaceExperimental 0` — 1: also treat surfaces with water-like shader names (`pool`, `lake`, `river`…) as water, for maps where detection misses some.
 
-- `r_waterSurface` — Replace classified legacy water with the modern surface; 0 restores old stages. Default `0`; `vid_restart`.
-- `r_waterSurfaceAbsorption` — shared liquid extinction scale for surface and volume (r_volumetricWaterExtinction / Color, Slime). Default `1.0`.
-- `r_waterSurfaceDepthReject` — refraction never samples objects in front of the water (shrinks the offset, else none). Default `1`.
-- `r_waterSurfaceDepthScale` — scale of the path length under the surface (water thickness from the depth buffer). Default `1.0`.
-- `r_waterSurfaceExperimental` — also classify surfaces by a water-like shader name (pool, lake, river, water...) when they face up and have no water contents; experimental. Default `0`.
-- `r_waterSurfaceIOR` — index of refraction of the liquid (Fresnel and refraction). Default `1.333`.
-- `r_waterSurfaceNormal` — detail wave normal strength (0 removes micro detail; ambient macro is separate). Default `1.0`.
-- `r_waterSurfaceReflection` — scale of the reflection (1 = physical). Default `1.0`.
-- `r_waterSurfaceRefraction` — scale of the screen-space refraction offset (1 = physical for the depth behind the water). Default `1.0`.
-- `r_waterSurfaceRoughness` — Base water roughness; smaller values make sharper highlights. Default `0.06`.
-- `r_waterSurfaceSplit` — r_waterSurfaceDebug 9: position of the split (0-1 of the view width). Default `0.5`.
-- `r_waterSurfaceSSR` — weight of the screen-space reflections over the cubemap (independent of opaque r_ssr; 0 = cubemap only). Default `1.0`.
+`r_waterSurfaceDebug 9` compares old and new water side by side.
 
-**Debug**
+**Mod authors:** water-body and `Liquids` rules in `cubemaps/<map>/env.json` choose which surfaces form one body and its look and motion; see the design notes.
 
-- `r_waterSurfaceDebug` — Views 1..11 inspect classification, normals, reflection, depth, refraction and roughness; 9 compares old/new water. Default `0`.
-- `r_waterBodies` — List resolved water-body identities and profiles.
-- `r_waterInfo` — Inspect classified modern-water surfaces.
-- `r_waterOverride` — Inspect/set water classification overrides; run without arguments for syntax.
+**How it works.** At map load water surfaces are found from map contents and grouped into bodies. When drawn, reflection (on-screen tracing, falling back to cubemaps) is mixed with refraction by the viewing angle (Fresnel); the depth image behind the water gives its thickness and so how much light it absorbs.
 
-### [Autodetectable] Stock water
-
-Semantic water/slime surfaces are found from the BSP without editing textures or rebuilding the map. `r_waterSurfaceExperimental` adds a looser name-based fallback for exceptional maps.
-
-### [For mod authors] Water bodies and overrides
-
-Use the water-body and `Liquids` rules in `cubemaps/<map>/env.json` to choose body identity, optics and motion profiles. `r_waterOverride` helps inspect or override classification while testing. The detailed body guide lists the authoring keys.
-
-The renderer identifies water interfaces from map contents and groups them into bodies. It then combines view-dependent reflection with depth-aware refraction and light absorption. [Details](../rend2-water-bodies.md).
-
-## Underwater depth and color
-
-*Requires `r_volumetricFog 2` and restart, because liquid brushes become media inside the spatial fog renderer.*
-
-Makes underwater objects fade with actual distance through water, with separate slime and lava profiles. This replaces the original uniform underwater screen tint for handled liquids. Medium additional performance cost.
-
-**Main controls**
-
-- `r_volumetricWater` — Liquid types handled by the volume: add 1 water, 2 slime and 4 lava; 0 disables it. Default `0`; `vid_restart`.
-- `cg_underwaterTint` — Legacy full-screen underwater tint; updated cgame skips liquid classes handled by volumetric water. Default `1`.
-- `r_volumetricLavaAlbedo` — r_volumetricWater 4: lava scattering color "r g b" (no emission: absorption and scattering only). Default `0.6 0.15 0.02`.
-- `r_volumetricLavaAnisotropy` — r_volumetricWater 4: lava scattering direction. Default `0.3`.
-- `r_volumetricLavaColor` — r_volumetricWater 4: lava relative extinction "r g b". Default `0.6 1.2 1.2`.
-- `r_volumetricLavaExtinction` — r_volumetricWater 4: lava light absorption per world unit. Default `0.02`.
-- `r_volumetricSlimeAlbedo` — r_volumetricWater 2: slime scattering color "r g b". Default `0.25 0.7 0.2`.
-- `r_volumetricSlimeAnisotropy` — r_volumetricWater 2: slime scattering direction. Default `0.4`.
-- `r_volumetricSlimeColor` — r_volumetricWater 2: slime relative extinction "r g b". Default `1.6 0.5 0.9`.
-- `r_volumetricSlimeExtinction` — How quickly light is absorbed in slime. Also used for matching slime-surface/body overrides. Default `0.005`.
-- `r_volumetricWaterAlbedo` — Color of light scattered by water, as red/green/blue. Default `0.10 0.45 0.75`.
-- `r_volumetricWaterAnisotropy` — water scattering direction (forward scattering). Default `0.75`.
-- `r_volumetricWaterCausticFocus` — depth below the surface where the caustics reach full contrast (world units). Default `48`.
-- `r_volumetricWaterCaustics` — strength of the sun caustics under water (0 = off, 1 = full pattern contrast); the average sunlight is kept. Default `0.35`.
-- `r_volumetricWaterCausticScale` — caustic pattern period in world units. Default `160`.
-- `r_volumetricWaterCausticSpeed` — caustic drift in pattern periods per second. Default `0.06`.
-- `r_volumetricWaterColor` — Relative red/green/blue absorption; the default absorbs red first.
-- `r_volumetricWaterExtinction` — Water absorption per world unit; higher values hide distant underwater objects sooner. Default `0.0014`.
-- `r_volumetricWaterSunPath` — Attenuate sun and dynamic light by the distance it travels through liquid. Default `1`.
-- `r_volumetricWaterSurfaces` — Apply underwater sun attenuation and caustics to surfaces; needs sunlight rendering. Default `1`; `vid_restart`.
+- `r_waterSurfaceIOR 1.333` — refractive index of the liquid.
+- `r_waterSurfaceDepthScale 1` — scale of the measured water thickness.
+- `r_waterSurfaceDepthReject 1` — refraction never shows objects in front of the water.
+- `r_waterSSROptimize 7` — reflection speed-ups, add bits: **1** coarser geometry in the reflection pre-pass, **2** skip hidden water, **4** simpler pre-pass shader. 0 turns them off for comparison.
+- `r_waterSSRWaveReprojection 0` *(restart)* — 1: use exact previous-frame wave geometry for frame-averaged reflections.
 
 **Debug**
 
-- `r_volumetricWaterActive` — Set by the renderer: liquid classes drawn as a medium on this map (1 water, 2 slime, 4 lava), read by cgame. Default `0`.
-- `r_liquids` — Inspect resolved participating liquid brushes and profiles.
+- `r_waterSurfaceDebug 1..11` — classification, normals, reflection, depth, refraction, roughness; 9 old/new split at `r_waterSurfaceSplit 0.5`.
+- `r_waterMotionDebug 1..10` — water motion and history validity.
+- `r_waterInfo` — list modern-water surfaces. `r_waterBodies` — bodies and profiles. `r_waterOverride` — inspect or override classification (run without arguments for syntax).
 
-Liquid brushes contribute absorption and scattered light to fog cells. Updated game code reads the active-liquid mask to avoid adding the old tint a second time.
+Design notes: [rend2-water-bodies.md](../rend2-water-bodies.md), [rend2-water-surface.md](../rend2-water-surface.md).
+
+## Underwater fog
+
+Underwater the original game tints the whole screen one color. With this, water, slime and lava are real fog inside [volumetric fog](fog.md#volumetric-fog): objects fade with their actual distance through the liquid, red light disappears first, sunlight dims with depth, and a moving light pattern (caustics) plays on the bottom. Needs `r_volumetricFog 2`.
+
+**Cost:** medium.
+
+- `r_volumetricWater 0` *(restart)* — which liquids, add: **1** water, **2** slime, **4** lava. 7 for all.
+- `r_volumetricWaterExtinction 0.0014` — how fast water hides distant objects.
+- `r_volumetricWaterAlbedo "0.10 0.45 0.75"` — color of light scattered by water.
+- `r_volumetricWaterColor` — relative absorption of red, green and blue; by default red goes first.
+- `r_volumetricWaterCaustics 0.35` — strength of the caustic pattern from the sun; 0 off.
+- `cg_underwaterTint 1` — the original full-screen tint; skipped automatically for liquids drawn as fog.
+
+**How it works.** Liquid brushes add absorption and scattering to the fog cells inside them. Sun and dynamic light lose strength with the distance they travel through the liquid.
+
+- `r_volumetricWaterAnisotropy 0.75` — how strongly water glows toward the light.
+- `r_volumetricWaterSunPath 1` — dim sun and dynamic light by the path through the liquid.
+- `r_volumetricWaterSurfaces 1` *(restart)* — also dim sunlight and add caustics on underwater surfaces.
+- `r_volumetricWaterCausticScale 160`, `r_volumetricWaterCausticSpeed 0.06`, `r_volumetricWaterCausticFocus 48` — caustic size, drift speed, depth of full contrast.
+- `r_volumetricSlimeExtinction 0.005`, `r_volumetricSlimeAlbedo "0.25 0.7 0.2"`, `r_volumetricSlimeColor "1.6 0.5 0.9"`, `r_volumetricSlimeAnisotropy 0.4` — the same for slime.
+- `r_volumetricLavaExtinction 0.02`, `r_volumetricLavaAlbedo "0.6 0.15 0.02"`, `r_volumetricLavaColor "0.6 1.2 1.2"`, `r_volumetricLavaAnisotropy 0.3` — the same for lava (no glow).
+
+**Debug**
+
+- `r_volumetricFogDebug 59..70` — liquid density, brushes, camera membership, boundaries, transparency, underwater sun, path length, scattering.
+- `r_liquids` — list liquid brushes and profiles.
+- `r_volumetricWaterActive` — set by the renderer: which liquids are drawn as fog on this map (read by the game).
+
+Design notes: [rend2-volumetric-fog.md](../rend2-volumetric-fog.md#underwater-medium-r_volumetricwater).
 
 ## Looking up from underwater
 
-*Requires modern water, because the air/water interface supplies the refracting surface.*
+From below, the world above is visible only through a bright circle overhead (Snell's window); at flatter angles the surface turns into a mirror reflecting the underwater scene. Needs modern water.
 
-Shows a window to the scene above when looking upward, and internal reflections at flatter viewing angles. The original water surface does not provide this view-dependent boundary. Light to medium additional performance cost.
+**Cost:** light to medium.
 
-**Main controls**
+- `r_waterSnell 0` — 1 on.
+- `r_waterSnellOptics 0` *(restart)* — **0** basic, **1** sunlight passes through the surface, **2** also the atmosphere along the path above.
 
-- `r_waterSnell` — Enable the underwater sky window and internal reflection at shallow view angles. Default `0`.
-- `r_waterSnellOptics` — 0 original interface lighting, 1 transmit sunlight through the surface, 2 also include atmosphere in the air path. Default `0`; `vid_restart`.
-
-**Debug**
-
-- `r_waterSnellDebug` — Views 1..6 inspect crossing direction, internal reflection, reflection strength, ray direction and source. Default `0`.
-
-Snell’s law bends rays crossing water and air. Beyond a critical angle the surface reflects them back into the water; optional optics modes also handle sun transmission and the atmosphere along the air path. [Details](../rend2-water-realism-followup.md).
-
-## Water waves
-
-*Requires modern water; visible displacement also needs water geometry, because shading alone cannot move the surface outline.*
-
-Adds coherent waves instead of only scrolling detail textures. Wind can change their direction and strength, while shallow areas can move differently from deeper pools. Light for shading, medium with displaced geometry.
-
-**Main controls**
-
-- `r_waterWaves` — Ambient macro/medium water waves; 0 keeps existing water. Default `0`.
-- `r_waterWind` — Wind-driven outdoor water response (requires r_waterWaves); 0 preserves existing waves. Default `0`.
-- `r_waterWaveAmplitude` — Ambient wave amplitude scale. Default `1`.
-- `r_waterWaveChoppiness` — Reserved for future horizontal wave displacement; currently not an extra wave effect. Default `1`.
-- `r_waterWaveDispersion` — Wave dispersion: 0 legacy nondispersive, 1 authored-speed finite-depth, 2 calibrated physical for non-flowing water. Default `1`.
-- `r_waterWaveGravity` — Physical renderer water gravity in world units per second squared (dispersion mode 2 and variable-depth interaction). Default `313.6`.
-- `r_waterWaveLength` — Ambient wave wavelength scale. Default `1`.
-- `r_waterWaveMicro` — Micro slope scale in addition to r_waterSurfaceNormal. Default `1`.
-- `r_waterWaveQuality` — Ambient waves: 0 = 2 terms, 1 = 4 terms, 2 = 8 terms. Default `1`.
-- `r_waterWaveShallow` — Dampen analytical waves using stable body mean depth. Default `1`.
-- `r_waterWaveSpeed` — Ambient wave speed scale. Default `1`.
-- `r_waterWindScale` — Global scale for resolved wind response on water. Default `1`.
-- `r_waterWindTransition` — Seconds to crossfade old and target wind wave sets. Default `4`.
+**How it works.** Light bends when crossing the water surface (Snell's law); beyond a critical angle it can't leave and reflects back (total internal reflection).
 
 **Debug**
 
-- `r_waterWaveDebug` — Ambient waves debug: 1 height, 2 macro normal, 3 micro normal, 4 combined, 5 profile, 6 depth mask, 7 displacement, 8 split, 9 multiplier, 10 legacy deform. Default `0`.
-- `r_waterWaveTime` — Ambient wave time: -1 running, >=0 fixed seconds. Default `-1`.
-- `r_waterWindDebug` — Water wind debug: 1 resolved wind, 2 current wave direction, 3 target direction, 4 blend/source. Default `0`.
+- `r_waterSnellDebug 1..6` — crossing direction, internal reflection, reflection strength, ray direction, source.
 
-A small set of analytic waves supplies height and surface slopes. Dispersion controls how wavelength and water depth affect speed; wind changes are blended instead of snapping. [Details](../rend2-water-waves.md).
+Design notes: [rend2-water-realism-followup.md](../rend2-water-realism-followup.md).
 
-## Moving water geometry
+## Waves
 
-*Requires modern water and restart; optional GPU tessellation also needs the modern OpenGL path, because the surface must have enough vertices to move.*
+Coherent waves roll across the water instead of a scrolling texture. Wind can turn and strengthen them outdoors, and shallow water moves less than deep pools. Without [wave geometry](#wave-geometry) the waves change lighting only; the surface itself stays flat.
 
-Lets waves change the water’s actual outline and follows that moving surface when the camera enters or leaves water. Without it, optical waves still lie on a flat mesh. Medium performance cost; dense geometry can be heavy.
+**Cost:** light; medium with wave geometry.
 
-**Main controls**
+- `r_waterWaves 0` — 1 on.
+- `r_waterWaveAmplitude 1`, `r_waterWaveLength 1`, `r_waterWaveSpeed 1` — wave height, length and speed.
+- `r_waterWind 0` — 1: outdoor waves follow the wind.
+- `r_waterWaveQuality 1` — 0, 1, 2: 2, 4 or 8 wave layers.
 
-- `r_waterGeometry` — Subdivided render-only water mesh; requires r_waterSurface and vid_restart. Default `0`; `vid_restart`.
-- `r_waterTessellation` — Distance-adaptive GPU tessellation of the r_waterGeometry mesh (GL 4.3, r_gl43); coarser base mesh, requires vid_restart. Default `0`; `vid_restart`.
-- `r_waterGeometryBodyVerts` — Maximum subdivided vertices per water body. Default `250000`; `vid_restart`.
-- `r_waterGeometryEdge` — Target maximum water mesh edge length in world units. Default `64`; `vid_restart`.
-- `r_waterGeometryMapVerts` — Maximum subdivided vertices per map. Default `1000000`; `vid_restart`.
-- `r_waterlineHysteresis` — Visual camera waterline enter/exit band in world units; fast crossings reduce the band. Default `1.5`.
-- `r_waterTessLodDistance` — Distance from the camera (world units) with the finest water tessellation; beyond it edges grow by r_waterTessPixels. Default `0`.
-- `r_waterTessMax` — Maximum water tessellation level (8, 16, 32): the base mesh is that much coarser; requires vid_restart. Default `16`; `vid_restart`.
-- `r_waterTessMinEdge` — Shortest tessellated water edge in world units: 64 = never finer than the static r_waterGeometry mesh, 0 = only r_waterTessMax limits the detail near the camera. Default `0`.
-- `r_waterTessPixels` — Target tessellated water edge length in pixels (smaller is denser and slower; waves too short for the mesh stay in shading). Default `96`.
+**How it works.** A few analytic wave trains are summed to give height and slope. Dispersion makes long waves faster than short ones and all waves slower in shallow water; wind changes are crossfaded.
 
-**Debug**
-
-- `r_waterGeometryDebug` — Water geometry debug view. Default `0`.
-- `r_waterlineDebug` — Visual waterline diagnostics: 1 = once-per-second state, 2 = state plus recent camera-relative-height graph. Default `0`.
-- `r_waterTessForce` — Water tessellation level for every edge (0: by distance), for tests. Default `0`.
-- `r_waterGeometryInfo` — Print subdivided/tessellated water geometry and budgets.
-
-The renderer subdivides water within vertex budgets. Optional tessellation refines nearby edges on the GPU; waterline hysteresis prevents rapid underwater/above-water flicker. [Details](../rend2-water-geometry.md).
-
-## Interactive water
-
-*Requires modern water and restart, because each active body needs its own disturbance field.*
-
-Lets impacts and movement send ripples across a pool instead of only spawning a flat splash picture. Optional depth-aware propagation makes shallow regions behave differently. Medium performance and memory cost within the chosen body budgets.
-
-**Main controls**
-
-- `r_waterInteraction` — Per-body interactive water disturbances; requires r_waterSurface and vid_restart. Default `0`; `vid_restart`.
-- `r_waterBathymetry` — Build exact body-local liquid depth/confidence fields; requires water interaction and vid_restart. Default `0`; `vid_restart`.
-- `r_waterInteractionVariableDepth` — Use bathymetry and g*div(H*grad(height)) in interactive water. Default `0`.
-- `r_waterInteractionDamping` — Profile disturbance damping multiplier. Default `1`.
-- `r_waterInteractionMaxBodies` — Maximum bodies with interaction fields. Default `8`; `vid_restart`.
-- `r_waterInteractionMaxTexels` — Total interaction texel budget. Default `524288`; `vid_restart`.
-- `r_waterInteractionMemoryMB` — GPU interaction-field memory budget in MiB. Default `16`; `vid_restart`.
-- `r_waterInteractionQuality` — Interaction density: 0=32, 1=16, 2=8 world units per texel. Default `1`; `vid_restart`.
-- `r_waterInteractionSpeed` — Profile disturbance propagation-speed multiplier. Default `1`.
-- `r_waterInteractionStrength` — Global water interaction strength multiplier. Default `1`.
+- `r_waterWaveDispersion 1` — **0** all waves the same speed, **1** speed depends on wavelength and depth, **2** physically calibrated (still water only).
+- `r_waterWaveGravity 313.6` — gravity for mode 2, in units/s².
+- `r_waterWaveShallow 1` — damp waves in shallow bodies.
+- `r_waterWaveMicro 1` — fine slope detail, on top of `r_waterSurfaceNormal`.
+- `r_waterWindScale 1` — strength of the wind response.
+- `r_waterWindTransition 4` — seconds to blend into a new wind.
+- `r_waterWaveChoppiness 1` — reserved; no effect yet.
 
 **Debug**
 
-- `r_waterBathymetryDebug` — Print body-local bathymetry coverage and confidence audit. Default `0`.
-- `r_waterInteractionDebug` — Interaction debug: 1 domain, 2 mask, 3 height, 4 velocity, 5 slope, 6 source, 7 foam, 8 active/sleep, 9 mapping. Default `0`.
-- `r_waterImpulse` — Inject a diagnostic impulse at the aimed water body; optional strength and radius.
-- `r_waterInteractionInfo` — Print allocated disturbance fields, masks and resource budgets.
+- `r_waterWaveDebug 1..10` — height, normals, profile, depth mask, displacement, split, multiplier, legacy deform.
+- `r_waterWaveTime -1` — freeze waves at a time in seconds; -1 running.
+- `r_waterWindDebug 1..4` — wind, current and target direction, blend.
 
-Each body stores water height and vertical speed on a small grid. Bathymetry means the depth map beneath the surface; it can change how quickly disturbances travel. [Details](../rend2-water-interaction.md).
+Design notes: [rend2-water-waves.md](../rend2-water-waves.md).
+
+## Wave geometry
+
+Lets waves actually move the water surface, so its outline rises and falls against shores and objects, and the camera crossing the surface follows the moving waterline. Needs modern water.
+
+**Cost:** medium; dense geometry can be heavy.
+
+- `r_waterGeometry 0` *(restart)* — 1: split water into a fine mesh.
+- `r_waterTessellation 0` *(restart)* — 1: let the GPU add detail near the camera and less far away (OpenGL 4.3). Faster and finer than the fixed mesh alone.
+- `r_waterTessPixels 96` — tessellation: target edge length on screen; smaller is denser and slower.
+- `r_waterGeometryEdge 64` *(restart)* — fixed mesh: longest edge in world units.
+
+**How it works.** The water is subdivided within vertex budgets, and each vertex is moved by the wave height. Waves shorter than the mesh stay in shading only. The waterline uses a small tolerance band so the screen doesn't flicker between above and below water.
+
+- `r_waterGeometryBodyVerts 250000`, `r_waterGeometryMapVerts 1000000` *(restart)* — vertex budgets per body and per map.
+- `r_waterTessMax 16` *(restart)* — maximum tessellation level (8, 16, 32); the base mesh is that much coarser.
+- `r_waterTessLodDistance 0` — distance with the finest detail.
+- `r_waterTessMinEdge 0` — shortest edge in world units; 0 lets `r_waterTessMax` decide.
+- `r_waterlineHysteresis 1.5` — the waterline tolerance band.
+
+**Debug**
+
+- `r_waterGeometryDebug 1` — geometry view. `r_waterGeometryInfo` — meshes and budgets.
+- `r_waterTessForce <level>` — force one tessellation level everywhere; 0 by distance.
+- `r_waterlineDebug 1..2` — waterline state, and its height graph.
+
+Design notes: [rend2-water-geometry.md](../rend2-water-geometry.md).
+
+## Ripples from movement and impacts
+
+Shots, falling objects and characters send real ripples across a pool, which spread, reflect from edges and fade. Needs modern water.
+
+**Cost:** medium, within memory budgets.
+
+- `r_waterInteraction 0` *(restart)* — 1 on.
+- `r_waterInteractionStrength 1` — strength of all disturbances.
+- `r_waterInteractionQuality 1` *(restart)* — detail: 0 coarse, 1 medium, 2 fine.
+- `r_waterBathymetry 0` *(restart)* — 1: measure the depth under each body, so that with `r_waterInteractionVariableDepth 1` ripples slow down in shallow water as real waves do.
+
+**How it works.** Each body gets a small grid of water height and vertical speed that is simulated every frame.
+
+- `r_waterInteractionSpeed 1`, `r_waterInteractionDamping 1` — spread speed and damping.
+- `r_waterInteractionMaxBodies 8`, `r_waterInteractionMaxTexels 524288`, `r_waterInteractionMemoryMB 16` *(restart)* — budgets.
+
+**Debug**
+
+- `r_waterInteractionDebug 1..9` — domain, mask, height, velocity, slope, sources, foam, sleep, mapping.
+- `r_waterInteractionInfo` — fields and budgets. `r_waterBathymetryDebug 1` — depth-measurement audit.
+- `r_waterImpulse [strength] [radius]` — poke the water you are aiming at.
+
+Design notes: [rend2-water-interaction.md](../rend2-water-interaction.md).
+
+## Splashes, wakes and rain on water
+
+Jumping in or climbing out throws spray, shots raise splashes, characters leave wakes, and rain dimples pools. Wakes and rain need [ripples](#ripples-from-movement-and-impacts) (`r_waterInteraction 1`) to show.
+
+**Cost:** medium while active.
+
+- `r_waterSplashes 0` — 1: entry, exit and projectile splashes.
+- `r_waterSplashStrength 1`, `r_waterSplashQuality 1` — strength and particle quality (0–2).
+- `r_waterSplashProjectiles 1` — splashes from shots and thrown sabers.
+- `r_waterSplashFoam 1` — foam left by splashes.
+- `r_waterWakes 1` — wakes behind moving characters.
+- `r_waterWakeStrength 1` — wake strength.
+- `r_waterRainRipples 1` — rain on real water bodies.
+- `r_waterRainRippleQuality 1` *(restart)* — 0, 1, 2.
+
+**How it works.** Game events push impulses into the body's ripple grid and spawn spray particles. Rain adds a statistical sample of its impacts plus fine disturbance.
+
+- `r_waterWakeMinSpeed 35`, `r_waterWakeFoamSpeed 260` — speed where wakes start and where wake foam is full.
+- `r_waterWakeMaxEntities 16` — characters making wakes per frame.
+- `r_waterRainRippleDensity 0.22` — share of rain drops turned into individual ripples.
+- `r_waterRainRippleImpulse 0.55`, `r_waterRainRippleMicro 1` — their strength and the fine rain roughness.
+
+**Debug**
+
+- `r_waterSplashDebug 1`, `r_waterWakeDebug 1` — show and print events.
+- `r_waterRainRippleDebug 1..4` — impact mask, source, field, energy.
+
+Design notes: [rend2-physical-water-splashes.md](../rend2-physical-water-splashes.md).
 
 ## Flowing water
 
-*Requires modern water; wall response also needs the spatial flow field, because it uses local banks and obstacles to redirect flow.*
+Rivers and streams move along their channel, carrying ripples and foam with them. With the flow field, water slows near banks and turns along walls; with impact, it piles up and foams where it runs into a wall. Needs modern water.
 
-Makes rivers move consistently along their channel, carrying surface detail and disturbances. Water can slow near banks and pile or foam at walls. Light for uniform flow, medium for the field and wall response.
+**Cost:** light; medium with the field and wall impact.
 
-**Main controls**
+- `r_waterFlow 0` — 1: flowing water on streams the renderer recognizes.
+- `r_waterFlowField 0` *(restart)* — 1: compute flow around banks and obstacles at map load.
+- `r_waterFlowImpact 0` *(restart)* — 1: water piles up, sloshes, foams and wets walls it runs into. Needs the flow field.
+- `r_waterFlowSpeed 1` — flow speed.
+- `r_waterFlowDetail 1` — how strongly small detail is carried by the flow.
 
-- `r_waterFlow` — Directional per-body water flow; 0 preserves the pre-flow water result. Default `0`.
-- `r_waterFlowField` — Spatial per-body flow field baked at map load: slower water at banks, flow turning along walls (requires r_waterFlow 1). Default `0`; `vid_restart`.
-- `r_waterFlowImpact` — Flow running into a wall piles up, sloshes, foams and wets the wall (requires r_waterFlowField 1). Default `0`; `vid_restart`.
-- `r_waterFlowDetail` — Directional advection scale for medium and micro water detail. Default `1`.
-- `r_waterFlowSpeed` — Global multiplier for resolved per-body flow velocity. Default `1`.
+**Mod authors:** set flow direction and speed in the water-body data when the automatic guess is wrong; `r_waterFlowOverride` helps while testing.
 
-**Debug**
-
-- `r_waterFlowDebug` — Water flow debug: 1 direction, 2 magnitude, 3 confidence/source, 4 advected detail, 5 field speed, 6 wall impingement, 7 field shore distance. Default `0`.
-- `r_waterFlowOverride` — Inspect/set per-body flow overrides; run without arguments for syntax.
-
-### [Autodetectable] Existing streams
-
-`r_waterFlow 1` uses supported stock/body flow decisions. Enable `r_waterFlowField` before restart to account for banks, then `r_waterFlowImpact` for wall response.
-
-### [For mod authors] Authored flow
-
-Supply explicit flow direction/speed in water-body metadata when the stock decision is unsuitable. Use `r_waterFlowOverride` while testing; authoring a direction alone does not enable the global flow mode.
-
-A per-body direction, or optional local flow map, moves the water fields. The wall-response layer adds local disturbance and wet contact rather than a full 3D fluid simulation. [Details](../rend2-water-flow.md).
-
-## Foam around obstacles
-
-*Requires modern water; persistent foam needs its allocated body field, because it must survive and move between frames.*
-
-Adds foam where water meets objects, along supported shores and under waterfalls. Foam can drift and fade instead of staying glued to one texture. Medium additional performance cost.
-
-**Main controls**
-
-- `r_waterFoamField` — Persistent body-local water foam fields; requires r_waterSurface and vid_restart (never ocean foam). Default `0`; `vid_restart`.
-- `r_waterIntersectionFoam` — Opaque-object intersection foam on modern shallow water. Default `0`.
-- `r_waterFoamAdvection` — Foam advection multiplier for resolved body flow. Default `1`.
-- `r_waterFoamDecay` — Persistent foam concentration decay per second. Default `0.55`.
-- `r_waterFoamDiffusion` — Mild foam diffusion in texture cells per second. Default `0.12`.
-- `r_waterFoamImpact` — Impact-pool and wake foam source strength (0 disables this source). Default `1`.
-- `r_waterFoamIntersection` — Obstacle/intersection foam source strength (0 disables this source). Default `1`.
-- `r_waterFoamResolution` — Longest side of each active local foam field. Default `128`; `vid_restart`.
-- `r_waterFoamShoreline` — Enabled shoreline foam source strength (0 disables this source). Default `1`.
-- `r_waterFoamSteepness` — Optional local wave-steepness foam source strength. Default `0`.
-- `r_waterFoamWaterfall` — Waterfall/turbulent-stream foam source strength (0 disables this source). Default `1`.
-- `r_waterIntersectionFoamPersistence` — Seconds for intersection foam in the interaction field to fade. Default `1.5`.
-- `r_waterIntersectionFoamStrength` — Object/water intersection foam strength. Default `1`.
-- `r_waterIntersectionFoamWidth` — World-space half-width of the object/water intersection band. Default `8`.
+**How it works.** Each body gets a flow direction, or a flow map computed at load, that moves its surface detail, ripples and foam. Wall impact adds local disturbance and wetness; it is not a full fluid simulation.
 
 **Debug**
 
-- `r_waterFoamDebug` — Persistent foam debug: 1 concentration, 2 velocity, 3 sources. Default `0`.
-- `r_waterIntersectionFoamDebug` — Show the raw depth/normal-qualified object intersection mask. Default `0`.
-- `r_waterIntersectionVerify` — Verify GPU water/object intersection classification.
+- `r_waterFlowDebug 1..7` — direction, speed, confidence, carried detail, field speed, wall impact, distance to shore.
+- `r_waterFlowOverride` — inspect or set flow per body.
 
-A body-local texture receives foam sources, moves with flow and gradually decays. Depth/normal tests find visible object intersections without treating every nearby pixel as a contact. [Details](../rend2-water-intersection-foam.md).
+Design notes: [rend2-water-flow.md](../rend2-water-flow.md).
 
-## Water at the shore
+## Foam
 
-*Requires modern water, water geometry and restart, because this follows the displaced waterline against solid ground.*
+White foam where water meets objects, along shores, behind wakes and under waterfalls. It drifts with the flow and fades over time. Needs modern water.
 
-Softens abrupt water/shore intersections, reduces waves near rigid banks and leaves a drying wet fringe as the surface retreats. Light to medium additional performance cost.
+**Cost:** medium.
 
-**Main controls**
+- `r_waterFoamField 0` *(restart)* — 1: foam that persists and moves.
+- `r_waterIntersectionFoam 0` — 1: a foam ring where objects stand in shallow water.
+- `r_waterFoamDecay 0.55` — how fast foam fades.
+- `r_waterFoamShoreline 1`, `r_waterFoamWaterfall 1`, `r_waterFoamImpact 1`, `r_waterFoamIntersection 1`, `r_waterFoamSteepness 0` — foam from shores, waterfalls, splashes and wakes, objects, steep waves; 0 turns a source off.
 
-- `r_waterShoreline` — Displaced-water shoreline/contact treatment; requires r_waterSurface, r_waterGeometry and vid_restart. Default `0`; `vid_restart`.
-- `r_waterShoreAttenuation` — World distance over which macro waves recover from a rigid/shallow boundary. Default `96`.
-- `r_waterShoreContactSoftness` — World width of the water/geometry soft contact and overlap. Default `6`.
-- `r_waterShoreFoam` — Profile-scaled shoreline source strength for the existing water foam field. Default `1`.
-- `r_waterShoreWetPersistence` — Seconds for a retreated displaced waterline to dry. Default `8`.
-- `r_waterShoreWetStrength` — Water-contact wet-fringe strength through the existing material wetness response. Default `0.8`.
+**How it works.** Each body has a small foam texture: sources add foam, flow moves it, and it decays. Objects are found where their depth meets the water surface.
 
-**Debug**
-
-- `r_waterShoreDebug` — Views 1..9 inspect depth, shoreline distance, wave reduction, contact, wet edges and foam. Default `0`.
-
-Shore depth and boundary distance reduce wave motion near contact. The same moving contact feeds wetness and optional foam history. [Details](../rend2-water-shoreline.md).
-
-## Splashes, wakes and rain on real water
-
-*Requires updated game/client modules and the corresponding water fields, because game events must reach the renderer.*
-
-Adds entry/exit splashes, projectile impacts, wakes behind moving characters and rain ripples on real pools. These follow the actual water bodies rather than using one generic overlay. Medium performance cost during active disturbances.
-
-**Main controls**
-
-- `r_waterSplashes` — Physical water entry, exit and projectile splashes. Default `0`.
-- `r_waterWakes` — Submit movement-driven water wakes from updated game/client code. Default `1`.
-- `r_waterRainRipples` — Rain disturbances on classified real water bodies. Default `1`.
-- `r_waterRainRippleDensity` — Statistical fraction of real-water rain impacts injected as explicit ripples. Default `0.22`.
-- `r_waterRainRippleImpulse` — Velocity impulse scale of explicit real-water rain ripples. Default `0.55`.
-- `r_waterRainRippleMicro` — Aggregate rain micro-disturbance scale on real water. Default `1`.
-- `r_waterRainRippleQuality` — Real-water rain field quality: 0=128, 1=256, 2=512 (vid_restart). Default `1`; `vid_restart`.
-- `r_waterSplashFoam` — Physical splash foam scale. Default `1`.
-- `r_waterSplashProjectiles` — Projectile and thrown-saber water splashes. Default `1`.
-- `r_waterSplashQuality` — Physical splash particles: 0 low, 1 medium, 2 high. Default `1`.
-- `r_waterSplashStrength` — Physical splash impulse and spray strength scale. Default `1`.
-- `r_waterWakeFoamSpeed` — Entity speed at which the wake foam response reaches its reference strength. Default `260`.
-- `r_waterWakeMaxEntities` — Maximum wake-producing entities per frame. Default `16`.
-- `r_waterWakeMinSpeed` — Minimum entity speed for wake submission, world units per second. Default `35`.
-- `r_waterWakeStrength` — Wake impulse strength multiplier. Default `1`.
+- `r_waterFoamResolution 128` *(restart)* — foam texture size.
+- `r_waterFoamAdvection 1`, `r_waterFoamDiffusion 0.12` — drift with the flow, spreading.
+- `r_waterIntersectionFoamStrength 1`, `r_waterIntersectionFoamWidth 8`, `r_waterIntersectionFoamPersistence 1.5` — object foam strength, width and fade time.
 
 **Debug**
 
-- `r_waterRainRippleDebug` — Water rain debug: 1 impact mask, 2 source texture, 3 sparse field, 4 aggregate energy. Default `0`.
-- `r_waterSplashDebug` — Show and print physical splash events. Default `0`.
-- `r_waterWakeDebug` — Print/draw movement-wake diagnostics. Default `0`.
+- `r_waterFoamDebug 1..3` — amount, velocity, sources.
+- `r_waterIntersectionFoamDebug 1` — raw object mask. `r_waterIntersectionVerify` — check object detection.
 
-Game events inject impulses into local water fields and submit spray particles. Wakes and rain add bounded sources; their switches do not enable modern water or its simulation by themselves. [Details](../rend2-physical-water-splashes.md).
+Design notes: [rend2-water-intersection-foam.md](../rend2-water-intersection-foam.md).
 
-## Moving light patterns underwater
+## Shorelines
 
-*Requires enabled liquid attenuation and the relevant light source; surface-driven mode also needs modern water, because it uses its wave slopes.*
+With wave geometry, the water edge moves up and down the shore. This softens the hard line where water meets ground, calms waves near rigid banks, and leaves a wet band that dries as the water pulls back. Needs `r_waterGeometry 1`.
 
-Makes bright underwater patterns move with the water above them instead of using an unrelated scrolling pattern. Sun, supported dynamic lights and directed baked light can be selected separately. Medium performance cost; extra light sources increase it.
+**Cost:** light to medium.
 
-**Main controls**
-
-- `r_waterCausticsMode` — underwater caustics: 0 off, 1 original procedural, 2 actual water-surface driven. Default `1`.
-- `r_waterCausticsLightMask` — caustic light sources: 1 sun, 2 dynamic point/spot, 4 directional baked light. Default `1`; `vid_restart`.
-- `r_waterCausticsBakedMode` — directional baked-light caustics: 0 off, 1 surface-driven, 2 original procedural pattern. Default `0`.
-- `r_waterCausticsBakedStrength` — strength of liquid attenuation and caustic modulation on the directional baked-light share. Default `0.35`.
-- `r_waterCausticsFilter` — receiver-depth footprint filter for surface-driven caustics. Default `1`.
-- `r_waterCausticsLocalMaxLights` — maximum dynamic point/spot lights evaluated for water caustics per receiver. Default `1`.
-- `r_waterCausticsMaxDepth` — maximum liquid path depth for surface-driven caustic contrast. Default `2048`.
-- `r_waterCausticsQuality` — surface-driven caustic derivative quality: 0 32u, 1 16u, 2 8u base spacing. Default `1`.
-- `r_waterCausticsSlope` — surface slope contribution to surface-driven caustics. Default `1`.
+- `r_waterShoreline 0` *(restart)* — 1 on.
+- `r_waterShoreWetStrength 0.8`, `r_waterShoreWetPersistence 8` — wet band strength and drying time in seconds.
+- `r_waterShoreFoam 1` — shore foam (needs the foam field).
+- `r_waterShoreAttenuation 96` — distance over which waves recover from a bank.
+- `r_waterShoreContactSoftness 6` — width of the soft water edge.
 
 **Debug**
 
-- `r_waterCausticsDebug` — surface caustics debug: 1 slope, 2 refracted ray, 3 focus, 4 weighted result, 5 projected receiver, 6 attenuation, 7 interaction. Default `0`.
+- `r_waterShoreDebug 1..9` — depth, shore distance, wave reduction, contact, wet edges, foam.
 
-Caustics are light focused or spread by a curved water surface. Mode 2 estimates that focusing from the resolved waves; mode 1 keeps the earlier procedural pattern. [Details](../rend2-surface-caustics.md).
+Design notes: [rend2-water-shoreline.md](../rend2-water-shoreline.md).
 
-## Waterfalls and whitewater
+## Underwater light patterns (caustics)
 
-*Requires the corresponding modern water resources, because falling sheets, mist and pool motion use separate surface/fog/simulation paths. Volume mist needs spatial fog; impact pools need interaction or foam fields.*
+Rippling bright lines on the bottom of pools, made by waves focusing sunlight. By default a generic pattern is used; mode 2 derives it from the actual waves above. Needs [underwater fog](#underwater-fog) with `r_volumetricWaterSurfaces 1`; mode 2 also modern water.
 
-Adds broken-up falling sheets, bright aerated water, mist at the base and disturbed impact pools. This replaces flat waterfall stages only for supported or authored sheets. Medium to heavy performance cost when several layers are active.
+**Cost:** medium; more light sources cost more.
 
-**Main controls**
+- `r_waterCausticsMode 1` — **0** off, **1** generic pattern, **2** from the real water surface.
+- `r_waterCausticsLightMask 1` *(restart)* — light sources, add: **1** sun, **2** dynamic lights, **4** baked light.
+- `r_waterCausticsQuality 1` — mode 2 detail: 0, 1, 2.
 
-- `r_waterfall` — Dedicated modern waterfall sheets selected by env.json Waterfalls metadata or the audited stock mapping; 0 restores exact legacy stages; vid_restart. Default `0`; `vid_restart`.
-- `r_waterfallMist` — Waterfall base spray/mist generated from authored emitters or classified sheet impact edges. Default `0`.
-- `r_waterfallImpact` — Localized waterfall impact-pool ripples, turbulence and foam; requires r_waterInteraction and/or r_waterFoamField. Default `0`.
-- `r_waterWhitewater` — Advected stream/rapid aeration; requires r_waterSurface and vid_restart. Default `0`; `vid_restart`.
-- `r_waterfallGeometry` — Render-only waterfall subdivision; BSP collision is unchanged; vid_restart. Default `1`; `vid_restart`.
-- `r_waterfallHeavyStrength` — Heavy/high-volume waterfall profile breakup, whitewater and spray strength. Default `1`.
-- `r_waterfallImpactFoam` — Waterfall impact-pool persistent foam injection strength. Default `1`.
-- `r_waterfallImpactImpulse` — Waterfall impact-pool central downward impulse strength. Default `1`.
-- `r_waterfallImpactRadius` — Waterfall impact-pool authored/inferred radius multiplier. Default `1`.
-- `r_waterfallImpactTurbulence` — Waterfall impact-pool stochastic secondary disturbance strength. Default `1`.
-- `r_waterfallMediumStrength` — Medium waterfall profile breakup, whitewater and spray strength. Default `1`.
-- `r_waterfallMistBalance` — Waterfall particle/mist balance: 0 keeps particle spray only, 1 uses full froxel mist. Default `0.65`.
-- `r_waterfallMistDensity` — Waterfall suspended mist density scale. Default `1`.
-- `r_waterfallMistLens` — Couple nearby waterfall spray to the existing LensWater SPRAY input. Default `0`.
-- `r_waterfallMistRadius` — Waterfall mist and lens emitter radius scale. Default `1`.
-- `r_waterfallQuality` — Waterfall coherent breakup quality: 0 low, 1 medium, 2 high. Default `1`.
-- `r_waterfallRefraction` — Waterfall thin-sheet refraction strength. Default `1`.
-- `r_waterfallSmallStrength` — Small waterfall profile breakup, whitewater and spray strength. Default `1`.
-- `r_waterfallWhitewater` — Waterfall aeration and lit whitewater scale. Default `1`.
-- `r_waterWhitewaterDecay` — Advected whitewater turbulence decay per second. Default `1.1`.
-- `r_waterWhitewaterFoam` — Persistent surface-foam injection from whitewater. Default `0.35`.
-- `r_waterWhitewaterStrength` — Whitewater bulk optical strength. Default `1`.
-- `r_waterWhitewaterThreshold` — Turbulence source threshold for whitewater formation. Default `0.45`.
+**How it works.** A curved water surface bends sunlight into bright lines and dark gaps. Mode 2 estimates that from the wave slopes above each underwater point.
+
+- `r_waterCausticsSlope 1` — influence of wave slope.
+- `r_waterCausticsFilter 1` — blur deeper patterns.
+- `r_waterCausticsMaxDepth 2048` — depth where caustics fade out.
+- `r_waterCausticsLocalMaxLights 1` — dynamic lights per point.
+- `r_waterCausticsBakedMode 0` — baked light: **0** none, **1** from the surface, **2** generic pattern.
+- `r_waterCausticsBakedStrength 0.35` — strength on baked light.
 
 **Debug**
 
-- `r_waterfallDebug` — Views 1..12 inspect classification, flow, movement, refraction, foam, spray, impacts and wireframe. Default `0`.
-- `r_waterfallImpactDebug` — Draw resolved waterfall impact regions and print resolution diagnostics. Default `0`.
-- `r_waterfallMistDebug` — Draw and list resolved waterfall mist emitters. Default `0`.
-- `r_waterWhitewaterDebug` — Whitewater debug: 1 flow, 2 turbulence source, 3 final whitewater, 4 foam sources. Default `0`.
-- `r_waterfalls` — List selected waterfall sheets and metadata.
+- `r_waterCausticsDebug 1..7` — slope, refracted ray, focus, result, projection, attenuation, interaction.
 
-### [Autodetectable] Supported stock waterfalls
+Design notes: [rend2-surface-caustics.md](../rend2-surface-caustics.md).
 
-`r_waterfall 1` plus restart selects audited stock sheets. Enable mist, impact pools and whitewater separately; each adds its own effect.
+## Waterfalls and rapids
 
-### [For mod authors] Custom falling sheets
+Falling water breaks up into streaks, turns white where it is aerated, throws mist at the base and churns the pool it falls into. Rapids carry white water downstream. Supported stock waterfalls are recognized automatically; others keep their original look. Needs modern water.
 
-Use `Waterfalls` metadata in `cubemaps/<map>/env.json` for sheet selection and emitter/impact placement. Unrecognized legacy waterfalls keep their old stages until covered by a rule.
+**Cost:** medium to heavy with all layers on.
 
-Falling sheets share a resolved waterfall profile. Separate bounded sources feed spray, fog, pool disturbances and foam; whitewater carries aeration along turbulent streams. [Details](../rend2-waterfalls.md).
+- `r_waterfall 0` *(restart)* — 1 modern waterfall sheets.
+- `r_waterfallMist 0` — 1 spray and mist at the base (best with volumetric fog).
+- `r_waterfallImpact 0` — 1 ripples, turbulence and foam where it lands (needs ripples or the foam field).
+- `r_waterWhitewater 0` *(restart)* — 1 white water in rapids and turbulent streams.
+- `r_waterfallQuality 1` — 0–2.
 
-## Underwater motes and bubbles
+**Mod authors:** `Waterfalls` data in `cubemaps/<map>/env.json` selects sheets and places mist and impact points.
 
-*Requires a supported water body and underwater camera, because the particles use that body’s profile.*
+**How it works.** Each waterfall gets a profile (small, medium, heavy) that drives its breakup, spray and pool disturbance. White water is carried by the flow and decays.
 
-Adds drifting specks and tiny bubbles around the camera, making clear and murky water feel different from empty tinted air. Light performance cost.
-
-**Main controls**
-
-- `r_waterParticles` — Underwater suspended particles and micro-bubbles around the camera (0 off, 1 on). Default `0`.
-- `r_waterParticlesBubbles` — share of micro-bubbles 0..1, -1 = the body profile's. Default `-1`.
-- `r_waterParticlesDensity` — density scale of the body profile. Default `1`.
-- `r_waterParticlesDistance` — radius of the particle volume around the camera (world units). Default `160`.
-- `r_waterParticlesProfile` — body profile, 0 auto (env.json WaterParticles, else clean), 1 clean, 2 murky, 3 dirty, -1 none. Default `0`.
-- `r_waterParticlesSize` — particle size scale. Default `1`.
-- `r_waterParticlesSpeed` — drift and bubble rise speed scale. Default `1`.
+- `r_waterfallSmallStrength 1`, `r_waterfallMediumStrength 1`, `r_waterfallHeavyStrength 1` — strength per profile.
+- `r_waterfallWhitewater 1`, `r_waterfallRefraction 1` — aeration brightness, sheet refraction.
+- `r_waterfallGeometry 1` *(restart)* — finer waterfall mesh (visual only).
+- `r_waterfallMistBalance 0.65` — 0 spray particles only, 1 full fog mist.
+- `r_waterfallMistDensity 1`, `r_waterfallMistRadius 1` — mist density and size.
+- `r_waterfallMistLens 0` — 1: nearby spray wets the [camera lens](weather.md#water-on-the-camera-lens).
+- `r_waterfallImpactImpulse 1`, `r_waterfallImpactTurbulence 1`, `r_waterfallImpactFoam 1`, `r_waterfallImpactRadius 1` — pool push, turbulence, foam, area.
+- `r_waterWhitewaterStrength 1`, `r_waterWhitewaterThreshold 0.45`, `r_waterWhitewaterDecay 1.1`, `r_waterWhitewaterFoam 0.35` — white water look, how much turbulence starts it, fade speed, foam left behind.
 
 **Debug**
 
-- `r_waterParticlesDebug` — r_waterParticles debug: 1 placement (opaque, cyan motes, yellow bubbles), 2 no fog in front, 3 print stats every second. Default `0`.
+- `r_waterfallDebug 1..12` — classification, flow, motion, refraction, foam, spray, impacts, wireframe.
+- `r_waterfallMistDebug 1`, `r_waterfallImpactDebug 1` — mist emitters, impact areas.
+- `r_waterWhitewaterDebug 1..4` — flow, turbulence, white water, foam sources.
+- `r_waterfalls` — list waterfall sheets.
 
-A small camera-local particle volume uses a clean, murky or dirty body profile. Density and distance bound the work; this is decorative material suspended in water, not fluid simulation. [Details](../rend2-water-particles.md).
+Design notes: [rend2-waterfalls.md](../rend2-waterfalls.md).
+
+## Underwater specks and bubbles
+
+Drifting specks and tiny rising bubbles around the camera underwater, so clear and murky water feel different. Decorative only.
+
+**Cost:** light.
+
+- `r_waterParticles 0` — 1 on.
+- `r_waterParticlesProfile 0` — **0** automatic (from the map, else clean), **1** clean, **2** murky, **3** dirty, **-1** none.
+- `r_waterParticlesDensity 1`, `r_waterParticlesSize 1`, `r_waterParticlesSpeed 1` — amount, size, drift and rise speed.
+- `r_waterParticlesBubbles -1` — share of bubbles 0–1; -1 from the profile.
+- `r_waterParticlesDistance 160` — radius of the particle cloud around the camera.
+
+**Debug**
+
+- `r_waterParticlesDebug 1..3` — placement, without fog in front, statistics.
+
+Design notes: [rend2-water-particles.md](../rend2-water-particles.md).
