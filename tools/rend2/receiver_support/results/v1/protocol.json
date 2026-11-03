@@ -1,0 +1,48 @@
+{
+  "schema": "org.openjk.receiver-support-protocol.v1",
+  "input_commit": "138ec1ef45c188bdfaabbd72542e1706e949eecc",
+  "native_sha256": "e3430f73b93d40edeb68597afb4ce3f1d839146e55015c7bdcc16cca29be50be",
+  "test_sha256": "f6c6fad4b5bd850fdc31b889a7af8ca5d9ea378be11d2201256512c8bd4abf31",
+  "inventory_sha256": "3f5e7e321f64debab087d05fd78d916d7c4fa89d0508088af7669ad1d261c6a9",
+  "maps": [
+    {
+      "map": "academy1",
+      "bsp_sha256": "d50ad832c18a08c5f57c9cc1e1e6048d9a7cd50b33b6d70c3897ff9fffbc3ad3",
+      "dataset_sha256": "ed7de3960ee59c0daaf111625abed4ee3ae47436a4372322ec046de95ba0b9b6",
+      "dataset_bytes": 230092312,
+      "mode": "scene-receiver-preflight"
+    },
+    {
+      "map": "mp/duel4",
+      "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+      "dataset_sha256": "8173ddaa017c87dd4b341d240f95f6a99599f894d4164d0ab7902bc70b2ac3c5",
+      "dataset_bytes": 25475232,
+      "mode": "scene-receiver-preflight"
+    },
+    {
+      "map": "hoth3",
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "dataset_sha256": "fdbf5351babdaf6a1b0e9d776a77d01f5396e82c5f3945ec46079e171385d613",
+      "dataset_bytes": 383228400,
+      "mode": "receiver-support-only"
+    },
+    {
+      "map": "hoth2",
+      "bsp_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+      "dataset_sha256": "39ee537e003f7aaac802b48e847f9e35afa0f37eb8379aa7baaca57df05fbbb0",
+      "dataset_bytes": 131790672,
+      "mode": "receiver-support-only"
+    }
+  ],
+  "frozen_before_evaluation": true,
+  "uses_hidden_rgb_for_admission": false,
+  "scope": "Full captured observation area census + X10 frozen folds; source-independent common isq/linear support; first two maps run actual bounded Joint",
+  "profile": "UnknownProfile; two explicit conditional NetRadiant alternatives, no historical identity inference",
+  "process_bytes": 1073741824,
+  "process_seconds": 600,
+  "environment": {
+    "os": "Windows-10-10.0.19045-SP0",
+    "cpu": "Intel64 Family 6 Model 165 Stepping 2, GenuineIntel",
+    "python": "3.12.14"
+  }
+}

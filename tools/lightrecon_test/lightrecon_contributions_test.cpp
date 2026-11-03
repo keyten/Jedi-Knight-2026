@@ -386,7 +386,7 @@ void QueriesAndPhysics()
 	ReconstructedLightingAsset restored;
 	Disk::Index index;
 	CHECK(Disk::Open(reader, key, restored, index));
-	CHECK(restored.version == 7 &&
+	CHECK(restored.version == 8 &&
 		  restored.contributions[0].replacement.supported == ReplacementAllProofs);
 	P::Artifact round;
 	round.asset = std::make_shared<const ReconstructedLightingAsset>(restored);

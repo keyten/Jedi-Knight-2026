@@ -1,0 +1,10 @@
+{
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_probes_test.exe",
+    "tools\\rend2\\probes\\results\\v1\\controlled-first.json"
+  ],
+  "state": "Completed",
+  "exit_code": 0,
+  "wall_seconds": 0.9220000000204891,
+  "peak_process_rss_bytes": 15298560
+}

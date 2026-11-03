@@ -75,6 +75,8 @@ struct Evaluation
 };
 // World receiver -> incoming source; z polar, Condon-Shortley, index l*l+l+m.
 Code Basis(V direction, unsigned degree, std::vector<double> &);
+// Allocation-free equivalent for prepared spatial field queries (up to 81 values).
+Code BasisInto(V direction, unsigned degree, double *out, size_t capacity);
 std::vector<Node> Sphere(unsigned order, double azimuthOffset = .5); // 2*order^2 nodes
 std::vector<std::array<double, 2>> Interval(unsigned order);		 // [0,1] Gauss nodes/weights
 std::vector<V> Directions(unsigned count); // independent Fibonacci test normals

@@ -93,6 +93,13 @@ Code Basis(V d, unsigned L, std::vector<double> &out)
 	if (L > 8 || !IsDirection(d))
 		return Code::Invalid;
 	out.assign((L + 1) * (L + 1), 0);
+	return BasisInto(d, L, out.data(), out.size());
+}
+Code BasisInto(V d, unsigned L, double *out, size_t capacity)
+{
+	if (L > 8 || !IsDirection(d) || !out || capacity < (L+1)*(L+1))
+		return Code::Invalid;
+	std::fill(out, out + (L+1)*(L+1), 0.);
 	double phi = std::atan2(d[1], d[0]), z = d[2];
 	for (unsigned m = 0; m <= L; ++m)
 	{

@@ -656,6 +656,7 @@ Error PredictRoot(const Transfer &t, TransportRootKind kind, const Bake::Profile
 				const auto &v = batch.predictions.data[i];
 				r.incident.push_back(v.available ? v.rgb : Vec3());
 				r.available.push_back(v.available);
+				r.visibilityIssues.push_back(v.visibilityIssues);
 				key.V(v.rgb);
 				key.U(v.available);
 			}
@@ -796,7 +797,7 @@ struct Engine
 			const auto &root = out.fixedRoots[j];
 			Need(root.source && (!j || root.source != out.fixedRoots[j - 1].source) &&
 					 root.kind <= TransportRootKind::Unknown && root.incident.size() == patchIndex.size() &&
-					 root.available.size() == patchIndex.size() && !Zero(root.generation) &&
+					 (root.visibilityIssues.empty()||root.visibilityIssues.size()==patchIndex.size()) && root.available.size() == patchIndex.size() && !Zero(root.generation) &&
 					 !root.provenance.empty(),
 				 Code::InvalidInput, "Fixed-root correspondence/provenance");
 			roots.U(root.source);

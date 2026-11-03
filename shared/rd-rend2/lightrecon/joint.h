@@ -4,6 +4,7 @@
 #include "emitter_shape.h"
 #include "indirect.h"
 #include "transport_mesh.h"
+#include "receiver_support.h"
 namespace Rend2LightRecon
 {
 namespace Core
@@ -11,7 +12,7 @@ namespace Core
 namespace Joint
 {
 constexpr uint32_t kVersion =
-	6; // X14: typed occupied/emitting support
+	7; // X15: frozen common receiver capability and runtime denominator
 enum class Channel
 {
 	Surface,
@@ -42,6 +43,7 @@ struct Observation
 		   angularSigmaRadians = 1; // statistical objective mass, not transport area
 	bool comparable = false, directionKnown = false, required = true;
 	Role role = Role::Training;
+	double receiverAreaWorldSquared = 0; // actual receiver support, never represented measure
 };
 struct Candidate
 {
@@ -96,6 +98,9 @@ struct Prediction
 	Vec3 rgb, directionToSource;
 	Vec3 direct, sun, sky, ambient, indirect, unresolved, signedDiscrepancy;
 	uint32_t issues = 0;
+	uint32_t visibilityIssues = 0;
+	ReceiverSupport::Reason preflight = ReceiverSupport::Reason::Supported;
+	ReceiverSupport::RuntimeState support = ReceiverSupport::RuntimeState::MissingPrediction;
 };
 struct Work
 {
@@ -134,6 +139,10 @@ struct Score
 	Disk::Digest partitionKey{}, admissionKey{};
 	std::vector<Group> groups;
 	Work work;
+	uint64_t supportExcluded = 0;
+	double supportArea = 0, excludedArea = 0;
+	Disk::Digest supportKey{};
+	ReceiverSupport::Coverage coverage;
 };
 struct RootPower
 {
@@ -206,7 +215,14 @@ struct Request
 	std::shared_ptr<const FitEvidence::Objective> shadow;
 	double shadowWeight = 0;
 	Options options;
+	// Geometry-only common intersection, optionally prepared by a trusted controller
+	// across all folds/profiles BEFORE source search. Otherwise Pin freezes training.
+	std::shared_ptr<const ReceiverSupport::Manifest> receiverSupport;
 };
+ReceiverSupport::Operator ReceiverOperator(const Profile&,const Shape::Sampling& = Shape::Sampling());
+ReceiverSupport::Geometry ReceiverGeometry(const Request&,const Observation&);
+Error FreezeReceiverSupport(const Request&,std::shared_ptr<const ChunkSource<ReceiverSupport::Geometry>>,
+	uint64_t,const Disk::Digest& partition,const ReadContext&,std::shared_ptr<const ReceiverSupport::Manifest>&);
 // A trusted controller may score validation, never final held-out, while search
 // sees only aggregate diagnostics. No target/answer reader is exposed to fitting.
 class Validation
@@ -223,6 +239,11 @@ struct Attempt
 	State state = State::Unavailable;
 	double training = 0, validation = 0;
 	size_t sources = 0, profile = 0;
+	ReceiverSupport::Coverage coverage;
+	std::vector<Id> unavailableReceivers;
+	std::vector<uint32_t> unavailableIssues;
+	std::vector<uint32_t> unavailableVisibilityIssues;
+	Disk::Digest receiverSupportKey{};
 };
 struct Checkpoint
 {
@@ -246,6 +267,7 @@ struct Result
 	std::vector<Attempt> attempts;
 	Work work;
 	Checkpoint checkpoint; // cooperative round boundary, pinned to input identity
+	std::shared_ptr<const ReceiverSupport::Manifest> receiverSupport;
 };
 Error Solve(const Request &, const ReadContext &, Result &, const Validation * = nullptr,
 			const Checkpoint *resume = nullptr, size_t roundsThisCall = SIZE_MAX);

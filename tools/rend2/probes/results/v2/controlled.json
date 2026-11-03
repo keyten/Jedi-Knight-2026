@@ -1,0 +1,43 @@
+{
+  "semantic": {
+    "schema": "org.openjk.probe-tests.v1",
+    "checks": 8069,
+    "failures": 0,
+    "constant_error": 0,
+    "linear_rmse": 0.110826,
+    "point_irradiance_coarse_rmse": 2.35675,
+    "point_irradiance_refined_rmse": 0.934711,
+    "wall_leak_links": 0,
+    "wall_links_checked": 9409,
+    "doorway_cross_links": true,
+    "coarse_probes": 64,
+    "adaptive_probes": 1408,
+    "relocated_probes": 256,
+    "maximum_relocation": 0.25,
+    "topology_bytes": 41956,
+    "query_rays": 0
+  },
+  "resources": [
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_probes_test.exe",
+        "tools\\rend2\\probes\\results\\v2\\controlled-first.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 1.8439999998081475,
+      "peak_process_rss_bytes": 16465920
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_probes_test.exe",
+        "tools\\rend2\\probes\\results\\v2\\controlled-repeat.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 1.25,
+      "peak_process_rss_bytes": 16465920
+    }
+  ],
+  "repeat_identical": true
+}

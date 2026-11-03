@@ -1,0 +1,42 @@
+{
+  "schema": "org.openjk.probes-results.v1",
+  "sources": {
+    "shared/rd-rend2/lightrecon/probes.cpp": "56c893032165f258cf944d57cd5a55e82700dc4a42c953f6895108c92390ebce",
+    "shared/rd-rend2/lightrecon/probes.h": "33a4d9e2c8c0fd0142d2fe2cdcb973d6be77f99e62c4f6991e88bb05dbef1f26",
+    "shared/rd-rend2/lightrecon/probe_codec.cpp": "40ab282ccd530485b50c534b3be23b7e86aebdb83269eb186984d2a921e20ac9",
+    "shared/rd-rend2/lightrecon/probe_internal.h": "108d355c9a10ccee768c4d9f0ed5a74b00e4ddcd9a4b9f230ba3864f7923119f",
+    "shared/rd-rend2/lightrecon/probe_values.cpp": "c3ef548ff3bdce7e2b21c8ee5245725e83f48a5c75a7a4627d04f3054d110cc6",
+    "shared/rd-rend2/lightrecon/field_basis.cpp": "a44387e05f5ac6b39b6e2dd2721d621828e23d68d90529634f12cb704011ae97",
+    "shared/rd-rend2/lightrecon/field_basis.h": "3f5299b9ede75a54ac588302aa87afe84b01ee93d1475f1a890f5225e2dafc69",
+    "tools/lightrecon_test/probe_fixtures.h": "91f16fc67a95c74fa694111ea2735d61b717453eb69344d47047421b01b46922",
+    "tools/lightrecon_test/lightrecon_probes_test.cpp": "86b94953b6464eb78c53b747c5f8c8176e5db1c37b74b7c6c612a0f2385b9857",
+    "tools/lightrecon_test/lightrecon_probes_tool.cpp": "9a3d78ab9835e779d7ba2d35315076857c69abbc83bb664d82ca776408c4d3c6",
+    "tools/rend2/probes/run.py": "c297956299484ff5282003eee8d3131e292c9a20e98a6713cf0bf6d455d48b1b"
+  },
+  "artifacts": {
+    "controlled-first-resources.json": "b9977a900bf978034af410ae972684a558bc3fa832a507b4c6c73a7a27127f12",
+    "controlled-first.json": "e1a2969a563ab53a5cf24190f57d2c815e092e1aa7c379eed16159a9b54b4734",
+    "controlled-first.log": "88d32257e895440fdd41b4a0f95f71976129239ffb989801e8ebfb5a8e6c310f",
+    "controlled-repeat-resources.json": "814dc3ece1eab8d22f5d3897776c61aabba4880762621e0fee9e81c88837d2a4",
+    "controlled-repeat.json": "ff00839430b83324f2c23a158c8a0c5b7547152f29bfd52d455738591ba38348",
+    "controlled-repeat.log": "88d32257e895440fdd41b4a0f95f71976129239ffb989801e8ebfb5a8e6c310f",
+    "controlled.json": "74a4c6c731c39f7f9b3dc5bccb92bb17097f66fee0314f744a55b04913e29793",
+    "hoth3-resources.json": "98ce531d30e39a0ea415598a9715c9c78c96212109074ada33304b1a2a6282a9",
+    "hoth3.json": "6c04317237f906acbc934ec865cb5269f03d11436860187ea905bcb55210fad3",
+    "hoth3.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mp_duel4-repeat-resources.json": "d8c49a4a1f6af3c3a08772dcd4c98fc992e788266bd120410d657b8c17304bce",
+    "mp_duel4-repeat.json": "3be015eceefb993d8af0e5c1ab7d68473eb90e3b49863aa0ca8684bedb05e1c8",
+    "mp_duel4-repeat.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mp_duel4-resources.json": "324a7896085edbf34103f5d27cc42b032a63530ba807ca5b51e1806a2a6fa1a2",
+    "mp_duel4.json": "dcddf55728d9228c58c7c0d9650cd77711a6d452a0e4a8133041557833d08e19",
+    "mp_duel4.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "protocol.json": "75685e03e4bb3046dd70ec3ab67807f77c0e8ae4b0d255008cd171b9fefb0e85",
+    "repeat.json": "61aaf73b5c0179d1e5618140fef7fee004b3945d9ec58b27809aa3570a29898b",
+    "stock.json": "e0d51aa9d2308550b6af1c4ca632db03b28c95323374ca8eb54d73b9ac7a45e3",
+    "vjun2-resources.json": "2e08025d5a37333c415eb6f018693d686b7fd585abf9ba558987677608eaf1e9",
+    "vjun2.json": "6cf472ab8208c3394075a8d33ab36276ceaf6c0460266d204fd00a652da3c499",
+    "vjun2.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "licensed_payloads": false,
+  "stock_light_truth": null
+}

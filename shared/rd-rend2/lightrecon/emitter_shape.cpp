@@ -402,6 +402,16 @@ Expanded Expand(const Model &model, const std::vector<Emitter> &emitters)
 	return x;
 }
 } // namespace
+Error EmissionNodes(const PhysicalEmitter&p,const SourceSupport::Contract&support,const Sampling&s,
+	const ReadContext&read,std::vector<EmissionNode>&out)
+{
+	out.clear();try{Cancel(read);
+		Need(s.areaDivisions&&s.areaDivisions<=32&&s.tubeSides>=4&&s.tubeSides<=64&&s.tubeSegments&&s.tubeSegments<=32,Code::InvalidInput,"Emission quadrature bounds");
+		Emitter e;e.geometry=p;e.geometry.source.state=HypothesisState::Candidate;e.support=support;e.rgbAmplitude=Vec3(1,1,1);Model m;m.law=Law::DiffuseIntegral;Validate(m,e);
+		auto nodes=Nodes(e,s,false);Need(nodes.size()*sizeof(EmissionNode)<=(read.maxBytes?read.maxBytes:32ull<<20),Code::MemoryLimit,"Emission nodes memory");
+		for(auto&n:nodes){EmissionNode x;x.positionWorld=n.p.Float();x.normalWorld=n.n.Float();x.areaWorldSquared=n.area;x.surface=n.sourceSurface;x.finiteSurface=n.surface;out.push_back(x);}return {};
+	}catch(const Error&e){out.clear();return e;}catch(const std::bad_alloc&){out.clear();return Failure(Code::MemoryLimit,"Emission nodes allocation");}
+}
 struct Block::Data
 {
 	Model model;

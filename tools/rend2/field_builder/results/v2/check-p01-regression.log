@@ -1,0 +1,9 @@
+Test project C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s06-gcc
+    Start 15: lightrecon_api
+    Start 18: lightrecon_disk
+1/2 Test #15: lightrecon_api ...................   Passed    0.29 sec
+2/2 Test #18: lightrecon_disk ..................   Passed    0.32 sec
+
+100% tests passed out of 2
+
+Total Test time (real) =   0.43 sec

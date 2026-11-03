@@ -1329,6 +1329,7 @@ std::string ReportJson(const Result &r)
 			  << ",\"black_mse\":" << m.validation.blackMse;
 			o<<",\"occupancy_conditional\":"<<(m.occupancyConditional?"true":"false");
 		}
+		if(b.fit.receiverSupport){const auto& report=b.fit.receiverSupport->Report();o<<",\"receiver_support_key\":"<<Quoted(Disk::Hex(b.fit.receiverSupport->Key()))<<",\"receiver_requested\":"<<report.requested<<",\"receiver_common\":"<<report.admitted<<",\"receiver_area\":"<<report.requestedArea<<",\"receiver_common_area\":"<<report.commonArea;}
 		o << ",\"diagnostics\":[";
 		for (size_t j = 0; j < b.diagnostics.size(); ++j)
 			o << (j ? "," : "") << Quoted(b.diagnostics[j]);
@@ -1338,7 +1339,9 @@ std::string ReportJson(const Result &r)
 			const auto &a = b.attempts[j];
 			o << (j ? "," : "") << "{\"proposal\":" << Quoted(a.proposal)
 			  << ",\"status\":" << Quoted(Joint::StateName(a.state))
-			  << ",\"reason\":" << Quoted(a.reason) << ",\"sources\":" << a.sources << '}';
+			  << ",\"reason\":" << Quoted(a.reason) << ",\"sources\":" << a.sources;
+			o<<",\"coverage_admitted\":"<<a.coverage.admitted<<",\"coverage_used\":"<<a.coverage.used<<",\"unknown_visibility\":"<<a.coverage.unknownVisibility<<",\"missing_predictions\":"<<a.coverage.missing<<",\"unavailable_receivers\":[";
+			for(size_t k=0;k<a.unavailableReceivers.size();++k)o<<(k?",":"")<<"{\"id\":\""<<a.unavailableReceivers[k]<<"\",\"issues\":"<<a.unavailableIssues[k]<<",\"visibility_issues\":"<<a.unavailableVisibilityIssues[k]<<'}';o<<"]}";
 		}
 		o << "],\"omitted_attempts\":" << b.omittedAttempts << '}';
 	}

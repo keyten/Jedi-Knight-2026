@@ -1,0 +1,82 @@
+{
+  "schema": "org.openjk.field-builder-checks.v1",
+  "frozen_sources_verified": true,
+  "native": {
+    "assertions": 12082,
+    "failures": 0,
+    "semantic_repeat_identical": true,
+    "archive_bytes_identical": true
+  },
+  "builds": {
+    "cpu": "Passed",
+    "sp_release": "Passed",
+    "mp_release": "Passed",
+    "compiler_rss": "CMake parent only; not aggregate compiler RSS"
+  },
+  "full_ctest": {
+    "initial": {
+      "passed": 40,
+      "total": 42,
+      "failures": [
+        "old API capability count",
+        "old schema-7 empty format hash"
+      ]
+    },
+    "after_contract_expectation_updates": {
+      "passed": 41,
+      "total": 42,
+      "failed": "lightrecon_producer",
+      "reason": "repeated store iteration 26; Win32 1175 atomic write/flush/replace",
+      "seconds": 250.27
+    },
+    "cache_writer_changed": false,
+    "all_green_claimed": false
+  },
+  "focused_final": {
+    "passed": 10,
+    "total": 10,
+    "reason": "final source-uncertainty, passive-root and memory/work guards"
+  },
+  "isolated_producer": {
+    "checks": 549,
+    "failures": 0,
+    "fresh_directory": true,
+    "retry_logic_changed": false,
+    "does_not_erase_full_failure": true
+  },
+  "python": {
+    "initial": "four legacy research import failures; missing PYTHONPATH",
+    "corrected": {
+      "passed": 38,
+      "total": 38
+    }
+  },
+  "renderer_consumers_changed": false,
+  "game_launched": false,
+  "stock_photometric_truth": null,
+  "known_limits": [
+    "coarse direct: 720/1800 supported; conditional RMSE26.7419%",
+    "coarse bounce RMSE39.6277%; finer 512-probe bounce6.34251%",
+    "SG spatial backend, finite sun disk and passive incoming radiance unsupported",
+    "intermittent existing cache atomic replacement unresolved"
+  ],
+  "logs": {
+    "check-p01-ctest-resources.json": "8fd881d8376709c7f7eadd8081122a90b4aac5a4ef8ec7dd708897bd67ba17e6",
+    "check-p01-ctest-resources.log": "1b812fe0965a98bffc0d7bcb3c8ca1fa5bfd290707443dd50d207f472610b65f",
+    "check-p01-ctest-final-resources.json": "526d0d43648fbfd8127f657c953d9d8d5bd43eb7a13e80357c5ae019ebfbc565",
+    "check-p01-ctest-final-resources.log": "5c813343ea4b57ad7b82ec33f719f83a39813e0725464ccc0c1ee43153973f22",
+    "check-p01-focused-resources.json": "2fe09a8e85eb889cf56c58960e93299ceba490ae633e0adc0a30f220f0d9a1cf",
+    "check-p01-focused-resources.log": "a6e8dad107b749deac3ecb87dadc84d59d8022e4a99523bb9abfa452bfcb3699",
+    "check-p01-regression.log": "de881ff98302620bc17d61cf231a05c2670c5a24c87381afd04cec2ed4b51fec",
+    "check-p01-isolated-producer-resources.json": "0ab8e49955eb0e61640a401784e6319af8c18aa7351f333b402e7d1abc29552c",
+    "check-p01-isolated-producer-resources.log": "4dc267f4988f5338372cf1968cf02d78c9c88d975d626db13135ce860b241f3c",
+    "check-p01-python-resources.json": "e5d4fee67a4210cdc44a35d064a858140dbcb0bf378cfec59cf6aae65ba4256d",
+    "check-p01-python-resources.log": "6f868d96eda4fa8ddfea40fa9d7f838d55bc0a9403bbb6f5491803a3b0636186",
+    "check-p01-python-corrected-resources.json": "2ca9284b46557c061d5c472cb26885a86e43e3556d12d7e51b5afbd72dd4e129",
+    "check-p01-python-corrected-resources.log": "cf005188b142e70a345756522c75e5ea91b4164a76c66f109b8e115978037b0e",
+    "check-p01-cpu-published-resources.json": "1be85a1e79700d9d45fb1f29ff501c2ef1f8e1375cec329b16c01f704a405c3d",
+    "check-p01-cpu-published-resources.log": "2565d04bd6ca73523c918aceee513f4316cd5d390d3c89de0434148917023bce",
+    "check-p01-renderers-published-resources.json": "bc05ff0ce2a8f306f14b7edc4e6c69967182cf03d9b9d7d41a7999fdb2a99faa",
+    "check-p01-renderers-published-resources.log": "021de6dd928590c9850f50bdb7da0f16ce8b3d857abad2fd2c10f6678fcd103d"
+  }
+}

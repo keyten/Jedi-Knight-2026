@@ -1,0 +1,308 @@
+{
+  "schema": "org.openjk.receiver-support-compiled-blind.v1",
+  "cases": [
+    {
+      "name": "point_room",
+      "wrong_profile": false,
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "partition_sha256": {
+        "heldout": "00ed225d5ee1b7416af1493cc74cc13b2d66a193904bdf366fda78b858aa051d",
+        "train": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72",
+        "validation": "2b21db10069e8716f29183e63f97cfa926601e6416b8959dd1e36ba81936e3c7"
+      },
+      "request_sha256": "e717444d1a3320315bea41436a5246b93030a36605fbe1a0ad2ffb1365152b7c",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "producer_state": "Completed",
+      "training_mse": 0,
+      "validation_mse": 0,
+      "heldout": {
+        "available": true,
+        "black": 2495.8888888888887,
+        "mse": 0.0,
+        "objective": 0.0,
+        "positive": true,
+        "required": true,
+        "worst": 0.0
+      },
+      "source_parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            299.854919434,
+            299.854919434,
+            299.854919434
+          ],
+          "relative_rgb_error": 0.00048360188666663357,
+          "true_compiler_rgb": [
+            300.0,
+            300.0,
+            300.0
+          ]
+        }
+      ],
+      "resolved_sources": 0,
+      "rays": 144,
+      "evaluations": 465,
+      "contribution_queries": {
+        "available": 66,
+        "explicit_zero": 0,
+        "maximum_roundtrip_error": 0,
+        "unavailable": 0
+      },
+      "receiver_common": 18,
+      "receiver_requested": 18,
+      "source_geometry_supplied": true
+    },
+    {
+      "name": "point_room",
+      "wrong_profile": true,
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "partition_sha256": {
+        "heldout": "00ed225d5ee1b7416af1493cc74cc13b2d66a193904bdf366fda78b858aa051d",
+        "train": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72",
+        "validation": "2b21db10069e8716f29183e63f97cfa926601e6416b8959dd1e36ba81936e3c7"
+      },
+      "request_sha256": "ff6ef1ae52c83ada5d21bb39812053292568642db934ec454f17367fdb41263b",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "producer_state": "DiagnosticOnly",
+      "training_mse": null,
+      "validation_mse": null,
+      "heldout": {
+        "available": false
+      },
+      "source_parameters": [],
+      "resolved_sources": 0,
+      "rays": 144,
+      "evaluations": 1215,
+      "contribution_queries": {
+        "available": 0,
+        "explicit_zero": 0,
+        "maximum_roundtrip_error": 0,
+        "unavailable": 0
+      },
+      "receiver_common": 18,
+      "receiver_requested": 18,
+      "source_geometry_supplied": true
+    },
+    {
+      "name": "two_colour",
+      "wrong_profile": false,
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "partition_sha256": {
+        "heldout": "f9646b6e8a23d3630ef79d29c734d811c2e6a2d7ff5c9db2e40745138bf9b923",
+        "train": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7",
+        "validation": "e82486b9fa788c1353425ab78d0a64e20eb4b664589d1ab825130fb7001cf604"
+      },
+      "request_sha256": "3113ad6f4d1f793488bf88daf91629d346618e0455bf254cc7b088100dc7154a",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "producer_state": "Completed",
+      "training_mse": 0.218169823821,
+      "validation_mse": 2.17680241764,
+      "heldout": {
+        "available": true,
+        "black": 1170.6018518518517,
+        "mse": 0.222869236135012,
+        "objective": 0.16480971039361977,
+        "positive": true,
+        "required": true,
+        "worst": 0.6534529352668867
+      },
+      "source_parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            287.158630371,
+            27.55534935,
+            6.30522537231
+          ],
+          "relative_rgb_error": 0.05161886670630411,
+          "true_compiler_rgb": [
+            300.0,
+            35.9999991,
+            8.99999979
+          ]
+        },
+        {
+          "candidate": 2,
+          "fitted_compiler_rgb": [
+            26.7347106934,
+            69.7119522095,
+            303.298187256
+          ],
+          "relative_rgb_error": 0.058636268504425326,
+          "true_compiler_rgb": [
+            11.99999973,
+            60.0000009,
+            300.0
+          ]
+        }
+      ],
+      "resolved_sources": 0,
+      "rays": 384,
+      "evaluations": 3943,
+      "contribution_queries": {
+        "available": 132,
+        "explicit_zero": 0,
+        "maximum_roundtrip_error": 0,
+        "unavailable": 0
+      },
+      "receiver_common": 18,
+      "receiver_requested": 18,
+      "source_geometry_supplied": true
+    },
+    {
+      "name": "two_colour",
+      "wrong_profile": true,
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "partition_sha256": {
+        "heldout": "f9646b6e8a23d3630ef79d29c734d811c2e6a2d7ff5c9db2e40745138bf9b923",
+        "train": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7",
+        "validation": "e82486b9fa788c1353425ab78d0a64e20eb4b664589d1ab825130fb7001cf604"
+      },
+      "request_sha256": "dd15eae8820ca8db70c6f65a5f7d68046cfe4a5ff35bccfff3a3950204c71ad8",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "producer_state": "DiagnosticOnly",
+      "training_mse": null,
+      "validation_mse": null,
+      "heldout": {
+        "available": false
+      },
+      "source_parameters": [],
+      "resolved_sources": 0,
+      "rays": 384,
+      "evaluations": 3643,
+      "contribution_queries": {
+        "available": 0,
+        "explicit_zero": 0,
+        "maximum_roundtrip_error": 0,
+        "unavailable": 0
+      },
+      "receiver_common": 18,
+      "receiver_requested": 18,
+      "source_geometry_supplied": true
+    },
+    {
+      "name": "door_occlusion",
+      "wrong_profile": false,
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "partition_sha256": {
+        "heldout": "467ca4ac91336889212ba74ef4b385069b0b77aff598943ec111bfa8fe301d56",
+        "train": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734",
+        "validation": "ded6f9fb54688e685b81e3cb5b563bb85e28d6b30c7004aabfc825ec1a68c92c"
+      },
+      "request_sha256": "d3220d6a0edb8b428a815b77b5716cabd7525d815076e30fe94d152d092d9ea3",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "producer_state": "Completed",
+      "training_mse": 0,
+      "validation_mse": 0,
+      "heldout": {
+        "available": true,
+        "black": 2495.8888888888887,
+        "mse": 0.0,
+        "objective": 0.0,
+        "positive": true,
+        "required": true,
+        "worst": 0.0
+      },
+      "source_parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            299.854919434,
+            299.854919434,
+            299.854919434
+          ],
+          "relative_rgb_error": 0.00048360188666663357,
+          "true_compiler_rgb": [
+            300.0,
+            300.0,
+            300.0
+          ]
+        }
+      ],
+      "resolved_sources": 0,
+      "rays": 144,
+      "evaluations": 465,
+      "contribution_queries": {
+        "available": 66,
+        "explicit_zero": 18,
+        "maximum_roundtrip_error": 0,
+        "unavailable": 0
+      },
+      "receiver_common": 18,
+      "receiver_requested": 18,
+      "source_geometry_supplied": true
+    },
+    {
+      "name": "door_occlusion",
+      "wrong_profile": true,
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "partition_sha256": {
+        "heldout": "467ca4ac91336889212ba74ef4b385069b0b77aff598943ec111bfa8fe301d56",
+        "train": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734",
+        "validation": "ded6f9fb54688e685b81e3cb5b563bb85e28d6b30c7004aabfc825ec1a68c92c"
+      },
+      "request_sha256": "5e0931551805e3b1b4bc78dc006ae8c3884a9ec330efeec99ff0a3f9e111c880",
+      "counts": {
+        "heldout": 15,
+        "train": 18,
+        "validation": 15
+      },
+      "producer_state": "DiagnosticOnly",
+      "training_mse": null,
+      "validation_mse": null,
+      "heldout": {
+        "available": false
+      },
+      "source_parameters": [],
+      "resolved_sources": 0,
+      "rays": 144,
+      "evaluations": 1215,
+      "contribution_queries": {
+        "available": 0,
+        "explicit_zero": 0,
+        "maximum_roundtrip_error": 0,
+        "unavailable": 0
+      },
+      "receiver_common": 18,
+      "receiver_requested": 18,
+      "source_geometry_supplied": true
+    }
+  ],
+  "repeat_archive_sha256": {
+    "32b653ec0906224071198314d87de2456d38f137465d506d778b64b836abd46c.jklr": "fb2dd72073aa47216fbe7554d1ddfbbf17fe7ce54cf515875b9bbaf433b9eb8c"
+  },
+  "executable_sha256": "0b0d0c90c8eeb6c908fae72fbbcea8eb81793499afe16fd181d6acad6e063423",
+  "limitations": [
+    "Fixed XYZ is supplied, not discovered",
+    "No absolute photometry",
+    "No stock reconstruction claim",
+    "Independent existence calibration remains unavailable"
+  ]
+}

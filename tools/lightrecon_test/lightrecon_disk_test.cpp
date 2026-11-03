@@ -446,11 +446,11 @@ void RoundTrips()
 		if (asset.emitters.empty())
 		{
 			auto digest = D::Hex(D::Hash(bytes.data(), bytes.size()));
-			// Schema 7 adds explicit contribution membership/replacement contracts;
+			// Schema 8 adds an explicitly nonphysical appearance field quantity;
 			// the empty-asset fingerprint intentionally changes with the schema key.
 			// Earlier semantic schemas are rejected rather than silently reinterpreted.
-			CHECK(kSchemaVersion == 7);
-			CHECK(digest == "70001b68182f77fb210ffc34a2966a197e95d91bdc2131d6261bf6eb354dd9b3");
+			CHECK(kSchemaVersion == 8);
+			CHECK(digest == "7034edb189aed2531db3345d33829a06d77597a48c0d37b56ddefe522c967950");
 			std::printf("  empty format SHA-256: %s\n", digest.c_str());
 		}
 	}
@@ -505,9 +505,9 @@ void CorruptionAndLimits()
 	Put(b,16,3,4); // no readiness or legacy-channel domain metadata
 	RehashHeader(b);
 	reject(b,D::Code::Unsupported);
-	for (unsigned obsolete : {4u,5u}) {
+	for (unsigned obsolete : {4u,5u,6u,7u}) {
 		b=bytes; Put(b,16,obsolete,4); RehashHeader(b);
-		reject(b,D::Code::Unsupported); // no structured scoped calibration mapping
+		reject(b,D::Code::Unsupported); // obsolete calibration/field-quantity semantics
 	}
 	b = bytes;
 	Put(b, 40, std::numeric_limits<uint64_t>::max());

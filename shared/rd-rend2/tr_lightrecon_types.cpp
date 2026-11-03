@@ -442,9 +442,12 @@ struct Validator
 		for (const TransportField& f : asset.transport)
 		{
 			if (!Common(f.source, "transport.source", false)) return false;
-			if (!EnumIn(f.component, TransportComponent::LegacyAmbientIrradiance) || !EnumIn(f.quantity, FieldQuantity::Radiance) ||
+			if (!EnumIn(f.component, TransportComponent::ApproximateAppearance) || !EnumIn(f.quantity, FieldQuantity::ApproximateAppearance) ||
 				!ValidBounds(f.bounds)) return Fail("transport", "invalid component, quantity or bounds");
 			const bool irradiance = f.quantity == FieldQuantity::Irradiance;
+			if ((f.quantity==FieldQuantity::ApproximateAppearance)!=(f.component==TransportComponent::ApproximateAppearance) ||
+				(f.quantity==FieldQuantity::ApproximateAppearance&&f.unit!=PhotometricUnit::Relative))
+				return Fail("transport.appearance","appearance is not physical irradiance/radiance");
 			if (((f.component == TransportComponent::IndirectIrradiance || f.component == TransportComponent::UnresolvedDirectIrradiance || f.component == TransportComponent::UnresolvedIrradiance || f.component==TransportComponent::LegacyAmbientIrradiance) && !irradiance) ||
 				((f.component == TransportComponent::ReflectedRadiance || f.component == TransportComponent::UnattributedIncidentRadiance) && irradiance) ||
 				(f.unit != PhotometricUnit::Relative && f.unit != (irradiance ? PhotometricUnit::Lux : PhotometricUnit::Nits)))

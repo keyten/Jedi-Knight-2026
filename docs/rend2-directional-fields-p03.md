@@ -411,3 +411,9 @@ world lighting. Those require separate generation/admission/consumer work.
 [rbsh]: https://github.com/RobertBeckebans/RBDOOM-3-BFG/blob/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/idlib/math/SphericalHarmonics.h#L196
 [rbgrid]: https://github.com/RobertBeckebans/RBDOOM-3-BFG/blob/ea29c006e84fedcc0e7c173c383a087ce0a8c0d5/neo/renderer/RenderWorld_lightgrid.cpp#L934
 [ddgi]: https://github.com/NVIDIAGameWorks/RTXGI-DDGI/blob/f33e496ca31b3f0eec1c4e2cbaa8bb620e337fa6/rtxgi-sdk/shaders/ddgi/Irradiance.hlsl#L140
+
+P01 follow-up: [the prepared CPU field builder](rend2-lighting-field-builder-p01.md)
+reuses these basis/convolution/codecs with P02 spatial support. SH2/SH4 diffuse and
+sky-radiance fields now have an explicit preparation/query path. P01's measured
+coarse point-light spatial errors remain separate from the P03 angular results;
+SG spatial fields, exact sharp radiance and renderer consumers remain unsupported.

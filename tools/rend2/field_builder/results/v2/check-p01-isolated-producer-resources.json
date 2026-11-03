@@ -1,0 +1,9 @@
+{
+  "command": [
+    "build/s06-gcc/lightrecon_producer_test.exe",
+    "C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/p01-isolated-producer-cache"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 62.91213489999063,
+  "peak_working_set_bytes": 9801728
+}

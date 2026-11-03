@@ -103,6 +103,13 @@ static Error SceneAttempt(P::Request request, const std::shared_ptr<Hidden::Requ
 	input.discovery.areas.clear();
 	if (sampling && sampling->localTraining)
 		input.discovery.training = Lease(sampling->localTraining);
+	if(request.fitting.receiverSupport){
+		auto filtered=std::make_shared<std::vector<Hidden::Sample>>();
+		for(size_t i=0;i<input.discovery.training.count;++i){auto h=input.discovery.training.data[i];RS::Geometry g;g.receiver=h.receiver;g.block=h.receiver.sample;g.areaWorldSquared=h.areaWorldSquared;
+			bool supported=true;for(const auto&op:request.fitting.receiverSupport->Policy().operators){auto decision=RS::Check(op,g,request.fitting.geometry);uint64_t probes=0;Check(RS::CheckOrigin(op,g,request.fitting.geometry,request.fitting.placement.domain.get(),decision,probes));supported&=decision.reason==RS::Reason::Supported;}
+			if(supported)filtered->push_back(h);
+		}input.discovery.training=Lease(filtered);
+	}
 	input.discovery.options.coarseDivisions = 2;
 	input.discovery.options.maxNodesPerArea = 8;
 	input.discovery.options.refinementRounds = 0;

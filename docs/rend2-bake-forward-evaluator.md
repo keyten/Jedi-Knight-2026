@@ -456,3 +456,15 @@ operators, reusing factors only on valid branches. They must select on held-out
 observations, rerun the strictest supported final value, report missing coverage
 and model discrepancy, and avoid treating a successful forward prediction as
 evidence that an emitter exists or is uniquely localized.
+
+
+## X15 receiver preflight
+
+[The X15 receiver-support report](rend2-receiver-support-x15.md) adds typed
+capability reasons and immutable source-independent common-domain manifests.
+The scoped distinct-normal restriction is unchanged. Fixed compiler receiver
+origins in solids/on boundaries are excluded before fitting; unknown source
+paths remain runtime coverage failures. Prepared factors bind the checked
+capability policy, allowing amplitude iterations to reuse receiver preflight
+without skipping intensity-dependent value/encoding rules. No light equation
+or supported compiler fixture tolerance was changed.

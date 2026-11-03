@@ -1,0 +1,11 @@
+{
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_probes_tool.exe",
+    "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x06-20261028\\capture-vjun2\\run\\home\\rend2\\lightrecon\\v1\\observations\\vjun2_all.jkobs",
+    "tools\\rend2\\probes\\results\\v2\\vjun2.json"
+  ],
+  "state": "Completed",
+  "exit_code": 0,
+  "wall_seconds": 4.2350000001024455,
+  "peak_process_rss_bytes": 84881408
+}

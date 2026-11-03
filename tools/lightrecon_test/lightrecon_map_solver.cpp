@@ -865,6 +865,7 @@ static TransportPreparation PrepareTransport(const O::Sources &s,
 	Check(error);
 	return out;
 }
+#include "receiver_audit.h"
 #include "scene_audit.h"
 static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::RegionSnapshot &graph,
 					   const std::shared_ptr<const SurfaceGeometry> &geometry,
@@ -872,7 +873,7 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 					   const std::array<std::vector<Selected>, 3> &folds, const Census &census,
 					   const std::string &output, bool linear, Disk::Digest archiveHash,
 					   const TransportPreparation &transport, const Bounds *localScope = nullptr,
-					   const SamplingSelection *sampling = nullptr, bool scene = false, bool conditionalBake = false)
+					   const SamplingSelection *sampling = nullptr, bool scene = false, bool conditionalBake = false, bool receiverPreflight = false)
 {
 	ReadContext read;
 	read.maxBytes = 512ull << 20;
@@ -988,6 +989,7 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 			materials.insert(v.receiver.material);
 			o.role = J::Role(role);
 			o.measure = v.weight;
+			o.receiverAreaWorldSquared=v.area;
 			if(sampling)o.correlationGroup=sampling->geometry.at(v.id).correlation;
 			o.comparable = true;
 			for (unsigned c = 0; c < 3; ++c)
@@ -1072,6 +1074,15 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	q.training = jr[0];
 	q.count = jr[0]->v->size();
 	q.trainingKey = keys[0];
+	if(receiverPreflight){
+		auto supportRows=std::make_shared<Rows<RS::Geometry>>();
+		for(const auto&fold:jr)for(const auto&row:*fold->v)supportRows->v->push_back(J::ReceiverGeometry(q,row));
+		std::sort(supportRows->v->begin(),supportRows->v->end(),[](const RS::Geometry&a,const RS::Geometry&b){return a.receiver.sample<b.receiver.sample;});
+		auto comparison=q;comparison.profiles.clear();for(bool branchLinear:{false,true}){auto alternative=profile;auto r=recipe;r.falloff=branchLinear?Bake::Falloff::Linear:Bake::Falloff::InverseSquare;alternative.model.profile=Bake::NetRadiantProfile(r);alternative.contract.profile=alternative.model.profile;comparison.profiles.push_back(alternative);}
+		Check(J::FreezeReceiverSupport(comparison,supportRows,supportRows->v->size(),SamplingPartitionKey(),read,q.receiverSupport));
+		std::ofstream manifest(output+"/joint-"+(linear?"linear":"isq")+"-receiver-manifest.json");Check(RS::WriteJson(*q.receiverSupport,manifest,read));
+	}
+
 	q.coarseSampling.compareRefined = false;
 	q.strictSampling.compareRefined = true;
 	q.options.maxSources = 32;
@@ -1317,7 +1328,7 @@ int main(int argc, char **argv)
 {
 	try
 	{
-		Need(argc == 4 || (argc == 5 && (std::string(argv[4]) == "mounting-only" || std::string(argv[4]) == "local-density" ||
+		Need(argc == 4 || (argc == 5 && (std::string(argv[4]) == "receiver-support-only" || std::string(argv[4]) == "scene-receiver-preflight" || std::string(argv[4]) == "mounting-only" || std::string(argv[4]) == "local-density" ||
 									   std::string(argv[4]) == "transport-only" ||
 									   std::string(argv[4]) == "sampling-only" ||
 									   std::string(argv[4]) == "hierarchical" || std::string(argv[4]) == "scene" || std::string(argv[4]) == "scene-bake-conditional")),
@@ -1326,9 +1337,11 @@ int main(int argc, char **argv)
 		bool local = argc == 5 && std::string(argv[4]) == "local-density";
 		bool transportOnly = argc == 5 && std::string(argv[4]) == "transport-only";
 		bool samplingOnly = argc == 5 && std::string(argv[4]) == "sampling-only";
-		bool conditionalBake = argc == 5 && std::string(argv[4]) == "scene-bake-conditional";
+		bool receiverPreflight=argc==5&&std::string(argv[4])=="scene-receiver-preflight";
+		bool supportOnly=argc==5&&std::string(argv[4])=="receiver-support-only";
+		bool conditionalBake = receiverPreflight || (argc == 5 && std::string(argv[4]) == "scene-bake-conditional");
 		bool scene = conditionalBake || (argc == 5 && std::string(argv[4]) == "scene");
-		bool hierarchical = scene || (argc == 5 && std::string(argv[4]) == "hierarchical");
+		bool hierarchical = supportOnly || scene || (argc == 5 && std::string(argv[4]) == "hierarchical");
 		ReadContext read;
 		read.maxBytes = 512ull << 20;
 		O::Options limits;
@@ -1426,6 +1439,8 @@ int main(int argc, char **argv)
 		b.patchToleranceWorld = data->Info().visibilityPatchToleranceWorld;
 		std::shared_ptr<const StaticVisibility> rays;
 		Check(StaticVisibility::Build(geometry, b, read, rays, source.domain));
+		if(supportOnly||receiverPreflight)ReceiverAudit(*data,source,rays,sampled->folds,read,argv[2]);
+		if(supportOnly)return 0;
 		if(samplingOnly){std::ofstream report(std::string(argv[2])+"/sampling-proposals.json");report<<SamplingProposals(*sampled,source,rays,folds,read);return 0;}
 		if(hierarchical)folds=sampled->folds;
 		Diagnostics(source, graph, rays, folds, read, argv[2]);
@@ -1437,7 +1452,7 @@ int main(int argc, char **argv)
 			try
 			{
 				RunProfile(source, *data, graph, geometry, rays, folds, census, argv[2], linear,
-						   archiveHash, transport, local ? &focus : nullptr,sampled.get(),scene,conditionalBake);
+						   archiveHash, transport, local ? &focus : nullptr,sampled.get(),scene,conditionalBake,receiverPreflight);
 			}
 			catch (const std::exception &e)
 			{

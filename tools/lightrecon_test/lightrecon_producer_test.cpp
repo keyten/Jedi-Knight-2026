@@ -755,7 +755,9 @@ void Cache(const std::string &root)
 		  Status::Missing);
 	for (unsigned i = 0; i < 40; ++i)
 	{
-		CHECK(P::Store(backend.last.artifact, *cache, Read()));
+		auto stored=P::Store(backend.last.artifact,*cache,Read());
+		if(!stored)std::printf("cache repeated-store iteration=%u code=%u reason=%s\n",i,unsigned(stored.code),stored.message.c_str());
+		CHECK(stored);
 		P::Artifact reread;
 		CHECK(P::Load(*cache, backend.last.artifact.fingerprint, Read(), reread));
 	}

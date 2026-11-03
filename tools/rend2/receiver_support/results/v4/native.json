@@ -1,0 +1,34 @@
+{
+  "result": {
+    "schema": "org.openjk.receiver-support-native.v1",
+    "checks": 55,
+    "failures": 0,
+    "manifest_checks": 15,
+    "unknown_or_missing_rejected": 2,
+    "positive_mse": 0,
+    "black_mse": 396
+  },
+  "resources": [
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_receiver_support_test.exe",
+        "tools\\rend2\\receiver_support\\results\\v4\\native-first.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.8279999999795109,
+      "peak_process_rss_bytes": 5668864
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_receiver_support_test.exe",
+        "tools\\rend2\\receiver_support\\results\\v4\\native-repeat.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.5150000000139698,
+      "peak_process_rss_bytes": 5681152
+    }
+  ],
+  "repeat_semantics": true
+}

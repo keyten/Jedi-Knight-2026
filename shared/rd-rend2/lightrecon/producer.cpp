@@ -506,6 +506,8 @@ Disk::Fingerprint Fingerprint(const Request &r)
 	k.U(r.fitting.placement.maxSegments);
 	k.F(r.fitting.placement.minimumSegmentWorld);
 	k.Digest(PointRefine::InputKey(r.fitting.placement));
+	k.U(ReceiverSupport::kVersion);
+	if(r.fitting.receiverSupport)k.Digest(r.fitting.receiverSupport->Key());
 	for (const auto &d : r.fitting.placement.dynamic)
 	{
 		k.U(d.id);
@@ -1620,6 +1622,9 @@ void AssessReadiness(Assembly &build, const Result &result, bool fitted)
 	{
 		a.heldoutIntervalMse = Known(result.final.score.intervalMse);
 		a.heldoutBlackMse = Known(result.final.score.blackMse);
+	}
+	if(result.fitted.receiverSupport){const auto&support=*result.fitted.receiverSupport;
+		a.coverage.limitations.push_back("X15 frozen common receiver support="+Disk::Hex(support.Key())+"; requested="+std::to_string(support.Report().requested)+"; common="+std::to_string(support.Report().admitted)+"; supported observation area="+std::to_string(support.Report().commonArea)+"; original excluded denominator retained");
 	}
 	a.coverage.limitations.push_back(
 		"No stock-map source XYZ ground truth or original Raven compiler identification");
@@ -3031,6 +3036,7 @@ std::string ReportJson(const Result &result)
 	  << result.work.solver.rays + result.work.strict.rays + result.work.decomposition.rays +
 			 result.work.uncertainty.rays
 	  << ",\"payload_bytes\":" << result.work.payloadBytes;
+	if(result.fitted.receiverSupport){const auto& support=*result.fitted.receiverSupport;s<<",\"receiver_support_key\":"<<Escape(Disk::Hex(support.Key()))<<",\"receiver_requested\":"<<support.Report().requested<<",\"receiver_common\":"<<support.Report().admitted<<",\"receiver_supported_area\":"<<support.Report().commonArea;}
 	if (result.artifact.asset)
 	{
 		const auto &a = result.artifact.asset->assessment;

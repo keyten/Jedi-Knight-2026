@@ -1,0 +1,15 @@
+{
+  "command": [
+    "ctest",
+    "--test-dir",
+    "build/s06-gcc",
+    "--output-on-failure",
+    "-R",
+    "^lightrecon_(api|disk|field_builder|field_basis|contributions|probes|lifecycle|receiver_support|bake_forward|photometry)$",
+    "-j",
+    "2"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 2.9840473998337984,
+  "peak_working_set_bytes": 14057472
+}

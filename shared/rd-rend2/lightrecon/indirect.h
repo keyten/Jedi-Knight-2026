@@ -111,6 +111,7 @@ struct Root
 	std::vector<Vec3>
 		incident; // fixed pre-encoding irradiance-like values, patch ID ordering in transfer
 	std::vector<uint8_t> available;
+	std::vector<uint32_t> visibilityIssues; // optional raw ray diagnostics, separate from Indirect::Issue
 	Disk::Digest generation{};
 	std::string provenance;
 };
@@ -200,6 +201,7 @@ struct PatchValue
 	Vec3 direct, sun, sky, ambient, indirect, indirectLower, indirectUpper, unresolved;
 	Vec3 totalPreencoding, totalPrediction, directOnlyPrediction;
 	bool comparable = false, conditional = true, upperKnown = false;
+	uint32_t visibilityIssues = 0;
 	uint32_t issues = 0;
 };
 struct RootBounce

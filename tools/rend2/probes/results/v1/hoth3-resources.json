@@ -1,0 +1,11 @@
+{
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_probes_tool.exe",
+    "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+    "tools\\rend2\\probes\\results\\v1\\hoth3.json"
+  ],
+  "state": "Completed",
+  "exit_code": 1,
+  "wall_seconds": 4.452999999979511,
+  "peak_process_rss_bytes": 94560256
+}

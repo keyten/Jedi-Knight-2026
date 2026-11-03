@@ -1,0 +1,83 @@
+{
+  "schema": "org.openjk.receiver-support-checks.v1",
+  "frozen_sources_verified": true,
+  "source_files": 89,
+  "cpu": {
+    "tests": 40,
+    "passed": 40,
+    "wall_seconds": 185.34,
+    "x15_assertions": 55,
+    "status": "Passed",
+    "command": "ctest --test-dir build/s06-gcc --output-on-failure -j 2"
+  },
+  "builds": {
+    "sp_release": "Passed",
+    "mp_release": "Passed",
+    "compiler": "MSVC 2019",
+    "build_parallel": 2,
+    "cl": "/MP2",
+    "command": "cmake --build build/s13-renderers --config Release --target rdsp-rend2_x86_64 rd-rend2_x86_64 --parallel 2"
+  },
+  "python": {
+    "blind_controller": {
+      "tests": 11,
+      "passed": 11
+    },
+    "frozen_reports": {
+      "tests": 5,
+      "passed": 5
+    },
+    "production_forward": {
+      "tests": 6,
+      "passed": 6
+    }
+  },
+  "compiler_fixtures": {
+    "scoped_passed": 20,
+    "byte_exact": 19,
+    "established_max_one_byte": 1,
+    "unsupported_bounce": 2,
+    "multi_sun_floor_exact": 1225,
+    "thresholds_changed": false,
+    "source": "compiler-comparison.json"
+  },
+  "compiled_blind": {
+    "correct_profile_completed": 3,
+    "wrong_profile_diagnostic_only": 3,
+    "two_colour_archive_repeat_identical": true,
+    "candidate_xyz_supplied": true,
+    "source_discovery": false,
+    "resolved_sources": 0,
+    "source": "compiled-blind.json"
+  },
+  "determinism": {
+    "native_semantics_identical": true,
+    "mp_census_and_fold_geometry_identical": true
+  },
+  "intermediate_failure": {
+    "log": "build/x15-ctest-console.log",
+    "log_sha256": "33744863c23d9b3a768e13f128c52e69f65a45896b536bd7e25b47efb8bda58a",
+    "tests_passed": 39,
+    "tests_total": 40,
+    "test": "lightrecon_producer",
+    "reason": "One repeated P::Store assertion; original error reason was not logged",
+    "followup": "Added error/iteration/message diagnostics only; final full suite passes unchanged assertions",
+    "fixed_claim": false,
+    "status": "Intermittent, unresolved"
+  },
+  "logs_sha256": {
+    "build/x15-final-ctest-console.log": "d67af1b66d27988ce5b64dde8f8b6a3b133a51a019afbd7c127c757934680314",
+    "build/x15-final-ctest.log": "d67af1b66d27988ce5b64dde8f8b6a3b133a51a019afbd7c127c757934680314",
+    "build/x15-current-sp-mp-build.log": "02c93d3085313f2f16580bbb4783235ea0bd29d0a55604b1446b84111daca760",
+    "build/x15-blind-tests.log": "744f91b604dda6effadde9b77e951c8573ad0fff7062b02a791558c32058eb0c",
+    "build/x15-report-tests.log": "bfb2ae0d2638605e74a3cd9a96bc9d450b3434dae30d3ab71305000a3fb5e0a8",
+    "build/x15-forward-python-tests.log": "2cfad9cc1c786da89778e92a86152fb4af2c64728f3bcd4578646720afcb2285",
+    "build/x15-compiled-producer.log": "b7c6352801f66d5260e000078e003aaeddf375cc9f602daf4a84017c06a1502e",
+    "build/x15-ctest-console.log": "33744863c23d9b3a768e13f128c52e69f65a45896b536bd7e25b47efb8bda58a"
+  },
+  "game_launched": false,
+  "runtime_consumer_enabled": false,
+  "stock_physical_recovery_claimed": false,
+  "stock_final_heldout_evaluated": false,
+  "stock_scope": "academy1 and mp/duel4 actual bounded Joint attempts; hoth3 and hoth2 geometry-only census. No accepted stock model."
+}

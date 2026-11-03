@@ -1,0 +1,57 @@
+...EEEE
+======================================================================
+ERROR: test_benchmark (unittest.loader._FailedTest.test_benchmark)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_benchmark
+Traceback (most recent call last):
+  File "C:\Users\Keyten\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Keyten\Desktop\projects\OpenJK-rend2\tools\rend2\field_representation\test_benchmark.py", line 5, in <module>
+    import benchmark as b
+ModuleNotFoundError: No module named 'benchmark'
+
+
+======================================================================
+ERROR: test_octahedral (unittest.loader._FailedTest.test_octahedral)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_octahedral
+Traceback (most recent call last):
+  File "C:\Users\Keyten\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Keyten\Desktop\projects\OpenJK-rend2\tools\rend2\field_representation\test_octahedral.py", line 4, in <module>
+    import octahedral as o
+ModuleNotFoundError: No module named 'octahedral'
+
+
+======================================================================
+ERROR: test_probe_weights (unittest.loader._FailedTest.test_probe_weights)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_probe_weights
+Traceback (most recent call last):
+  File "C:\Users\Keyten\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Keyten\Desktop\projects\OpenJK-rend2\tools\rend2\ddgi_research\test_probe_weights.py", line 8, in <module>
+    import probe_weights as p
+ModuleNotFoundError: No module named 'probe_weights'
+
+
+======================================================================
+ERROR: test_field_basis (unittest.loader._FailedTest.test_field_basis)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_field_basis
+Traceback (most recent call last):
+  File "C:\Users\Keyten\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\unittest\loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Keyten\Desktop\projects\OpenJK-rend2\tools\rend2\rbdoom_research\test_field_basis.py", line 8, in <module>
+    import field_basis as f
+ModuleNotFoundError: No module named 'field_basis'
+
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.003s
+
+FAILED (errors=4)

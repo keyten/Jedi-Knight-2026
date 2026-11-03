@@ -1,0 +1,66 @@
+{
+  "schema": "org.openjk.probe-checks.v1",
+  "frozen_sources_verified": true,
+  "controlled": {
+    "assertions": 8274,
+    "failures": 0,
+    "semantic_repeat_identical": true
+  },
+  "stock": {
+    "maps": 3,
+    "rois": 9,
+    "all_completed": true,
+    "lighting_coefficients": 0,
+    "reference_visible": 1957,
+    "reference_blocked": 0,
+    "reference_unknown": 0
+  },
+  "builds": {
+    "cpu": "Passed",
+    "sp_release": "Passed",
+    "mp_release": "Passed",
+    "compiler_cpu": "GCC 16.2 / C++11",
+    "compiler_renderers": "MSVC 2019 / Release",
+    "build_parallel": 2,
+    "cl": "/MP2"
+  },
+  "full_ctest": {
+    "total": 41,
+    "passed": 40,
+    "failed": 1,
+    "wall_seconds": 399.47,
+    "status": "Failed",
+    "command": "ctest --test-dir build/s06-gcc --output-on-failure -j 2",
+    "failed_test": "lightrecon_producer",
+    "reason": "Two atomic cache repeated-store failures, Win32 1175, iterations 0 and 18",
+    "previously_observed_in": "X15",
+    "probe_test": "Passed"
+  },
+  "cache_followup": {
+    "status": "Passed",
+    "assertions": 549,
+    "failures": 0,
+    "command": "build/s06-gcc/lightrecon_producer_test.exe C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/p02-isolated-producer-cache",
+    "cache_logic_changed": false,
+    "thresholds_changed": false,
+    "underlying_intermittent_failure_fixed": false
+  },
+  "python_reports": {
+    "tests": 3,
+    "passed": 3
+  },
+  "game_launched": false,
+  "runtime_consumer_enabled": false,
+  "stock_radiance_truth": null,
+  "original_observations_relocated": false,
+  "logs_sha256": {
+    "build/p02-final-native-build.log": "fc5125013c29621c2f7c83be414c359db7bcf923af104ed9d5ea2daa7d8c925d",
+    "build/p02-final-native.log": "79579f4121379bd5130e12ef549fe09ea2b18350b67090b4276050185a4e1939",
+    "build/p02-final-full-build.log": "4d8fdb921db7b198a87cfb42e6570f155d3926c778736a57d3b44a28113054ec",
+    "build/p02-final-ctest-console.log": "df513f1de90772f73c87022d5cecc88efe7363e0540b0952c75bf1a0be6c92bc",
+    "build/p02-final-sp-mp-build.log": "c737873de9e91ccff38d67af5ab56eb8cceb6ffd98f42eab3d374558a7fb3e3d",
+    "build/p02-final-report-tests.log": "41e6ab9078ba7aff324838af7874b68bdc5f3e187f616cb40e0a1110220d5afa",
+    "build/p02-isolated-producer.log": "4dc267f4988f5338372cf1968cf02d78c9c88d975d626db13135ce860b241f3c",
+    "build/p02-stock-run-v3.log": "88291a4ed7dc99c2ad1aefde788dacd1c10aec83e55d7224395e055134c62af1"
+  }
+}

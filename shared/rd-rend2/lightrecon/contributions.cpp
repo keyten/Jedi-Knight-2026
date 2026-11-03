@@ -74,6 +74,7 @@ Description Describe(const ReconstructedLightingAsset &a, const Component &c)
 		for (const auto &f : a.transport)
 			if (f.dataset == c.dataset)
 			{
+				if(f.quantity==FieldQuantity::ApproximateAppearance)return {};
 				if (d.valid)
 					return {};
 				d.valid = true;
@@ -353,6 +354,7 @@ Decision CanAdd(const ReconstructedLightingAsset &a, const Component &x, const C
 	std::string problem;
 	if (!Validate(a, &problem))
 		return No(Status::Corrupt, "Invalid canonical metadata");
+	for(const auto&f:a.transport)if(f.quantity==FieldQuantity::ApproximateAppearance&&((x.field&&f.dataset==x.dataset)||(y.field&&f.dataset==y.dataset)))return No(Status::Unsupported,"Approximate appearance is not additive physical energy");
 	auto p = Describe(a, x), q = Describe(a, y);
 	if (!p.valid || !q.valid)
 		return No(Status::NotFound, "Component dataset absent/ambiguous");

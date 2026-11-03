@@ -1,0 +1,112 @@
+[  2%] Built target rend2_bakedlighting_test
+[ 33%] Built target rend2_lightrecon_core
+[ 34%] Linking CXX executable lightrecon_field_basis_test.exe
+[ 35%] Linking CXX executable lightrecon_occupancy_test.exe
+[ 35%] Built target lightrecon_occupancy_test
+[ 36%] Built target lightrecon_field_basis_test
+[ 37%] Linking CXX executable lightrecon_field_basis_tool.exe
+[ 38%] Linking CXX executable lightrecon_photometry_test.exe
+[ 38%] Built target lightrecon_photometry_test
+[ 38%] Built target lightrecon_field_basis_tool
+[ 39%] Linking CXX executable lightrecon_producer_test.exe
+[ 40%] Linking CXX executable lightrecon_map_solver.exe
+[ 40%] Built target lightrecon_producer_test
+[ 40%] Built target lightrecon_map_solver
+[ 41%] Linking CXX executable lightrecon_producer_suite.exe
+[ 41%] Linking CXX executable lightrecon_uncertainty_test.exe
+[ 42%] Built target lightrecon_producer_suite
+[ 43%] Built target lightrecon_uncertainty_test
+[ 44%] Linking CXX executable lightrecon_uncertainty_population.exe
+[ 45%] Linking CXX executable lightrecon_joint_test.exe
+[ 45%] Built target lightrecon_uncertainty_population
+[ 45%] Built target lightrecon_joint_test
+[ 46%] Linking CXX executable lightrecon_joint_tool.exe
+[ 47%] Linking CXX executable lightrecon_indirect_test.exe
+[ 48%] Built target lightrecon_indirect_test
+[ 48%] Built target lightrecon_joint_tool
+[ 49%] Linking CXX executable lightrecon_transport_mesh_test.exe
+[ 50%] Linking CXX executable lightrecon_sampling_test.exe
+[ 50%] Built target lightrecon_sampling_test
+[ 50%] Built target lightrecon_transport_mesh_test
+[ 50%] Linking CXX executable lightrecon_scene_schedule_test.exe
+[ 51%] Linking CXX executable lightrecon_shadow_test.exe
+[ 52%] Built target lightrecon_shadow_test
+[ 53%] Built target lightrecon_scene_schedule_test
+[ 53%] Linking CXX executable lightrecon_shadow_inspect.exe
+[ 54%] Linking CXX executable lightrecon_test.exe
+[ 55%] Built target lightrecon_test
+[ 56%] Built target lightrecon_shadow_inspect
+[ 57%] Linking CXX executable lightrecon_api_test.exe
+[ 58%] Linking CXX executable lightrecon_core_test.exe
+[ 58%] Built target lightrecon_api_test
+[ 59%] Linking CXX executable lightrecon_control_test.exe
+[ 59%] Built target lightrecon_core_test
+[ 60%] Linking CXX executable lightrecon_disk_test.exe
+[ 61%] Built target lightrecon_control_test
+[ 61%] Linking CXX executable lightrecon_lifecycle_test.exe
+[ 61%] Built target lightrecon_disk_test
+[ 62%] Linking CXX executable lightrecon_lightmaps_test.exe
+[ 63%] Built target lightrecon_lifecycle_test
+[ 64%] Linking CXX executable lightrecon_decode_test.exe
+[ 65%] Built target lightrecon_lightmaps_test
+[ 65%] Linking CXX executable lightrecon_lightgrid_test.exe
+[ 66%] Built target lightrecon_decode_test
+[ 66%] Linking CXX executable lightrecon_surfaces_test.exe
+[ 67%] Built target lightrecon_lightgrid_test
+[ 67%] Linking CXX executable lightrecon_classification_test.exe
+[ 68%] Built target lightrecon_surfaces_test
+[ 68%] Linking CXX executable lightrecon_visibility_test.exe
+[ 69%] Built target lightrecon_classification_test
+[ 70%] Linking CXX executable lightrecon_regions_test.exe
+[ 71%] Built target lightrecon_visibility_test
+[ 72%] Linking CXX executable lightrecon_regions_inspect.exe
+[ 72%] Built target lightrecon_regions_test
+[ 72%] Linking CXX executable lightrecon_evidence_test.exe
+[ 73%] Built target lightrecon_regions_inspect
+[ 73%] Linking CXX executable lightrecon_regions_audit.exe
+[ 74%] Built target lightrecon_evidence_test
+[ 75%] Built target lightrecon_offline_fixtures
+[ 76%] Linking CXX executable lightrecon_dataset_quality.exe
+[ 77%] Built target lightrecon_regions_audit
+[ 77%] Linking CXX executable lightrecon_dataset_roi.exe
+[ 77%] Built target lightrecon_dataset_quality
+[ 79%] Linking CXX executable lightrecon_profile_rays.exe
+[ 79%] Built target lightrecon_dataset_roi
+[ 80%] Linking CXX executable lightrecon_bake_profile_test.exe
+[ 80%] Built target lightrecon_profile_rays
+[ 81%] Built target lightrecon_bake_profile_test
+[ 81%] Linking CXX executable lightrecon_bake_forward_tool.exe
+[ 81%] Linking CXX executable lightrecon_bake_forward_test.exe
+[ 82%] Built target lightrecon_bake_forward_tool
+[ 83%] Built target lightrecon_bake_forward_test
+[ 83%] Linking CXX executable lightrecon_sun_test.exe
+[ 83%] Linking CXX executable lightrecon_hidden_test.exe
+[ 84%] Built target lightrecon_sun_test
+[ 85%] Built target lightrecon_hidden_test
+[ 86%] Linking CXX executable lightrecon_candidates_test.exe
+[ 87%] Linking CXX executable lightrecon_amplitude_test.exe
+[ 87%] Built target lightrecon_candidates_test
+[ 87%] Built target lightrecon_amplitude_test
+[ 88%] Linking CXX executable lightrecon_point_refine_test.exe
+[ 89%] Linking CXX executable lightrecon_shape_test.exe
+[ 89%] Built target lightrecon_point_refine_test
+[ 89%] Built target lightrecon_shape_test
+[ 89%] Linking CXX executable lightrecon_hidden_tool.exe
+[ 90%] Linking CXX executable lightrecon_offline_test.exe
+[ 91%] Built target lightrecon_hidden_tool
+[ 92%] Built target lightrecon_offline_test
+[ 93%] Linking CXX executable lightrecon_bsp_capture_test.exe
+[ 93%] Linking CXX executable lightrecon_contributions_test.exe
+[ 93%] Built target lightrecon_bsp_capture_test
+[ 94%] Built target lightrecon_contributions_test
+[ 94%] Linking CXX executable lightrecon_emitter_support_test.exe
+[ 94%] Linking CXX executable lightrecon_receiver_support_test.exe
+[ 95%] Built target lightrecon_emitter_support_test
+[ 96%] Built target lightrecon_receiver_support_test
+[ 96%] Linking CXX executable lightrecon_probes_test.exe
+[ 97%] Built target lightrecon_field_builder_test
+[ 97%] Linking CXX executable lightrecon_probes_tool.exe
+[ 98%] Built target lightrecon_probes_test
+[ 98%] Linking CXX executable lightrecon_dataset_tool.exe
+[ 99%] Built target lightrecon_probes_tool
+[100%] Built target lightrecon_dataset_tool

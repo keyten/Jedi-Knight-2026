@@ -9,7 +9,7 @@
 namespace Rend2LightRecon {
 
 static constexpr const char* kSchema = "org.openjk.reconstructed-lighting";
-static constexpr uint32_t kSchemaVersion = 7; // P06: explicit composition/replacement contracts
+static constexpr uint32_t kSchemaVersion = 8; // P01: explicitly nonphysical appearance fields
 static constexpr float kUnitTolerance = 1.0e-4f;
 
 // Persistent producer-assigned identities, never vector indexes or addresses.
@@ -228,8 +228,9 @@ struct EnvironmentLighting
 	SunCoverage sunCoverage = SunCoverage::Unknown; // adapter must resolve double counting
 };
 enum class TransportComponent { IndirectIrradiance, ReflectedRadiance, ApertureTransport,
-	UnresolvedDirectIrradiance, UnattributedIncidentRadiance, UnresolvedIrradiance, LegacyAmbientIrradiance };
-enum class FieldQuantity { Irradiance, Radiance };
+	UnresolvedDirectIrradiance, UnattributedIncidentRadiance, UnresolvedIrradiance, LegacyAmbientIrradiance,
+	ApproximateAppearance };
+enum class FieldQuantity { Irradiance, Radiance, ApproximateAppearance };
 enum class FieldMembership { Unknown, Excluded, Included };
 enum class TransportRootKind { LocalEmitter, Sun, Sky, LegacyAmbient, Unknown };
 struct TransportRoot

@@ -141,6 +141,11 @@ bool Index(detail::SnapshotData& data)
 		info.status = data.evaluator->Supports(queries[i]);
 		if (info.status != Status::Ok && info.status != Status::Unavailable && info.status != Status::Unsupported) return false;
 	}
+	if(data.evaluator&&!a.transport.empty()){
+		auto&info=data.capabilities[static_cast<size_t>(Capability::ConditionalFieldSampling)];
+		info.records=a.transport.size();info.status=data.evaluator->Supports(Capability::ConditionalFieldSampling);
+		if(info.status!=Status::Ok&&info.status!=Status::Unavailable&&info.status!=Status::Unsupported)return false;
+	}
 	return true;
 }
 
@@ -153,6 +158,7 @@ Status CpuEvaluator::AcceptsAsset(const ReconstructedLightingAsset &) const
 }
 Status CpuEvaluator::Indirect(const ReconstructedLightingAsset&, const IrradianceQuery&, LightingSample&) const { return Status::Unavailable; }
 Status CpuEvaluator::IncomingRadiance(const ReconstructedLightingAsset&, const RadianceQuery&, LightingSample&) const { return Status::Unavailable; }
+Status CpuEvaluator::ConditionalField(const ReconstructedLightingAsset&,const ConditionalFieldQuery&,ConditionalFieldSample&)const{return Status::Unavailable;}
 Status CpuEvaluator::RegionAt(const ReconstructedLightingAsset&, const Vec3&, Id&) const { return Status::Unavailable; }
 Status CpuEvaluator::Visibility(const ReconstructedLightingAsset&, const VisibilityQuery&, VisibilitySample&) const { return Status::Unavailable; }
 Status CpuEvaluator::SkyVisibility(const ReconstructedLightingAsset&, const SkyVisibilityQuery&, VisibilitySample&) const { return Status::Unavailable; }
@@ -351,6 +357,7 @@ Result<LightingSample> Snapshot::SampleIndirect(const IrradianceQuery& query) co
 	const Status available = EvaluationStatus(*data_, Capability::IndirectSampling);
 	if (available != Status::Ok) return Failure<LightingSample>(available);
 	Result<LightingSample> r; r.status = data_->evaluator->Indirect(*data_->asset, query, r.value);
+	if(r){auto calibration=data_->calibrations.find(r.value.calibration);if(calibration==data_->calibrations.end())return Failure<LightingSample>(Status::Corrupt);if(r.value.unit!=PhotometricUnit::Lux||calibration->second->kind!=CalibrationKind::PhysicallyAuthored)return Failure<LightingSample>(Status::Unsupported);}
 	if (r && !field)
 	{
 		const auto f = data_->fields.find(r.value.source);
@@ -378,6 +385,7 @@ Result<LightingSample> Snapshot::SampleIncomingRadiance(const RadianceQuery& que
 	const Status available = EvaluationStatus(*data_, Capability::IncomingRadianceSampling);
 	if (available != Status::Ok) return Failure<LightingSample>(available);
 	Result<LightingSample> r; r.status = data_->evaluator->IncomingRadiance(*data_->asset, query, r.value);
+	if(r){auto calibration=data_->calibrations.find(r.value.calibration);if(calibration==data_->calibrations.end())return Failure<LightingSample>(Status::Corrupt);if(r.value.unit!=PhotometricUnit::Nits||calibration->second->kind!=CalibrationKind::PhysicallyAuthored)return Failure<LightingSample>(Status::Unsupported);}
 	if (r && Empty(query.field))
 	{
 		const auto f = data_->fields.find(r.value.source); const auto e = data_->environments.find(r.value.source);
@@ -403,6 +411,23 @@ Result<RegionHandle> Snapshot::LookupRegion(const Vec3& positionWorld) const
 	if (s != Status::Ok) return Failure<RegionHandle>(s);
 	const auto r = IdentifyRegion(id);
 	return r ? r : Failure<RegionHandle>(Status::Corrupt);
+}
+Result<ConditionalFieldSample> Snapshot::SampleConditionalField(const ConditionalFieldQuery&q)const
+{
+	if(!q.optIn||!q.field.id||!Finite(q.positionWorld)||!Unit(q.directionOrNormalWorld)||unsigned(q.quantity)>unsigned(ConditionalQuantity::LegacyAppearance))return Failure<ConditionalFieldSample>(Status::InvalidArgument);
+	if(Access()!=Status::Ok)return Failure<ConditionalFieldSample>(Access());
+	auto handle=Check(q.field);if(handle!=Status::Ok)return Failure<ConditionalFieldSample>(handle);
+	auto field=data_->fields.find(q.field.id);if(field==data_->fields.end())return Failure<ConditionalFieldSample>(Status::InvalidArgument);
+	auto capability=EvaluationStatus(*data_,Capability::ConditionalFieldSampling);if(capability!=Status::Ok)return Failure<ConditionalFieldSample>(capability);
+	Result<ConditionalFieldSample> r;r.status=data_->evaluator->ConditionalField(*data_->asset,q,r.value);
+	if(!ValidStatus(r.status))return Failure<ConditionalFieldSample>(Status::Corrupt);
+	if(r){const auto&v=r.value;const auto*d=v.descriptor.get();
+		if(!d||v.field!=q.field.id||d->field!=q.field.id||d->configuration!=q.configuration||d->quantity!=q.quantity||d->calibration!=field->second->calibration||d->unit!=field->second->unit||!Finite(v.value)||v.value.x<0||v.value.y<0||v.value.z<0||!v.supportCount||v.supportCount>16||unsigned(v.outcome)>unsigned(FieldOutcome::Partial))return Failure<ConditionalFieldSample>(Status::Corrupt);
+		double weight=0;for(unsigned j=0;j<v.supportCount;++j){if(!v.support[j]||!std::isfinite(v.weights[j])||v.weights[j]<0)return Failure<ConditionalFieldSample>(Status::Corrupt);weight+=v.weights[j];}if(std::abs(weight-1)>1e-6)return Failure<ConditionalFieldSample>(Status::Corrupt);
+		if((v.lowerKnown&&(!Finite(v.lower)||v.lower.x<0||v.lower.y<0||v.lower.z<0||v.lower.x>v.value.x||v.lower.y>v.value.y||v.lower.z>v.value.z))||(v.upperKnown&&(!Finite(v.upper)||v.upper.x<v.value.x||v.upper.y<v.value.y||v.upper.z<v.value.z)))return Failure<ConditionalFieldSample>(Status::Corrupt);
+		r.value.generation=data_->generation;
+	}
+	return r?r:Failure<ConditionalFieldSample>(r.status);
 }
 Result<VisibilitySample> Snapshot::QueryVisibility(const VisibilityQuery& query) const
 {

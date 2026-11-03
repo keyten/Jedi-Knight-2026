@@ -59,6 +59,10 @@ struct Work
 {
 	uint64_t blocks = 0, values = 0, pairs = 0, rays = 0, traversal = 0, nodes = 0;
 };
+struct EmissionNode { Vec3 positionWorld, normalWorld; double areaWorldSquared=1; Id surface=0; bool finiteSurface=false; };
+// Shared physical quadrature geometry only; no intensity fit or source-state mutation.
+Error EmissionNodes(const PhysicalEmitter&,const SourceSupport::Contract&,const Sampling&,
+	const ReadContext&,std::vector<EmissionNode>&);
 struct Prediction
 {
 	Id observation = 0;

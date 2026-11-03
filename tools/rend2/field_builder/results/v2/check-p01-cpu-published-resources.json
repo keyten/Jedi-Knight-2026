@@ -1,0 +1,12 @@
+{
+  "command": [
+    "cmake",
+    "--build",
+    "build/s06-gcc",
+    "-j",
+    "2"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 19.381585699971765,
+  "peak_working_set_bytes": 12697600
+}

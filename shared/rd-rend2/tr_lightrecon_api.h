@@ -56,7 +56,7 @@ private:
 // Evaluation capabilities are separate and Unavailable without a CPU evaluator.
 enum class Capability { AssetMetadata, PhysicalEmitters, SunEstimate, SkyEstimate,
 	IndirectField, IncomingRadianceField, GeometryRegions, VisibilityData, SourceContributions,
-	IndirectSampling, IncomingRadianceSampling, RegionLookup, VisibilityQueries, ContributionSampling, SkyVisibilityQueries, Count };
+	IndirectSampling, IncomingRadianceSampling, RegionLookup, VisibilityQueries, ContributionSampling, SkyVisibilityQueries, ConditionalFieldSampling, Count };
 struct CapabilityInfo
 {
 	Status status = Status::Unavailable;
@@ -127,6 +127,44 @@ struct LightingSample
 	PhotometricUnit unit = PhotometricUnit::Relative;
 	Id calibration = 0; // mandatory; no scene scale or exposure has been applied
 };
+enum class ConditionalQuantity { IncomingRadiance, NormalIrradiance, IrradianceOverPi, LegacyAppearance };
+enum class FieldDomain { PhysicallyAuthored, SceneEquivalent, SourceLinearRelative, LegacyAppearance };
+enum class FieldOutcome { Complete, Partial };
+struct ConditionalFieldDescriptor
+{
+	Id field=0, dataset=0, calibration=0, configuration=0, alternativeGroup=0;
+	ConditionalQuantity quantity=ConditionalQuantity::NormalIrradiance;
+	FieldDomain domain=FieldDomain::SourceLinearRelative;
+	PhotometricUnit unit=PhotometricUnit::Relative;
+	ContributionColour colour=ContributionColour::Unknown;
+	bool primariesKnown=false, linearTransferKnown=false;
+	std::string profile, encoding, provenance, topology, geometry;
+	TransportMembership membership;
+	Estimate representationError; // numerical discrepancy, not a calibrated confidence interval
+	uint32_t uncertainty=0;
+	double geometryVolumeWorldCubed=0, lightingVolumeWorldCubed=0;
+	uint64_t requestedProbes=0, availableProbes=0;
+};
+struct ConditionalFieldQuery
+{
+	SourceHandle field;
+	Id configuration=0;
+	Vec3 positionWorld, directionOrNormalWorld=Vec3(0,0,1);
+	ConditionalQuantity quantity=ConditionalQuantity::NormalIrradiance;
+	bool optIn=false, allowConditionalStaticGeometry=false;
+};
+struct ConditionalFieldSample
+{
+	ConstRecord<ConditionalFieldDescriptor> descriptor;
+	Vec3 value, lower, upper;
+	bool lowerKnown=false, upperKnown=false;
+	FieldOutcome outcome=FieldOutcome::Partial;
+	Id field=0, cell=0, region=0;
+	uint64_t generation=0;
+	uint32_t geometryIssues=0, supportCount=0;
+	Id support[16]={};
+	double weights[16]={};
+};
 struct VisibilitySample { float transmittance = 0.0f; }; // [0,1] along receiver -> target
 struct ContributionSample
 {
@@ -168,8 +206,11 @@ public:
 	// No fallback light evaluation, interpolation, tracing, loading or reconstruction.
 	// Default production queries return Unavailable; only prepared CPU evaluators
 	// installed by the manager may implement them. Ignore value unless status == Ok.
+	// Physically authored Lux/Nits only. Relative/scene-equivalent fields use the
+	// explicit conditional query; contribution compatibility semantics are separate.
 	Result<LightingSample> SampleIndirect(const IrradianceQuery& query) const;
 	Result<LightingSample> SampleIncomingRadiance(const RadianceQuery& query) const;
+	Result<ConditionalFieldSample> SampleConditionalField(const ConditionalFieldQuery&) const;
 	Result<RegionHandle> LookupRegion(const Vec3& positionWorld) const;
 	Result<VisibilitySample> QueryVisibility(const VisibilityQuery& query) const;
 	Result<VisibilitySample> QuerySkyVisibility(const SkyVisibilityQuery& query) const;

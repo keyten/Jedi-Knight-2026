@@ -169,6 +169,7 @@ enum PredictionIssue : uint32_t
 struct Work
 {
 	uint64_t pairs = 0, rays = 0, nodeTests = 0, triangleTests = 0, quadrature = 0, cacheHits = 0;
+	uint64_t receiverCapabilityChecks = 0; // metadata preflight, separate from source/ray work
 };
 struct Prediction
 {

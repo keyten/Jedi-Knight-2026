@@ -1,0 +1,17 @@
+{
+  "command": [
+    "cmake",
+    "--build",
+    "build/s13-renderers",
+    "--config",
+    "Release",
+    "--target",
+    "rdsp-rend2_x86_64",
+    "rd-rend2_x86_64",
+    "--parallel",
+    "2"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 8.384039300028235,
+  "peak_working_set_bytes": 14266368
+}

@@ -1,0 +1,17 @@
+{
+  "command": [
+    "C:/Users/Keyten/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "tools.rend2.probes.test_reports",
+    "tools.rend2.field_representation.test_benchmark",
+    "tools.rend2.field_representation.test_octahedral",
+    "tools.rend2.ddgi_research.test_probe_weights",
+    "tools.rend2.rbdoom_research.test_field_basis"
+  ],
+  "exit_code": 1,
+  "wall_seconds": 0.3128106000367552,
+  "peak_working_set_bytes": 21524480
+}

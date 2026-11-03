@@ -10,6 +10,8 @@ add_library(rend2_lightrecon_core STATIC
 	decode.cpp decode.h
 	photometry.cpp photometry.h
 	field_basis.cpp field_basis.h
+	probes.cpp probes.h probe_internal.h probe_codec.cpp probe_values.cpp
+	field_builder.cpp field_builder.h field_internal.h field_prepared.cpp field_codec.cpp
 	bake_profile.h bake_forward.cpp bake_forward.h bake_math.h bake_trace.cpp bake_trace.h bake_integral.cpp
 	sun_fit.cpp sun_fit.h
 	hidden_candidates.cpp hidden_candidates.h
@@ -17,12 +19,13 @@ add_library(rend2_lightrecon_core STATIC
 	amplitude_fit.cpp amplitude_fit.h
 	point_refine.cpp point_refine.h
 	emitter_shape.cpp emitter_shape.h
+	receiver_support.cpp receiver_support.h
 	fit_evidence.h shadow_evidence.cpp shadow_evidence.h
 	indirect.cpp indirect.h
 	transport_mesh.cpp transport_mesh.h
 	sampling.cpp sampling.h
 	scene_schedule.cpp scene_schedule.h
-	joint.cpp joint.h
+	joint.cpp joint_support.cpp joint.h
 	uncertainty.cpp uncertainty.h
 	producer.cpp producer.h provider_outcome.h
 	contributions.cpp contributions.h

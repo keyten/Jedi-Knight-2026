@@ -334,3 +334,15 @@ process peak RSS. Exact OS measurements and test log hashes are sealed in
 
 The report's conclusion is **native end-to-end fixed-geometry compiler fitting is
 operational; original stock lamp discovery/reconstruction is still blocked**.
+
+
+## X15 follow-up: receiver capability and fixed comparison domains
+
+The frozen X12 observations and failures above are preserved. The
+[X15 report](rend2-receiver-support-x15.md) reproduces the academy1 normal witness
+and mp/duel4's 55/64 result, then introduces predeclared common receiver support.
+Seven of the original nine MP failures are fixed-origin exclusions (four solid,
+three boundary); two remain uncertain patch paths. New coarse schedules do not
+silently retain only easy observations: remaining unavailable predictions still
+reject a candidate. No stock physical source recovery or historical profile
+identity is established by this follow-up.

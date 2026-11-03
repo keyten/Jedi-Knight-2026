@@ -1,0 +1,7 @@
+{
+  "status": "DevelopmentOnly",
+  "reason": "Initial census conflated raw LuxelBasisMismatch with conditional UV-mapped operator support; source files evolved while the frozen native process ran. Do not use this pass as the final source-revision witness.",
+  "preserved": true,
+  "numeric_candidate_dropout_witness": "mp/duel4 55/64, nine unknown visibility predictions; final repeat required",
+  "next_version_required": true
+}

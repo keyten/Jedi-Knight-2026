@@ -1,0 +1,43 @@
+{
+  "schema": "org.openjk.probes-protocol.v1",
+  "commit": "138ec1ef45c188bdfaabbd72542e1706e949eecc",
+  "source_hashes": {
+    "shared/rd-rend2/lightrecon/probes.cpp": "56c893032165f258cf944d57cd5a55e82700dc4a42c953f6895108c92390ebce",
+    "shared/rd-rend2/lightrecon/probes.h": "33a4d9e2c8c0fd0142d2fe2cdcb973d6be77f99e62c4f6991e88bb05dbef1f26",
+    "shared/rd-rend2/lightrecon/probe_codec.cpp": "637bff1f56f1ccffb25a118b44f3fd295c01fa75f348ff3e2bd81edba4a183ab",
+    "shared/rd-rend2/lightrecon/probe_internal.h": "108d355c9a10ccee768c4d9f0ed5a74b00e4ddcd9a4b9f230ba3864f7923119f",
+    "shared/rd-rend2/lightrecon/probe_values.cpp": "c3ef548ff3bdce7e2b21c8ee5245725e83f48a5c75a7a4627d04f3054d110cc6",
+    "shared/rd-rend2/lightrecon/field_basis.cpp": "a44387e05f5ac6b39b6e2dd2721d621828e23d68d90529634f12cb704011ae97",
+    "shared/rd-rend2/lightrecon/field_basis.h": "3f5299b9ede75a54ac588302aa87afe84b01ee93d1475f1a890f5225e2dafc69",
+    "tools/lightrecon_test/probe_fixtures.h": "91f16fc67a95c74fa694111ea2735d61b717453eb69344d47047421b01b46922",
+    "tools/lightrecon_test/lightrecon_probes_test.cpp": "74198353cc9e0e2178b0dfed6aaac73c42e8b22556bfdafb0b9b98f2a04e2c5b",
+    "tools/lightrecon_test/lightrecon_probes_tool.cpp": "9a3d78ab9835e779d7ba2d35315076857c69abbc83bb664d82ca776408c4d3c6",
+    "tools/rend2/probes/run.py": "c297956299484ff5282003eee8d3131e292c9a20e98a6713cf0bf6d455d48b1b"
+  },
+  "tool_sha256": "78a8ac7a40d4747dca60bf9f0159face71ec1da9c00ec1cce4dbc4e5c80af9db",
+  "test_sha256": "760ca7a69ed24f0d67fbb7a045b3546b94047fb469fd461d2fe078cf45e209be",
+  "inventory_sha256": "3f5e7e321f64debab087d05fd78d916d7c4fa89d0508088af7669ad1d261c6a9",
+  "maps": [
+    "hoth3",
+    "vjun2",
+    "mp/duel4"
+  ],
+  "roi_rule": "Three 512-WU boxes around original static surface vertex anchors at ordinal quantiles 1/4, 1/2, 3/4; geometry only",
+  "coarse": 128,
+  "minimum": 32,
+  "clearance": 1,
+  "max_nodes_per_roi": 10000,
+  "max_probes_per_roi": 10000,
+  "max_links_per_roi": 80000,
+  "max_work_per_roi": 32000000,
+  "process_seconds": 180,
+  "process_bytes": 805306368,
+  "lighting_coefficients": 0,
+  "historical_observations_moved": false,
+  "hidden_rgb_used": false,
+  "environment": {
+    "os": "Windows-10-10.0.19045-SP0",
+    "cpu": "Intel64 Family 6 Model 165 Stepping 2, GenuineIntel",
+    "python": "3.12.14"
+  }
+}

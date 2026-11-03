@@ -1,0 +1,10 @@
+{
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_receiver_support_test.exe",
+    "tools\\rend2\\receiver_support\\results\\v4\\native-first.json"
+  ],
+  "state": "Completed",
+  "exit_code": 0,
+  "wall_seconds": 0.8279999999795109,
+  "peak_process_rss_bytes": 5668864
+}

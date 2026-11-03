@@ -272,6 +272,9 @@ Disk::Digest FactorKey(const ProfileHypothesis &p, const Chunk<SourceHypothesis>
 	k << std::setprecision(17) << Identity(p) << ' ' << int(o.mode) << ' ' << int(o.trace) << ' '
 	  << o.externallyCertifiedVisibility << ' ' << int(o.output) << ' ' << Disk::Hex(c.geometryKey)
 	  << Disk::Hex(c.materialKey) << Disk::Hex(c.observationPolicyKey);
+	k<<" receiver-capability-v1 "<<o.allowAssumed<<' '<<o.unpackedGridOnly<<' '<<o.requireScopedCompilerReplay<<' '<<unsigned(o.requestedUnit)<<' '<<o.required.size();
+	for(auto feature:o.required)k<<' '<<unsigned(feature);
+	for(const auto&rule:p.rules)k<<' '<<rule.verificationScope.size()<<':'<<rule.verificationScope;
 	if (c.compilerTrace)
 		k << Disk::Hex(c.compilerTrace->Key());
 	auto v = [&](Vec3 a) { k << ' ' << a.x << ' ' << a.y << ' ' << a.z; };
@@ -677,29 +680,38 @@ Error ReceiverFromLuxel(Id id, const SurfaceLightingObservation &sample, const B
 		}
 	return ValidateReceiver(out);
 }
+const char* CapabilityReasonName(CapabilityReason r){
+ static const char* names[]={"Supported","InvalidReceiver","UnknownMode","UnknownTrace","UnsupportedSource","UnsupportedDomain","UnknownProfile","ProfileRule","UnimplementedStage","UnverifiedApplicability","UnsupportedStyle","NonPlanar","UncertifiedPlacement","GeometryError","MappingError","DistinctNormals","OrderedGrid","GridSource","DeluxeSource"};
+ return unsigned(r)<unsigned(CapabilityReason::Count)?names[unsigned(r)]:"InvalidReason";
+}
 Support Capability(const ProfileHypothesis &p, SourceKind kind, const Receiver &r, const Options &o)
 {
 	Support s;
+	if(!ValidateReceiver(r)){s.code=CapabilityReason::InvalidReceiver;s.reason="Invalid receiver ID/normal/position";return s;}
 	if (o.mode != Mode::CompilerFaithful && o.mode != Mode::PhysicalIntegral &&
 		o.mode != Mode::OptimizationSurrogate)
 	{
+		s.code=CapabilityReason::UnknownMode;
 		s.reason = "Unknown evaluation mode";
 		return s;
 	}
 	if (o.trace != TraceMode::StaticGeometry && o.trace != TraceMode::CompilerTree)
 	{
+		s.code=CapabilityReason::UnknownTrace;
 		s.reason = "Unknown trace implementation";
 		return s;
 	}
 	if (kind != SourceKind::Point && kind != SourceKind::Spot && kind != SourceKind::Polygon &&
 		kind != SourceKind::Directional && kind != SourceKind::Sky)
 	{
+		s.code=CapabilityReason::UnsupportedSource;
 		s.reason = "Unsupported historical source kind";
 		return s;
 	}
 	if (o.output != Domain::EncodedRgb8BeforeQuantization && o.output != Domain::CompilerLinearRelative255 &&
 		o.output != Domain::GridAmbientDirected && o.output != Domain::DeluxeWorldDirection)
 	{
+		s.code=CapabilityReason::UnsupportedDomain;
 		s.reason = "Unimplemented output domain; no implicit conversion";
 		return s;
 	}
@@ -709,6 +721,7 @@ Support Capability(const ProfileHypothesis &p, SourceKind kind, const Receiver &
 	auto e = ReadRecipe(p, recipe);
 	if (!e)
 	{
+		s.code=p.family=="UnknownProfile"?CapabilityReason::UnknownProfile:CapabilityReason::ProfileRule;
 		s.reason = e.message;
 		return s;
 	}
@@ -716,62 +729,72 @@ Support Capability(const ProfileHypothesis &p, SourceKind kind, const Receiver &
 	e = Require(p, o, preflight);
 	if (!e)
 	{
+		s.code=p.family=="UnknownProfile"?CapabilityReason::UnknownProfile:CapabilityReason::ProfileRule;
 		s.reason = e.message;
 		return s;
 	}
 	if (o.mode == Mode::PhysicalIntegral)
 	{
+		s.code=CapabilityReason::UnimplementedStage;
 		s.reason = "Use separate PhysicalReference with authored SI photometry";
 		return s;
 	}
 	for (Feature f : o.required)
 		if (f == Feature::BounceFill || f == Feature::AbsoluteCalibration)
 		{
-			s.reason = "Metadata exists but requested numerical stage is not implemented";
+			s.code=CapabilityReason::UnimplementedStage;
+		s.reason = "Metadata exists but requested numerical stage is not implemented";
 			return s;
 		}
 	if (!o.allowAssumed && p.applicability != Applicability::VerifiedFeatureSubset)
 	{
+		s.code=CapabilityReason::UnverifiedApplicability;
 		s.reason = "Dataset/profile applicability is unverified; explicit allowAssumed required";
 		return s;
 	}
 	if (kind == SourceKind::Tube || kind == SourceKind::Unsupported)
 	{
+		s.code=CapabilityReason::UnsupportedSource;
 		s.reason = "No native historical tube/unknown kernel; supply independently expanded polygons";
 		return s;
 	}
-	if (r.style != 0 || !r.mappedPlanar || !r.compilerPlacementCertified || r.geometryErrorWorld > 0)
-	{
-		s.reason = "Unsupported style, receiver placement, patch, seam or mapping error";
-		return s;
-	}
+	if(r.style!=0){s.code=CapabilityReason::UnsupportedStyle;s.reason="Historical static surface operator supports style 0 only";return s;}
+	if(!r.mappedPlanar){s.code=CapabilityReason::NonPlanar;s.reason="Historical planar receiver operator does not implement patch/chart interpolation";return s;}
+	if(!r.compilerPlacementCertified){s.code=CapabilityReason::UncertifiedPlacement;s.reason="Compiler receiver placement is not certified or explicitly assumed";return s;}
+	if(r.geometryErrorWorld>0){s.code=CapabilityReason::GeometryError;s.reason="Receiver geometry has a nonzero approximation envelope";return s;}
 	if (r.mappingErrorWorld > .002)
 	{
+		s.code=CapabilityReason::MappingError;
 		s.reason = "Numerical luxel mapping bound exceeds supported planar tolerance";
 		return s;
 	}
 	if (o.output != Domain::GridAmbientDirected && Length(V(r.geometricNormal) - V(r.shadingNormal)) > 1e-5)
 	{
+		s.code=CapabilityReason::DistinctNormals;
 		s.reason = "Compiler interpolation/push for distinct shading normals is not verified";
 		return s;
 	}
 	if (o.output == Domain::GridAmbientDirected && !o.unpackedGridOnly)
 	{
+		s.code=CapabilityReason::OrderedGrid;
 		s.reason = "Global ordered grid merging is not implemented";
 		return s;
 	}
 	if (o.output == Domain::GridAmbientDirected && kind != SourceKind::Point && kind != SourceKind::Spot)
 	{
+		s.code=CapabilityReason::GridSource;
 		s.reason = "Unpacked grid operator supports point/spot contributions only";
 		return s;
 	}
 	if (o.output == Domain::DeluxeWorldDirection &&
 		(kind == SourceKind::Directional || kind == SourceKind::Sky || kind == SourceKind::Polygon))
 	{
+		s.code=CapabilityReason::DeluxeSource;
 		s.reason = "Deluxe combination not numerically verified";
 		return s;
 	}
 	s.implemented = true;
+	s.code=CapabilityReason::Supported;
 	s.fidelity = o.mode == Mode::OptimizationSurrogate ? Fidelity::Surrogate : Fidelity::ConditionalGeometry;
 	s.reason = "General trace policy remains conditional, not complete compiler replay";
 	return s;
@@ -844,6 +867,7 @@ Error CpuForwardEvaluator::Prepare(const ProfileHypothesis &p, const Chunk<Sourc
 					return Failure(Code::Cancelled, "Prepare cancelled");
 				if (sources.data[j].kind == SourceKind::Sky)
 					return Failure(Code::Unavailable, "Sky expansion is not cached");
+				++w.receiverCapabilityChecks;
 				auto support = Capability(p, sources.data[j].kind, receivers.data[i], o);
 				if (!support.implemented)
 					return Failure(Code::Unavailable,
@@ -856,6 +880,7 @@ Error CpuForwardEvaluator::Prepare(const ProfileHypothesis &p, const Chunk<Sourc
 					return e;
 			}
 		f->preparation_ = w;
+		f->receiverCapabilityValidated_=sources.count>0;
 		out = f;
 		return Error();
 	}
@@ -916,7 +941,10 @@ Error CpuForwardEvaluator::Evaluate(const ProfileHypothesis &p, const Chunk<Sour
 				result.work.triangleTests += v.work.triangleTests;
 				continue;
 			}
-			Support support = Capability(p, sources.count ? sources.data[0].kind : SourceKind::Point, r, o);
+			Support support;
+			const bool checkedFactors=o.factors && o.factors->receiverCapabilityValidated_;
+			if(checkedFactors){support.implemented=true;support.code=CapabilityReason::Supported;support.fidelity=o.mode==Mode::OptimizationSurrogate?Fidelity::Surrogate:Fidelity::ConditionalGeometry;}
+			else{++result.work.receiverCapabilityChecks;support=Capability(p,sources.count?sources.data[0].kind:SourceKind::Point,r,o);}
 			if (!recipeStatus || !support.implemented)
 			{
 				v.status =
@@ -951,7 +979,7 @@ Error CpuForwardEvaluator::Evaluate(const ProfileHypothesis &p, const Chunk<Sour
 				if ((s.position.sigmaWorld.known && s.position.sigmaWorld.value > 0) ||
 					s.canonicalEmission.intensity.bounded)
 					v.issues |= SourceParameterUncertainty;
-				support = Capability(p, s.kind, r, o);
+				if(!checkedFactors){++result.work.receiverCapabilityChecks;support = Capability(p, s.kind, r, o);}
 				if (!support.implemented)
 				{
 					unsupported = true;

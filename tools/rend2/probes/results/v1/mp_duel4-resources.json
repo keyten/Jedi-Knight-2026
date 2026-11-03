@@ -1,0 +1,11 @@
+{
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_probes_tool.exe",
+    "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+    "tools\\rend2\\probes\\results\\v1\\mp_duel4.json"
+  ],
+  "state": "Completed",
+  "exit_code": 1,
+  "wall_seconds": 0.5,
+  "peak_process_rss_bytes": 24702976
+}

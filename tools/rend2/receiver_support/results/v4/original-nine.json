@@ -1,0 +1,73 @@
+{
+  "schema": "org.openjk.receiver-support-nine.v1",
+  "map": "mp/duel4",
+  "formula_only_run": "v2",
+  "origin_aware_run": "v4",
+  "records": [
+    {
+      "sample": "611728429013433882",
+      "previous_ray_issues": 2,
+      "final_reason": "ReceiverOriginSolid",
+      "common": false,
+      "area": 512
+    },
+    {
+      "sample": "1771019282532047160",
+      "previous_ray_issues": 2,
+      "final_reason": "ReceiverOriginSolid",
+      "common": false,
+      "area": 512
+    },
+    {
+      "sample": "2085495777994157819",
+      "previous_ray_issues": 2,
+      "final_reason": "ReceiverOriginSolid",
+      "common": false,
+      "area": 1024
+    },
+    {
+      "sample": "2249866378709669124",
+      "previous_ray_issues": 64,
+      "final_reason": "Supported",
+      "common": true,
+      "area": 1024
+    },
+    {
+      "sample": "3083891897838442132",
+      "previous_ray_issues": 4,
+      "final_reason": "ReceiverOriginBoundary",
+      "common": false,
+      "area": 512
+    },
+    {
+      "sample": "4756514516045803927",
+      "previous_ray_issues": 2,
+      "final_reason": "ReceiverOriginSolid",
+      "common": false,
+      "area": 1024
+    },
+    {
+      "sample": "8694026491634226777",
+      "previous_ray_issues": 64,
+      "final_reason": "Supported",
+      "common": true,
+      "area": 256
+    },
+    {
+      "sample": "13577065843161187924",
+      "previous_ray_issues": 4,
+      "final_reason": "ReceiverOriginBoundary",
+      "common": false,
+      "area": 256
+    },
+    {
+      "sample": "15878617797983799245",
+      "previous_ray_issues": 4,
+      "final_reason": "ReceiverOriginBoundary",
+      "common": false,
+      "area": 512
+    }
+  ],
+  "excluded_fixed_origins": 7,
+  "retained_path_uncertainty": 2
+}

@@ -8,7 +8,7 @@ namespace Core
 {
 namespace SceneSchedule
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2; // X15 receiver-domain binding and typed runtime coverage receipts
 enum class Status
 {
 	Pending,

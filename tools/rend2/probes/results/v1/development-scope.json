@@ -1,0 +1,8 @@
+{
+  "status": "Development attempt; not accepted geometry benchmark",
+  "reason": "Decode assigned a nonzero unused firstLink to cells without a probe, changing content identity. Stock round-trip rejected it rather than publishing stale geometry.",
+  "controlled_tests": "Passed but did not cover mixed solid/valid cell decode",
+  "stock_cases": "All three failed strict round-trip; partial JSON is not accepted evidence",
+  "replacement": "results/v2",
+  "original_attempt_preserved": true
+}

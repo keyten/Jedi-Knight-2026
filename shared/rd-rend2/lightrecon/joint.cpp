@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "joint.h"
 #include "bake_math.h"
+#include "bake_trace.h"
 #include "geometry_key.h"
 #include <algorithm>
 #include <chrono>
@@ -234,6 +235,10 @@ struct Engine
 	std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 	std::map<Id, size_t> patchIndex;
 	Bake::EvaluationContext effectiveGeometry;
+	std::shared_ptr<const ReceiverSupport::Manifest> support;
+	std::set<Id> admitted;
+	Score lastScore;
+	std::vector<Prediction> lastPredictions;
 	Engine(const Request &q, const ReadContext &ctx) : r(q), read(ctx)
 	{
 		Need(r.transfer && !Zero(r.mapKey) && !Zero(r.policyKey) &&
@@ -385,15 +390,44 @@ struct Engine
 		}
 		return rows;
 	}
+	void PrepareDomain(const std::vector<Observation>& rows,const Disk::Digest& partition)
+	{
+		support=r.receiverSupport;
+		if(support){
+			Need(support->Policy().map==r.mapKey&&support->Policy().geometry==r.geometry.geometryKey&&support->Policy().domainKey==r.placement.domainKey,Code::InvalidState,"Frozen receiver manifest generation mismatch");
+			for(const auto& p:r.profiles)Need(support->ContainsOperator(ReceiverOperator(p,r.strictSampling)),Code::InvalidState,"Forward operator absent from frozen receiver manifest");
+			Need(support->Policy().traceKey==(r.geometry.compilerTrace?r.geometry.compilerTrace->Key():Disk::Digest{}),Code::InvalidState,"Frozen receiver trace policy mismatch");
+			std::set<Id> supplied;for(const auto&x:rows)supplied.insert(x.id);
+			Need(!rows.empty(),Code::InvalidInput,"No receiver partition geometry");
+			uint64_t expected=0;for(const auto&entry:support->Entries())if(unsigned(entry.role)==unsigned(rows.front().role)){
+				++expected;Need(supplied.count(entry.sample),Code::InvalidState,"Missing observation from frozen receiver partition");
+			}
+			Need(expected==rows.size(),Code::InvalidState,"Frozen receiver partition cardinality mismatch");
+		}else{
+			auto geometry=std::make_shared<Rows<ReceiverSupport::Geometry>>();
+			for(const auto& x:rows)geometry->v->push_back(ReceiverGeometry(r,x));
+			Check(FreezeReceiverSupport(r,geometry,geometry->v->size(),partition,read,support));
+		}
+		admitted.clear();
+		for(const auto& x:rows){const ReceiverSupport::Entry* entry=nullptr;Check(support->Match(ReceiverGeometry(r,x),entry));if(entry->common)admitted.insert(x.id);}
+		work.accountedBytes=std::max(work.accountedBytes,baseBytes+support->Report().bytes);
+	}
 	void Pin()
 	{
 		training = Load(r.training, r.count, Role::Training);
+		PrepareDomain(training,r.trainingKey);
+		std::set<std::tuple<unsigned,Id,Id>> required;
+		for(const auto&x:training)if(admitted.count(x.id))required.emplace(unsigned(x.channel),x.region,x.block);
+		Need(!r.options.coarseRows||r.options.coarseRows>=required.size(),Code::InvalidInput,
+			"Receiver preflight coarse budget: requested="+std::to_string(r.options.coarseRows)+" required_groups="+std::to_string(required.size()));
 		GeometryKey k;
 		k.U(kVersion);
 		k.Digest(Configuration());
 		k.Digest(r.mapKey);
 		k.Digest(r.trainingKey);
 		k.Digest(r.policyKey);
+		k.U(ReceiverSupport::kVersion);
+		if(r.receiverSupport)k.Digest(r.receiverSupport->Key());
 		k.Digest(r.transfer->Key());
 		k.Digest(placement->PolicyKey());
 		k.U(r.options.seed);
@@ -835,6 +869,7 @@ struct Engine
 				{
 					root.incident.push_back((V(x.value) * p.fixedGain).Float());
 					root.available.push_back(x.available);
+					root.visibilityIssues.push_back(x.visibilityIssues);
 				}
 			}
 			else
@@ -862,6 +897,7 @@ struct Engine
 					auto x = values.predictions.data[i];
 					root.incident.push_back((V(x.compilerRelative) * p.fixedGain).Float());
 					root.available.push_back(x.available);
+					root.visibilityIssues.push_back(x.visibilityIssues);
 				}
 			}
 		}
@@ -882,7 +918,7 @@ struct Engine
 		std::vector<size_t> indices;
 		std::vector<Indirect::PatchValue> result(observations.size());
 		for (size_t i = 0; i < observations.size(); ++i)
-			if (observations[i].transport)
+			if (observations[i].transport && admitted.count(observations[i].id))
 			{
 				receivers.push_back(observations[i].receiver);
 				indices.push_back(i);
@@ -908,6 +944,7 @@ struct Engine
 							  : root.kind == TransportRootKind::Sky ? &v.sky : &v.ambient;
 				*component = (V(*component) + V(root.incident[j])).Float();
 				v.comparable &= root.available[j] != 0;
+				if(!root.visibilityIssues.empty())v.visibilityIssues|=root.visibilityIssues[j];
 				if (!root.available[j])
 					v.issues |= Indirect::MissingPrimary;
 			}
@@ -1070,6 +1107,7 @@ struct Engine
 								  : root.kind == TransportRootKind::Sky ? &t.sky : &t.ambient;
 					*component = (V(*component) + V(root.incident[i])).Float();
 					t.comparable &= root.available[i] != 0;
+					if(!root.visibilityIssues.empty())t.visibilityIssues|=root.visibilityIssues[i];
 					if (!root.available[i])
 						t.issues |= Indirect::MissingPrimary;
 					double area = r.transfer->Patches()[i].areaWorldSquared;
@@ -1276,6 +1314,8 @@ struct Engine
 		std::map<GroupKey, bool> required;
 		GeometryKey admission;
 		out.score.requested = observations.size();
+		out.score.supportKey=support->Key();
+		std::vector<Id> denominator;std::vector<ReceiverSupport::RuntimePrediction> runtime;
 		bool anyPositive = false;
 		for (size_t observationIndex = 0; observationIndex < observations.size();
 			 ++observationIndex)
@@ -1285,6 +1325,17 @@ struct Engine
 			Prediction prediction;
 			prediction.id = x.id;
 			prediction.patch = x.patch;
+			const auto* entry=support->Find(x.id);
+			Need(entry,Code::InvalidState,"Observation outside frozen support manifest");
+			denominator.push_back(x.id);
+			if(!entry->common){
+				prediction.support=ReceiverSupport::RuntimeState::Excluded;
+				for(auto d:entry->profiles)if(d.reason!=ReceiverSupport::Reason::Supported){prediction.preflight=d.reason;break;}
+				++out.score.supportExcluded;out.score.excludedArea+=entry->areaWorldSquared;
+				out.values.push_back(prediction);continue;
+			}
+			out.score.supportArea+=entry->areaWorldSquared;
+
 			if (x.channel == Channel::Surface)
 			{
 				const auto &y =
@@ -1297,6 +1348,7 @@ struct Engine
 				prediction.ambient = y.ambient;
 				prediction.indirect = y.indirect;
 				prediction.issues = y.issues;
+				prediction.visibilityIssues=y.visibilityIssues;
 				prediction.transportAvailable = (y.issues & Indirect::MissingTransport) == 0;
 				prediction.directOnlyConditional =
 					!prediction.transportAvailable && r.directOnlyConditional;
@@ -1310,7 +1362,7 @@ struct Engine
 				prediction.directionKnown = y.directionKnown;
 				prediction.directionToSource = y.directionToSource;
 				prediction.rgb = x.channel == Channel::GridAmbient ? y.gridAmbient : y.gridDirected;
-				prediction.issues = y.visibilityIssues;
+				prediction.visibilityIssues=y.visibilityIssues;
 			}
 			bool directional =
 				x.channel == Channel::GridDirection || x.channel == Channel::DeluxeDirection;
@@ -1321,6 +1373,9 @@ struct Engine
 				prediction.issues |= Indirect::MovingPath;
 			prediction.available &= r.profiles.at(m.profile).contract.transferAttested &&
 									r.profiles.at(m.profile).contract.primariesAttested;
+			prediction.support=prediction.available?ReceiverSupport::RuntimeState::Available:
+				(prediction.issues&Indirect::MissingPrimary)?ReceiverSupport::RuntimeState::UnknownVisibility:ReceiverSupport::RuntimeState::MissingPrediction;
+			ReceiverSupport::RuntimePrediction counted;counted.sample=x.id;counted.state=prediction.support;counted.value=prediction.rgb;runtime.push_back(counted);
 			admission.U(x.id);
 			admission.U(prediction.available);
 			out.values.push_back(prediction);
@@ -1431,8 +1486,9 @@ struct Engine
 			if (channelBlocks[c])
 				*terms[c] = r.options.channelWeight[c] * channelLoss[c] / channelBlocks[c];
 		out.terms.worstBlock = r.options.worstBlockWeight * worst;
-		out.score.admissionKey = admission.Finish();
-		out.score.available = !groups.empty() && out.score.unavailable == 0 && out.score.used > 0;
+		Check(ReceiverSupport::AuditCoverage(*support,denominator,runtime,read,out.score.coverage));
+		out.score.admissionKey = out.score.coverage.denominator;
+		out.score.available = !groups.empty() && out.score.coverage.complete && out.score.unavailable == 0 && out.score.used > 0;
 		out.score.positive = anyPositive;
 		out.score.requiredBlocksPass = all && out.score.available;
 		out.score.objective = out.terms.Total();
@@ -1515,6 +1571,7 @@ struct Engine
 		}
 		Need(std::isfinite(out.terms.Total()) && out.terms.Total() >= 0, Code::AlgorithmError,
 			 "Joint objective nonfinite");
+		lastScore=out.score;lastPredictions=out.values;
 		return out;
 	}
 	bool Better(const Evaluation &a, const Evaluation &b) const
@@ -1656,7 +1713,7 @@ struct Engine
 								m = std::move(candidate);
 								best = std::move(e);
 							}
-							return objective;
+							return e.score.available?objective:std::numeric_limits<double>::infinity();
 						};
 						trial(lo);
 						trial(hi);
@@ -1692,7 +1749,7 @@ struct Engine
 					Model n = m;
 					Set(n.materials[j].initial, c, x);
 					auto e = Evaluate(n, training, strict);
-					double v = e.terms.Total();
+					double v = e.score.available?e.terms.Total():std::numeric_limits<double>::infinity();
 					if (Better(e, best))
 					{
 						m = std::move(n);
@@ -1952,6 +2009,8 @@ struct Engine
 				target = std::move(full);
 			}
 		} restore{training, training};
+		training.erase(std::remove_if(training.begin(),training.end(),[&](const Observation&x){return !admitted.count(x.id);}),training.end());
+		Need(!training.empty(),Code::Unavailable,"No common supported training receivers; excluded domain remains explicit");
 		if (r.options.coarseRows && r.options.coarseRows < training.size())
 		{
 			std::map<std::tuple<unsigned, Id, Id>, std::vector<Observation>> groups;
@@ -2339,6 +2398,7 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 		engine.reset(new Engine(r, read));
 		auto &e = *engine;
 		e.Pin();
+		out.receiverSupport=e.support;
 		auto selectionIdentity = e.identity;
 		if (validation)
 		{
@@ -2464,6 +2524,7 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 			attempt.profile = candidate.profile;
 			attempt.sources = candidate.sources.size();
 			++e.work.attemptedModels;
+			e.lastScore={};e.lastPredictions.clear();
 			Model best;
 			bool have = false;
 			try
@@ -2538,6 +2599,8 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 				}
 				attempt.state = FailureState(error.code);
 				attempt.reason = error.message;
+				attempt.coverage=e.lastScore.coverage;attempt.receiverSupportKey=e.support?e.support->Key():Disk::Digest{};
+				for(const auto&p:e.lastPredictions)if(!p.available&&p.support!=ReceiverSupport::RuntimeState::Excluded&&attempt.unavailableReceivers.size()<128){attempt.unavailableReceivers.push_back(p.id);attempt.unavailableIssues.push_back(p.issues);attempt.unavailableVisibilityIssues.push_back(p.visibilityIssues);}
 				++e.work.rejectedModels;
 			}
 			seen.insert(structure);
@@ -2672,6 +2735,7 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 		out.reason = error.message;
 		if (engine)
 		{
+			out.receiverSupport=engine->support;
 			checkpoint.work = engine->work;
 			checkpoint.geometryCache = engine->cache;
 			checkpoint.cacheBytes = engine->cacheSize;
@@ -2928,6 +2992,7 @@ Error EvaluateFrozen(const Request &r, const Model &model,
 				 model.policyKey == e.Configuration() && model.transferKey == r.transfer->Key(),
 			 Code::InvalidState, "Frozen model generation mismatch");
 		auto rows = e.Load(source, count, role);
+		e.PrepareDomain(rows,partition);
 		Need(e.Place(model), Code::MissingGeometry, "Frozen source geometry invalid");
 		auto result = e.Evaluate(model, rows, true, false);
 		score = std::move(result.score);

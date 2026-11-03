@@ -1,0 +1,32 @@
+{
+  "schema": "org.openjk.field-builder-verification.v1",
+  "frozen_manifest_sha256": "5a782dc93eaf55f8417a67b8b6e9b7da1f3c86d52e4a4921016fa264980ad4a4",
+  "checks_sha256": "d92de9263053db2cda9b8ad654a5fd5110dc4c3063abd490747b579cb4ca979a",
+  "logs": {
+    "check-p01-ctest-resources.json": "8fd881d8376709c7f7eadd8081122a90b4aac5a4ef8ec7dd708897bd67ba17e6",
+    "check-p01-ctest-resources.log": "1b812fe0965a98bffc0d7bcb3c8ca1fa5bfd290707443dd50d207f472610b65f",
+    "check-p01-ctest-final-resources.json": "526d0d43648fbfd8127f657c953d9d8d5bd43eb7a13e80357c5ae019ebfbc565",
+    "check-p01-ctest-final-resources.log": "5c813343ea4b57ad7b82ec33f719f83a39813e0725464ccc0c1ee43153973f22",
+    "check-p01-focused-resources.json": "2fe09a8e85eb889cf56c58960e93299ceba490ae633e0adc0a30f220f0d9a1cf",
+    "check-p01-focused-resources.log": "a6e8dad107b749deac3ecb87dadc84d59d8022e4a99523bb9abfa452bfcb3699",
+    "check-p01-regression.log": "de881ff98302620bc17d61cf231a05c2670c5a24c87381afd04cec2ed4b51fec",
+    "check-p01-isolated-producer-resources.json": "0ab8e49955eb0e61640a401784e6319af8c18aa7351f333b402e7d1abc29552c",
+    "check-p01-isolated-producer-resources.log": "4dc267f4988f5338372cf1968cf02d78c9c88d975d626db13135ce860b241f3c",
+    "check-p01-python-resources.json": "e5d4fee67a4210cdc44a35d064a858140dbcb0bf378cfec59cf6aae65ba4256d",
+    "check-p01-python-resources.log": "6f868d96eda4fa8ddfea40fa9d7f838d55bc0a9403bbb6f5491803a3b0636186",
+    "check-p01-python-corrected-resources.json": "2ca9284b46557c061d5c472cb26885a86e43e3556d12d7e51b5afbd72dd4e129",
+    "check-p01-python-corrected-resources.log": "cf005188b142e70a345756522c75e5ea91b4164a76c66f109b8e115978037b0e",
+    "check-p01-cpu-published-resources.json": "1be85a1e79700d9d45fb1f29ff501c2ef1f8e1375cec329b16c01f704a405c3d",
+    "check-p01-cpu-published-resources.log": "2565d04bd6ca73523c918aceee513f4316cd5d390d3c89de0434148917023bce",
+    "check-p01-renderers-published-resources.json": "bc05ff0ce2a8f306f14b7edc4e6c69967182cf03d9b9d7d41a7999fdb2a99faa",
+    "check-p01-renderers-published-resources.log": "021de6dd928590c9850f50bdb7da0f16ce8b3d857abad2fd2c10f6678fcd103d"
+  },
+  "additional_sources": {
+    "tools/lightrecon_test/lightrecon_api_test.cpp": "b06ef1d29e61ea893df395b0a55ffcc8b8816db9fc48fa630cc00206d96bb35d",
+    "tools/lightrecon_test/lightrecon_disk_test.cpp": "72847cc794a2ee977fb8eda0a2e5b46016c7f92f8aafb69643eac935c8ed559b",
+    "tools/lightrecon_test/lightrecon_contributions_test.cpp": "5887ee8fe06ae49e239d79f53b992e6e869f2f8f5194e29e1f48303518b899e4",
+    "docs/rend2-lighting-field-builder-p01.md": "03735fc6127cedf63b2a21c0e4df5c752d55270afa933c4daf79903db98e7029",
+    "tools/rend2/field_builder/README.md": "199c1b5203e128df28ed5cad2ba3a6f682adb49ef8bd0f8106e0a5aa074f1313"
+  },
+  "licensed_payloads": false
+}

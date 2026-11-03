@@ -39,9 +39,19 @@ struct Recipe
 // not attest that an arbitrary dataset was baked with this recipe.
 ProfileHypothesis NetRadiantProfile(const Recipe & = Recipe());
 
+enum class CapabilityReason : uint32_t
+{
+	Supported, InvalidReceiver, UnknownMode, UnknownTrace, UnsupportedSource,
+	UnsupportedDomain, UnknownProfile, ProfileRule, UnimplementedStage,
+	UnverifiedApplicability, UnsupportedStyle, NonPlanar, UncertifiedPlacement,
+	GeometryError, MappingError, DistinctNormals, OrderedGrid, GridSource,
+	DeluxeSource, Count
+};
+const char *CapabilityReasonName(CapabilityReason);
 struct Support
 {
 	bool implemented = false;
+	CapabilityReason code = CapabilityReason::ProfileRule;
 	Fidelity fidelity = Fidelity::Unsupported;
 	std::string operation, scope, reason;
 };
@@ -89,6 +99,7 @@ class PreparedFactors
 	Disk::Digest key_{};
 	std::vector<Factor> records_;
 	Work preparation_;
+	bool receiverCapabilityValidated_ = false; // only CpuForwardEvaluator may attest this exact key
 };
 class CpuForwardEvaluator final : public ForwardEvaluator
 {
