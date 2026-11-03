@@ -1,0 +1,86 @@
+{
+  "schema": "org.openjk.shadow-cache-checks.v1",
+  "frozen_sources_verified": true,
+  "native": {
+    "assertions": 262,
+    "failures": 0,
+    "semantic_repeat_identical": true,
+    "archive_identical": true
+  },
+  "full_cpu": {
+    "passed": 43,
+    "total": 43,
+    "seconds": 240.8,
+    "scope": "before finite-fixture correction and final P05-only input guards"
+  },
+  "corrected_regression": {
+    "passed": 41,
+    "total": 41,
+    "seconds": 149.64,
+    "excluded": [
+      "lightrecon_producer",
+      "lightrecon_point_refine"
+    ],
+    "reason": "unchanged expensive tests already passed complete suite"
+  },
+  "final_focused": {
+    "passed": 9,
+    "total": 9,
+    "tests": [
+      "shadow_cache",
+      "visibility",
+      "occupancy",
+      "emitter_support",
+      "api",
+      "disk",
+      "field_builder",
+      "probes",
+      "lifecycle"
+    ]
+  },
+  "builds": {
+    "cpu": "Passed",
+    "sp_release": "Passed",
+    "mp_release": "Passed",
+    "scope": "final production sources; test-only source/reference additions do not enter renderer builds"
+  },
+  "development": {
+    "initial_link_failure": "source/region coverage declarations were newer than the in-flight static library; subsequent completed rebuild passes",
+    "v1": "superseded: source/wall overlap and centre-plane reference",
+    "v2": "corrected physical fixture and finite slab reference",
+    "v3": "final provenance/support input guards"
+  },
+  "final_quality": {
+    "false_clear": 0,
+    "opaque_tests": 64,
+    "primary_false_occlusion": 0,
+    "primary_open_tests": 3,
+    "probe_records": 1184,
+    "probe_visible": 592,
+    "probe_blocked": 592,
+    "alpha_translucent_unknown": 2
+  },
+  "limits": [
+    "finite-source quadrature difference is not a continuous error bound",
+    "no numeric translucent/alpha-mask transmission",
+    "no per-node masks or exact dynamic soft-shadow composition",
+    "no stock emitter/exact-shadow certification"
+  ],
+  "renderer_changed": false,
+  "consumer_enabled": false,
+  "game_launched": false,
+  "extra_dependencies": false,
+  "logs": {
+    "check-p05-ctest-resources.json": "bd020d2c4a0275636788af9800ded4c58798b8a6159b7c2460a829f4e64561df",
+    "check-p05-ctest-resources.log": "ed3ca2fc1dce81cf8acf9b81975636382ce1613f538aefd313c7cc71118c1fa0",
+    "check-p05-final-regression-resources.json": "198b0b99995cf7aa072542054c0f9c69bb1f42195900a27bcef6c441213bf8fa",
+    "check-p05-final-regression-resources.log": "eec01fa7e40b66856413d90f5db68381bfb92fec5a6fe24084e38df54a5de34a",
+    "check-p05-published-focused-resources.json": "dc0513822260baf2f66d4254bd103aa548b0c6e5ec89ff58cf7e6f47afc1bbac",
+    "check-p05-published-focused-resources.log": "83ea048db69153e0fa53072947ebc319eed183b086a6f69a24f0632d19b97ef0",
+    "check-p05-published-renderer-resources.json": "71ec82a503caac1a03fb3bc04cbf569b119f05de2bc0408ca1fe985d4510ec25",
+    "check-p05-published-renderer-resources.log": "da8498c7ee94be74d9d56ab1d16ecbe1221c2135d3125a715468eba5dde5f502",
+    "check-p05-final-v3-build.log": "b227a0259fe8e29d50ac9900cbf742df49ceb9a717f9e1b0b9eabc303c6a42ac",
+    "check-p05-v2-build.log": "2ff7cf04b0f36f67f5bffc06aa0bb076b6de0e47465c9eee3afa3126196922ce",
+    "check-p05-cpu-build.log": "a8ab819ceac6027510ef5862a8c6d990a033888d3797f9ef127f2cbc550e54f8"
+  }
+}

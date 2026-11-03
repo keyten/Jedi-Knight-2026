@@ -56,7 +56,7 @@ private:
 // Evaluation capabilities are separate and Unavailable without a CPU evaluator.
 enum class Capability { AssetMetadata, PhysicalEmitters, SunEstimate, SkyEstimate,
 	IndirectField, IncomingRadianceField, GeometryRegions, VisibilityData, SourceContributions,
-	IndirectSampling, IncomingRadianceSampling, RegionLookup, VisibilityQueries, ContributionSampling, SkyVisibilityQueries, ConditionalFieldSampling, Count };
+	IndirectSampling, IncomingRadianceSampling, RegionLookup, VisibilityQueries, ContributionSampling, SkyVisibilityQueries, ConditionalFieldSampling, StaticShadowSupport, Count };
 struct CapabilityInfo
 {
 	Status status = Status::Unavailable;
@@ -166,6 +166,29 @@ struct ConditionalFieldSample
 	double weights[16]={};
 };
 struct VisibilitySample { float transmittance = 0.0f; }; // [0,1] along receiver -> target
+enum class ShadowQueryKind { Segment, Source, SkyDirection };
+enum class ShadowState { Visible, Blocked, Fractional, Unknown };
+struct VisibilityEstimate {
+	ShadowState state=ShadowState::Unknown;
+	bool estimateKnown=false;
+	double value=0,lower=0,upper=1; // bounds concern unresolved sampled rays, not quadrature confidence
+};
+struct ShadowSupportQuery {
+	Id dataset=0,receiver=0,scenario=0;
+	SourceHandle source;
+	ShadowQueryKind kind=ShadowQueryKind::Source;
+	Vec3 receiverWorld,targetOrDirection;
+};
+struct ShadowSupportSample {
+	Id dataset=0,receiver=0,source=0,region=0,scenario=0;
+	uint64_t generation=0;
+	VisibilityEstimate staticGeometry,scenarioGeometry;
+	VisibilityEstimate staticResponse,scenarioResponse; // incident/normal response weighted, not RGB
+	bool responseApplicable=false,conditional=false,runtimeUpdateRequired=false;
+	bool occluderDistanceKnown=false;
+	double nearestStaticOccluderWorld=0,samplingDifference=0,quantizationBound=0;
+	uint32_t issues=0,rayIssues=0,coarseSamples=0,referenceSamples=0;
+};
 struct ContributionSample
 {
 	LightingSample lighting; // RGB quantities
@@ -213,6 +236,7 @@ public:
 	Result<ConditionalFieldSample> SampleConditionalField(const ConditionalFieldQuery&) const;
 	Result<RegionHandle> LookupRegion(const Vec3& positionWorld) const;
 	Result<VisibilitySample> QueryVisibility(const VisibilityQuery& query) const;
+	Result<ShadowSupportSample> QueryShadowSupport(const ShadowSupportQuery&) const;
 	Result<VisibilitySample> QuerySkyVisibility(const SkyVisibilityQuery& query) const;
 	Result<ContributionSample> SampleContribution(const ContributionQuery& query) const;
 	WeakSnapshot Weak() const;

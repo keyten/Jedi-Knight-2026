@@ -1,0 +1,6 @@
+{
+  "status": "SupersededPreliminaryNotPhysicalAcceptance",
+  "reason": "finite source intersects wall; reference used centre plane rather than full slab",
+  "replacement": "../v3",
+  "thresholds_relaxed": false
+}

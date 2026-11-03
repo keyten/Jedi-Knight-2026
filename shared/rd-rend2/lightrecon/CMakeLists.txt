@@ -12,6 +12,7 @@ add_library(rend2_lightrecon_core STATIC
 	field_basis.cpp field_basis.h
 	probes.cpp probes.h probe_internal.h probe_codec.cpp probe_values.cpp
 	field_builder.cpp field_builder.h field_internal.h field_prepared.cpp field_codec.cpp
+	shadow_cache.cpp shadow_cache.h shadow_cache_internal.h shadow_cache_codec.cpp shadow_cache_prepared.cpp
 	bake_profile.h bake_forward.cpp bake_forward.h bake_math.h bake_trace.cpp bake_trace.h bake_integral.cpp
 	sun_fit.cpp sun_fit.h
 	hidden_candidates.cpp hidden_candidates.h

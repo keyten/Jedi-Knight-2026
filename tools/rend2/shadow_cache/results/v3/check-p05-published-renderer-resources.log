@@ -1,0 +1,29 @@
+Microsoft (R) Build Engine версии 16.7.0+b89cb5fde для .NET Framework
+(C) Корпорация Майкрософт (Microsoft Corporation). Все права защищены.
+
+  bundled_libjpeg.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\lib\jpeg-9a\Release\bundled_libjpeg.lib
+  bundled_minizip.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\lib\minizip\Release\bundled_minizip.lib
+  compact_glsl_sp.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\Release\compact_glsl_sp.exe
+  rend2_glslc.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\Release\rend2_glslc.exe
+  bundled_libpng.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\lib\libpng\Release\bundled_libpng.lib
+  zlib-ng.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\lib\zlib-ng\src\Release\zlibstatic.lib
+cl : командная строка warning D9002: пропуск неизвестного параметра "/arch:SSE2" [C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\shared\rd-rend2\lightrecon\rend2_lightrecon_core.vcxproj]
+cl : командная строка warning D9002: пропуск неизвестного параметра "/arch:SSE2" [C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\shared\rd-rend2\lightrecon\rend2_lightrecon_core.vcxproj]
+  shadow_cache.cpp
+cl : командная строка warning D9002: пропуск неизвестного параметра "/arch:SSE2" [C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\shared\rd-rend2\lightrecon\rend2_lightrecon_core.vcxproj]
+  shadow_cache_codec.cpp
+  rend2_lightrecon_core.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\shared\rd-rend2\lightrecon\Release\rend2_lightrecon_core.lib
+     Создается библиотека C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s13-renderers/code/rd-rend2/Release/rdsp-rend2_x86_64.lib и объект C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s13-renderers/code/rd-rend2/Release/rdsp-rend2_x86_64.exp
+  rdsp-rend2_x86_64.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\Release\rdsp-rend2_x86_64.dll
+Microsoft (R) Build Engine версии 16.7.0+b89cb5fde для .NET Framework
+(C) Корпорация Майкрософт (Microsoft Corporation). Все права защищены.
+
+  bundled_libjpeg.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\lib\jpeg-9a\Release\bundled_libjpeg.lib
+  compact_glsl.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\Release\compact_glsl.exe
+  bundled_minizip.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\lib\minizip\Release\bundled_minizip.lib
+  bundled_libpng.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\lib\libpng\Release\bundled_libpng.lib
+  rend2_glslc.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\Release\rend2_glslc.exe
+  rend2_lightrecon_core.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\shared\rd-rend2\lightrecon\Release\rend2_lightrecon_core.lib
+  zlib-ng.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\lib\zlib-ng\src\Release\zlibstatic.lib
+     Создается библиотека C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s13-renderers/codemp/rd-rend2/Release/rd-rend2_x86_64.lib и объект C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s13-renderers/codemp/rd-rend2/Release/rd-rend2_x86_64.exp
+  rd-rend2_x86_64.vcxproj -> C:\Users\Keyten\Desktop\projects\OpenJK-rend2\build\s13-renderers\Release\rd-rend2_x86_64.dll

@@ -1,0 +1,4 @@
+[ 96%] Built target rend2_lightrecon_core
+[ 96%] Building CXX object CMakeFiles/lightrecon_shadow_cache_test.dir/lightrecon_shadow_cache_test.cpp.obj
+[100%] Linking CXX executable lightrecon_shadow_cache_test.exe
+[100%] Built target lightrecon_shadow_cache_test

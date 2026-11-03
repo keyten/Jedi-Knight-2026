@@ -1,0 +1,25 @@
+{
+  "schema": "org.openjk.shadow-cache-verification.v1",
+  "frozen_manifest_sha256": "ac594adff7913f79f7149b033aa69b37194edc44c9d00e430a4ef811f9e2e9d4",
+  "checks_sha256": "d78cd80427e71a62423ff6230914b8dc84f2fcfac46c5e6bbdc937ace9fdee65",
+  "analytic_reference_sha256": "e830ea14d05b9b750030f78686accd27ff37238c3e617499e86e916549285d84",
+  "additional_sources": {
+    "tools/rend2/shadow_cache/reference.py": "984064b91e9fa03af6e88cf1611847fad01c533be983d699d7cb011bccef6d8c",
+    "tools/rend2/shadow_cache/README.md": "9c343373b97e82f1e8571e207322a659b197f5feeb1af902e823b26198df8028",
+    "docs/rend2-static-shadow-support-p05.md": "561d76c4cb871afa08a99166562ed66d7bf2ae66b639f1643053d52a21307e86"
+  },
+  "logs": {
+    "check-p05-ctest-resources.json": "bd020d2c4a0275636788af9800ded4c58798b8a6159b7c2460a829f4e64561df",
+    "check-p05-ctest-resources.log": "ed3ca2fc1dce81cf8acf9b81975636382ce1613f538aefd313c7cc71118c1fa0",
+    "check-p05-final-regression-resources.json": "198b0b99995cf7aa072542054c0f9c69bb1f42195900a27bcef6c441213bf8fa",
+    "check-p05-final-regression-resources.log": "eec01fa7e40b66856413d90f5db68381bfb92fec5a6fe24084e38df54a5de34a",
+    "check-p05-published-focused-resources.json": "dc0513822260baf2f66d4254bd103aa548b0c6e5ec89ff58cf7e6f47afc1bbac",
+    "check-p05-published-focused-resources.log": "83ea048db69153e0fa53072947ebc319eed183b086a6f69a24f0632d19b97ef0",
+    "check-p05-published-renderer-resources.json": "71ec82a503caac1a03fb3bc04cbf569b119f05de2bc0408ca1fe985d4510ec25",
+    "check-p05-published-renderer-resources.log": "da8498c7ee94be74d9d56ab1d16ecbe1221c2135d3125a715468eba5dde5f502",
+    "check-p05-final-v3-build.log": "b227a0259fe8e29d50ac9900cbf742df49ceb9a717f9e1b0b9eabc303c6a42ac",
+    "check-p05-v2-build.log": "2ff7cf04b0f36f67f5bffc06aa0bb076b6de0e47465c9eee3afa3126196922ce",
+    "check-p05-cpu-build.log": "a8ab819ceac6027510ef5862a8c6d990a033888d3797f9ef127f2cbc550e54f8"
+  },
+  "licensed_payloads": false
+}

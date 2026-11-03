@@ -1,0 +1,178 @@
+[  1%] Built target rend2_bakedlighting_test
+[  2%] Building CXX object core/CMakeFiles/rend2_lightrecon_core.dir/C_/Users/Keyten/Desktop/projects/OpenJK-rend2/shared/rd-rend2/tr_lightrecon_api.cpp.obj
+[  2%] Building CXX object core/CMakeFiles/rend2_lightrecon_core.dir/shadow_cache.cpp.obj
+[  3%] Building CXX object core/CMakeFiles/rend2_lightrecon_core.dir/shadow_cache_codec.cpp.obj
+[  3%] Building CXX object core/CMakeFiles/rend2_lightrecon_core.dir/shadow_cache_prepared.cpp.obj
+[  4%] Linking CXX static library librend2_lightrecon_core.a
+[ 33%] Built target rend2_lightrecon_core
+[ 33%] Building CXX object CMakeFiles/lightrecon_field_basis_test.dir/lightrecon_field_basis_test.cpp.obj
+[ 33%] Building CXX object CMakeFiles/lightrecon_occupancy_test.dir/lightrecon_occupancy_test.cpp.obj
+[ 34%] Linking CXX executable lightrecon_field_basis_test.exe
+[ 34%] Built target lightrecon_field_basis_test
+[ 35%] Linking CXX executable lightrecon_field_basis_tool.exe
+[ 35%] Built target lightrecon_field_basis_tool
+[ 36%] Building CXX object CMakeFiles/lightrecon_photometry_test.dir/lightrecon_photometry_test.cpp.obj
+[ 37%] Linking CXX executable lightrecon_occupancy_test.exe
+[ 37%] Built target lightrecon_occupancy_test
+[ 38%] Building CXX object CMakeFiles/lightrecon_producer_test.dir/lightrecon_producer_test.cpp.obj
+[ 39%] Linking CXX executable lightrecon_photometry_test.exe
+[ 39%] Built target lightrecon_photometry_test
+[ 39%] Building CXX object CMakeFiles/lightrecon_map_solver.dir/lightrecon_map_solver.cpp.obj
+[ 39%] Linking CXX executable lightrecon_producer_test.exe
+[ 39%] Built target lightrecon_producer_test
+[ 40%] Building CXX object CMakeFiles/lightrecon_producer_suite.dir/lightrecon_joint_test.cpp.obj
+[ 41%] Linking CXX executable lightrecon_map_solver.exe
+[ 41%] Built target lightrecon_map_solver
+[ 42%] Building CXX object CMakeFiles/lightrecon_uncertainty_test.dir/lightrecon_uncertainty_test.cpp.obj
+[ 42%] Linking CXX executable lightrecon_producer_suite.exe
+[ 42%] Built target lightrecon_producer_suite
+[ 43%] Building CXX object CMakeFiles/lightrecon_uncertainty_population.dir/lightrecon_uncertainty_population.cpp.obj
+[ 43%] Linking CXX executable lightrecon_uncertainty_population.exe
+[ 43%] Built target lightrecon_uncertainty_population
+[ 43%] Building CXX object CMakeFiles/lightrecon_joint_test.dir/lightrecon_joint_test.cpp.obj
+[ 43%] Linking CXX executable lightrecon_uncertainty_test.exe
+[ 43%] Built target lightrecon_uncertainty_test
+[ 44%] Building CXX object CMakeFiles/lightrecon_joint_tool.dir/lightrecon_joint_tool.cpp.obj
+[ 45%] Linking CXX executable lightrecon_joint_test.exe
+[ 45%] Built target lightrecon_joint_test
+[ 45%] Building CXX object CMakeFiles/lightrecon_indirect_test.dir/lightrecon_indirect_test.cpp.obj
+[ 45%] Linking CXX executable lightrecon_joint_tool.exe
+[ 45%] Built target lightrecon_joint_tool
+[ 45%] Building CXX object CMakeFiles/lightrecon_transport_mesh_test.dir/lightrecon_transport_mesh_test.cpp.obj
+[ 46%] Linking CXX executable lightrecon_transport_mesh_test.exe
+[ 46%] Built target lightrecon_transport_mesh_test
+[ 47%] Building CXX object CMakeFiles/lightrecon_sampling_test.dir/lightrecon_sampling_test.cpp.obj
+[ 48%] Linking CXX executable lightrecon_indirect_test.exe
+[ 48%] Linking CXX executable lightrecon_sampling_test.exe
+[ 48%] Built target lightrecon_indirect_test
+[ 48%] Built target lightrecon_sampling_test
+[ 49%] Building CXX object CMakeFiles/lightrecon_scene_schedule_test.dir/lightrecon_scene_schedule_test.cpp.obj
+[ 50%] Building CXX object CMakeFiles/lightrecon_shadow_test.dir/lightrecon_shadow_test.cpp.obj
+[ 50%] Linking CXX executable lightrecon_shadow_test.exe
+[ 50%] Built target lightrecon_shadow_test
+[ 50%] Building CXX object CMakeFiles/lightrecon_shadow_inspect.dir/lightrecon_shadow_inspect.cpp.obj
+[ 51%] Linking CXX executable lightrecon_shadow_inspect.exe
+[ 51%] Built target lightrecon_shadow_inspect
+[ 52%] Linking CXX executable lightrecon_test.exe
+[ 52%] Built target lightrecon_test
+[ 52%] Building CXX object CMakeFiles/lightrecon_api_test.dir/lightrecon_api_test.cpp.obj
+[ 53%] Linking CXX executable lightrecon_api_test.exe
+[ 53%] Built target lightrecon_api_test
+[ 53%] Linking CXX executable lightrecon_core_test.exe
+[ 54%] Built target lightrecon_core_test
+[ 55%] Building CXX object CMakeFiles/lightrecon_control_test.dir/lightrecon_control_test.cpp.obj
+[ 56%] Linking CXX executable lightrecon_scene_schedule_test.exe
+[ 56%] Built target lightrecon_scene_schedule_test
+[ 57%] Building CXX object CMakeFiles/lightrecon_disk_test.dir/lightrecon_disk_test.cpp.obj
+[ 57%] Linking CXX executable lightrecon_control_test.exe
+[ 57%] Built target lightrecon_control_test
+[ 58%] Building CXX object CMakeFiles/lightrecon_lifecycle_test.dir/lightrecon_lifecycle_test.cpp.obj
+[ 58%] Linking CXX executable lightrecon_disk_test.exe
+[ 58%] Built target lightrecon_disk_test
+[ 59%] Building CXX object CMakeFiles/lightrecon_lightmaps_test.dir/lightrecon_lightmaps_test.cpp.obj
+[ 60%] Linking CXX executable lightrecon_lightmaps_test.exe
+[ 60%] Built target lightrecon_lightmaps_test
+[ 61%] Building CXX object CMakeFiles/lightrecon_decode_test.dir/lightrecon_decode_test.cpp.obj
+[ 61%] Linking CXX executable lightrecon_lifecycle_test.exe
+[ 61%] Built target lightrecon_lifecycle_test
+[ 62%] Building CXX object CMakeFiles/lightrecon_lightgrid_test.dir/lightrecon_lightgrid_test.cpp.obj
+[ 62%] Linking CXX executable lightrecon_decode_test.exe
+[ 62%] Built target lightrecon_decode_test
+[ 62%] Building CXX object CMakeFiles/lightrecon_surfaces_test.dir/lightrecon_surfaces_test.cpp.obj
+[ 62%] Linking CXX executable lightrecon_lightgrid_test.exe
+[ 62%] Built target lightrecon_lightgrid_test
+[ 62%] Building CXX object CMakeFiles/lightrecon_classification_test.dir/lightrecon_classification_test.cpp.obj
+[ 63%] Linking CXX executable lightrecon_surfaces_test.exe
+[ 64%] Linking CXX executable lightrecon_classification_test.exe
+[ 64%] Built target lightrecon_surfaces_test
+[ 65%] Building CXX object CMakeFiles/lightrecon_visibility_test.dir/lightrecon_visibility_test.cpp.obj
+[ 65%] Built target lightrecon_classification_test
+[ 66%] Building CXX object CMakeFiles/lightrecon_regions_test.dir/lightrecon_regions_test.cpp.obj
+[ 67%] Linking CXX executable lightrecon_visibility_test.exe
+[ 67%] Linking CXX executable lightrecon_regions_test.exe
+[ 67%] Built target lightrecon_visibility_test
+[ 67%] Built target lightrecon_regions_test
+[ 68%] Building CXX object CMakeFiles/lightrecon_regions_inspect.dir/lightrecon_regions_inspect.cpp.obj
+[ 68%] Building CXX object CMakeFiles/lightrecon_evidence_test.dir/lightrecon_evidence_test.cpp.obj
+[ 69%] Linking CXX executable lightrecon_evidence_test.exe
+[ 69%] Built target lightrecon_evidence_test
+[ 69%] Building CXX object CMakeFiles/lightrecon_regions_audit.dir/lightrecon_regions_audit.cpp.obj
+[ 69%] Linking CXX executable lightrecon_regions_inspect.exe
+[ 69%] Built target lightrecon_regions_inspect
+[ 70%] Building CXX object CMakeFiles/lightrecon_offline_fixtures.dir/offline_fixtures.cpp.obj
+[ 71%] Linking CXX executable lightrecon_regions_audit.exe
+[ 71%] Built target lightrecon_regions_audit
+[ 72%] Building CXX object CMakeFiles/lightrecon_dataset_quality.dir/lightrecon_dataset_quality.cpp.obj
+[ 72%] Linking CXX static library liblightrecon_offline_fixtures.a
+[ 72%] Built target lightrecon_offline_fixtures
+[ 72%] Building CXX object CMakeFiles/lightrecon_dataset_roi.dir/lightrecon_dataset_roi.cpp.obj
+[ 73%] Linking CXX executable lightrecon_dataset_quality.exe
+[ 73%] Built target lightrecon_dataset_quality
+[ 74%] Linking CXX executable lightrecon_dataset_roi.exe
+[ 75%] Building CXX object CMakeFiles/lightrecon_profile_rays.dir/lightrecon_profile_rays.cpp.obj
+[ 75%] Built target lightrecon_dataset_roi
+[ 75%] Linking CXX executable lightrecon_bake_profile_test.exe
+[ 76%] Built target lightrecon_bake_profile_test
+[ 77%] Building CXX object CMakeFiles/lightrecon_bake_forward_tool.dir/lightrecon_bake_forward_tool.cpp.obj
+[ 78%] Linking CXX executable lightrecon_profile_rays.exe
+[ 78%] Built target lightrecon_profile_rays
+[ 78%] Building CXX object CMakeFiles/lightrecon_bake_forward_test.dir/lightrecon_bake_forward_test.cpp.obj
+[ 78%] Linking CXX executable lightrecon_bake_forward_tool.exe
+[ 78%] Built target lightrecon_bake_forward_tool
+[ 79%] Linking CXX executable lightrecon_bake_forward_test.exe
+[ 80%] Building CXX object CMakeFiles/lightrecon_sun_test.dir/lightrecon_sun_test.cpp.obj
+[ 80%] Built target lightrecon_bake_forward_test
+[ 81%] Building CXX object CMakeFiles/lightrecon_hidden_test.dir/lightrecon_hidden_test.cpp.obj
+[ 82%] Linking CXX executable lightrecon_sun_test.exe
+[ 82%] Built target lightrecon_sun_test
+[ 82%] Building CXX object CMakeFiles/lightrecon_candidates_test.dir/lightrecon_candidates_test.cpp.obj
+[ 82%] Linking CXX executable lightrecon_hidden_test.exe
+[ 82%] Built target lightrecon_hidden_test
+[ 82%] Building CXX object CMakeFiles/lightrecon_amplitude_test.dir/lightrecon_amplitude_test.cpp.obj
+[ 83%] Linking CXX executable lightrecon_amplitude_test.exe
+[ 83%] Built target lightrecon_amplitude_test
+[ 83%] Building CXX object CMakeFiles/lightrecon_point_refine_test.dir/lightrecon_point_refine_test.cpp.obj
+[ 84%] Linking CXX executable lightrecon_candidates_test.exe
+[ 84%] Built target lightrecon_candidates_test
+[ 85%] Building CXX object CMakeFiles/lightrecon_shape_test.dir/lightrecon_shape_test.cpp.obj
+[ 86%] Linking CXX executable lightrecon_point_refine_test.exe
+[ 86%] Built target lightrecon_point_refine_test
+[ 87%] Building CXX object CMakeFiles/lightrecon_hidden_tool.dir/lightrecon_hidden_tool.cpp.obj
+[ 88%] Linking CXX executable lightrecon_hidden_tool.exe
+[ 88%] Linking CXX executable lightrecon_shape_test.exe
+[ 88%] Built target lightrecon_hidden_tool
+[ 89%] Building CXX object CMakeFiles/lightrecon_offline_test.dir/lightrecon_offline_test.cpp.obj
+[ 89%] Built target lightrecon_shape_test
+[ 90%] Building CXX object CMakeFiles/lightrecon_bsp_capture_test.dir/lightrecon_bsp_capture_test.cpp.obj
+[ 91%] Linking CXX executable lightrecon_bsp_capture_test.exe
+[ 91%] Built target lightrecon_bsp_capture_test
+[ 92%] Building CXX object CMakeFiles/lightrecon_contributions_test.dir/lightrecon_contributions_test.cpp.obj
+[ 92%] Linking CXX executable lightrecon_offline_test.exe
+[ 92%] Built target lightrecon_offline_test
+[ 93%] Building CXX object CMakeFiles/lightrecon_emitter_support_test.dir/lightrecon_emitter_support_test.cpp.obj
+[ 94%] Linking CXX executable lightrecon_emitter_support_test.exe
+[ 94%] Built target lightrecon_emitter_support_test
+[ 94%] Linking CXX executable lightrecon_contributions_test.exe
+[ 94%] Building CXX object CMakeFiles/lightrecon_receiver_support_test.dir/lightrecon_receiver_support_test.cpp.obj
+[ 94%] Built target lightrecon_contributions_test
+[ 94%] Building CXX object CMakeFiles/lightrecon_probes_test.dir/lightrecon_probes_test.cpp.obj
+[ 95%] Linking CXX executable lightrecon_probes_test.exe
+[ 95%] Built target lightrecon_probes_test
+[ 96%] Building CXX object CMakeFiles/lightrecon_field_builder_test.dir/lightrecon_field_builder_test.cpp.obj
+[ 97%] Linking CXX executable lightrecon_receiver_support_test.exe
+[ 97%] Built target lightrecon_receiver_support_test
+[ 97%] Building CXX object CMakeFiles/lightrecon_shadow_cache_test.dir/lightrecon_shadow_cache_test.cpp.obj
+[ 97%] Linking CXX executable lightrecon_field_builder_test.exe
+[ 97%] Built target lightrecon_field_builder_test
+[ 97%] Building CXX object CMakeFiles/lightrecon_probes_tool.dir/lightrecon_probes_tool.cpp.obj
+[ 98%] Linking CXX executable lightrecon_shadow_cache_test.exe
+C:/Users/Keyten/Desktop/projects/OpenJK/build/toolchain/w64devkit/bin/ld.exe: CMakeFiles\lightrecon_shadow_cache_test.dir/objects.a(lightrecon_shadow_cache_test.cpp.obj):lightrecon_shadow_cache_test.cpp:(.text.startup+0x566): undefined reference to `Rend2LightRecon::Core::ShadowCache::Prepared::SourceCoverage(unsigned long long, Rend2LightRecon::Core::ShadowCache::Coverage&) const'
+C:/Users/Keyten/Desktop/projects/OpenJK/build/toolchain/w64devkit/bin/ld.exe: CMakeFiles\lightrecon_shadow_cache_test.dir/objects.a(lightrecon_shadow_cache_test.cpp.obj):lightrecon_shadow_cache_test.cpp:(.text.startup+0x601): undefined reference to `Rend2LightRecon::Core::ShadowCache::Prepared::RegionCoverage(unsigned long long, Rend2LightRecon::Core::ShadowCache::Coverage&) const'
+C:/Users/Keyten/Desktop/projects/OpenJK/build/toolchain/w64devkit/bin/ld.exe: CMakeFiles\lightrecon_shadow_cache_test.dir/objects.a(lightrecon_shadow_cache_test.cpp.obj):lightrecon_shadow_cache_test.cpp:(.text.startup+0x69b): undefined reference to `Rend2LightRecon::Core::ShadowCache::Prepared::SourceCoverage(unsigned long long, Rend2LightRecon::Core::ShadowCache::Coverage&) const'
+collect2.exe: error: ld returned 1 exit status
+make[2]: *** [CMakeFiles\lightrecon_shadow_cache_test.dir\build.make:103: lightrecon_shadow_cache_test.exe] Error 1
+make[1]: *** [CMakeFiles\Makefile2:2073: CMakeFiles/lightrecon_shadow_cache_test.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+[ 99%] Linking CXX executable lightrecon_probes_tool.exe
+[ 99%] Built target lightrecon_probes_tool
+make: *** [Makefile:100: all] Error 2

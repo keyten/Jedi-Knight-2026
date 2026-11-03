@@ -1,0 +1,39 @@
+{
+  "schema": "org.openjk.shadow-cache-analytic-reference.v1",
+  "scope": "owned separated panel only; response integral without receiver cosine",
+  "native_sha256": "edd682c017d0089654336d319f4ca115333b0cd7bcebf62415a5c2c5c5e291bc",
+  "receiver": [
+    -2,
+    0,
+    1
+  ],
+  "panel_center": [
+    2,
+    0,
+    5
+  ],
+  "half_dimensions": [
+    1,
+    1
+  ],
+  "slab_min": [
+    -0.009999999776482582,
+    -4,
+    3
+  ],
+  "slab_max": [
+    0.009999999776482582,
+    4,
+    8
+  ],
+  "source_shadow_boundary_x": 2.019999999552965,
+  "total_solid_angle": 0.08899881271380194,
+  "visible_solid_angle": 0.035510341354019814,
+  "reference_fraction": 0.3989979222331004,
+  "cache_fraction": 0.40874,
+  "cache_absolute_error": 0.009742077766899615,
+  "dense512_absolute_error": 0.00022707776689961934,
+  "refinement_difference_is_error_bound": false,
+  "unit": "dimensionless visibility response ratio; not lux",
+  "stock_evidence": false
+}

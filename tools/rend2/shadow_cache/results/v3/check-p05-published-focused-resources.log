@@ -1,0 +1,23 @@
+Test project C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s06-gcc
+    Start 42: lightrecon_field_builder
+    Start 25: lightrecon_visibility
+1/9 Test #25: lightrecon_visibility ............   Passed    9.82 sec
+    Start 41: lightrecon_probes
+2/9 Test #42: lightrecon_field_builder .........   Passed   12.81 sec
+    Start 43: lightrecon_shadow_cache
+3/9 Test #43: lightrecon_shadow_cache ..........   Passed    2.69 sec
+    Start  2: lightrecon_occupancy
+4/9 Test #41: lightrecon_probes ................   Passed    5.52 sec
+    Start 39: lightrecon_emitter_support
+5/9 Test  #2: lightrecon_occupancy .............   Passed    3.82 sec
+    Start 18: lightrecon_disk
+6/9 Test #39: lightrecon_emitter_support .......   Passed    3.35 sec
+    Start 19: lightrecon_lifecycle
+7/9 Test #18: lightrecon_disk ..................   Passed    1.83 sec
+    Start 15: lightrecon_api
+8/9 Test #19: lightrecon_lifecycle .............   Passed    1.73 sec
+9/9 Test #15: lightrecon_api ...................   Passed    1.24 sec
+
+100% tests passed out of 9
+
+Total Test time (real) =  22.44 sec

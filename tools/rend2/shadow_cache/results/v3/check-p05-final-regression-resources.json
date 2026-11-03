@@ -1,0 +1,15 @@
+{
+  "command": [
+    "ctest",
+    "--test-dir",
+    "build/s06-gcc",
+    "--output-on-failure",
+    "-E",
+    "^lightrecon_(point_refine|producer)$",
+    "-j",
+    "2"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 149.77787400013767,
+  "peak_working_set_bytes": 14110720
+}

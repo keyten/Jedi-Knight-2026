@@ -1,0 +1,13 @@
+{
+  "command": [
+    "ctest",
+    "--test-dir",
+    "build/s06-gcc",
+    "--output-on-failure",
+    "-j",
+    "2"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 240.88856219989248,
+  "peak_working_set_bytes": 14057472
+}

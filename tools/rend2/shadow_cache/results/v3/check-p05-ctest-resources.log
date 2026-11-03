@@ -1,0 +1,91 @@
+Test project C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s06-gcc
+      Start 34: lightrecon_point_refine
+      Start  4: lightrecon_producer
+ 1/43 Test  #4: lightrecon_producer ..............   Passed  100.02 sec
+      Start  5: lightrecon_producer_suite
+ 2/43 Test  #5: lightrecon_producer_suite ........   Passed   15.86 sec
+      Start  7: lightrecon_joint
+ 3/43 Test  #7: lightrecon_joint .................   Passed   12.53 sec
+      Start 33: lightrecon_amplitude
+ 4/43 Test #33: lightrecon_amplitude .............   Passed    8.85 sec
+      Start  6: lightrecon_uncertainty
+ 5/43 Test  #6: lightrecon_uncertainty ...........   Passed    6.63 sec
+      Start 35: lightrecon_shape
+ 6/43 Test #35: lightrecon_shape .................   Passed    4.89 sec
+      Start 31: lightrecon_hidden
+ 7/43 Test #31: lightrecon_hidden ................   Passed    3.69 sec
+      Start 36: lightrecon_offline
+ 8/43 Test #36: lightrecon_offline ...............   Passed    1.76 sec
+      Start 32: lightrecon_candidates
+ 9/43 Test #32: lightrecon_candidates ............   Passed    1.61 sec
+      Start 25: lightrecon_visibility
+10/43 Test #25: lightrecon_visibility ............   Passed    1.16 sec
+      Start 30: lightrecon_sun
+11/43 Test #30: lightrecon_sun ...................   Passed    1.51 sec
+      Start 41: lightrecon_probes
+12/43 Test #41: lightrecon_probes ................   Passed    1.36 sec
+      Start 11: lightrecon_scene_schedule
+13/43 Test #11: lightrecon_scene_schedule ........   Passed    1.51 sec
+      Start  2: lightrecon_occupancy
+14/43 Test  #2: lightrecon_occupancy .............   Passed    0.82 sec
+      Start 42: lightrecon_field_builder
+15/43 Test #42: lightrecon_field_builder .........   Passed    1.98 sec
+      Start  9: lightrecon_transport_mesh
+16/43 Test  #9: lightrecon_transport_mesh ........   Passed    0.91 sec
+      Start 26: lightrecon_regions
+17/43 Test #26: lightrecon_regions ...............   Passed    0.67 sec
+      Start 40: lightrecon_receiver_support
+18/43 Test #40: lightrecon_receiver_support ......   Passed    0.98 sec
+      Start 38: lightrecon_contributions
+19/43 Test #38: lightrecon_contributions .........   Passed    0.75 sec
+      Start  1: lightrecon_field_basis
+20/43 Test  #1: lightrecon_field_basis ...........   Passed    0.78 sec
+      Start 39: lightrecon_emitter_support
+21/43 Test #39: lightrecon_emitter_support .......   Passed    0.56 sec
+      Start  8: lightrecon_indirect
+22/43 Test  #8: lightrecon_indirect ..............   Passed    0.42 sec
+      Start 12: lightrecon_shadow
+23/43 Test #12: lightrecon_shadow ................   Passed    0.45 sec
+      Start 10: lightrecon_sampling
+24/43 Test #10: lightrecon_sampling ..............   Passed    0.30 sec
+      Start  3: lightrecon_photometry
+25/43 Test  #3: lightrecon_photometry ............   Passed    0.27 sec
+      Start 18: lightrecon_disk
+26/43 Test #18: lightrecon_disk ..................   Passed    0.46 sec
+      Start 27: lightrecon_evidence
+27/43 Test #27: lightrecon_evidence ..............   Passed    0.33 sec
+      Start 37: lightrecon_bsp_capture
+28/43 Test #37: lightrecon_bsp_capture ...........   Passed    0.33 sec
+      Start 29: lightrecon_bake_forward
+29/43 Test #29: lightrecon_bake_forward ..........   Passed    0.37 sec
+      Start 23: lightrecon_surfaces
+30/43 Test #23: lightrecon_surfaces ..............   Passed    0.22 sec
+      Start 16: lightrecon_core
+31/43 Test #16: lightrecon_core ..................   Passed    0.25 sec
+      Start 24: lightrecon_classification
+32/43 Test #24: lightrecon_classification ........   Passed    0.22 sec
+      Start 22: lightrecon_lightgrid
+33/43 Test #22: lightrecon_lightgrid .............   Passed    0.16 sec
+      Start 19: lightrecon_lifecycle
+34/43 Test #19: lightrecon_lifecycle .............   Passed    0.21 sec
+      Start 20: lightrecon_lightmaps
+35/43 Test #20: lightrecon_lightmaps .............   Passed    0.19 sec
+      Start 21: lightrecon_decode
+36/43 Test #21: lightrecon_decode ................   Passed    0.12 sec
+      Start 17: lightrecon_controls
+37/43 Test #17: lightrecon_controls ..............   Passed    0.16 sec
+      Start 14: lightrecon_contract
+38/43 Test #14: lightrecon_contract ..............   Passed    0.12 sec
+      Start 28: lightrecon_bake_profile
+39/43 Test #28: lightrecon_bake_profile ..........   Passed    0.18 sec
+      Start 13: rend2_bakedlighting
+40/43 Test #13: rend2_bakedlighting ..............   Passed    0.19 sec
+      Start 15: lightrecon_api
+41/43 Test #15: lightrecon_api ...................   Passed    0.29 sec
+      Start 43: lightrecon_shadow_cache
+42/43 Test #43: lightrecon_shadow_cache ..........   Passed    0.28 sec
+43/43 Test #34: lightrecon_point_refine ..........   Passed  240.78 sec
+
+100% tests passed out of 43
+
+Total Test time (real) = 240.80 sec

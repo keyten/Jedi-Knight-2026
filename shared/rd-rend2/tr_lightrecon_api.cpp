@@ -146,6 +146,11 @@ bool Index(detail::SnapshotData& data)
 		info.records=a.transport.size();info.status=data.evaluator->Supports(Capability::ConditionalFieldSampling);
 		if(info.status!=Status::Ok&&info.status!=Status::Unavailable&&info.status!=Status::Unsupported)return false;
 	}
+	if(data.evaluator&&!a.visibility.empty()){
+		auto&info=data.capabilities[static_cast<size_t>(Capability::StaticShadowSupport)];
+		info.records=a.visibility.size();info.status=data.evaluator->Supports(Capability::StaticShadowSupport);
+		if(info.status!=Status::Ok&&info.status!=Status::Unavailable&&info.status!=Status::Unsupported)return false;
+	}
 	return true;
 }
 
@@ -161,6 +166,7 @@ Status CpuEvaluator::IncomingRadiance(const ReconstructedLightingAsset&, const R
 Status CpuEvaluator::ConditionalField(const ReconstructedLightingAsset&,const ConditionalFieldQuery&,ConditionalFieldSample&)const{return Status::Unavailable;}
 Status CpuEvaluator::RegionAt(const ReconstructedLightingAsset&, const Vec3&, Id&) const { return Status::Unavailable; }
 Status CpuEvaluator::Visibility(const ReconstructedLightingAsset&, const VisibilityQuery&, VisibilitySample&) const { return Status::Unavailable; }
+Status CpuEvaluator::ShadowSupport(const ReconstructedLightingAsset&,const ShadowSupportQuery&,ShadowSupportSample&)const{return Status::Unavailable;}
 Status CpuEvaluator::SkyVisibility(const ReconstructedLightingAsset&, const SkyVisibilityQuery&, VisibilitySample&) const { return Status::Unavailable; }
 Status CpuEvaluator::Contribution(const ReconstructedLightingAsset&, const ContributionQuery&, ContributionSample&) const { return Status::Unavailable; }
 
@@ -442,6 +448,22 @@ Result<VisibilitySample> Snapshot::QueryVisibility(const VisibilityQuery& query)
 	if (!ValidStatus(r.status) || (r && (!std::isfinite(r.value.transmittance) || r.value.transmittance < 0.0f || r.value.transmittance > 1.0f)))
 		return Failure<VisibilitySample>(Status::Corrupt);
 	return r ? r : Failure<VisibilitySample>(r.status);
+}
+Result<ShadowSupportSample> Snapshot::QueryShadowSupport(const ShadowSupportQuery&q)const
+{
+	if(!q.dataset||!q.receiver||!Finite(q.receiverWorld)||!Finite(q.targetOrDirection)||unsigned(q.kind)>unsigned(ShadowQueryKind::SkyDirection)||(q.kind==ShadowQueryKind::SkyDirection&&!Unit(q.targetOrDirection)))return Failure<ShadowSupportSample>(Status::InvalidArgument);
+	if(Access()!=Status::Ok)return Failure<ShadowSupportSample>(Access());
+	if(!Empty(q.source)){auto s=Check(q.source);if(s!=Status::Ok)return Failure<ShadowSupportSample>(s);}
+	if(q.kind==ShadowQueryKind::Source&&!data_->emitters.count(q.source.id))return Failure<ShadowSupportSample>(Status::InvalidArgument);
+	auto d=data_->datasets.find(q.dataset);if(d==data_->datasets.end()||d->second->purpose!=DatasetPurpose::Visibility)return Failure<ShadowSupportSample>(Status::InvalidArgument);
+	auto status=EvaluationStatus(*data_,Capability::StaticShadowSupport);if(status!=Status::Ok)return Failure<ShadowSupportSample>(status);
+	Result<ShadowSupportSample> r;r.status=data_->evaluator->ShadowSupport(*data_->asset,q,r.value);
+	if(!ValidStatus(r.status))return Failure<ShadowSupportSample>(Status::Corrupt);
+	if(r){auto&v=r.value;auto valid=[](const VisibilityEstimate&e){return unsigned(e.state)<=unsigned(ShadowState::Unknown)&&std::isfinite(e.value)&&std::isfinite(e.lower)&&std::isfinite(e.upper)&&e.lower>=0&&e.upper<=1&&e.lower<=e.upper&&(!e.estimateKnown||(e.value>=e.lower&&e.value<=e.upper))&&(e.estimateKnown?e.state!=ShadowState::Unknown:e.state==ShadowState::Unknown)&&(e.state!=ShadowState::Visible||e.value==1)&&(e.state!=ShadowState::Blocked||e.value==0);};
+		if(v.dataset!=q.dataset||v.receiver!=q.receiver||v.source!=q.source.id||v.scenario!=q.scenario||!valid(v.staticGeometry)||!valid(v.scenarioGeometry)||!valid(v.staticResponse)||!valid(v.scenarioResponse)||!std::isfinite(v.nearestStaticOccluderWorld)||v.nearestStaticOccluderWorld<0||!std::isfinite(v.samplingDifference)||v.samplingDifference<0||!std::isfinite(v.quantizationBound)||v.quantizationBound<0)return Failure<ShadowSupportSample>(Status::Corrupt);
+		v.generation=data_->generation;
+	}
+	return r?r:Failure<ShadowSupportSample>(r.status);
 }
 Result<ContributionSample> Snapshot::SampleContribution(const ContributionQuery& query) const
 {

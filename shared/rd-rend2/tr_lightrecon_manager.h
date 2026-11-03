@@ -24,6 +24,7 @@ public:
 	virtual Status ConditionalField(const ReconstructedLightingAsset&, const ConditionalFieldQuery&, ConditionalFieldSample&) const;
 	virtual Status RegionAt(const ReconstructedLightingAsset&, const Vec3&, Id&) const;
 	virtual Status Visibility(const ReconstructedLightingAsset&, const VisibilityQuery&, VisibilitySample&) const;
+	virtual Status ShadowSupport(const ReconstructedLightingAsset&,const ShadowSupportQuery&,ShadowSupportSample&) const;
 	virtual Status SkyVisibility(const ReconstructedLightingAsset&, const SkyVisibilityQuery&, VisibilitySample&) const;
 	virtual Status Contribution(const ReconstructedLightingAsset&, const ContributionQuery&, ContributionSample&) const;
 };
