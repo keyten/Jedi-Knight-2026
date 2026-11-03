@@ -2,6 +2,7 @@
 #include "lifecycle.h"
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <exception>
 #include <limits>
 
@@ -9,6 +10,11 @@ namespace Rend2LightRecon
 {
 namespace
 {
+double ClockSeconds()
+{
+	return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch())
+		.count();
+}
 uint64_t NewTicket()
 {
 	static std::atomic<uint64_t> next{0};
@@ -185,12 +191,116 @@ Disk::Error NativeWorldCache::Store(const Disk::Fingerprint &f, const Reconstruc
 {
 	return cache_.Store(f, a, {}, limits);
 }
+Disk::Error WorldCache::LoadPrepared(const Disk::Fingerprint &f, BuildProduct &out,
+									 const Disk::Limits &limits, Disk::Persistent::Work &work)
+{
+	work = {};
+	ReconstructedLightingAsset a;
+	auto e = Load(f, a, limits);
+	if (e)
+	{
+		out.asset = std::make_shared<const ReconstructedLightingAsset>(std::move(a));
+		out.completeness = Completeness::Ready; // legacy metadata-only host contract
+		out.message = "Validated cached metadata; no prepared sampling capability";
+	}
+	return e;
+}
+Disk::Error NativeWorldCache::LoadPrepared(const Disk::Fingerprint &f, BuildProduct &out,
+										   const Disk::Limits &limits, Disk::Persistent::Work &work)
+{
+	return Disk::Persistent::Load(cache_, f, selection_, out, work, limits);
+}
+void WorldLighting::Lookup(WorldSource &source, WorldCache *cache, const WorldLimits &limits)
+{
+	preflightDone_ = true;
+	report_.described = true;
+	lookup_ = source.Describe(report_.world, fingerprint_);
+	Disk::Digest key{};
+	if (lookup_)
+		lookup_ = Disk::MakeKey(fingerprint_, key, limits.disk);
+	if (lookup_)
+		for (const auto &input : fingerprint_.inputs)
+			if (input.kind == Disk::InputKind::Bsp && input.name != report_.world)
+			{
+				lookup_.code = Disk::Code::NotCacheable;
+				lookup_.message = "Fingerprint BSP identity does not match the current world";
+			}
+	report_.keyComplete = bool(lookup_);
+	report_.cacheStatus = lookup_.code;
+	if (!lookup_)
+		return;
+	report_.cacheKey = Disk::Hex(key);
+	if (report_.policy == BuildPolicy::ForceRebuild)
+		return;
+	if (!cache)
+	{
+		lookup_.code = Disk::Code::Unsupported;
+		lookup_.message = "No cache adapter supplied";
+	}
+	else
+	{
+		report_.cacheCalled = true;
+		try
+		{
+			lookup_ = cache->LoadPrepared(fingerprint_, pending_, limits.disk, report_.cacheWork);
+		}
+		catch (...)
+		{
+			lookup_.code = Disk::Code::IoError;
+			lookup_.message = "Cache load provider threw";
+		}
+	}
+	if (lookup_)
+	{
+		std::string why;
+		if (!pending_.asset || !SameUnits(*pending_.asset, fingerprint_) ||
+			!Validate(*pending_.asset, &why) ||
+			(pending_.evaluator && pending_.evaluator->AcceptsAsset(*pending_.asset) != Status::Ok))
+		{
+			lookup_.code = Disk::Code::Corrupt;
+			lookup_.message = "Cache provider returned invalid product/binding: " + why;
+		}
+	}
+	if (!lookup_)
+		pending_ = {};
+	report_.pendingCacheHit = bool(pending_.asset);
+	report_.cacheStatus = lookup_.code;
+}
+Status WorldLighting::Preflight(uint64_t ticket, WorldSource &source, WorldCache *cache,
+								const WorldLimits &limits)
+{
+	if (busy_)
+		return Status::Pending;
+	if (!ticket || ticket != report_.ticket)
+		return Status::StaleHandle;
+	if (report_.state == WorldState::Disabled)
+		return Status::Disabled;
+	if (report_.state != WorldState::Loading || preflightDone_)
+		return Status::InvalidArgument;
+	Busy guard(busy_);
+	report_.earlyPreflight = true;
+	try
+	{
+		Lookup(source, cache, limits);
+	}
+	catch (...)
+	{
+		pending_ = {};
+		preflightDone_ = true;
+		lookup_.code = Disk::Code::IoError;
+		lookup_.message = "Early dependency/cache provider failed";
+		report_.cacheStatus = lookup_.code;
+	}
+	return pending_.asset ? Status::Ok : CacheStatus(lookup_.code);
+}
 WorldLighting::WorldLighting()
 {
 	Unload();
 }
 Status WorldLighting::End(WorldState state, Status status, const std::string &message)
 {
+	pending_ = {};
+	report_.pendingCacheHit = false;
 	report_.state = state;
 	report_.result = status;
 	report_.message = message;
@@ -219,7 +329,12 @@ Result<uint64_t> WorldLighting::Begin(const std::string &world, BuildPolicy poli
 		return r;
 	}
 	Busy guard(busy_);
+	begunSeconds_ = ClockSeconds();
 	published_.Reset();
+	preflightDone_ = false;
+	fingerprint_ = {};
+	lookup_ = {};
+	pending_ = {};
 	report_ = WorldReport();
 	report_.ticket = NewTicket();
 	report_.policy = policy;
@@ -250,9 +365,10 @@ Result<uint64_t> WorldLighting::Begin(const std::string &world, BuildPolicy poli
 		return r;
 	}
 }
-Status WorldLighting::Publish(const ReconstructedLightingAsset &asset)
+Status WorldLighting::Publish(const ReconstructedLightingAsset &asset, Completeness completeness,
+							  std::shared_ptr<const CpuEvaluator> evaluator)
 {
-	Status s = published_.Publish(asset, Completeness::Ready);
+	Status s = published_.Publish(asset, completeness, std::move(evaluator));
 	if (s != Status::Ok)
 		return End(WorldState::Unavailable, s, "Validated asset publication failed");
 	report_.state = WorldState::Available;
@@ -261,6 +377,7 @@ Status WorldLighting::Publish(const ReconstructedLightingAsset &asset)
 	report_.assetIdentity = a.value->lineage;
 	report_.assetBytes = AssetBytes(*a.value);
 	report_.generation = published_.Acquire().Generation();
+	report_.secondsToPublication = ClockSeconds() - begunSeconds_;
 	return Status::Ok;
 }
 Status WorldLighting::Complete(uint64_t ticket, const WorldFacts &facts, WorldSource &source,
@@ -283,74 +400,22 @@ Status WorldLighting::Complete(uint64_t ticket, const WorldFacts &facts, WorldSo
 			if (!facts.geometryReady || !facts.areaLightsReady || !limits.maxBuildSteps)
 				return End(WorldState::Unavailable, Status::Unavailable,
 						   "World initialization is incomplete or work budget is zero");
-			Disk::Fingerprint fingerprint;
-			report_.described = true;
-			Disk::Error description = source.Describe(report_.world, fingerprint);
-			Disk::Digest key{};
-			Disk::Error keyStatus =
-				description ? Disk::MakeKey(fingerprint, key, limits.disk) : description;
-			if (keyStatus)
-				for (const auto &input : fingerprint.inputs)
-					if (input.kind == Disk::InputKind::Bsp && input.name != report_.world)
-					{
-						keyStatus.code = Disk::Code::NotCacheable;
-						keyStatus.message =
-							"Fingerprint BSP identity does not match the current world";
-					}
-			report_.keyComplete = bool(keyStatus);
-			report_.cacheStatus = keyStatus.code;
-			if (keyStatus)
-				report_.cacheKey = Disk::Hex(key);
-			if (report_.policy != BuildPolicy::ForceRebuild && keyStatus)
+			if (!preflightDone_)
+				Lookup(source, cache, limits);
+			const auto &fingerprint = fingerprint_;
+			const bool keyStatus = report_.keyComplete;
+			if (pending_.asset)
 			{
-				ReconstructedLightingAsset candidate;
-				Disk::Error loaded;
-				if (cache)
-				{
-					report_.cacheCalled = true;
-					try
-					{
-						loaded = cache->Load(fingerprint, candidate, limits.disk);
-					}
-					catch (...)
-					{
-						loaded.code = Disk::Code::IoError;
-						loaded.message = "Cache load provider threw";
-					}
-				}
-				else
-				{
-					loaded.code = Disk::Code::Unsupported;
-					loaded.message = "No cache adapter supplied";
-				}
-				report_.cacheStatus = loaded.code;
-				if (loaded)
-				{
-					std::string reason;
-					if (!SameUnits(candidate, fingerprint) || !Validate(candidate, &reason))
-					{
-						report_.cacheStatus = Disk::Code::Corrupt;
-						loaded.code = Disk::Code::Corrupt;
-						loaded.message =
-							"Cache provider returned invalid metadata/units: " + reason;
-					}
-					else
-					{
-						report_.message =
-							"Validated cached metadata loaded; no field evaluator installed";
-						return Publish(candidate);
-					}
-				}
-				if (report_.policy == BuildPolicy::CacheOnly)
-					return End(report_.cacheCalled && InvalidCache(loaded.code)
-								   ? WorldState::InvalidCache
-								   : WorldState::Unavailable,
-							   CacheStatus(loaded.code), loaded.message);
+				auto product = std::move(pending_);
+				report_.pendingCacheHit = false;
+				report_.message = product.message;
+				return Publish(*product.asset, product.completeness, product.evaluator);
 			}
-			else if (report_.policy == BuildPolicy::CacheOnly)
-			{
-				return End(WorldState::Unavailable, Status::Unavailable, keyStatus.message);
-			}
+			if (report_.policy == BuildPolicy::CacheOnly)
+				return End(report_.cacheCalled && InvalidCache(lookup_.code)
+							   ? WorldState::InvalidCache
+							   : WorldState::Unavailable,
+						   CacheStatus(lookup_.code), lookup_.message);
 			report_.state = WorldState::BuildRequired;
 			report_.buildCalled = true;
 			BuildPlan plan;
@@ -466,6 +531,7 @@ Status WorldLighting::Abort(uint64_t ticket) noexcept
 		return Status::Pending;
 	if (!ticket || ticket != report_.ticket)
 		return Status::StaleHandle;
+	pending_ = {};
 	published_.Reset();
 	report_.state = WorldState::Unavailable;
 	report_.result = Status::Unavailable;
@@ -485,6 +551,10 @@ Status WorldLighting::Unload() noexcept
 	if (busy_)
 		return Status::Pending;
 	published_.Reset();
+	preflightDone_ = false;
+	fingerprint_ = {};
+	lookup_ = {};
+	pending_ = {};
 	report_ = WorldReport();
 	report_.ticket = NewTicket();
 	try

@@ -15,6 +15,7 @@ inline Disk::Digest SceneKey(const ReconstructedLightingAsset &a)
 	Core::GeometryKey k;
 	k.U(kVersion);
 	k.F(a.units.worldUnitsPerMeter);
+	k.F(a.units.physicalToScene);
 	auto text = [&](const std::string &s) {
 		k.U(s.size());
 		for (auto c : s)

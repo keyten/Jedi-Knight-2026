@@ -1,0 +1,24 @@
+{
+  "no-reader": {
+    "0": 500
+  },
+  "retained-reader": {
+    "0": 498,
+    "1175": 2
+  },
+  "concurrent-readers": {
+    "0": 500
+  },
+  "concurrent-writers": {
+    "0": 171,
+    "32": 3,
+    "1175": 309,
+    "1176": 4,
+    "2": 3,
+    "1177": 10
+  },
+  "read-only-destination": {
+    "error": 5,
+    "previous_preserved": true
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "schema": "org.openjk.persistent-cache-validation/1",
+  "revision": "f56fc3e80adaad0e9e3cebc109e9f40e8ec0cfbc",
+  "working_tree": true,
+  "semantic_witness": "asset_sha256=40f934f92453b42d45a84b840948ecd6137fea3f5e9a5f7ac0515222cf5ce2d7 key=ea6000b60a7797a11688f3475ddcc3d8fb6acf676b0d51689a9c1ce884ad1a6e",
+  "deterministic": true,
+  "runs": [
+    {
+      "wall_seconds": 1.43601129995659,
+      "cpu_seconds": 0.875,
+      "exit": 0,
+      "metrics": {
+        "cold_build_seconds": 0.176817,
+        "field_rays": 1024,
+        "shadow_rays": 1,
+        "file_bytes": 741312,
+        "all_payload": 735365,
+        "field_payload": 734423,
+        "visibility_payload": 942,
+        "warm_open_seconds": 0.000199,
+        "warm_prepare_seconds": 0.013716,
+        "warm_read_bytes": 741274,
+        "warm_reads": 29,
+        "prepared_reservation": 5953704,
+        "cold_allocations": 170783,
+        "warm_allocations": 11022,
+        "warm_allocated_bytes": 4843232,
+        "peak_process_working_set": 21286912,
+        "warm_solver_steps": 0,
+        "warm_rays": 0,
+        "query_allocations": 0
+      },
+      "checks": [
+        "154",
+        "0"
+      ]
+    },
+    {
+      "wall_seconds": 1.1983343998435885,
+      "cpu_seconds": 0.984375,
+      "exit": 0,
+      "metrics": {
+        "cold_build_seconds": 0.178773,
+        "field_rays": 1024,
+        "shadow_rays": 1,
+        "file_bytes": 741312,
+        "all_payload": 735365,
+        "field_payload": 734423,
+        "visibility_payload": 942,
+        "warm_open_seconds": 0.000203,
+        "warm_prepare_seconds": 0.012721,
+        "warm_read_bytes": 741274,
+        "warm_reads": 29,
+        "prepared_reservation": 5953704,
+        "cold_allocations": 170783,
+        "warm_allocations": 11022,
+        "warm_allocated_bytes": 4843232,
+        "peak_process_working_set": 21860352,
+        "warm_solver_steps": 0,
+        "warm_rays": 0,
+        "query_allocations": 0
+      },
+      "checks": [
+        "154",
+        "0"
+      ]
+    }
+  ],
+  "abrupt_interruption": {
+    "child": {
+      "wall_seconds": 0.02157779992558062,
+      "cpu_seconds": 0.015625,
+      "exit": 23
+    },
+    "old_cache_verified": {
+      "wall_seconds": 0.012902699876576662,
+      "cpu_seconds": 0.0,
+      "exit": 0
+    }
+  },
+  "implementation_sha256": {
+    "shared/rd-rend2/lightrecon/cache.cpp": "c288a3f680cec1f34c18754c5ce4d330d3ff82f64f0f669050609eb8452d6f8c",
+    "shared/rd-rend2/lightrecon/dependencies.cpp": "fe158e6450ea8e1a6cfde68c2072846e10454e4c38d0fce51f63e83c45449dad",
+    "shared/rd-rend2/lightrecon/persistent.cpp": "00db397ac33b46c8511f3f605ddfb7ba40be48c3d3ddf1d988fa2189af2d6e1d",
+    "shared/rd-rend2/lightrecon/lifecycle.cpp": "4fb2f6507d646babff4407db78aa3b6948a1d742ac201b227386ef9e3d860a94",
+    "shared/rd-rend2/lightrecon/field_codec.cpp": "e3350023bd58dfd73a2fe0ce82bc6c2c5ec2d2bc11b5c8fa110811701df61a6c",
+    "shared/rd-rend2/lightrecon/field_prepared.cpp": "9ce6a48eec75a41a84704cda738c8f14efe64042986761925e09b15aa72399c3",
+    "shared/rd-rend2/tr_lightrecon.cpp": "6059b2d29bab0dcd4fc8df11a86949284b4a30ddad27193011ad1a06be5b89e7",
+    "shared/rd-rend2/tr_shader.cpp": "1188512ad051a1374be50ae868d7d465c1532758ab6bc2f35de58527c7b3a2f2"
+  },
+  "production_cpu_producer": {
+    "perf": {
+      "wall_seconds": 68.27327710017562,
+      "cpu_seconds": 67.078125,
+      "exit": 0
+    },
+    "metrics": "cold_seconds=0.027986 warm_seconds=0.008816 payload_bytes=13362 file_bytes=25280 warm_validation_calls=0 warm_solver_steps=0",
+    "scope": "Unchanged Producer/attribution implementation; measured before source-image inventory narrowing"
+  }
+}

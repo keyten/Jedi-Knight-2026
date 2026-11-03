@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "lightrecon/producer.h"
 #include "producer_test_scene.h"
+#include "lightrecon/persistent.h"
+#include <chrono>
 #include <cstdio>
 #include <fstream>
 #include <sstream>
@@ -737,15 +739,30 @@ void Cache(const std::string &root)
 							  std::make_shared<Disk::Cache>(root + "/only-missing"));
 	auto missing = ApplyBuildPolicy(BuildPolicy::CacheOnly, manager, &missingBackend);
 	CHECK(!missing.buildCalled && missing.status == Status::Missing);
+	auto cacheStart = std::chrono::steady_clock::now();
 	auto built = ApplyBuildPolicy(BuildPolicy::ForceRebuild, manager, &backend);
+	double coldSeconds = std::chrono::duration<double>(std::chrono::steady_clock::now()-cacheStart).count();
 	CHECK(built.status == Status::Ok);
 	CHECK(backend.cacheWrite == Disk::Code::Ok);
 	auto previous = manager.Acquire();
 	unsigned calls = validation.calls;
+	cacheStart = std::chrono::steady_clock::now();
 	auto loaded = ApplyBuildPolicy(BuildPolicy::CacheOnly, manager, &backend);
+	double warmSeconds = std::chrono::duration<double>(std::chrono::steady_clock::now()-cacheStart).count();
 	CHECK(loaded.status == Status::Ok && !loaded.buildCalled);
 	CHECK(validation.calls == calls);
 	CHECK(previous.Asset());
+	Disk::Persistent::Selection selection;
+	selection.contributions = true;
+	Disk::Persistent::Work cacheWork;
+	BuildProduct preparedContributions;
+	CHECK(Disk::Persistent::Load(*cache, backend.last.artifact.fingerprint, selection,
+		preparedContributions, cacheWork));
+	CHECK(preparedContributions.evaluator && preparedContributions.evaluator->Supports(Capability::ContributionSampling)==Status::Ok);
+	std::printf("V01_PRODUCER_CACHE cold_seconds=%.9g warm_seconds=%.9g payload_bytes=%llu file_bytes=%llu warm_validation_calls=%u warm_solver_steps=%llu\n",
+		coldSeconds,warmSeconds,static_cast<unsigned long long>(cacheWork.payloadBytes),
+		static_cast<unsigned long long>(cacheWork.fileBytes),validation.calls-calls,
+		static_cast<unsigned long long>(backend.last.work.solver.forwardCalls));
 	CHECK(backend.last.work.providers.size() ==
 		  backend.last.artifact.asset->assessment.providers.size());
 	auto policyChanged = r;

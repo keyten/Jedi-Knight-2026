@@ -6,18 +6,18 @@
 owner has no `world_t`, BSP, hunk, renderer allocator or GPU dependency, and
 does not consult master/consumer enable flags.
 
-This integrates ownership and the cache/session boundary. It does **not** implement
-a solver, complete geometry/material observation adapter, complete production fingerprint
-collector, numerical field decoder or reconstructed rendering consumer. In the
-current renderer, nonzero policies explicitly report `NotCacheable`; policies
-2/3 report `BuildRequired` because the input adapter/algorithm is unavailable.
-No filename-only cache acceptance or successful empty placeholder substitutes
-for those missing components. [Original lightmap capture](rend2-lightmap-observations.md)
-now preserves bounded immutable image inputs through world initialization for
-policies 2/3; [original indexed lightgrid capture](rend2-lightgrid-observations.md)
-also preserves raw styles/colours/directions/HDR independently of renderer transforms.
-Neither confers a reconstructed-lighting capability. Synthetic CPU tests exercise real valid cache
-hits, completed builds and atomic cache writes through the same owner.
+[V01](rend2-persistent-cache-v01.md) now supplies early complete-content
+preflight for supported source recipes and explicit resident field/shadow/attribution
+preparation. `Preflight` holds a validated pending product without publishing;
+`Complete` commits it after successful world load. Native cached products retain
+Partial semantics and all uncertainty. No read-only query reads files.
+
+The renderer can take a real warm cache hit without reconstruction-only capture.
+On a miss, automatic numerical solver adaptation is still unavailable; policies
+2/3 report BuildRequired. Unsupported dependency recipes remain NotCacheable.
+The original lifecycle tests below describe the initial metadata-only baseline;
+V01 contains current performance and production cache-I/O witnesses. No rendering
+consumer is enabled by either path.
 
 ## States and policy
 
@@ -48,8 +48,8 @@ stateDiagram-v2
 `Preparing`/`Building` are synchronous intermediate states, observable to injected
 callbacks/diagnostics, not background jobs. Every main-world `Begin` discards the
 current publication, copies its map identity, samples build policy once and gets
-a new ticket. Only `Complete` for that ticket and a fully initialized world may
-load/build/publish. Stale completion/abort returns `StaleHandle`. Reentrant owner
+a new ticket. Only `Complete` for that ticket and a fully initialized world may publish/build.
+V01 permits identity lookup and prepared cache loading earlier via `Preflight`. Stale completion/abort returns `StaleHandle`. Reentrant owner
 mutation is rejected as `Pending`; callers serialize lifecycle writes on the
 renderer/host thread. `Acquire` supports concurrent read-only snapshot access.
 
@@ -84,7 +84,8 @@ Successful cache metadata or a completed valid CPU result publishes as API
 that every source was identified or every lighting capability exists. Valid
 empty/subset assets, unknown intensities and candidate hypotheses remain legal.
 An empty asset does not imply usable lights, a black world or resolved sun.
-No field evaluator is installed; metadata does not enable sampling capabilities.
+V01 installs only explicitly selected prepared evaluators; metadata alone does
+not enable sampling capabilities. Native products retain Partial semantics.
 
 Cache-only corrupt, mismatched, incompatible or over-limit files produce
 `InvalidCache` and no asset. I/O/absent-key failures remain explicit unavailable
@@ -142,7 +143,7 @@ world load leaves `Unloaded`. The cvar description reflects this distinction.
 | Original lightmap input snapshot | Renderer map-scoped `LightmapCapture`; bounded private construction, immutable publication after full load; retained for pending future work, cleared on unload/failure/completed build; independent reader leases |
 | Cache file/index/decode buffers | Local `NativeWorldCache.Load` / disk codec; closed/freed before return; no full lightmap/grid/field prefetch |
 | Cache write buffers | Local bounded disk encoder / atomic writer, released before publication returns |
-| Future decoded fields / evaluator | Must own CPU data and be prepared before snapshot publication; current owner installs no evaluator and loads no chunks |
+| Prepared CPU fields / evaluator (V01) | Explicit selected datasets decoded and validated before publication; resident immutable ownership; no query-time file I/O |
 | Renderer adapters / future GPU resources | Consumer-owned renderer resources with their own map/shutdown handling; absent from the canonical model and CPU owner |
 
 `world_t` remains a plain hunk/memset-managed structure. No STL object or C++
@@ -289,22 +290,16 @@ is not a lifecycle pass. The `ownership-settled` and final `ownership-final`
 protocols wait for registration and pass each transition. No installed game
 archive/config is modified or committed.
 
-## Remaining integration work
+## Remaining integration work after V01
 
-The readiness point and original BSP/lightmap capture are installed, but complete
-source plumbing remains necessary: hash all internal/external
-lighting replacements, effective material/shader interpretation, authored hints,
-reconstruction options/seed and unit/calibration policy. Original lightmap and
-lightgrid snapshots now survive legacy transforms; geometry/material association
-and complete dependency coverage remain necessary. Counts or GPU textures
-cannot replace original observations. Until completeness is proven the real game must
-continue to report `NotCacheable` and avoid disk lookup.
+Complete source identity is now available for the supported raw-source recipe;
+linked compiler materials, world shader remaps and video inputs remain explicit
+NotCacheable scopes. Source context does not establish unknown Raven compiler
+identity. Offline SP material captures cannot silently become MP interpretation.
 
-Future geometry/material providers must own immutable snapshots or bounded leased
-pages independent of hunk/world lifetime. Future numerical field decoders must
-validate their chunks, prepare CPU evaluators and define file/data leases before
-publication; the metadata-only native adapter currently closes its file. Live
-material/area-light override changes will need explicit input-revision invalidation.
-Per-sub-BSP contexts, MP runtime smoke, GPU consumer resource teardown and external
-cross-DLL lease pinning are not implemented/tested by this task. No fitting,
-shader/fog/entity/sun integration or visual improvement is claimed.
+The renderer still needs a verified numerical input/import adapter and explicit
+owner-side derived-layer selection for future consumers. Per-sub-BSP contexts,
+MP runtime smoke, cache eviction, GPU consumer teardown and external cross-DLL
+lease pinning are not certified here. Live source overrides require an explicit
+new revision/load; queries never discover changed files. See V01 for current
+cache correctness, atomic-write findings and measurements.

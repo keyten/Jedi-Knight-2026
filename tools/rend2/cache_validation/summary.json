@@ -1,0 +1,41 @@
+{
+  "schema": "org.openjk.cache-validation-summary/1",
+  "cpu": "Intel Core i7-10750H @ 2.60GHz",
+  "logical_processors": 12,
+  "os": "Windows-10-10.0.19045-SP0",
+  "cpu_compiler": "GCC 16.2 Release C++11",
+  "renderers": "MSVC 2019 Release, Windows SDK 10.0.17763",
+  "full_cpu_suite": {
+    "passed": 44,
+    "total": 44,
+    "seconds": 247.45,
+    "scope": "Final field-source binding, layered invalidation, lifecycle and prepared codecs; subsequent narrower source-image dependency admission separately retested"
+  },
+  "final_affected_cpu_tests": {
+    "passed": 6,
+    "total": 6,
+    "seconds": 3.16,
+    "names": [
+      "persistent",
+      "field_builder",
+      "shadow_cache",
+      "contributions",
+      "disk",
+      "lifecycle"
+    ]
+  },
+  "final_producer_tests": {
+    "checks": 551,
+    "failures": 0
+  },
+  "sp_release_build": "passed",
+  "mp_release_build": "passed",
+  "physical_stock_recovery_claimed": false,
+  "rendering_consumers_enabled": false,
+  "final_native_checks": {
+    "checks_per_run": 154,
+    "runs": 2,
+    "failures": 0
+  },
+  "final_full_cpu_passing_records": 44
+}

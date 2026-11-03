@@ -22,7 +22,7 @@ std::shared_ptr<const Rend2LightRecon::Core::SurfaceGeometry> R_LuxelGeometry(vo
 std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet> R_EmitterEvidence(void);
 void R_LightReconEvidence_f(void);
 void R_LightReconExport_f(void);
-std::string R_LightReconShaderText(const char* name);
+std::string R_LightReconShaderText(const char* name, bool* definitionFound = nullptr);
 void R_LuxelDebug_f(void);
 void R_LightReconPreview_f(void);
 void R_LightReconObservations_f(void);

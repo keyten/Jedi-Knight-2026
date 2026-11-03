@@ -5220,12 +5220,15 @@ static void R_PrefetchDiffuse( const char *token )
 
 // Read-only source evidence adapter. Never uses tr.sunDirection/default sun or
 // registers a shader; the selected VFS shader definition remains authoritative.
-std::string R_LightReconShaderText(const char *name)
+std::string R_LightReconShaderText(const char *name, bool *definitionFound)
 {
 #ifdef REND2_SP
 	COM_ParseSession parseSession;
 #endif
-	const char *begin = FindShaderInShaderText(name);
+	char stripped[MAX_QPATH];
+	COM_StripExtension(name, stripped, sizeof(stripped));
+	const char *begin = FindShaderInShaderText(stripped);
+	if (definitionFound) *definitionFound = begin != nullptr;
 	if (!begin)
 		return {};
 	const char *cursor = begin;

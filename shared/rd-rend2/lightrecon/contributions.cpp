@@ -132,7 +132,7 @@ Error Prepare(const P::Artifact &a, const ReadContext &read, std::shared_ptr<con
 		*work = {};
 	try
 	{
-		Check(P::ValidateArtifact(a, read));
+		Check(P::ValidateArtifact(a, read, true));
 		auto d = std::make_shared<Prepared::Data>();
 		d->asset = *a.asset;
 		Disk::Limits limit;

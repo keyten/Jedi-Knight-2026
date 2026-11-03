@@ -1,7 +1,7 @@
 // Copyright (C) 2026 OpenJK contributors. SPDX-License-Identifier: GPL-2.0-or-later
 #include "cache.h"
-#include <atomic>
 #include <algorithm>
+#include <atomic>
 #include <cerrno>
 #include <cstdio>
 #include <limits>
@@ -11,9 +11,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <windows.h>
-#include <io.h>
 #include <fcntl.h>
+#include <io.h>
+#include <windows.h>
 #else
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -103,8 +103,19 @@ bool MakeDirectories(const std::string &path)
 		}
 	return true;
 }
-Error AtomicWrite(const std::string &path, const std::vector<uint8_t> &bytes)
+Error AtomicWrite(const std::string &path, const std::vector<uint8_t> &bytes,
+				  WriteObserver *observer)
 {
+	auto proceed = [&](WriteStage stage, const std::string &temporary) {
+		try
+		{
+			return !observer || observer->Continue(stage, temporary);
+		}
+		catch (...)
+		{
+			return false;
+		}
+	};
 	static std::atomic<uint64_t> serial{0};
 #ifdef _WIN32
 	uint64_t pid = GetCurrentProcessId();
@@ -117,38 +128,131 @@ Error AtomicWrite(const std::string &path, const std::vector<uint8_t> &bytes)
 	for (unsigned attempt = 0; attempt < 64 && file == INVALID_HANDLE_VALUE; ++attempt)
 	{
 		temporary = path + ".tmp-" + std::to_string(pid) + "-" + std::to_string(++serial);
-		file = CreateFileW(Wide(temporary).c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
+		file = CreateFileW(Wide(temporary).c_str(), GENERIC_WRITE | DELETE, 0, nullptr, CREATE_NEW,
 						   FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (file == INVALID_HANDLE_VALUE && GetLastError() != ERROR_FILE_EXISTS)
 			return Fail(Code::IoError, "create cache temporary failed");
 	}
 	if (file == INVALID_HANDLE_VALUE)
 		return Fail(Code::IoError, "temporary name collision");
-	bool ok = true;
+	struct Cleanup
+	{
+		HANDLE &file;
+		const std::string &path;
+		~Cleanup()
+		{
+			if (file != INVALID_HANDLE_VALUE)
+			{
+				CloseHandle(file);
+				Remove(path);
+			}
+		}
+	} cleanup{file, temporary};
+	DWORD failure = 0;
+	std::string stage = "write";
+	bool ok = proceed(WriteStage::Created, temporary);
+	if (!ok)
+	{
+		failure = ERROR_OPERATION_ABORTED;
+		stage = "interrupted after create";
+	}
 	size_t pos = 0;
 	while (ok && pos < bytes.size())
 	{
 		DWORD written = 0;
 		DWORD n = DWORD((std::min)(bytes.size() - pos, size_t(1024 * 1024)));
 		ok = WriteFile(file, bytes.data() + pos, n, &written, nullptr) != 0 && written != 0;
+		if (!ok)
+			failure = GetLastError();
 		pos += written;
 	}
-	if (ok)
-		ok = FlushFileBuffers(file) != 0;
-	if (!CloseHandle(file))
+	if (ok && !proceed(WriteStage::Written, temporary))
+	{
 		ok = false;
+		failure = ERROR_OPERATION_ABORTED;
+		stage = "interrupted after write";
+	}
 	if (ok)
 	{
-		// ReplaceFile preserves old open read leases on Windows. MoveFileEx with
-		// REPLACE_EXISTING can reject these even with FILE_SHARE_DELETE.
-		ok = ReplaceFileW(Wide(path).c_str(), Wide(temporary).c_str(), nullptr, 0, nullptr,
-						  nullptr) != 0;
-		if (!ok &&
-			(GetLastError() == ERROR_FILE_NOT_FOUND || GetLastError() == ERROR_PATH_NOT_FOUND))
-			ok = MoveFileExW(Wide(temporary).c_str(), Wide(path).c_str(), MOVEFILE_WRITE_THROUGH) !=
-				 0;
+		stage = "flush";
+		ok = FlushFileBuffers(file) != 0;
+		if (!ok)
+			failure = GetLastError();
 	}
-	DWORD failure = ok ? 0 : GetLastError();
+	if (ok && !proceed(WriteStage::Flushed, temporary))
+	{
+		ok = false;
+		failure = ERROR_OPERATION_ABORTED;
+		stage = "interrupted after flush";
+	}
+	if (ok)
+	{
+		// Drop write access BEFORE the name becomes visible. Otherwise a reader
+		// opening in the rename/close interval would have to share write access,
+		// weakening our immutable-file contract and causing sporadic sharing misses.
+		stage = "close written temporary";
+		ok = CloseHandle(file) != 0;
+		if (!ok)
+			failure = GetLastError();
+		file = INVALID_HANDLE_VALUE;
+		if (ok)
+		{
+			stage = "open rename handle";
+			file = CreateFileW(Wide(temporary).c_str(), DELETE, FILE_SHARE_READ | FILE_SHARE_DELETE,
+							   nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+			ok = file != INVALID_HANDLE_VALUE;
+			if (!ok)
+				failure = GetLastError();
+		}
+	}
+	if (ok)
+	{
+		// A single rename transaction, not ReplaceFile's stream/ACL merge and
+		// remove sequence (which can fail with 1175). Existing read leases retain
+		// their original file identity. No remove-target gap, no retry loop.
+		stage = "rename";
+		auto target = Wide(path);
+		std::replace(target.begin(), target.end(), L'/', L'\\');
+		struct Rename
+		{
+			DWORD flags;
+			HANDLE root;
+			DWORD bytes;
+			WCHAR name[1];
+		};
+		// The Win32 wrapper requires a NUL-terminated string even though the NT
+		// length excludes the terminator. Keep both contracts, including padding.
+		std::vector<uint8_t> storage(offsetof(Rename, name) + (target.size() + 1) * sizeof(WCHAR));
+		auto *rename = reinterpret_cast<Rename *>(storage.data());
+		rename->flags = 3; // FILE_RENAME_REPLACE_IF_EXISTS | FILE_RENAME_POSIX_SEMANTICS
+		rename->root = nullptr;
+		rename->bytes = DWORD(target.size() * sizeof(WCHAR));
+		std::copy(target.begin(), target.end(), rename->name);
+		ok = SetFileInformationByHandle(file, FILE_INFO_BY_HANDLE_CLASS(22), rename,
+										DWORD(storage.size())) != 0;
+		if (!ok)
+		{
+			failure = GetLastError();
+			if (failure == ERROR_INVALID_PARAMETER || failure == ERROR_NOT_SUPPORTED ||
+				failure == ERROR_INVALID_FUNCTION)
+			{
+				// Older Windows/filesystems: supported atomic rename, but a retained
+				// destination lease may honestly make replacement unavailable.
+				rename->flags = 1;
+				ok = SetFileInformationByHandle(file, FileRenameInfo, rename,
+												DWORD(storage.size())) != 0;
+				if (!ok)
+					failure = GetLastError();
+			}
+		}
+	}
+	if (file != INVALID_HANDLE_VALUE && !CloseHandle(file) && ok)
+	{
+		ok = false;
+		failure = GetLastError();
+		stage = "close";
+	}
+	file = INVALID_HANDLE_VALUE;
 #else
 	int file = -1;
 	for (unsigned attempt = 0; attempt < 64 && file < 0; ++attempt)
@@ -160,7 +264,21 @@ Error AtomicWrite(const std::string &path, const std::vector<uint8_t> &bytes)
 	}
 	if (file < 0)
 		return Fail(Code::IoError, "temporary name collision");
-	bool ok = true;
+	struct Cleanup
+	{
+		int &file;
+		const std::string &path;
+		~Cleanup()
+		{
+			if (file >= 0)
+			{
+				close(file);
+				Remove(path);
+			}
+		}
+	} cleanup{file, temporary};
+	std::string stage = "write";
+	bool ok = proceed(WriteStage::Created, temporary);
 	size_t pos = 0;
 	while (ok && pos < bytes.size())
 	{
@@ -173,9 +291,14 @@ Error AtomicWrite(const std::string &path, const std::vector<uint8_t> &bytes)
 			pos += size_t(n);
 	}
 	if (ok)
+		ok = proceed(WriteStage::Written, temporary);
+	if (ok)
 		ok = fsync(file) == 0;
+	if (ok)
+		ok = proceed(WriteStage::Flushed, temporary);
 	if (close(file) != 0)
 		ok = false;
+	file = -1;
 	if (ok)
 		ok = rename(temporary.c_str(), path.c_str()) == 0;
 	if (ok)
@@ -194,7 +317,7 @@ Error AtomicWrite(const std::string &path, const std::vector<uint8_t> &bytes)
 	if (!ok)
 	{
 		Remove(temporary);
-		Error e = Fail(Code::IoError, "atomic cache write/flush/replace failed");
+		Error e = Fail(Code::IoError, ("atomic cache " + stage + " failed").c_str());
 #ifdef _WIN32
 		e.message += " (Win32 " + std::to_string(failure) + ")";
 #endif
@@ -207,17 +330,28 @@ struct FileReader::Impl
 {
 	std::FILE *file = nullptr;
 	uint64_t size = 0;
+	mutable uint64_t calls = 0, bytes = 0;
 	~Impl()
 	{
 		if (file)
 			std::fclose(file);
 	}
 };
-FileReader::FileReader(std::unique_ptr<Impl> impl) : impl_(std::move(impl)) {}
+FileReader::FileReader(std::unique_ptr<Impl> impl) : impl_(std::move(impl))
+{
+}
 FileReader::~FileReader() = default;
 uint64_t FileReader::Size() const
 {
 	return impl_->size;
+}
+uint64_t FileReader::ReadCalls() const
+{
+	return impl_->calls;
+}
+uint64_t FileReader::ReadBytes() const
+{
+	return impl_->bytes;
 }
 Error FileReader::OpenFile(const std::string &path, std::unique_ptr<FileReader> &out)
 {
@@ -273,6 +407,8 @@ Error FileReader::OpenFile(const std::string &path, std::unique_ptr<FileReader> 
 }
 Error FileReader::Read(uint64_t offset, void *out, size_t size) const
 {
+	++impl_->calls;
+	impl_->bytes += size;
 	if (offset > impl_->size || size > impl_->size - offset || (size && !out) ||
 		offset > uint64_t(std::numeric_limits<int64_t>::max()))
 		return Fail(Code::Corrupt, "invalid cache read range");
@@ -319,7 +455,8 @@ Error Cache::Load(const Fingerprint &f, ReconstructedLightingAsset &out, Index &
 	}
 }
 Error Cache::Store(const Fingerprint &f, const ReconstructedLightingAsset &asset,
-				   const std::vector<Chunk> &chunks, const Limits &limits) const
+				   const std::vector<Chunk> &chunks, const Limits &limits,
+				   WriteObserver *observer) const
 {
 	try
 	{
@@ -335,7 +472,7 @@ Error Cache::Store(const Fingerprint &f, const ReconstructedLightingAsset &asset
 			return e;
 		if (!MakeDirectories(root_))
 			return Fail(Code::IoError, "create cache directory failed");
-		return AtomicWrite(root_ + "/" + Hex(key) + ".jklr", bytes);
+		return AtomicWrite(root_ + "/" + Hex(key) + ".jklr", bytes, observer);
 	}
 	catch (const std::bad_alloc &)
 	{

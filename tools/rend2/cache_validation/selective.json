@@ -1,0 +1,45 @@
+{
+  "schema": "org.openjk.selective-cache-benchmark/1",
+  "repeats": 10,
+  "scope": "Warmed OS cache; expected geometry supplied by the same owned fixture; no reconstruction during load",
+  "modes": [
+    {
+      "name": "metadata",
+      "open_seconds": 0.0001908,
+      "prepare_seconds": 0.0001629,
+      "release_seconds": 2.1e-06,
+      "read_bytes": 5909,
+      "payload_bytes": 0,
+      "chunks": 0
+    },
+    {
+      "name": "field",
+      "open_seconds": 0.000223,
+      "prepare_seconds": 0.0133723,
+      "release_seconds": 0.0001222,
+      "read_bytes": 740332,
+      "payload_bytes": 734423,
+      "chunks": 17
+    },
+    {
+      "name": "visibility",
+      "open_seconds": 0.0003029,
+      "prepare_seconds": 0.0005621,
+      "release_seconds": 7.2e-06,
+      "read_bytes": 6851,
+      "payload_bytes": 942,
+      "chunks": 2
+    },
+    {
+      "name": "all",
+      "open_seconds": 0.0003461,
+      "prepare_seconds": 0.0205178,
+      "release_seconds": 0.0003809,
+      "read_bytes": 741274,
+      "payload_bytes": 735365,
+      "chunks": 19
+    }
+  ],
+  "query_seconds": 5.61306e-06,
+  "query_count": 100000
+}

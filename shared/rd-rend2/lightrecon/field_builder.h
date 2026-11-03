@@ -10,7 +10,7 @@ namespace Core
 {
 namespace Fields
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2; // V01: payload binds frozen source geometry/photometry/configuration
 enum class Route
 {
 	SourceConditioned,
@@ -107,6 +107,7 @@ struct Work
 };
 struct Artifact
 {
+	Disk::Digest sourceScene{};
 	ReconstructedLightingAsset asset;
 	std::shared_ptr<const Probes::Topology> topology;
 	Probes::Values values;

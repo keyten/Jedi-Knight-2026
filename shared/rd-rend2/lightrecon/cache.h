@@ -19,6 +19,8 @@ class FileReader : public Reader
 	~FileReader() override;
 	uint64_t Size() const override;
 	Error Read(uint64_t, void *, size_t) const override;
+	uint64_t ReadCalls() const;
+	uint64_t ReadBytes() const;
 	static Error OpenFile(const std::string &path, std::unique_ptr<FileReader> &out);
 
   private:
@@ -29,14 +31,30 @@ class FileReader : public Reader
 // Calls are explicit owner/tool operations, never made by read-only consumers.
 // Reads hold an open file across atomic replacements. FileReader calls must be
 // serialized; callers retain it for later ReadChunk. Outputs unchanged on error.
+enum class WriteStage
+{
+	Created,
+	Written,
+	Flushed
+};
+// Explicit owner-side interruption/diagnostic seam. Never used by sampling.
+class WriteObserver
+{
+  public:
+	virtual ~WriteObserver() = default;
+	virtual bool Continue(WriteStage, const std::string &temporaryPath) = 0;
+};
 class Cache
 {
   public:
-	explicit Cache(std::string root) : root_(std::move(root)) {}
+	explicit Cache(std::string root) : root_(std::move(root))
+	{
+	}
 	Error Load(const Fingerprint &, ReconstructedLightingAsset &, Index &,
 			   std::unique_ptr<FileReader> &, const Limits & = Limits()) const;
 	Error Store(const Fingerprint &, const ReconstructedLightingAsset &,
-				const std::vector<Chunk> & = std::vector<Chunk>(), const Limits & = Limits()) const;
+				const std::vector<Chunk> & = std::vector<Chunk>(), const Limits & = Limits(),
+				WriteObserver * = nullptr) const;
 	const std::string &Root() const
 	{
 		return root_;

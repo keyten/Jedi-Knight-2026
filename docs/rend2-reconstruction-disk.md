@@ -1,5 +1,8 @@
 # Reconstructed-lighting disk assets, format 1.0
 
+Current canonical schema: **8**. The following S10/S12 notes record prior schema
+transitions; old assets mismatch safely. V01 retains the binary envelope.
+
 S12 raises the canonical semantic schema to **3** and adds optional metadata
 sections 15/16 (joint configurations and typed uncertainty). Existing schema-1/2
 keys/assets are rejected. See [S12](rend2-uncertainty-s12.md); the independent
@@ -16,13 +19,12 @@ CPU codec for the [canonical asset](rend2-reconstructed-lighting.md).
 Both belong to the single `rend2_lightrecon_core` library linked by SP, MP and
 standalone tools. Neither includes engine headers, `tr_local.h` or graphics APIs.
 
-This implements storage, validation and content-key construction. The subsequent
-[main-world lifecycle](rend2-reconstruction-lifecycle.md) connects explicit native
-cache/session ownership to `RE_LoadWorldMap`. No solver, production complete
-dependency collector, evaluator or rendering consumer is installed. The real
-renderer still reports NotCacheable and performs no cache lookup with incomplete
-keys. `R_LightReconCacheRoot()` reads the supported `fs_homepath` cvar; disabled
-world loading does not even request this path.
+[V01 persistent caching](rend2-persistent-cache-v01.md) adds production source
+content collection, early lookup, layered derived keys and selective resident CPU
+preparation over this same format. Native loads can prepare P01/P02/P05/P06 data;
+queries do no I/O. Unsupported source recipes remain NotCacheable. The renderer
+still has no automatic inverse-solver input adapter on a miss and no rendering
+consumer. Disabled world loading does not request a cache path or hash inputs.
 
 ```mermaid
 flowchart LR
@@ -198,12 +200,11 @@ SHA-256 through fixed 64 KiB scratch; it does not require a full BSP/field buffe
 
 The format verifies the stored manifest hashes to the header key and the caller's
 fresh expected key. It cannot discover a dependency omitted by a lying host.
-**No production code currently marks these categories complete.** Until a host
-collects them all, `MakeKey`, `Encode`, `Cache.Load` and `Cache.Store` return
+V01 production collection marks these categories complete only for its declared
+source-definition recipe, including SP/MP context. For other incomplete hosts, `MakeKey`, `Encode`, `Cache.Load` and `Cache.Store` return
 `NotCacheable`; opening an incomplete key does not touch the reader. There is no
-filename-only, old `InputManifest.revision`-only or BSP-only fallback. The new disk
-adapter is now reachable through the lifecycle owner, but cache access stays
-blocked until the renderer's source collector provides a complete key.
+filename-only, old `InputManifest.revision`-only or BSP-only fallback. Unsupported remap/linked-material/video recipes retain explicit incomplete
+coverage; see V01 for bounds and the actual input inventory.
 
 ## Cache location, publication and lifetime
 
@@ -225,10 +226,11 @@ resolved content and interpretation match.
 It creates missing cache directories, exclusively creates a same-directory
 `<key>.jklr.tmp-<pid>-<serial>` file, writes all bytes, flushes, closes and publishes:
 
-- Windows: `FlushFileBuffers`, `ReplaceFileW` for an existing file; for first
-  publication, `MoveFileExW(..., MOVEFILE_WRITE_THROUGH)` without overwriting a
-  concurrent new writer. Readers open with share-read/share-delete. Existing
-  reader leases remain on the old file after replacement.
+- Windows (V01): flush content, drop write access, then handle-based atomic
+  rename with replacement/POSIX semantics. Older implementations fall back to
+  `FileRenameInfo` with honest sharing errors. Readers retain share-read/share-delete
+  leases on old file identities. The earlier `ReplaceFileW` path is superseded;
+  V01 documents its reproduced 1175/concurrent replacement failures.
 - POSIX: checked writes, `fsync`, `close`, atomic same-filesystem `rename`, then
   directory `fsync`. A directory-sync failure reports `IoError` even if a complete
   replacement has already become visible.

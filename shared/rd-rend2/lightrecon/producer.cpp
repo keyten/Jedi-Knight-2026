@@ -2588,7 +2588,7 @@ Error Run(const Request &original, const ReadContext &read, Result &out,
 	}
 }
 
-Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
+Error ValidateArtifact(const Artifact &artifact, const ReadContext &read, bool attributionOnly)
 {
 	try
 	{
@@ -2832,6 +2832,10 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read)
 		for (const auto &d : a.datasets)
 		{
 			if (handled.count(d.id))
+				continue;
+			if (attributionOnly && (d.encoding == "org.openjk.spatial-field" ||
+				d.encoding == "org.openjk.probe-geometry" || d.encoding == "org.openjk.probe-topology" ||
+				d.encoding == "org.openjk.static-shadow-support"))
 				continue;
 			Need(d.purpose == DatasetPurpose::Transport &&
 					 d.encoding.find("org.openjk.passive-transport-samples/") == 0 &&

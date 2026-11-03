@@ -38,7 +38,8 @@ add_library(rend2_lightrecon_core STATIC
 	emission_geometry.cpp emission_geometry.h evidence.cpp evidence.h
 	emitter_support.cpp emitter_support.h
 	offline.cpp offline.h offline_io.cpp offline_bsp.cpp
-	disk.cpp disk.h cache.cpp cache.h lifecycle.cpp lifecycle.h ../tr_lightrecon_cvars.inc)
+	disk.cpp disk.h cache.cpp cache.h dependencies.cpp dependencies.h
+	persistent.cpp persistent.h lifecycle.cpp lifecycle.h ../tr_lightrecon_cvars.inc)
 set_target_properties(rend2_lightrecon_core PROPERTIES
 	CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO
 	POSITION_INDEPENDENT_CODE ON CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)

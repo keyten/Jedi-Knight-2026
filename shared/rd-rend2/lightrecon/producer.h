@@ -189,7 +189,9 @@ struct ObservationRecord
 };
 // Validates payload checksums, spans, IDs, domains, component sums and unit/
 // membership cross-references. Structural Validate(asset) alone is insufficient.
-Error ValidateArtifact(const Artifact &, const ReadContext &);
+// attributionOnly validates all S13 sample/contribution/diagnostic data and
+// passive records, leaving unrelated P01/P02/P05 payloads to their own codecs.
+Error ValidateArtifact(const Artifact &, const ReadContext &, bool attributionOnly = false);
 Error ReadSamples(const Artifact &, Id dataset, const ReadContext &, std::vector<SampleRecord> &);
 Error ReadContributions(const Artifact &, Id dataset, const ReadContext &,
 						std::vector<ContributionRecord> &);

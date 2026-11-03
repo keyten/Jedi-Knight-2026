@@ -3,6 +3,7 @@
 #include "tr_lightrecon.h"
 #include "lightrecon/cache.h"
 #include "lightrecon/offline.h"
+#include "lightrecon/dependencies.h"
 #include <algorithm>
 #include <new>
 #include <cmath>
@@ -34,6 +35,8 @@ static Rend2LightRecon::Core::Error s_offlineSpaceError;
 static std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet> s_emitterEvidence;
 static Rend2LightRecon::Core::Error s_emitterEvidenceError;
 static void R_CaptureEmitterEvidence();
+static void R_LightReconEarlyCache(uint64_t ticket);
+static Rend2LightRecon::Disk::Dependencies::Work s_dependencyWork;
 std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet> R_EmitterEvidence(void)
 {
 	return std::atomic_load(&s_emitterEvidence);
@@ -74,9 +77,15 @@ LightReconWorldLoad::LightReconWorldLoad(const char* name)
 	: load_(s_reconstructedLighting, name ? name : "",
 		static_cast<Rend2LightRecon::BuildPolicy>(r_lightReconBuild ? r_lightReconBuild->integer : 0))
 {
-	s_lightmapCapture.Begin(s_reconstructedLighting.Report().policy);
-	s_lightgridCapture.Begin(s_reconstructedLighting.Report().policy);
-	s_surfaceCapture.Begin(s_reconstructedLighting.Report().policy);
+	s_dependencyWork = {};
+	R_LightReconEarlyCache(load_.Ticket());
+	// A validated hit needs no original-observation derivation. Cache-only misses
+	// also never capture or reconstruct. Ordinary BSP/GPU loading is unchanged.
+	auto capturePolicy = s_reconstructedLighting.Report().pendingCacheHit
+		? Rend2LightRecon::BuildPolicy::Disabled : s_reconstructedLighting.Report().policy;
+	s_lightmapCapture.Begin(capturePolicy);
+	s_lightgridCapture.Begin(capturePolicy);
+	s_surfaceCapture.Begin(capturePolicy);
 	s_offlineDomain.reset();
 	s_offlineDynamic.clear();
 	s_offlineSpaceError = {};
@@ -104,30 +113,71 @@ LightReconWorldLoad::~LightReconWorldLoad()
 }
 
 namespace {
+class DependencyBytes final : public Rend2LightRecon::Disk::Reader
+{
+public:
+	std::vector<uint8_t> bytes;
+	uint64_t Size() const override { return bytes.size(); }
+	Rend2LightRecon::Disk::Error Read(uint64_t offset, void *target, size_t count) const override {
+		Rend2LightRecon::Disk::Error e;
+		if (offset > bytes.size() || count > bytes.size()-offset || (count && !target)) {
+			e.code=Rend2LightRecon::Disk::Code::Corrupt; e.message="Dependency read extent";
+		} else if(count) std::memcpy(target, bytes.data()+size_t(offset), count);
+		return e;
+	}
+};
+class RendererDependencies final : public Rend2LightRecon::Disk::Dependencies::Sources
+{
+public:
+	Rend2LightRecon::Disk::Error Open(const std::string &path,
+		std::unique_ptr<Rend2LightRecon::Disk::Reader> &out) const override {
+		using namespace Rend2LightRecon::Disk;
+		Error e; fileHandle_t h=0;
+		long count=ri.FS_FOpenFileRead(path.c_str(), &h, qtrue);
+		if(!h) {e.code=Code::Missing;e.message="Absent VFS dependency";return e;}
+		struct Close {fileHandle_t h;~Close(){ri.FS_FCloseFile(h);}} close{h};
+		if(count<0 || uint64_t(count)>(256ull<<20)) {e.code=Code::LimitExceeded;e.message="VFS dependency size limit";return e;}
+		std::unique_ptr<DependencyBytes> data(new DependencyBytes);
+		data->bytes.resize(size_t(count));
+		if(count && ri.FS_Read(data->bytes.data(),int(count),h)!=count) {e.code=Code::IoError;e.message="Short VFS dependency read";return e;}
+		out=std::move(data);return e;
+	}
+	Rend2LightRecon::Disk::Error Material(const std::string &name, std::string &text) const override {
+		bool found=false;
+		text=R_LightReconShaderText(name.c_str(),&found);Rend2LightRecon::Disk::Error e;
+		if(text.empty()) {
+			e.code=found?Rend2LightRecon::Disk::Code::NotCacheable:Rend2LightRecon::Disk::Code::Missing;
+			e.message="Selected material definition is truncated/unsupported";
+		}
+		return e;
+	}
+};
 class RendererWorldSource : public Rend2LightRecon::WorldSource
 {
 public:
-	Rend2LightRecon::Disk::Error Describe(const std::string&, Rend2LightRecon::Disk::Fingerprint& fingerprint) override
+	Rend2LightRecon::Disk::Error Describe(const std::string& name, Rend2LightRecon::Disk::Fingerprint& fingerprint) override
 	{
-		const auto observations = R_LightmapObservations();
-		const auto grid = R_LightgridObservations();
-		if (observations || grid)
-		{
-			const auto& identity = observations ? observations->Map() : grid->Map();
-			Rend2LightRecon::Disk::InputContent map;
-			map.kind = Rend2LightRecon::Disk::InputKind::Bsp;
-			map.name = identity.path;
-			map.bytes = identity.bytes;
-			map.sha256 = identity.sha256;
-			fingerprint.inputs.push_back(map);
-			fingerprint.complete[static_cast<size_t>(map.kind)] = true;
-		}
-		// File/BSP/material dependency collection is deliberately NOT guessed from
-		// world name, GPU textures or calibrated lightgrid buffers. No false cache hit.
-		Rend2LightRecon::Disk::Error error;
-		error.code = Rend2LightRecon::Disk::Code::NotCacheable;
-		error.message = "Complete BSP/sidecar/material/settings fingerprints are unavailable";
-		return error;
+		using namespace Rend2LightRecon::Disk;
+		static_assert(LUMP_SURFACES==13 && LUMP_LIGHTMAPS==14 && sizeof(dsurface_t)==148 && sizeof(dshader_t)==72,
+			"Update portable dependency inventory for a changed BSP schema");
+		RendererDependencies source;
+		std::unique_ptr<Reader> bsp;
+		auto error=source.Open(name,bsp);if(!error)return error;
+		Dependencies::Recipe recipe;
+#ifdef REND2_SP
+		recipe.materialContext="rend2-sp/source-materials/1";
+#else
+		recipe.materialContext="rend2-mp/source-materials/1";
+#endif
+		recipe.decoder="RBSP1/original-rgb8-grid-hdr/deluxe/vertex/source-images-jpg-png-tga/srgb/1";
+		recipe.geometry="original-visual-triangles-patch-model-ownership/occupancy-v2/mounting-v1";
+		recipe.profiles="UnknownStock/conditional-source-locked-NetRadiant-alternatives-v1";
+		recipe.solver="renderer-offline-import/1;producer7;joint7;no-automatic-solver";
+		recipe.settings="immutable-original/full-map/offline-explicit-model;receiver-support-v1";
+		recipe.calibration="relative-stock-no-absolute-scale/physical-contract-v1";
+		recipe.units.worldUnitsPerMeter=r_pbrWorldUnitsPerMeter->value;
+		recipe.units.physicalToScene=R_PBRPhysicalToScene();
+		return Dependencies::Collect(name,*bsp,source,recipe,fingerprint,s_dependencyWork);
 	}
 	Rend2LightRecon::Core::Error Prepare(const std::string&, Rend2LightRecon::BuildPlan& plan) override
 	{
@@ -140,6 +190,13 @@ public:
 			"Original BSP observations may be captured; complete solver input/material adapter and reconstruction algorithm are not installed");
 	}
 };
+}
+static void R_LightReconEarlyCache(uint64_t ticket)
+{
+	if(s_reconstructedLighting.Report().policy==Rend2LightRecon::BuildPolicy::Disabled)return;
+	RendererWorldSource source;
+	Rend2LightRecon::NativeWorldCache cache(R_LightReconCacheRoot());
+	s_reconstructedLighting.Preflight(ticket,source,&cache);
 }
 void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapTextures)
 {
@@ -825,6 +882,22 @@ void R_LightReconInfo_f(void)
 		static_cast<unsigned long long>(report.facts.surfaces), static_cast<unsigned long long>(report.facts.gridSamples),
 		static_cast<unsigned long long>(report.facts.lightmapTextures), report.sessionPrepared ? 1 : 0,
 		static_cast<unsigned long long>(report.steps));
+	ri.Printf(PRINT_ALL, "  cache-preflight early=%d pending=%d dependencies=%llu missing=%llu hashed=%llu dependency-seconds=%.6f cache-read=%llu cache-reads=%llu selected-chunks=%llu selected-bytes=%llu open-seconds=%.6f prepare-seconds=%.6f\n",
+		report.earlyPreflight?1:0,report.pendingCacheHit?1:0,
+		static_cast<unsigned long long>(s_dependencyWork.files),static_cast<unsigned long long>(s_dependencyWork.missing),
+		static_cast<unsigned long long>(s_dependencyWork.hashedBytes),s_dependencyWork.seconds,
+		static_cast<unsigned long long>(report.cacheWork.readBytes),static_cast<unsigned long long>(report.cacheWork.reads),
+		static_cast<unsigned long long>(report.cacheWork.chunks),static_cast<unsigned long long>(report.cacheWork.payloadBytes),
+		report.cacheWork.openSeconds,report.cacheWork.prepareSeconds);
+	ri.Printf(PRINT_ALL,"  first-publication-seconds=%.6f available=%d\n",report.secondsToPublication,
+		report.state==WorldState::Available?1:0);
+	if(ri.Cmd_Argc()>1 && !Q_stricmp(ri.Cmd_Argv(1),"dependencies") && report.keyComplete) {
+		const auto &f=s_reconstructedLighting.InputFingerprint();
+		ri.Printf(PRINT_ALL,"dependency-manifest algorithm=%s version=%u world-units=%.9g physical-to-scene=%.9g key=%s\n",
+			f.algorithm.c_str(),f.algorithmVersion,double(f.units.worldUnitsPerMeter),double(f.units.physicalToScene),report.cacheKey.c_str());
+		for(const auto &input:f.inputs)ri.Printf(PRINT_ALL,"dependency kind=%u bytes=%llu sha256=%s name=%s\n",
+			unsigned(input.kind),static_cast<unsigned long long>(input.bytes),Disk::Hex(input.sha256).c_str(),input.name.c_str());
+	}
 	for (size_t i = 0; i < kConsumerCount; ++i)
 	{
 		const Consumer c = static_cast<Consumer>(i);

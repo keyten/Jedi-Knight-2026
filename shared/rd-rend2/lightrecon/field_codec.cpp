@@ -83,6 +83,15 @@ struct Reader
 		at += size_t(n);
 		return s;
 	}
+	Disk::Digest D()
+	{
+		Need(at <= b.size() && b.size() - at >= 32, Code::InvalidInput,
+			 "Truncated field source dependency");
+		Disk::Digest d;
+		std::copy_n(b.data() + at, 32, d.begin());
+		at += 32;
+		return d;
+	}
 	void Seal()
 	{
 		Need(at == b.size() - 32, Code::InvalidInput, "Trailing field records");
@@ -174,6 +183,8 @@ Error Encode(Artifact &a, const ReadContext &read)
 	try
 	{
 		Need(a.topology && a.descriptor, Code::InvalidInput, "Missing field payload");
+		Need(a.sourceScene != Disk::Digest{} && a.sourceScene == SourceIdentity(a.asset),
+			 Code::InvalidState, "Cannot encode stale source-conditioned field");
 		MetadataBinding(a.asset, read.maxBytes ? read.maxBytes : 128ull << 20);
 		auto asset = a.asset;
 		auto descriptor = *a.descriptor;
@@ -194,6 +205,7 @@ Error Encode(Artifact &a, const ReadContext &read)
 		meta.U(kVersion);
 		meta.U(geo);
 		meta.U(top);
+		meta.D(a.sourceScene);
 		Descriptor(meta, descriptor);
 		meta.Seal();
 		Disk::Chunk header;
@@ -323,6 +335,9 @@ Error Decode(const ReconstructedLightingAsset &asset, const std::vector<Disk::Ch
 		Need(meta.U() == 0x31444c4549464b4aull && meta.U() == kVersion, Code::UnsupportedSchema,
 			 "Field header mismatch");
 		Id geo = meta.U(), top = meta.U();
+		out.sourceScene = meta.D();
+		Need(out.sourceScene == SourceIdentity(asset), Code::InvalidState,
+			 "Cached field source geometry/photometry/configuration changed");
 		auto descriptor = std::make_shared<ConditionalFieldDescriptor>();
 		Descriptor(meta, *descriptor);
 		meta.Seal();

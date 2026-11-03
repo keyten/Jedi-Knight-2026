@@ -965,7 +965,7 @@ struct Engine
 				 Code::InvalidInput, "Field dataset ID collision");
 			Dataset d;
 			d.id = id;
-			d.encodingVersion = kVersion;
+			d.encodingVersion = id == s.dataset ? kVersion : Probes::kVersion;
 			d.layout = DatasetLayout::Chunked;
 			d.chunkElements = id == s.dataset ? 64 : 128;
 			d.purpose = id == s.dataset ? DatasetPurpose::Transport
@@ -1000,6 +1000,7 @@ Error Build(const Request &r, const ReadContext &read, Artifact &out)
 		std::string why;
 		auto valid = Validate(*r.asset, &why);
 		Need(valid, Code::InvalidInput, why.c_str());
+		out.sourceScene = SourceIdentity(*r.asset);
 		ReadContext effective = read;
 		effective.maxBytes =
 			read.maxBytes ? std::min(read.maxBytes, r.options.maxBytes) : r.options.maxBytes;

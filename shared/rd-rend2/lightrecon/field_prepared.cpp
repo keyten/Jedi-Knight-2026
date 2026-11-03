@@ -178,6 +178,8 @@ Error Prepare(const Artifact &a, const ReadContext &read, std::shared_ptr<const 
 	try
 	{
 		Need(!Cancelled(read), Code::Cancelled, "Field preparation cancelled");
+		Need(a.sourceScene != Disk::Digest{} && a.sourceScene == SourceIdentity(a.asset),
+			Code::InvalidState, "Field frozen source/configuration dependency mismatch");
 		auto metadata = MetadataBinding(a.asset, read.maxBytes ? read.maxBytes : 128ull << 20);
 		Need(a.topology && a.descriptor && a.values.topology == a.topology->Key() &&
 				 a.descriptor->topology == Disk::Hex(a.topology->Key()) &&
