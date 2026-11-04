@@ -4,6 +4,7 @@
 #include "lightrecon/geometry_key.h"
 #include "lightrecon/offline.h"
 #include "lightrecon/probes.h"
+#include "lightrecon/diagnostics.h"
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -158,6 +159,16 @@ int main(int argc, char **argv)
 				LightingRegionGraph::Build(regionInput, regionOptions, read, input.regions);
 			std::shared_ptr<const P::Topology> topology;
 			auto error = P::Build(input, o, read, topology);
+			if(error){
+				Diagnostics::Scene debug;debug.map=input.map;debug.mapPath=source.metadata.map.path;
+				debug.algorithm="P02 geometry-only generated probe support";debug.scope="No field values or recovered emitter evidence";debug.units=source.metadata.units;
+				Diagnostics::Builder builder(debug);builder.Probes(*topology);
+				for(const auto&d:source.dynamic)builder.Dynamic(d);
+				std::string encoded;Check(Diagnostics::Encode(debug,encoded));
+				std::string stem=std::string(argv[2])+"-roi-"+std::to_string(roi);
+				std::ofstream data(stem+".jkdbg",std::ios::binary);data.write(encoded.data(),encoded.size());
+				std::ofstream json(stem+".debug.json"),obj(stem+".obj");Check(Diagnostics::Json(debug,json));Check(Diagnostics::Obj(debug,obj));
+			}
 			double build =
 				std::chrono::duration<double>(std::chrono::steady_clock::now() - begin).count();
 			out << (roi ? "," : "") << "{\"ordinal\":" << roi

@@ -73,6 +73,15 @@ struct Source
 	Shape::Emitter value;
 	Bake::SourceHypothesis environment;
 };
+// Optional owner-side bounded diagnostic sink. No return value can influence a
+// proposal, objective, admission or source confidence. Not part of the solver key.
+// Implementations must be noexcept, bounded, and must not read withheld targets.
+class DiagnosticSink {
+public:
+	virtual ~DiagnosticSink() = default;
+	virtual void Placement(const Source&,const PointRefine::PlacementResult&,const char *predicate,
+		Vec3 from,Vec3 to,double radius,size_t profile) noexcept = 0;
+};
 struct Terms
 {
 	double surface = 0, gridAmbient = 0, gridDirected = 0, gridDirection = 0, deluxe = 0;
@@ -215,6 +224,7 @@ struct Request
 	std::shared_ptr<const FitEvidence::Objective> shadow;
 	double shadowWeight = 0;
 	Options options;
+	DiagnosticSink *diagnostics = nullptr; // borrowed synchronous observer, default off
 	// Geometry-only common intersection, optionally prepared by a trusted controller
 	// across all folds/profiles BEFORE source search. Otherwise Pin freezes training.
 	std::shared_ptr<const ReceiverSupport::Manifest> receiverSupport;

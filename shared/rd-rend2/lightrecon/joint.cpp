@@ -613,7 +613,12 @@ struct Engine
 		placementFailure.clear();
 		if (receipts)
 			receipts->assign(m.sources.size(), PointRefine::PlacementResult());
+		const char *diagnosticPredicate = "source-support";
+		Vec3 diagnosticFrom,diagnosticTo;
+		double diagnosticRadius=0;
 		auto record = [&](size_t index, const PointRefine::PlacementResult &p) {
+			if(r.diagnostics)r.diagnostics->Placement(m.sources[index],p,diagnosticPredicate,
+				diagnosticFrom,diagnosticTo,diagnosticRadius,m.profile);
 			++work.placementChecks;
 			using F = PointRefine::Feasibility;
 			auto state = PointRefine::Classify(p);
@@ -714,6 +719,8 @@ struct Engine
 					b < c.shape.minimumDimensionWorld || b > c.shape.maximumDimensionWorld)
 					return reject(c.id, "emitter dimensions");
 			}
+			diagnosticFrom=c.shape.initial.geometry.position.world;diagnosticTo=p.position.world;
+			diagnosticRadius=c.clearanceWorld;diagnosticPredicate="source-support";
 			if(s.value.support.kind!=SourceSupport::Kind::LegacyVacuum) {
 				SourceSupport::Result support;
 				Check(SourceSupport::Check(r.placement,*placement,c.shape.initial.geometry,p,s.value.support,read,support));
@@ -722,6 +729,7 @@ struct Engine
 				continue;
 			}
 			PointRefine::PlacementResult placed;
+			diagnosticPredicate="centre/path";
 			Check(placement->Check(c.shape.initial.geometry.position.world, p.position.world,
 								   c.clearanceWorld, read, placed));
 			work.rays += placed.rays;
@@ -747,6 +755,8 @@ struct Engine
 												std::pow(Component(p.frame.forward, axis), 2));
 					radius = std::max(radius, extent);
 				}
+				diagnosticPredicate="extent";diagnosticFrom=diagnosticTo=p.position.world;
+				diagnosticRadius=radius+c.clearanceWorld;
 				Check(placement->Check(p.position.world, p.position.world,
 									   radius + c.clearanceWorld, read, placed));
 				work.rays += placed.rays;
@@ -774,6 +784,8 @@ struct Engine
 								 V(p.frame.up) * (p.geometry.radiusWorld * std::cos(a)) +
 								 V(p.frame.forward) * (p.geometry.radiusWorld * std::sin(a));
 					}
+					diagnosticPredicate="rim/path";diagnosticFrom=p.position.world;
+					diagnosticTo=target.Float();diagnosticRadius=0;
 					Check(placement->Check(p.position.world, target.Float(), 0, read, placed));
 					work.rays += placed.rays;
 					work.traversal += placed.work;

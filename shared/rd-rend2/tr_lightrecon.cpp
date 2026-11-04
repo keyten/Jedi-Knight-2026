@@ -4,6 +4,7 @@
 #include "lightrecon/cache.h"
 #include "lightrecon/offline.h"
 #include "lightrecon/dependencies.h"
+#include "lightrecon/diagnostics.h"
 #include <algorithm>
 #include <new>
 #include <cmath>
@@ -13,6 +14,8 @@
 #include <cerrno>
 #include <climits>
 #include <sstream>
+#include <chrono>
+#include <cstdlib>
 
 qhandle_t RE_RegisterShaderFromImage(const char*,const int*,const byte*,image_t*,qboolean);
 
@@ -52,6 +55,12 @@ struct ReconstructionPreviewMarker
     unsigned confidenceKnown = 0;
 };
 static std::vector<ReconstructionPreviewMarker> s_reconstructionPreview;
+namespace LRDebug = Rend2LightRecon::Core::Diagnostics;
+static std::shared_ptr<const LRDebug::Scene> s_diagnosticScene;
+static LRDebug::Selection s_diagnosticSelection;
+static uint64_t s_diagnosticTicket=0,s_diagnosticDrawn=0,s_diagnosticClipped=0;
+static double s_diagnosticMicroseconds=0;
+static std::shared_ptr<const Rend2LightRecon::Core::StaticVisibility> s_diagnosticRays;
 
 std::shared_ptr<const Rend2LightRecon::Core::SurfaceGeometry> R_LuxelGeometry(void)
 {
@@ -78,6 +87,8 @@ LightReconWorldLoad::LightReconWorldLoad(const char* name)
 		static_cast<Rend2LightRecon::BuildPolicy>(r_lightReconBuild ? r_lightReconBuild->integer : 0))
 {
 	s_dependencyWork = {};
+	s_diagnosticScene.reset();s_diagnosticSelection={};s_diagnosticTicket=0;
+	s_diagnosticRays.reset();
 	R_LightReconEarlyCache(load_.Ticket());
 	// A validated hit needs no original-observation derivation. Cache-only misses
 	// also never capture or reconstruct. Ordinary BSP/GPU loading is unchanged.
@@ -109,6 +120,7 @@ LightReconWorldLoad::~LightReconWorldLoad()
 						  std::shared_ptr<const Rend2LightRecon::Core::EmitterEvidenceSet>());
 		s_luxelDebug.clear();
 	s_reconstructionPreview.clear();
+		s_diagnosticScene.reset();s_diagnosticSelection={};s_diagnosticTicket=0;s_diagnosticRays.reset();
 	}
 }
 
@@ -238,6 +250,8 @@ void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapText
 
 void R_ClearReconstructedLighting(void)
 {
+	s_diagnosticScene.reset();s_diagnosticSelection={};s_diagnosticTicket=0;
+	s_diagnosticRays.reset();
 	s_lightmapCapture.Reset();
 	s_lightgridCapture.Reset();
 	s_surfaceCapture.Reset();
@@ -1239,10 +1253,550 @@ void R_LightReconPreview_f(void)
     for(const auto &m:s_reconstructionPreview)
         ri.Printf(PRINT_ALL,"preview id=%llu kind=%u position=%.2f %.2f %.2f priorOnly=%u existence=%s %.3f\n",m.id,m.kind,m.position[0],m.position[1],m.position[2],m.priorOnly,m.confidenceKnown?"specified":"Unknown",m.confidence);
 }
+namespace {
+bool DiagnosticName(const std::string &s)
+{
+	return !s.empty() && s.size() <= 64 &&
+		   s.find_first_not_of(
+			   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") ==
+			   std::string::npos;
+}
+bool DiagnosticId(const char *text, Rend2LightRecon::Id &id)
+{
+	if (!text || !*text || std::strspn(text, "0123456789") != std::strlen(text))
+		return false;
+	char *end = nullptr;
+	errno = 0;
+	auto value = std::strtoull(text, &end, 10);
+	if (errno || !end || *end)
+		return false;
+	id = value;
+	return true;
+}
+bool DiagnosticPrepare()
+{
+	using namespace Rend2LightRecon::Core;
+	auto geometry = R_LuxelGeometry();
+	if (!geometry || !s_offlineDomain)
+	{
+		ri.Printf(PRINT_ALL, "lighting-debug geometry Unavailable: reload with explicit "
+							 "r_lightReconBuild 2/3, consumers OFF; no automatic build\n");
+		return false;
+	}
+	if (s_diagnosticRays && s_diagnosticRays->BuiltFrom(geometry))
+		return true;
+	VisibilityBuildOptions options;
+	options.maxBytes = 128ull << 20;
+	// Explicit geometry-inspection accuracy, matching the original offline
+	// capture policy. Curved chord envelopes remain Unknown in exact ray queries.
+	// This changes no solver or canonical visibility tolerance.
+	options.patchToleranceWorld = 8;
+	ReadContext context;
+	context.maxBytes = 128ull << 20;
+	auto start = std::chrono::steady_clock::now();
+	auto e = StaticVisibility::Build(geometry, options, context, s_diagnosticRays, s_offlineDomain);
+	if (!e)
+	{
+		ri.Printf(PRINT_ALL, "lighting-debug geometry preparation failed: %s\n", e.message.c_str());
+		return false;
+	}
+	const auto &r = s_diagnosticRays->Report();
+	ri.Printf(PRINT_ALL,
+			  "lighting-debug explicit BVH build triangles=%llu bytes=%llu seconds=%.6f "
+			  "patch-error-bound-world=8; static optical scope, unknown movers remain separate\n",
+			  static_cast<unsigned long long>(r.triangles),
+			  static_cast<unsigned long long>(r.ownedBytes),
+			  std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count());
+	return true;
+}
+} // namespace
+void R_LightReconDebug_f(void)
+{
+	using namespace Rend2LightRecon;
+	const std::string command = ri.Cmd_Argc() > 1 ? ri.Cmd_Argv(1) : "info";
+	if (command == "off")
+	{
+		s_diagnosticScene.reset();
+		s_diagnosticSelection = {};
+		s_diagnosticTicket = 0;
+		s_diagnosticRays.reset();
+		ri.Printf(PRINT_ALL, "lighting-debug off; resident diagnostic buffers released\n");
+		return;
+	}
+	if (command == "prepare")
+	{
+		DiagnosticPrepare();
+		return;
+	}
+	if (command == "geometry")
+	{
+		using namespace Core;
+		if (!DiagnosticPrepare())
+			return;
+		Vec3 eye(tr.refdef.vieworg[0], tr.refdef.vieworg[1], tr.refdef.vieworg[2]);
+		Vec3 forward(tr.refdef.viewaxis[0][0], tr.refdef.viewaxis[0][1], tr.refdef.viewaxis[0][2]);
+		ReadContext context;
+		context.maxBytes = 16ull << 20;
+		auto scene = std::make_shared<LRDebug::Scene>();
+		scene->map = s_diagnosticRays->GeometryIdentity().sha256;
+		scene->mapPath = s_reconstructedLighting.Report().world;
+		scene->algorithm = "V03/original-geometry-reference/1";
+		scene->scope = "Original camera-ray hit and geometric normal; NOT recovered sources or "
+					   "proof of bake-time mover absence";
+		LRDebug::Builder builder(*scene);
+		size_t attempts = 0, accepted = 0;
+		std::set<Id> selected;
+		for (float horizontal : {0.f, -.25f, .25f})
+			for (float vertical : {0.f, -.15f, .15f})
+			{
+				if (accepted >= 4)
+					continue;
+				++attempts;
+				Vec3 dir(forward.x + horizontal * tr.refdef.viewaxis[1][0] +
+							 vertical * tr.refdef.viewaxis[2][0],
+						 forward.y + horizontal * tr.refdef.viewaxis[1][1] +
+							 vertical * tr.refdef.viewaxis[2][1],
+						 forward.z + horizontal * tr.refdef.viewaxis[1][2] +
+							 vertical * tr.refdef.viewaxis[2][2]);
+				RayQuery query;
+				query.startWorld = eye;
+				query.endWorld =
+					Vec3(eye.x + 2048 * dir.x, eye.y + 2048 * dir.y, eye.z + 2048 * dir.z);
+				query.maxWork = 100000;
+				RayResult ray;
+				auto e = s_diagnosticRays->Query(query, context, ray);
+				if (!e || !ray.firstHit.positionKnown ||
+					!selected.insert(ray.firstHit.triangle).second)
+					continue;
+				const auto &h = ray.firstHit;
+				Vec3 p = h.positionWorld, n = h.geometricNormal;
+				LRDebug::Record r;
+				r.id = h.triangle;
+				r.sample = h.surface;
+				r.layer = LRDebug::Layer::Receivers;
+				r.state = LRDebug::State::Conditional;
+				r.geometryKnown = true;
+				r.a = p;
+				r.domain = "original-world-geometry";
+				r.quantity = "geometry-only-no-light";
+				r.reason = "Original ray intersection; NOT a recovered lamp or source visibility "
+						   "certificate";
+				r.provenance = "BSP source surface=" + std::to_string(h.surface) +
+							   " primitive=" + std::to_string(h.triangle);
+				r.issues = ray.issues;
+				builder.Add(r);
+				r.primitive = LRDebug::Primitive::Line;
+				r.b = Vec3(p.x + 24 * n.x, p.y + 24 * n.y, p.z + 24 * n.z);
+				r.reason = "Geometric surface normal; receiver-to-light is separate";
+				builder.Add(r);
+				Bounds bounds;
+				bounds.known = true;
+				bounds.minWorld = Vec3(p.x - 1, p.y - 1, p.z - 1);
+				bounds.maxWorld = Vec3(p.x + 1, p.y + 1, p.z + 1);
+				LocalGeometry local;
+				e = s_diagnosticRays->ExtractBox(bounds, context, 4096, 100000, local);
+				if (e)
+					for (auto &t : local.triangles)
+						if (t.primitive == h.triangle)
+						{
+							r.primitive = LRDebug::Primitive::Triangle;
+							r.a = t.geometry.verticesWorld[0];
+							r.b = t.geometry.verticesWorld[1];
+							r.c = t.geometry.verticesWorld[2];
+							r.reason = "Original source triangle winding";
+							builder.Add(r);
+							break;
+						}
+				builder.Ray(h.triangle, 0, eye, query.endWorld, ray,
+							"Static optical reference; historical mover occupancy not certified");
+				ri.Printf(PRINT_ALL,
+						  "lighting-debug geometry-marker surface=%llu primitive=%llu xyz=%.4f "
+						  "%.4f %.4f normal=%.6f %.6f %.6f camera=%.4f %.4f %.4f forward=%.6f %.6f "
+						  "%.6f ray-state=%u issues=%u\n",
+						  static_cast<unsigned long long>(h.surface),
+						  static_cast<unsigned long long>(h.triangle), p.x, p.y, p.z, n.x, n.y, n.z,
+						  eye.x, eye.y, eye.z, forward.x, forward.y, forward.z, unsigned(ray.state),
+						  ray.issues);
+				++accepted;
+			}
+		for (const auto &d : s_offlineDynamic)
+			builder.Dynamic(d);
+		s_diagnosticScene = scene;
+		s_diagnosticTicket = s_reconstructedLighting.Report().ticket;
+		s_diagnosticSelection = {};
+		s_diagnosticSelection.layers = 1u << unsigned(LRDebug::Layer::Receivers);
+		ri.Printf(PRINT_ALL,
+				  "lighting-debug geometry selected=%u attempted=%u map=%s; display only, no "
+				  "recovered light\n",
+				  unsigned(accepted), unsigned(attempts), Disk::Hex(scene->map).c_str());
+		return;
+	}
+	if (command == "ray" && ri.Cmd_Argc() == 4)
+	{
+		using namespace Core;
+		Id source = 0, sample = 0;
+		if (!DiagnosticId(ri.Cmd_Argv(2), source) || !DiagnosticId(ri.Cmd_Argv(3), sample) ||
+			!source || !sample)
+			return;
+		if (!s_diagnosticScene || !DiagnosticPrepare())
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug ray Unavailable\n");
+			return;
+		}
+		const LRDebug::Record *a = nullptr, *b = nullptr;
+		for (auto &r : s_diagnosticScene->records)
+			if (r.geometryKnown)
+			{
+				if (r.source == source && r.layer == LRDebug::Layer::Sources && !a)
+					a = &r;
+				if (r.sample == sample && r.layer == LRDebug::Layer::Receivers && !b)
+					b = &r;
+			}
+		if (!a || !b)
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug exact IDs not found; Unknown\n");
+			return;
+		}
+		RayQuery query;
+		query.startWorld = a->a;
+		query.endWorld = b->a;
+		query.maxWork = 100000;
+		RayResult ray;
+		ReadContext context;
+		auto e = s_diagnosticRays->Query(query, context, ray);
+		if (!e)
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug ray failed %s\n", e.message.c_str());
+			return;
+		}
+		auto scene = std::make_shared<LRDebug::Scene>(*s_diagnosticScene);
+		LRDebug::Builder builder(*scene);
+		builder.Ray(sample, source, a->a, b->a, ray,
+					"Independent static segment only; not finite-source integrated visibility or "
+					"bake mover certification");
+		s_diagnosticScene = scene;
+		ri.Printf(
+			PRINT_ALL, "lighting-debug ray state=%u issues=%u hit-surface=%llu hit-material=%u\n",
+			unsigned(ray.state), ray.issues,
+			static_cast<unsigned long long>(ray.terminalHit.surface), ray.terminalHit.material);
+		return;
+	}
+	if (command == "layer" && ri.Cmd_Argc() >= 3)
+	{
+		std::string name = ri.Cmd_Argv(2);
+		bool enabled = ri.Cmd_Argc() < 4 || std::string(ri.Cmd_Argv(3)) != "0";
+		bool known = name == "all";
+		if (name == "all")
+			s_diagnosticSelection.layers =
+				enabled ? (1u << unsigned(LRDebug::Layer::Count)) - 1 : 0;
+		else
+			for (unsigned j = 0; j < unsigned(LRDebug::Layer::Count); ++j)
+				if (name == LRDebug::Name(LRDebug::Layer(j)))
+				{
+					known = true;
+					if (enabled)
+						s_diagnosticSelection.layers |= 1u << j;
+					else
+						s_diagnosticSelection.layers &= ~(1u << j);
+				}
+		if (!known)
+		{
+			ri.Printf(PRINT_ALL,
+					  "lighting-debug unknown layer; use info for supported layer names\n");
+			return;
+		}
+		ri.Printf(PRINT_ALL, "lighting-debug layer-mask=%u (data overlay only)\n",
+				  s_diagnosticSelection.layers);
+		return;
+	}
+	if (command == "select" && ri.Cmd_Argc() == 4)
+	{
+		Id id = 0;
+		if (!DiagnosticId(ri.Cmd_Argv(3), id))
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug invalid uint64 ID\n");
+			return;
+		}
+		std::string kind = ri.Cmd_Argv(2);
+		if (kind == "source")
+			s_diagnosticSelection.source = id;
+		else if (kind == "region")
+			s_diagnosticSelection.region = id;
+		else if (kind == "configuration")
+			s_diagnosticSelection.configuration = id;
+		else
+		{
+			ri.Printf(PRINT_ALL, "select source|region|configuration <stable-id;0=all>\n");
+			return;
+		}
+		return;
+	}
+	if (command == "load" && ri.Cmd_Argc() == 3)
+	{
+		s_diagnosticScene.reset();
+		s_diagnosticSelection = {};
+		s_diagnosticTicket = 0;
+		std::string name = ri.Cmd_Argv(2);
+		if (!DiagnosticName(name))
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug invalid safe file name\n");
+			return;
+		}
+		const auto &world = s_reconstructedLighting.Report();
+		if (world.world.empty() || !tr.world)
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug Unavailable: no loaded main world\n");
+			return;
+		}
+		Disk::Digest expected{};
+		for (auto &i : s_reconstructedLighting.InputFingerprint().inputs)
+			if (i.kind == Disk::InputKind::Bsp)
+				expected = i.sha256;
+		if (expected == Disk::Digest{})
+		{
+			auto g = R_LuxelGeometry();
+			if (g)
+				expected = g->Map().sha256;
+		}
+		if (expected == Disk::Digest{})
+		{
+			RendererDependencies source;
+			std::unique_ptr<Disk::Reader> original;
+			auto e = source.Open(world.world, original);
+			if (e)
+				e = Disk::HashContent(*original, expected, 256ull << 20);
+			if (!e)
+			{
+				ri.Printf(PRINT_ALL, "lighting-debug source identity unavailable: %s\n",
+						  e.message.c_str());
+				return;
+			}
+		}
+		std::string path = "lightrecon-debug/" + name + ".jkdbg";
+		LightmapSourceFile file;
+		long count = ri.FS_FOpenFileRead(path.c_str(), &file.handle, qtrue);
+		if (!file.handle || count <= 0 || count > 16 * 1024 * 1024)
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug missing/oversized diagnostic file\n");
+			return;
+		}
+		std::string text(size_t(count), '\0');
+		if (ri.FS_Read(&text[0], int(count), file.handle) != count)
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug short read\n");
+			return;
+		}
+		auto scene = std::make_shared<LRDebug::Scene>();
+		auto e = LRDebug::Decode(text, expected, *scene);
+		if (!e)
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug rejected: %s\n", e.message.c_str());
+			return;
+		}
+		s_diagnosticScene = scene;
+		s_diagnosticTicket = world.ticket;
+		ri.Printf(PRINT_ALL,
+				  "lighting-debug loaded %u records map=%s omitted=%llu; layers default OFF; not a "
+				  "reconstructed-light consumer\n",
+				  unsigned(scene->records.size()), Disk::Hex(scene->map).c_str(),
+				  static_cast<unsigned long long>(scene->omitted));
+		return;
+	}
+	if (command == "asset")
+	{
+		auto snapshot = R_ReconstructedLighting();
+		auto a = snapshot.Asset();
+		if (!a)
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug asset Unavailable\n");
+			return;
+		}
+		auto scene = std::make_shared<LRDebug::Scene>();
+		scene->generation = snapshot.Generation();
+		scene->units = a.value->units;
+		scene->scope = "canonical source records; alternatives not summed; display only";
+		scene->mapPath = s_reconstructedLighting.Report().world;
+		for (auto &i : s_reconstructedLighting.InputFingerprint().inputs)
+			if (i.kind == Disk::InputKind::Bsp)
+				scene->map = i.sha256;
+		LRDebug::Builder b(*scene);
+		Vec3 widget(tr.refdef.vieworg[0] + 96 * tr.refdef.viewaxis[0][0],
+					tr.refdef.vieworg[1] + 96 * tr.refdef.viewaxis[0][1],
+					tr.refdef.vieworg[2] + 96 * tr.refdef.viewaxis[0][2]);
+		for (auto &e : a.value->emitters)
+			b.Emitter(e,
+					  e.source.state == HypothesisState::Rejected
+						  ? LRDebug::State::Rejected
+						  : e.source.state == HypothesisState::Resolved
+								? LRDebug::State::Accepted
+								: LRDebug::State::Conditional,
+					  a.value->assessment.selectedProfile,
+					  "canonical record; Resolved is not exact-use suitability", widget);
+		s_diagnosticScene = scene;
+		s_diagnosticTicket = s_reconstructedLighting.Report().ticket;
+		s_diagnosticSelection = {};
+		return;
+	}
+	if (command == "sample" && (ri.Cmd_Argc() == 10 || ri.Cmd_Argc() == 11))
+	{
+		const std::string kind = ri.Cmd_Argv(2);
+		Id id = 0, configuration = 0;
+		if (!DiagnosticId(ri.Cmd_Argv(3), id) ||
+			(ri.Cmd_Argc() == 11 && !DiagnosticId(ri.Cmd_Argv(10), configuration)))
+			return;
+		float v[6];
+		for (unsigned j = 0; j < 6; ++j)
+		{
+			char *end = nullptr;
+			errno = 0;
+			const char *arg = ri.Cmd_Argv(j + 4);
+			double x = std::strtod(arg, &end);
+			if (errno || end == arg || *end || !std::isfinite(x) || std::abs(x) > 1e7)
+			{
+				ri.Printf(PRINT_ALL, "lighting-debug invalid query number\n");
+				return;
+			}
+			v[j] = float(x);
+		}
+		auto snapshot = R_ReconstructedLighting();
+		SourceHandle handle;
+		if (id)
+		{
+			auto found = snapshot.IdentifySource(id);
+			if (!found)
+			{
+				ri.Printf(PRINT_ALL, "lighting-debug field ID Unavailable (status=%u)\n",
+						  unsigned(found.status));
+				return;
+			}
+			handle = found.value;
+		}
+		Vec3 p(v[0], v[1], v[2]), direction(v[3], v[4], v[5]);
+		auto start = std::chrono::steady_clock::now();
+		if (kind == "conditional")
+		{
+			ConditionalFieldQuery q;
+			q.field = handle;
+			q.configuration = configuration;
+			q.positionWorld = p;
+			q.directionOrNormalWorld = direction;
+			q.optIn = true;
+			q.allowConditionalStaticGeometry = false;
+			auto result = snapshot.SampleConditionalField(q);
+			ri.Printf(PRINT_ALL,
+					  "lighting-debug conditional irradiance status=%u; explicitly selected "
+					  "configuration=%llu; no physical calibration implied\n",
+					  unsigned(result.status), static_cast<unsigned long long>(configuration));
+			if (result)
+				ri.Printf(PRINT_ALL, "conditional value=%.7g %.7g %.7g unit=%u quantity=%u\n",
+						  result.value.value.x, result.value.value.y, result.value.value.z,
+						  unsigned(result.value.descriptor->unit),
+						  unsigned(result.value.descriptor->quantity));
+		}
+		else if (kind == "indirect" || kind == "radiance")
+		{
+			Result<LightingSample> result;
+			if (kind == "indirect")
+			{
+				IrradianceQuery q;
+				q.field = handle;
+				q.positionWorld = p;
+				q.normalWorld = direction;
+				result = snapshot.SampleIndirect(q);
+			}
+			else
+			{
+				RadianceQuery q;
+				q.field = handle;
+				q.positionWorld = p;
+				q.directionToSource = direction;
+				result = snapshot.SampleIncomingRadiance(q);
+			}
+			ri.Printf(PRINT_ALL, "lighting-debug physical %s status=%u\n", kind.c_str(),
+					  unsigned(result.status));
+			if (result)
+				ri.Printf(PRINT_ALL, "physical value=%.7g %.7g %.7g unit=%u calibration=%llu\n",
+						  result.value.rgb.x, result.value.rgb.y, result.value.rgb.z,
+						  unsigned(result.value.unit),
+						  static_cast<unsigned long long>(result.value.calibration));
+		}
+		else
+		{
+			ri.Printf(PRINT_ALL,
+					  "sample indirect|radiance|conditional <field-id;0=automatic-physical> <px py "
+					  "pz dx dy dz> [configuration]\n");
+			return;
+		}
+		ri.Printf(
+			PRINT_ALL,
+			"lighting-debug immutable query us=%.3f; no fallback, no disk/build/ray preparation\n",
+			std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - start)
+				.count());
+		return;
+	}
+	if (command == "report" && ri.Cmd_Argc() == 3)
+	{
+		std::string name = ri.Cmd_Argv(2);
+		if (!DiagnosticName(name))
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug invalid report name\n");
+			return;
+		}
+		std::ostringstream json, human;
+		auto snapshot = R_ReconstructedLighting();
+		auto e = LRDebug::Report(snapshot, &s_reconstructedLighting.Report(), json, &human,
+								 s_diagnosticScene.get());
+		if (!e)
+		{
+			ri.Printf(PRINT_ALL, "lighting-debug report unavailable: %s\n", e.message.c_str());
+			return;
+		}
+		auto text = json.str();
+		std::string path = "lightrecon-debug/reports/" + name + ".json";
+		ri.FS_WriteFile(path.c_str(), text.data(), int(text.size()));
+		ri.Printf(PRINT_ALL, "%sreport written: %s\n", human.str().c_str(), path.c_str());
+		return;
+	}
+	if (command == "source" && ri.Cmd_Argc() == 3)
+	{
+		Id id = 0;
+		if (!DiagnosticId(ri.Cmd_Argv(2), id))
+			return;
+		unsigned count = 0;
+		if (s_diagnosticScene)
+			for (auto &r : s_diagnosticScene->records)
+				if (r.source == id && count++ < 64)
+					ri.Printf(PRINT_ALL,
+							  "debug source=%llu sample=%llu layer=%s state=%s profile=%s "
+							  "quantity=%s domain=%s reason=%s\n",
+							  static_cast<unsigned long long>(r.source),
+							  static_cast<unsigned long long>(r.sample), LRDebug::Name(r.layer),
+							  LRDebug::Name(r.state), r.profile.c_str(), r.quantity.c_str(),
+							  r.domain.c_str(), r.reason.c_str());
+		if (!count)
+			ri.Printf(PRINT_ALL,
+					  "lighting-debug source ID not present; Unknown, not zero contribution\n");
+		return;
+	}
+	ri.Printf(PRINT_ALL,
+			  "lighting-debug records=%u mask=%u drawn=%llu clipped=%llu last-overlay-us=%.3f\n",
+			  s_diagnosticScene ? unsigned(s_diagnosticScene->records.size()) : 0,
+			  s_diagnosticSelection.layers, static_cast<unsigned long long>(s_diagnosticDrawn),
+			  static_cast<unsigned long long>(s_diagnosticClipped), s_diagnosticMicroseconds);
+	ri.Printf(PRINT_ALL,
+			  "r_lightReconDebug load <safe-name> | asset | prepare | geometry | ray <source-id> "
+			  "<sample-id> | sample indirect|radiance|conditional <field-id> <px py pz dx dy dz> "
+			  "[configuration] | layer "
+			  "<sources|placement|dynamic|receivers|direct|sun|sky|indirect|unresolved|residual|"
+			  "probes|field|visibility|transport|all> [0/1] | select source|region|configuration "
+			  "<id;0=all> | source <id> | report <safe-name> | off\n");
+}
 void R_LuxelDebugDraw(const refdef_t *fd)
 {
 	// No debug state means no shader registration, poly submission or asset query.
-	if ((s_luxelDebug.empty() && s_reconstructionPreview.empty()) || (fd->rdflags & RDF_NOWORLDMODEL))
+	const bool diagnosticActive=s_diagnosticScene&&s_diagnosticSelection.layers&&
+		s_diagnosticTicket==s_reconstructedLighting.Report().ticket;
+	if ((s_luxelDebug.empty() && s_reconstructionPreview.empty()&&!diagnosticActive) || (fd->rdflags & RDF_NOWORLDMODEL))
 		return;
 	if (!s_luxelDebugShader)
 		s_luxelDebugShader = RE_RegisterShaderFromImage("*luxelDebug", lightmapsVertex, stylesDefault,
@@ -1267,6 +1821,21 @@ void R_LuxelDebugDraw(const refdef_t *fd)
 		}
 		RE_AddPolyToScene(s_luxelDebugShader, 4, p, 1);
 	};
+	if(diagnosticActive){
+		auto started=std::chrono::steady_clock::now();s_diagnosticDrawn=s_diagnosticClipped=0;
+		for(const auto&r:s_diagnosticScene->records){
+			if(!r.geometryKnown||!s_diagnosticSelection.Matches(r))continue;
+			if(s_diagnosticDrawn>=2048){++s_diagnosticClipped;continue;}
+			vec3_t a={r.a.x,r.a.y,r.a.z},b={r.b.x,r.b.y,r.b.z},c={r.c.x,r.c.y,r.c.z};
+			vec3_t delta;VectorSubtract(a,fd->vieworg,delta);
+			if(VectorLengthSquared(delta)>4096*4096||DotProduct(delta,fd->viewaxis[0])<=0){++s_diagnosticClipped;continue;}
+			byte colour[4]={0,0,0,255};LRDebug::Colour(r.state,colour);
+			if(r.primitive==LRDebug::Primitive::Point){for(unsigned j=0;j<3;++j){VectorCopy(a,b);VectorCopy(a,c);b[j]-=2;c[j]+=2;line(b,c,colour);}}
+			else {line(a,b,colour);if(r.primitive==LRDebug::Primitive::Triangle){line(b,c,colour);line(c,a,colour);}}
+			++s_diagnosticDrawn;
+		}
+		s_diagnosticMicroseconds=std::chrono::duration<double,std::micro>(std::chrono::steady_clock::now()-started).count();
+	}
     for(const auto &m:s_reconstructionPreview) {
         vec3_t centre,delta;VectorCopy(m.position,centre);
         // A directional source has no finite position. This anchor is a DRAWING

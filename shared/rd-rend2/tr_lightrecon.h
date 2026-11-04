@@ -25,6 +25,7 @@ void R_LightReconExport_f(void);
 std::string R_LightReconShaderText(const char* name, bool* definitionFound = nullptr);
 void R_LuxelDebug_f(void);
 void R_LightReconPreview_f(void);
+void R_LightReconDebug_f(void);
 void R_LightReconObservations_f(void);
 struct shader_s;
 

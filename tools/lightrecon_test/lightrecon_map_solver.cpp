@@ -378,7 +378,7 @@ struct SolarValidator final : P::SolarValidation
 		return e;
 	}
 };
-static void Diagnostics(const O::Sources &s, const O::RegionSnapshot &graph,
+static void MapDiagnostics(const O::Sources &s, const O::RegionSnapshot &graph,
 						const std::shared_ptr<const StaticVisibility> &rays,
 						const std::array<std::vector<Selected>, 3> &folds, const ReadContext &read,
 						const std::string &output)
@@ -867,6 +867,7 @@ static TransportPreparation PrepareTransport(const O::Sources &s,
 }
 #include "receiver_audit.h"
 #include "scene_audit.h"
+#include "diagnostic_export.h"
 static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::RegionSnapshot &graph,
 					   const std::shared_ptr<const SurfaceGeometry> &geometry,
 					   const std::shared_ptr<const StaticVisibility> &rays,
@@ -1135,6 +1136,13 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	solarValidation.map = q.mapKey;
 	solarValidation.geometry = q.geometry;
 	P::Request request;
+	DD::Scene diagnostic;
+	diagnostic.map=s.metadata.map.sha256;diagnostic.mapPath=s.metadata.map.path;
+	diagnostic.units=s.metadata.units;diagnostic.algorithm="V03 production Joint receipts + bounded diagnostic pair replay";
+	diagnostic.settings="placement-receipts<=64;source-priors<=catalog;diagnostic-pairs<=2x16";
+	diagnostic.scope="conditional stock profile; rejected/deferred hypotheses; no original physical source truth";
+	DD::PlacementCapture diagnosticCapture(diagnostic,{profile.model.profile.id},64);
+	q.diagnostics=&diagnosticCapture;
 	request.map = s.metadata.map;
 	request.fitting = q;
 	request.hidden = hidden;
@@ -1219,6 +1227,7 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	P::Result result;
 	auto e = scene ? SceneAttempt(request,hidden,sampling,jr,keys,read,output,linear?"linear":"isq",result)
 		: P::Run(request, read, result, &validation, &final);
+	ExportDiagnostics(q,result,diagnostic,s.dynamic,read,output+"/"+(linear?"linear":"isq")+"-debug");
 	std::ofstream areas(output + "/" + (linear ? "linear" : "isq") + "-hidden-areas.tsv");
 	areas << "area\trequested\tselected\tsaturated\tunsupported\tnodes\tretained\tunknown_"
 			 "visibility\n";
@@ -1443,7 +1452,7 @@ int main(int argc, char **argv)
 		if(supportOnly)return 0;
 		if(samplingOnly){std::ofstream report(std::string(argv[2])+"/sampling-proposals.json");report<<SamplingProposals(*sampled,source,rays,folds,read);return 0;}
 		if(hierarchical)folds=sampled->folds;
-		Diagnostics(source, graph, rays, folds, read, argv[2]);
+		MapDiagnostics(source, graph, rays, folds, read, argv[2]);
 		Need(focus.known, "Geometry-only transport scope unavailable");
 		auto transport = PrepareTransport(source, geometry, rays, folds, focus, argv[2], read);
 		if (transportOnly)

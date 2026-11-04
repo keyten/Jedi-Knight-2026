@@ -1,0 +1,1254 @@
+{
+  "schema": "org.openjk.diagnostics-validation-v03/1",
+  "date": "2026-11-04",
+  "base_revision": "0c0709ca4d23a99f93e52814e477db02ed36f4ff",
+  "working_tree_changes": true,
+  "interpretation": "Inspection and conditional predictions, no accepted original-stock physical model",
+  "native_sha256": "a79793db65b11b14e522c1ee6598f69cfc61073121d3fccc1231653c45cbebcc",
+  "compiler_cpu": "GCC 16.2.0, C++11, Release, float geometry/double accumulation",
+  "compiler_renderers": "MSVC 19.27 Release x64",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "maps": {
+    "mp_duel4": {
+      "wall_seconds": 5.827999999979511,
+      "peak_process_rss_bytes": 41697280,
+      "exit_code": 0,
+      "profiles": {
+        "isq": {
+          "records": 3538,
+          "omitted": 0,
+          "map_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+          "layer_states": {
+            "sources/rejected": 27,
+            "placement/rejected": 42,
+            "sources/conditional": 4,
+            "placement/accepted": 14,
+            "sources/deferred": 13,
+            "receivers/accepted": 95,
+            "receivers/unavailable": 18,
+            "transport/conditional": 3232,
+            "direct/conditional": 26,
+            "residual/conditional": 13,
+            "direct/unavailable": 19,
+            "residual/unavailable": 19,
+            "visibility/visible": 2,
+            "visibility/unknown": 8,
+            "visibility/blocked": 6
+          },
+          "diagnostic_rays": 29,
+          "unknown_queries": 27,
+          "controller": {
+            "validation_calls": 4,
+            "final_calls": 0,
+            "occupancy_policy": "ConditionalBake",
+            "sample_counts": [
+              113,
+              93,
+              72
+            ],
+            "direct_only_conditional": true,
+            "geometry_refinement_enabled": false,
+            "source_count_proposals_enabled": true,
+            "shadow_weight": 0.1,
+            "coarse_rows": 64,
+            "training_evidence_blocks": 28,
+            "canonical_asset_available": false,
+            "uncertainty_attempts": 0
+          },
+          "exports": {
+            "isq-debug-interval-residual.ppm": {
+              "bytes": 166,
+              "sha256": "eea18ee17ae57f0e0f4381dff46ca81a98a1908dc74adc04bd83e454027e67dc"
+            },
+            "isq-debug-report.json": {
+              "bytes": 1886591,
+              "sha256": "9cfbbfd3fe4f9c659946d5363886e5fbeb4c47a2c4de1f52c05220fe1327f42f"
+            },
+            "isq-debug-report.txt": {
+              "bytes": 269,
+              "sha256": "cc9543e06d1d34bd05c39e42cfee51c55d6c4c06944138007548e2ad8957d112"
+            },
+            "isq-debug.csv": {
+              "bytes": 839415,
+              "sha256": "cd5c6d651cefdea26b80ed4e402a04c815360901c55bd4f9ab2ec85b0803d9e6"
+            },
+            "isq-debug.jkdbg": {
+              "bytes": 1435045,
+              "sha256": "d62a3f1d53b32dbb81bb56bd8f09b5e0d9b5b0a69a920bc4e5fdb17844c83a78"
+            },
+            "isq-debug.json": {
+              "bytes": 1885527,
+              "sha256": "b37961452ab8453fa18b4a757f1761b1da635e7e15592c58aa68bcc5d91e93a5"
+            },
+            "isq-debug.obj": {
+              "bytes": 401222,
+              "sha256": "276cf99b4253399929e15894a3dcf76ea18228a90f2363155e616eda63823d6f"
+            }
+          },
+          "repeat_bytes_identical": true
+        },
+        "linear": {
+          "records": 3537,
+          "omitted": 0,
+          "map_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+          "layer_states": {
+            "sources/rejected": 27,
+            "placement/rejected": 42,
+            "sources/conditional": 4,
+            "placement/accepted": 14,
+            "sources/deferred": 13,
+            "receivers/accepted": 95,
+            "receivers/unavailable": 18,
+            "transport/conditional": 3232,
+            "direct/conditional": 24,
+            "residual/conditional": 12,
+            "direct/unavailable": 20,
+            "residual/unavailable": 20,
+            "visibility/blocked": 10,
+            "visibility/unknown": 5,
+            "visibility/visible": 1
+          },
+          "diagnostic_rays": 30,
+          "unknown_queries": 25,
+          "controller": {
+            "validation_calls": 4,
+            "final_calls": 0,
+            "occupancy_policy": "ConditionalBake",
+            "sample_counts": [
+              113,
+              93,
+              72
+            ],
+            "direct_only_conditional": true,
+            "geometry_refinement_enabled": false,
+            "source_count_proposals_enabled": true,
+            "shadow_weight": 0.1,
+            "coarse_rows": 64,
+            "training_evidence_blocks": 28,
+            "canonical_asset_available": false,
+            "uncertainty_attempts": 0
+          },
+          "exports": {
+            "linear-debug-interval-residual.ppm": {
+              "bytes": 166,
+              "sha256": "e269c6a37cb384b75c07665ca763a915eab37a7998a2c3223e01e6cb3de26304"
+            },
+            "linear-debug-report.json": {
+              "bytes": 1885707,
+              "sha256": "afa6daa42df147a0315bdaafeef3d7e467f8b11d210bdcfd45401cd9bc3a7a71"
+            },
+            "linear-debug-report.txt": {
+              "bytes": 269,
+              "sha256": "cb59dc20a272df7fe5ba9e1f9b6bf168efa90a72572f339c4e15eae9ed801940"
+            },
+            "linear-debug.csv": {
+              "bytes": 838571,
+              "sha256": "c846c03241b7bb91ce74d3e5ba387003c0964292b6498db857401503e4de77c5"
+            },
+            "linear-debug.jkdbg": {
+              "bytes": 1434618,
+              "sha256": "008f9b2cb8c265e8efa80d6a1c43dac996fa5f94c776be75dc0b3576cb7af268"
+            },
+            "linear-debug.json": {
+              "bytes": 1884643,
+              "sha256": "90e7d2dc4439f7cc79c27857bcb5a9c13fa9e3da60e2647354f778f31f32dd9d"
+            },
+            "linear-debug.obj": {
+              "bytes": 401118,
+              "sha256": "47c1dc222bed81471da5e435215805877337e0aacfde1bbd0a215b9665ee1a6f"
+            }
+          },
+          "repeat_bytes_identical": true
+        }
+      }
+    },
+    "hoth3": {
+      "wall_seconds": 28.765000000130385,
+      "peak_process_rss_bytes": 115167232,
+      "exit_code": 0,
+      "profiles": {
+        "isq": {
+          "records": 4350,
+          "omitted": 0,
+          "map_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+          "layer_states": {
+            "sources/rejected": 36,
+            "placement/rejected": 56,
+            "dynamic/unknown": 1056,
+            "sources/deferred": 18,
+            "receivers/accepted": 73,
+            "receivers/unavailable": 55,
+            "transport/conditional": 2976,
+            "direct/unavailable": 32,
+            "residual/unavailable": 32,
+            "visibility/unknown": 8,
+            "visibility/blocked": 8
+          },
+          "diagnostic_rays": 16,
+          "unknown_queries": 40,
+          "controller": {
+            "validation_calls": 4,
+            "final_calls": 0,
+            "occupancy_policy": "ConditionalBake",
+            "sample_counts": [
+              412,
+              239,
+              227
+            ],
+            "direct_only_conditional": true,
+            "geometry_refinement_enabled": false,
+            "source_count_proposals_enabled": true,
+            "shadow_weight": 0.1,
+            "coarse_rows": 64,
+            "training_evidence_blocks": 43,
+            "canonical_asset_available": false,
+            "uncertainty_attempts": 0
+          },
+          "exports": {
+            "isq-debug-interval-residual.ppm": {
+              "bytes": 166,
+              "sha256": "788b2fd901e48d7d653dbc07823fd4e9098c6b1173c99c19ebb3d8313a7e86e6"
+            },
+            "isq-debug-report.json": {
+              "bytes": 2227627,
+              "sha256": "72beb035585a7a58f8049dc9672e33b84af5a55da9ed061c46904b501200907a"
+            },
+            "isq-debug-report.txt": {
+              "bytes": 269,
+              "sha256": "d4fcffc98682e1d9a62a5faabf53757998270b90a4d22310c1500ed5c331b97d"
+            },
+            "isq-debug.csv": {
+              "bytes": 970901,
+              "sha256": "775868239e19a513dc518b32bb822f9c2f76060a5f0c1feb6fd544caf7dde90d"
+            },
+            "isq-debug.jkdbg": {
+              "bytes": 1671257,
+              "sha256": "001a47c549d7e84c71043bbdaaccf7c1a1d2c3192394dbb824fa314882dd43c8"
+            },
+            "isq-debug.json": {
+              "bytes": 2226563,
+              "sha256": "e150ad480da4381a03b2bdf114cc854dfd1e5c7682c69fd84e5eaca83be20050"
+            },
+            "isq-debug.obj": {
+              "bytes": 426987,
+              "sha256": "e044eb96415ef7e8fc8359d2bf642f3a3778bb2193cc3d1ece73386f056059bd"
+            }
+          }
+        },
+        "linear": {
+          "records": 5404,
+          "omitted": 0,
+          "map_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+          "layer_states": {
+            "sources/conditional": 4,
+            "placement/conditional": 14,
+            "dynamic/conditional": 1056,
+            "sources/rejected": 22,
+            "placement/rejected": 42,
+            "dynamic/unknown": 1056,
+            "sources/deferred": 13,
+            "receivers/accepted": 73,
+            "receivers/unavailable": 55,
+            "transport/conditional": 2976,
+            "direct/unavailable": 19,
+            "direct/conditional": 26,
+            "residual/conditional": 13,
+            "residual/unavailable": 19,
+            "visibility/blocked": 6,
+            "visibility/unknown": 10
+          },
+          "diagnostic_rays": 24,
+          "unknown_queries": 29,
+          "controller": {
+            "validation_calls": 4,
+            "final_calls": 0,
+            "occupancy_policy": "ConditionalBake",
+            "sample_counts": [
+              412,
+              239,
+              227
+            ],
+            "direct_only_conditional": true,
+            "geometry_refinement_enabled": false,
+            "source_count_proposals_enabled": true,
+            "shadow_weight": 0.1,
+            "coarse_rows": 64,
+            "training_evidence_blocks": 43,
+            "canonical_asset_available": false,
+            "uncertainty_attempts": 0
+          },
+          "exports": {
+            "linear-debug-interval-residual.ppm": {
+              "bytes": 166,
+              "sha256": "28aa3bae262702cb9cea7666075b3259b451ac2acbbf43f86e9aa523da1b5ab0"
+            },
+            "linear-debug-report.json": {
+              "bytes": 2767760,
+              "sha256": "e5c427ef906886b3ae425152b73f68a173e2fd473d3600666bbe6e4baeec1af3"
+            },
+            "linear-debug-report.txt": {
+              "bytes": 269,
+              "sha256": "62c69296ea1ed06cac19b9c41b3ffddafdb1a6d18de06f43f4f793337c6ebabc"
+            },
+            "linear-debug.csv": {
+              "bytes": 1165561,
+              "sha256": "ce2d680e05e517b27b0fb9f77745197a3f6f41684423d11384c2e3f5869f3fff"
+            },
+            "linear-debug.jkdbg": {
+              "bytes": 2014513,
+              "sha256": "70887dd8bc6ab4a0963873d5f01f7305ba45812497e8d7eefd4e1d696c766872"
+            },
+            "linear-debug.json": {
+              "bytes": 2766696,
+              "sha256": "e23288df8dba4d2b930b4d71e2b5324734cb96f746bb97d022d3a20f38ffed57"
+            },
+            "linear-debug.obj": {
+              "bytes": 588364,
+              "sha256": "fde43990a5d2c5764ec2c4a195c30cf6455cfa2dba337b66916041e3ca0d586f"
+            }
+          }
+        }
+      }
+    }
+  },
+  "runtime_four_maps": [
+    {
+      "map": "hoth3",
+      "seconds": 15.578275799984112,
+      "peak_working_set_bytes": 520163328,
+      "camera_requested": [
+        3464,
+        700,
+        85,
+        90
+      ],
+      "markers": [
+        "surface=11742 primitive=50431505989633 xyz=3314.9766 1024.0000 123.8750 normal=0.000000 1.000000 -0.000000 camera=3314.9766 700.0864 123.8750 forward=-0.000000 1.000000 -0.000000 ray-state=1 issues=0",
+        "surface=11742 primitive=50431505989635 xyz=3314.9766 1024.0000 75.2880 normal=0.000000 1.000000 0.000000 camera=3314.9766 700.0864 123.8750 forward=-0.000000 1.000000 -0.000000 ray-state=1 issues=0",
+        "surface=3653 primitive=15689515532306 xyz=3314.9766 940.9197 160.0000 normal=0.000000 0.000000 1.000000 camera=3314.9766 700.0864 123.8750 forward=-0.000000 1.000000 -0.000000 ray-state=1 issues=0"
+      ],
+      "counters": [
+        "lighting-debug records=1068 mask=8 drawn=9 clipped=0 last-overlay-us=15.200"
+      ],
+      "before_after": {
+        "changed_pixels": 0,
+        "max_channel": 0,
+        "mean_channel": 0.0
+      },
+      "overlay_change": {
+        "changed_pixels": 382,
+        "max_channel": 252,
+        "mean_channel": 0.13581452546296297
+      },
+      "image_sha256": {
+        "v03-after": "c569c7710bca83f7720450bf85f697b906412a1fa4b8c824ae07032998c1f476",
+        "v03-before": "c569c7710bca83f7720450bf85f697b906412a1fa4b8c824ae07032998c1f476",
+        "v03-geometry": "c955e785b069c839c00de5a5673768eea99f95ec6327adaf93a444ec089657d0",
+        "v03-rays": "c955e785b069c839c00de5a5673768eea99f95ec6327adaf93a444ec089657d0"
+      },
+      "settings": {
+        "cl_renderer": "rdsp-rend2",
+        "r_fullscreen": 0,
+        "r_mode": -1,
+        "r_customwidth": 640,
+        "r_customheight": 360,
+        "r_swapInterval": 0,
+        "com_maxfps": 30,
+        "com_maxfpsUnfocused": 30,
+        "com_maxfpsMinimized": 30,
+        "s_initsound": 0,
+        "in_mouse": 0,
+        "com_bootlogo": 0,
+        "developer": 0,
+        "logfile": 2,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_gl43": 1,
+        "r_hdr": 0,
+        "r_autoExposure": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_exposureCompensation": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_gamma": 1,
+        "r_intensity": 1,
+        "r_overBrightBits": 0,
+        "r_ext_multisample": 0,
+        "r_smaa": 0,
+        "r_motionBlur": 0,
+        "r_ssr": 0,
+        "r_ssgi": 0,
+        "r_autoPBR": 0,
+        "r_cubeMapping": 0,
+        "r_diffuseIBL": 0,
+        "r_specularAA": 0,
+        "r_skinSSS": 0,
+        "r_weatherWetness": 0,
+        "r_waterSurface": 0,
+        "r_volumetricWater": 0,
+        "r_atmosphere": 0,
+        "r_clouds": 0,
+        "r_ssao": 0,
+        "r_aoMode": 0,
+        "r_contactShadows": 0,
+        "r_entityLightProbes": 0,
+        "r_entityLightGrid": 0,
+        "r_entitySunLight": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_sunShadowCache": 0,
+        "r_shadowMapSize": 256,
+        "r_sunShadowMode": 0,
+        "r_dynamiclight": 0,
+        "r_ltcSaberAreaLights": 0,
+        "r_lightReconBuild": 2,
+        "r_lightReconUse": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationSources": 0,
+        "fx_physicalizationEmission": 0,
+        "cg_fov": 80,
+        "cg_bobup": 0,
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "r_lightReconFog": 0,
+        "r_lightReconEntities": 0,
+        "r_lightReconSpecular": 0,
+        "r_lightReconShadows": 0,
+        "r_lightReconSun": 0,
+        "r_lightReconParticles": 0,
+        "r_lightReconIndirect": 0,
+        "r_lightReconWorldDiffuse": 0,
+        "r_lightReconArea": 0,
+        "r_lightReconEnvironment": 0,
+        "r_normalMapping": 0,
+        "r_specularMapping": 0,
+        "r_pbrPhysical": 0,
+        "r_forwardPlus": 0,
+        "r_ltcAreaLights": 0,
+        "r_volumetricFog": 0,
+        "r_sunlightMode": 0,
+        "r_picmip": 3,
+        "r_texturebits": 16,
+        "r_fastsky": 1,
+        "r_shadows": 0,
+        "r_weather": 0,
+        "r_flares": 0,
+        "r_lodbias": 2,
+        "r_subdivisions": 16
+      },
+      "archives": [
+        {
+          "name": "assets0.pk3",
+          "bytes": 561806019
+        },
+        {
+          "name": "assets1.pk3",
+          "bytes": 652804510
+        },
+        {
+          "name": "assets2.pk3",
+          "bytes": 1116384
+        },
+        {
+          "name": "assets3.pk3",
+          "bytes": 9282026
+        }
+      ],
+      "interpretation": "Geometry alignment and conditional diagnostic data only; no original-stock lamp ground truth",
+      "renderer_sha256": "631a3dd341fb2fb4a9cb677c4dd29de1ec51acbe5914e42fe0cd2b86e5dc3854"
+    },
+    {
+      "map": "hoth2",
+      "seconds": 15.764841300202534,
+      "peak_working_set_bytes": 506441728,
+      "camera_requested": [
+        1728,
+        -576,
+        1040,
+        135
+      ],
+      "markers": [
+        "surface=6305 primitive=27079768801347 xyz=1595.2631 -421.1862 926.0000 normal=0.000000 0.000000 -1.000000 camera=1286.0785 583.3867 1057.1787 forward=0.294070 -0.955464 0.024725 ray-state=1 issues=8",
+        "surface=6305 primitive=27079768801349 xyz=1344.9716 -498.2201 926.0000 normal=0.000000 0.000000 -1.000000 camera=1286.0785 583.3867 1057.1787 forward=0.294070 -0.955464 0.024725 ray-state=1 issues=8",
+        "surface=6308 primitive=27092653703184 xyz=1845.5544 -344.1522 926.0000 normal=-0.000000 0.000000 -1.000000 camera=1286.0785 583.3867 1057.1787 forward=0.294070 -0.955464 0.024725 ray-state=1 issues=8"
+      ],
+      "counters": [
+        "lighting-debug records=1500 mask=8 drawn=9 clipped=0 last-overlay-us=19.100"
+      ],
+      "before_after": {
+        "changed_pixels": 18,
+        "max_channel": 13,
+        "mean_channel": 9.259259259259259e-05
+      },
+      "overlay_change": {
+        "changed_pixels": 71,
+        "max_channel": 33,
+        "mean_channel": 0.003638599537037037
+      },
+      "image_sha256": {
+        "v03-after": "1cff2770704a28ac5f42f0250f1a1249f8204ba53dd3b62ae7cab209aa55cdd6",
+        "v03-before": "e72966979456f1b983f113624015c89047d1397c9d6809649ad5d090a4d5a425",
+        "v03-geometry": "cd7eedc85317bf2716b822446028af7a4aca954969038686b3d767ef32132eec",
+        "v03-rays": "3e429e37088ffbcae48829a8418a91f506441bb4d21b1c3fcae602e4b2c28c79"
+      },
+      "settings": {
+        "cl_renderer": "rdsp-rend2",
+        "r_fullscreen": 0,
+        "r_mode": -1,
+        "r_customwidth": 640,
+        "r_customheight": 360,
+        "r_swapInterval": 0,
+        "com_maxfps": 30,
+        "com_maxfpsUnfocused": 30,
+        "com_maxfpsMinimized": 30,
+        "s_initsound": 0,
+        "in_mouse": 0,
+        "com_bootlogo": 0,
+        "developer": 0,
+        "logfile": 2,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_gl43": 1,
+        "r_hdr": 0,
+        "r_autoExposure": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_exposureCompensation": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_gamma": 1,
+        "r_intensity": 1,
+        "r_overBrightBits": 0,
+        "r_ext_multisample": 0,
+        "r_smaa": 0,
+        "r_motionBlur": 0,
+        "r_ssr": 0,
+        "r_ssgi": 0,
+        "r_autoPBR": 0,
+        "r_cubeMapping": 0,
+        "r_diffuseIBL": 0,
+        "r_specularAA": 0,
+        "r_skinSSS": 0,
+        "r_weatherWetness": 0,
+        "r_waterSurface": 0,
+        "r_volumetricWater": 0,
+        "r_atmosphere": 0,
+        "r_clouds": 0,
+        "r_ssao": 0,
+        "r_aoMode": 0,
+        "r_contactShadows": 0,
+        "r_entityLightProbes": 0,
+        "r_entityLightGrid": 0,
+        "r_entitySunLight": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_sunShadowCache": 0,
+        "r_shadowMapSize": 256,
+        "r_sunShadowMode": 0,
+        "r_dynamiclight": 0,
+        "r_ltcSaberAreaLights": 0,
+        "r_lightReconBuild": 2,
+        "r_lightReconUse": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationSources": 0,
+        "fx_physicalizationEmission": 0,
+        "cg_fov": 80,
+        "cg_bobup": 0,
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "r_lightReconFog": 0,
+        "r_lightReconEntities": 0,
+        "r_lightReconSpecular": 0,
+        "r_lightReconShadows": 0,
+        "r_lightReconSun": 0,
+        "r_lightReconParticles": 0,
+        "r_lightReconIndirect": 0,
+        "r_lightReconWorldDiffuse": 0,
+        "r_lightReconArea": 0,
+        "r_lightReconEnvironment": 0,
+        "r_normalMapping": 0,
+        "r_specularMapping": 0,
+        "r_pbrPhysical": 0,
+        "r_forwardPlus": 0,
+        "r_ltcAreaLights": 0,
+        "r_volumetricFog": 0,
+        "r_sunlightMode": 0,
+        "r_picmip": 3,
+        "r_texturebits": 16,
+        "r_fastsky": 1,
+        "r_shadows": 0,
+        "r_weather": 0,
+        "r_flares": 0,
+        "r_lodbias": 2,
+        "r_subdivisions": 16
+      },
+      "archives": [
+        {
+          "name": "assets0.pk3",
+          "bytes": 561806019
+        },
+        {
+          "name": "assets1.pk3",
+          "bytes": 652804510
+        },
+        {
+          "name": "assets2.pk3",
+          "bytes": 1116384
+        },
+        {
+          "name": "assets3.pk3",
+          "bytes": 9282026
+        }
+      ],
+      "interpretation": "Geometry alignment and conditional diagnostic data only; no original-stock lamp ground truth",
+      "renderer_sha256": "631a3dd341fb2fb4a9cb677c4dd29de1ec51acbe5914e42fe0cd2b86e5dc3854"
+    },
+    {
+      "map": "vjun2",
+      "seconds": 14.946575600188226,
+      "peak_working_set_bytes": 531685376,
+      "camera_requested": null,
+      "markers": [
+        "surface=2903 primitive=12468290060289 xyz=-241.0000 1147.0000 268.1242 normal=0.707107 0.707107 -0.000000 camera=-999.8750 388.1250 268.1251 forward=0.707107 0.707107 -0.000001 ray-state=1 issues=0",
+        "surface=9251 primitive=39732742455302 xyz=-641.0199 746.9801 192.0000 normal=0.000000 0.000000 -1.000000 camera=-999.8750 388.1250 268.1251 forward=0.707107 0.707107 -0.000001 ray-state=1 issues=0",
+        "surface=2244 primitive=9637906612231 xyz=-64.0000 1324.0000 466.6531 normal=1.000000 0.000000 -0.000000 camera=-999.8750 388.1250 268.1251 forward=0.707107 0.707107 -0.000001 ray-state=1 issues=0",
+        "surface=6042 primitive=25950192402434 xyz=-147.8757 899.3246 268.1243 normal=0.707107 0.000000 -0.707107 camera=-999.8750 388.1250 268.1251 forward=0.707107 0.707107 -0.000001 ray-state=1 issues=0"
+      ],
+      "counters": [
+        "lighting-debug records=2224 mask=8 drawn=12 clipped=0 last-overlay-us=21.300"
+      ],
+      "before_after": {
+        "changed_pixels": 938,
+        "max_channel": 111,
+        "mean_channel": 0.07769386574074075
+      },
+      "overlay_change": {
+        "changed_pixels": 1135,
+        "max_channel": 245,
+        "mean_channel": 0.17427662037037037
+      },
+      "image_sha256": {
+        "v03-after": "cf29c3666f1503ed64aa68e4c37c52f5409999048f1c0ffa835103af93a62a99",
+        "v03-before": "45e743233d4e91bfbf213cf7dccd2836f7a43b58c0e86b3afc839f6aac523b17",
+        "v03-geometry": "903e6625597ab273c3a2b7101d0571aa37b97501a2dd98dc330e2545879d6239",
+        "v03-rays": "903e6625597ab273c3a2b7101d0571aa37b97501a2dd98dc330e2545879d6239"
+      },
+      "settings": {
+        "cl_renderer": "rdsp-rend2",
+        "r_fullscreen": 0,
+        "r_mode": -1,
+        "r_customwidth": 640,
+        "r_customheight": 360,
+        "r_swapInterval": 0,
+        "com_maxfps": 30,
+        "com_maxfpsUnfocused": 30,
+        "com_maxfpsMinimized": 30,
+        "s_initsound": 0,
+        "in_mouse": 0,
+        "com_bootlogo": 0,
+        "developer": 0,
+        "logfile": 2,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_gl43": 1,
+        "r_hdr": 0,
+        "r_autoExposure": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_exposureCompensation": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_gamma": 1,
+        "r_intensity": 1,
+        "r_overBrightBits": 0,
+        "r_ext_multisample": 0,
+        "r_smaa": 0,
+        "r_motionBlur": 0,
+        "r_ssr": 0,
+        "r_ssgi": 0,
+        "r_autoPBR": 0,
+        "r_cubeMapping": 0,
+        "r_diffuseIBL": 0,
+        "r_specularAA": 0,
+        "r_skinSSS": 0,
+        "r_weatherWetness": 0,
+        "r_waterSurface": 0,
+        "r_volumetricWater": 0,
+        "r_atmosphere": 0,
+        "r_clouds": 0,
+        "r_ssao": 0,
+        "r_aoMode": 0,
+        "r_contactShadows": 0,
+        "r_entityLightProbes": 0,
+        "r_entityLightGrid": 0,
+        "r_entitySunLight": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_sunShadowCache": 0,
+        "r_shadowMapSize": 256,
+        "r_sunShadowMode": 0,
+        "r_dynamiclight": 0,
+        "r_ltcSaberAreaLights": 0,
+        "r_lightReconBuild": 2,
+        "r_lightReconUse": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationSources": 0,
+        "fx_physicalizationEmission": 0,
+        "cg_fov": 80,
+        "cg_bobup": 0,
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "r_lightReconFog": 0,
+        "r_lightReconEntities": 0,
+        "r_lightReconSpecular": 0,
+        "r_lightReconShadows": 0,
+        "r_lightReconSun": 0,
+        "r_lightReconParticles": 0,
+        "r_lightReconIndirect": 0,
+        "r_lightReconWorldDiffuse": 0,
+        "r_lightReconArea": 0,
+        "r_lightReconEnvironment": 0,
+        "r_normalMapping": 0,
+        "r_specularMapping": 0,
+        "r_pbrPhysical": 0,
+        "r_forwardPlus": 0,
+        "r_ltcAreaLights": 0,
+        "r_volumetricFog": 0,
+        "r_sunlightMode": 0,
+        "r_picmip": 3,
+        "r_texturebits": 16,
+        "r_fastsky": 1,
+        "r_shadows": 0,
+        "r_weather": 0,
+        "r_flares": 0,
+        "r_lodbias": 2,
+        "r_subdivisions": 16
+      },
+      "archives": [
+        {
+          "name": "assets0.pk3",
+          "bytes": 561806019
+        },
+        {
+          "name": "assets1.pk3",
+          "bytes": 652804510
+        },
+        {
+          "name": "assets2.pk3",
+          "bytes": 1116384
+        },
+        {
+          "name": "assets3.pk3",
+          "bytes": 9282026
+        }
+      ],
+      "interpretation": "Geometry alignment and conditional diagnostic data only; no original-stock lamp ground truth",
+      "renderer_sha256": "631a3dd341fb2fb4a9cb677c4dd29de1ec51acbe5914e42fe0cd2b86e5dc3854"
+    },
+    {
+      "map": "mp/duel4",
+      "seconds": 12.538826700067148,
+      "peak_working_set_bytes": 394989568,
+      "camera_requested": null,
+      "markers": [
+        "surface=411 primitive=1765231558658 xyz=-2880.0000 3172.0000 76.1252 normal=-0.894427 0.447214 0.000000 camera=-2880.0000 2036.1250 76.1250 forward=-0.000000 1.000000 0.000000 ray-state=1 issues=0",
+        "surface=1095 primitive=4702989189128 xyz=-2880.0000 2543.6257 0.0000 normal=0.000000 0.000000 -1.000000 camera=-2880.0000 2036.1250 76.1250 forward=-0.000000 1.000000 0.000000 ray-state=1 issues=0",
+        "surface=483 primitive=2074469203970 xyz=-2880.0000 3200.0000 250.7065 normal=-0.447214 0.894427 0.000000 camera=-2880.0000 2036.1250 76.1250 forward=-0.000000 1.000000 0.000000 ray-state=1 issues=0",
+        "surface=161 primitive=691489734658 xyz=-2802.9688 2344.2502 76.1251 normal=0.000000 0.447214 -0.894427 camera=-2880.0000 2036.1250 76.1250 forward=-0.000000 1.000000 0.000000 ray-state=1 issues=0"
+      ],
+      "counters": [
+        "lighting-debug records=16 mask=8 drawn=12 clipped=0 last-overlay-us=2.800",
+        "lighting-debug records=3489 mask=3 drawn=96 clipped=0 last-overlay-us=41.400"
+      ],
+      "before_after": {
+        "changed_pixels": 0,
+        "max_channel": 0,
+        "mean_channel": 0.0
+      },
+      "overlay_change": {
+        "changed_pixels": 205,
+        "max_channel": 241,
+        "mean_channel": 0.09686631944444445
+      },
+      "image_sha256": {
+        "v03-after": "28a57df9f791256baa85aa297632cd2f23311f29381d0c98a17a74807d7449e6",
+        "v03-before": "28a57df9f791256baa85aa297632cd2f23311f29381d0c98a17a74807d7449e6",
+        "v03-geometry": "485ed75959e91eda331201050b753f0b1bd21a0f51369594e0f1f4880316af80",
+        "v03-rays": "66714359bffbda7cb88451295f05844335a166417158ff43f445c1a525a635ff",
+        "v03-rejected": "0e779ecd83d3d4976e932eabf54106ba4644d60964a6ac1cbf2a95955168600c"
+      },
+      "settings": {
+        "cl_renderer": "rdsp-rend2",
+        "r_fullscreen": 0,
+        "r_mode": -1,
+        "r_customwidth": 640,
+        "r_customheight": 360,
+        "r_swapInterval": 0,
+        "com_maxfps": 30,
+        "com_maxfpsUnfocused": 30,
+        "com_maxfpsMinimized": 30,
+        "s_initsound": 0,
+        "in_mouse": 0,
+        "com_bootlogo": 0,
+        "developer": 0,
+        "logfile": 2,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_gl43": 1,
+        "r_hdr": 0,
+        "r_autoExposure": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_exposureCompensation": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_gamma": 1,
+        "r_intensity": 1,
+        "r_overBrightBits": 0,
+        "r_ext_multisample": 0,
+        "r_smaa": 0,
+        "r_motionBlur": 0,
+        "r_ssr": 0,
+        "r_ssgi": 0,
+        "r_autoPBR": 0,
+        "r_cubeMapping": 0,
+        "r_diffuseIBL": 0,
+        "r_specularAA": 0,
+        "r_skinSSS": 0,
+        "r_weatherWetness": 0,
+        "r_waterSurface": 0,
+        "r_volumetricWater": 0,
+        "r_atmosphere": 0,
+        "r_clouds": 0,
+        "r_ssao": 0,
+        "r_aoMode": 0,
+        "r_contactShadows": 0,
+        "r_entityLightProbes": 0,
+        "r_entityLightGrid": 0,
+        "r_entitySunLight": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_sunShadowCache": 0,
+        "r_shadowMapSize": 256,
+        "r_sunShadowMode": 0,
+        "r_dynamiclight": 0,
+        "r_ltcSaberAreaLights": 0,
+        "r_lightReconBuild": 2,
+        "r_lightReconUse": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationSources": 0,
+        "fx_physicalizationEmission": 0,
+        "cg_fov": 80,
+        "cg_bobup": 0,
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "r_lightReconFog": 0,
+        "r_lightReconEntities": 0,
+        "r_lightReconSpecular": 0,
+        "r_lightReconShadows": 0,
+        "r_lightReconSun": 0,
+        "r_lightReconParticles": 0,
+        "r_lightReconIndirect": 0,
+        "r_lightReconWorldDiffuse": 0,
+        "r_lightReconArea": 0,
+        "r_lightReconEnvironment": 0,
+        "r_normalMapping": 0,
+        "r_specularMapping": 0,
+        "r_pbrPhysical": 0,
+        "r_forwardPlus": 0,
+        "r_ltcAreaLights": 0,
+        "r_volumetricFog": 0,
+        "r_sunlightMode": 0,
+        "r_picmip": 3,
+        "r_texturebits": 16,
+        "r_fastsky": 1,
+        "r_shadows": 0,
+        "r_weather": 0,
+        "r_flares": 0,
+        "r_lodbias": 2,
+        "r_subdivisions": 16
+      },
+      "archives": [
+        {
+          "name": "assets0.pk3",
+          "bytes": 561806019
+        },
+        {
+          "name": "assets1.pk3",
+          "bytes": 652804510
+        },
+        {
+          "name": "assets2.pk3",
+          "bytes": 1116384
+        },
+        {
+          "name": "assets3.pk3",
+          "bytes": 9282026
+        }
+      ],
+      "interpretation": "Geometry alignment and conditional diagnostic data only; no original-stock lamp ground truth",
+      "renderer_sha256": "631a3dd341fb2fb4a9cb677c4dd29de1ec51acbe5914e42fe0cd2b86e5dc3854"
+    }
+  ],
+  "runtime_final_command_smoke": [
+    {
+      "map": "mp/duel4",
+      "seconds": 15.975428399862722,
+      "peak_working_set_bytes": 518479872,
+      "camera_requested": null,
+      "markers": [
+        "surface=274 primitive=1176821039106 xyz=-2192.0002 2512.0000 76.1252 normal=0.000000 -1.000000 -0.000000 camera=-2865.9116 3185.9116 76.1250 forward=0.707107 -0.707107 0.000000 ray-state=1 issues=0",
+        "surface=301 primitive=1292785156098 xyz=-2208.0002 2528.0000 -63.4389 normal=0.000000 -1.000000 0.000000 camera=-2865.9116 3185.9116 76.1250 forward=0.707107 -0.707107 0.000000 ray-state=1 issues=0",
+        "surface=180 primitive=773094113282 xyz=-1712.0002 2032.0000 320.9069 normal=0.000000 -1.000000 -0.000000 camera=-2865.9116 3185.9116 76.1250 forward=0.707107 -0.707107 0.000000 ray-state=1 issues=0",
+        "surface=280 primitive=1202590842881 xyz=-2448.0000 2489.3921 76.1252 normal=1.000000 0.000000 0.000000 camera=-2865.9116 3185.9116 76.1250 forward=0.707107 -0.707107 0.000000 ray-state=1 issues=0"
+      ],
+      "counters": [
+        "lighting-debug records=16 mask=8 drawn=12 clipped=0 last-overlay-us=3.100",
+        "lighting-debug records=3538 mask=3 drawn=100 clipped=0 last-overlay-us=48.000",
+        "lighting-debug records=0 mask=0 drawn=100 clipped=0 last-overlay-us=48.000"
+      ],
+      "sample_status": [
+        "lighting-debug physical indirect status=2",
+        "lighting-debug physical radiance status=2",
+        "lighting-debug conditional irradiance status=8; explicitly selected configuration=0; no physical calibration implied"
+      ],
+      "before_after": {
+        "changed_pixels": 0,
+        "max_channel": 0,
+        "mean_channel": 0.0
+      },
+      "overlay_change": {
+        "changed_pixels": 71,
+        "max_channel": 253,
+        "mean_channel": 0.03938368055555556
+      },
+      "image_sha256": {
+        "v03-after": "9a3cb81e3454e552403fef5a001f4cc9564ed754572f3876ad8b84ff3fa44a15",
+        "v03-before": "9a3cb81e3454e552403fef5a001f4cc9564ed754572f3876ad8b84ff3fa44a15",
+        "v03-geometry": "62ea972dcec1a9df384991d9eef48ba19577389c42a78bf5272904785983bff3",
+        "v03-rays": "62ea972dcec1a9df384991d9eef48ba19577389c42a78bf5272904785983bff3",
+        "v03-rejected": "ad1defff0f6bdc16135df710ff730dfb09a3e8cbc5f9dddb3595f360383cc10c"
+      },
+      "settings": {
+        "cl_renderer": "rdsp-rend2",
+        "r_fullscreen": 0,
+        "r_mode": -1,
+        "r_customwidth": 640,
+        "r_customheight": 360,
+        "r_swapInterval": 0,
+        "com_maxfps": 30,
+        "com_maxfpsUnfocused": 30,
+        "com_maxfpsMinimized": 30,
+        "s_initsound": 0,
+        "in_mouse": 0,
+        "com_bootlogo": 0,
+        "developer": 0,
+        "logfile": 2,
+        "r_shaderCompileProcesses": 0,
+        "r_shaderProgramCache": 1,
+        "r_shaderProgramLazy": 1,
+        "r_gl43": 1,
+        "r_hdr": 0,
+        "r_autoExposure": 0,
+        "r_cameraExposure": 0,
+        "r_cameraMode": 0,
+        "r_exposureCompensation": 0,
+        "r_toneMap": 1,
+        "r_toneMapMode": 0,
+        "r_gamma": 1,
+        "r_intensity": 1,
+        "r_overBrightBits": 0,
+        "r_ext_multisample": 0,
+        "r_smaa": 0,
+        "r_motionBlur": 0,
+        "r_ssr": 0,
+        "r_ssgi": 0,
+        "r_autoPBR": 0,
+        "r_cubeMapping": 0,
+        "r_diffuseIBL": 0,
+        "r_specularAA": 0,
+        "r_skinSSS": 0,
+        "r_weatherWetness": 0,
+        "r_waterSurface": 0,
+        "r_volumetricWater": 0,
+        "r_atmosphere": 0,
+        "r_clouds": 0,
+        "r_ssao": 0,
+        "r_aoMode": 0,
+        "r_contactShadows": 0,
+        "r_entityLightProbes": 0,
+        "r_entityLightGrid": 0,
+        "r_entitySunLight": 0,
+        "r_volumetricFogTemporal": 0,
+        "r_volumetricFogRGBExtinction": 0,
+        "r_sunShadowCache": 0,
+        "r_shadowMapSize": 256,
+        "r_sunShadowMode": 0,
+        "r_dynamiclight": 0,
+        "r_ltcSaberAreaLights": 0,
+        "r_lightReconBuild": 2,
+        "r_lightReconUse": 0,
+        "fx_physicalization": 0,
+        "fx_physicalizationSources": 0,
+        "fx_physicalizationEmission": 0,
+        "cg_fov": 80,
+        "cg_bobup": 0,
+        "cg_bobpitch": 0,
+        "cg_bobroll": 0,
+        "cg_runpitch": 0,
+        "cg_runroll": 0,
+        "r_lightReconFog": 0,
+        "r_lightReconEntities": 0,
+        "r_lightReconSpecular": 0,
+        "r_lightReconShadows": 0,
+        "r_lightReconSun": 0,
+        "r_lightReconParticles": 0,
+        "r_lightReconIndirect": 0,
+        "r_lightReconWorldDiffuse": 0,
+        "r_lightReconArea": 0,
+        "r_lightReconEnvironment": 0,
+        "r_normalMapping": 0,
+        "r_specularMapping": 0,
+        "r_pbrPhysical": 0,
+        "r_forwardPlus": 0,
+        "r_ltcAreaLights": 0,
+        "r_volumetricFog": 0,
+        "r_sunlightMode": 0,
+        "r_picmip": 3,
+        "r_texturebits": 16,
+        "r_fastsky": 1,
+        "r_shadows": 0,
+        "r_weather": 0,
+        "r_flares": 0,
+        "r_lodbias": 2,
+        "r_subdivisions": 16
+      },
+      "archives": [
+        {
+          "name": "assets0.pk3",
+          "bytes": 561806019
+        },
+        {
+          "name": "assets1.pk3",
+          "bytes": 652804510
+        },
+        {
+          "name": "assets2.pk3",
+          "bytes": 1116384
+        },
+        {
+          "name": "assets3.pk3",
+          "bytes": 9282026
+        }
+      ],
+      "interpretation": "Geometry alignment and conditional diagnostic data only; no original-stock lamp ground truth",
+      "renderer_sha256": "d40630a6cf7b68b4bfee22c3be5b7d379cf117252329c38ed84fdd72cd0b5598"
+    }
+  ],
+  "probes": {
+    "schema": "org.openjk.probe-stock.v1",
+    "map": "maps/hoth3.bsp",
+    "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+    "geometry_key": "04b9605b99d9a70a05701dac1bffec025da648c207b1917c51661eea6179c7ed",
+    "photometric_truth": null,
+    "lighting_values": 0,
+    "rgb_used": false,
+    "geometry_load_seconds": 4.646317,
+    "rois": [
+      {
+        "ordinal": 0,
+        "anchor_surface_quantile": 0.25,
+        "build_code": 0,
+        "region_build_code": 0,
+        "regions": 7,
+        "build_seconds": 0.307308,
+        "completed": true,
+        "topology_key": "13a5ca6fb2f61bfd36c00ef5073a298bc63903b2f4794b094ecbfff0c200e668",
+        "probes": 777,
+        "relocated": 4,
+        "nodes": 4489,
+        "links": 5352,
+        "rejected_links": 864,
+        "static_supported_volume": 13602960,
+        "analysis_volume": 134217728,
+        "unknown_volume": 120614768,
+        "solid_volume": 0,
+        "conditional_probes": 777,
+        "unassigned_regions": 530,
+        "maximum_relocation": 8,
+        "topology_bytes": 1052660,
+        "peak_build_bytes_estimate": 1398324,
+        "encoded_bytes": 1261320,
+        "chunks": 38,
+        "work": 2477985,
+        "relocation_rays": 13,
+        "query_points": 1024,
+        "bsp_free_points": 248,
+        "bsp_unknown_points": 588,
+        "static_support_points": 109,
+        "strict_support_points": 0,
+        "conditional_support_points": 109,
+        "reference_visible_paths": 93,
+        "reference_blocked_paths": 0,
+        "reference_unknown_paths": 0,
+        "query_diagnostic_seconds": 0.001647,
+        "roundtrip": true
+      },
+      {
+        "ordinal": 1,
+        "anchor_surface_quantile": 0.5,
+        "build_code": 0,
+        "region_build_code": 0,
+        "regions": 3,
+        "build_seconds": 0.288713,
+        "completed": true,
+        "topology_key": "486c2450a947c5d11bd2c98baee0bb947959f6d569d94ac5e76c91946562a95e",
+        "probes": 523,
+        "relocated": 69,
+        "nodes": 4545,
+        "links": 3730,
+        "rejected_links": 450,
+        "static_supported_volume": 10324536,
+        "analysis_volume": 134217728,
+        "unknown_volume": 121697736,
+        "solid_volume": 2195456,
+        "conditional_probes": 523,
+        "unassigned_regions": 327,
+        "maximum_relocation": 8,
+        "topology_bytes": 958580,
+        "peak_build_bytes_estimate": 1308556,
+        "encoded_bytes": 1085424,
+        "chunks": 37,
+        "work": 1542917,
+        "relocation_rays": 72,
+        "query_points": 1024,
+        "bsp_free_points": 152,
+        "bsp_unknown_points": 732,
+        "static_support_points": 77,
+        "strict_support_points": 0,
+        "conditional_support_points": 77,
+        "reference_visible_paths": 57,
+        "reference_blocked_paths": 0,
+        "reference_unknown_paths": 0,
+        "query_diagnostic_seconds": 0.001661,
+        "roundtrip": true
+      },
+      {
+        "ordinal": 2,
+        "anchor_surface_quantile": 0.75,
+        "build_code": 0,
+        "region_build_code": 0,
+        "regions": 4,
+        "build_seconds": 0.292854,
+        "completed": true,
+        "topology_key": "b668921fb070d0d1ab81c39c719fb4e9e14313f2c900c4d469135c516157f90a",
+        "probes": 530,
+        "relocated": 5,
+        "nodes": 4545,
+        "links": 3580,
+        "rejected_links": 660,
+        "static_supported_volume": 11045312,
+        "analysis_volume": 134217728,
+        "unknown_volume": 122156608,
+        "solid_volume": 1015808,
+        "conditional_probes": 530,
+        "unassigned_regions": 312,
+        "maximum_relocation": 8,
+        "topology_bytes": 954412,
+        "peak_build_bytes_estimate": 1304388,
+        "encoded_bytes": 1076472,
+        "chunks": 37,
+        "work": 1765731,
+        "relocation_rays": 38,
+        "query_points": 1024,
+        "bsp_free_points": 174,
+        "bsp_unknown_points": 747,
+        "static_support_points": 76,
+        "strict_support_points": 0,
+        "conditional_support_points": 76,
+        "reference_visible_paths": 61,
+        "reference_blocked_paths": 0,
+        "reference_unknown_paths": 0,
+        "query_diagnostic_seconds": 0.001809,
+        "roundtrip": true
+      }
+    ]
+  },
+  "probe_resources": {
+    "exit_code": 0,
+    "wall_seconds": 6.124608299927786,
+    "peak_working_set_bytes": 105795584
+  },
+  "source_files": {
+    "shared/rd-rend2/lightrecon/diagnostics.cpp": "8c4556c6b99118c82b2c8cbb6a96b37b411929f6d50eaf00a16d330fad1668e1",
+    "shared/rd-rend2/lightrecon/diagnostics.h": "e8a6a8f0a47ac86e83a13c7fb51b10f2da3eaddbbb035be0ec5c7c88e32d41db",
+    "shared/rd-rend2/lightrecon/diagnostics_capture.cpp": "73b0c45e893b01afc8b4829cd7ffc5cd925088f850c9db523c3e92c81aad84cd",
+    "shared/rd-rend2/lightrecon/diagnostics_io.cpp": "f3cbc4c4d1659c602cff458741cb1ad173e1ffce8a3aabfdd5d4aec0fe5a9e3c",
+    "shared/rd-rend2/lightrecon/diagnostics_report.cpp": "16ca2a21adcfca98d5b5336971f9e282fbcc0059a7a500121fa4489736ef4e82"
+  },
+  "offline_interchange_import": {
+    "exit_code": 0,
+    "wall_seconds": 0.9930124999955297,
+    "peak_working_set_bytes": 12234752
+  },
+  "diagnostics_test": [
+    "INTERCHANGE records=122 bytes=42114 key=3ce72edd5be988f81cd928501aa9a0d557c6f9c6424808f1221e632553a778b8",
+    "OBSERVER rays=168 forward=28 receipts=40 actual_rejected_records=18 solver_identical=true",
+    "FROZEN_LEDGER observations=8 interval_discrepancies=8 roots=8 corrupted_payload_rejected=true",
+    "67 checks 0 failures"
+  ],
+  "native_full_suite": {
+    "passed": 45,
+    "total": 45,
+    "wall_seconds": 331.81,
+    "log_sha256": "75a38f78eec63bb4fb0db22cc213a731c3af9bc53447fafee70089c28879b204",
+    "scope": "Full relink at V03 baseline; final diagnostics-only ledger/parser extensions checked separately"
+  },
+  "final_renderers": {
+    "rdsp-rend2_x86_64.dll": {
+      "sha256": "29eb165a0245995f1a6be07b337c3bedbe9b932d817fe7024184a0d88c6c68c9",
+      "bytes": 5734912
+    },
+    "rd-rend2_x86_64.dll": {
+      "sha256": "8b2f62fd2bde26392244cbf373a788e8fb23fdb45f294350ffd90832eaaa0ef6",
+      "bytes": 5704704
+    }
+  },
+  "final_targeted_tests": {
+    "passed": 6,
+    "total": 6,
+    "log_sha256": "b40a27c0a296404e58c617ccdd2e7f49ca917c8f98ad86eac8846d9bae98a674",
+    "log": [
+      "Test project C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s06-gcc",
+      "    Start  1: lightrecon_diagnostics",
+      "1/6 Test  #1: lightrecon_diagnostics ...........   Passed    0.28 sec",
+      "    Start 21: lightrecon_lifecycle",
+      "2/6 Test #21: lightrecon_lifecycle .............   Passed    0.57 sec",
+      "    Start 40: lightrecon_contributions",
+      "3/6 Test #40: lightrecon_contributions .........   Passed    0.47 sec",
+      "    Start 43: lightrecon_probes",
+      "4/6 Test #43: lightrecon_probes ................   Passed    1.03 sec",
+      "    Start 44: lightrecon_field_builder",
+      "5/6 Test #44: lightrecon_field_builder .........   Passed    1.30 sec",
+      "    Start 45: lightrecon_shadow_cache",
+      "6/6 Test #45: lightrecon_shadow_cache ..........   Passed    0.62 sec",
+      "",
+      "100% tests passed out of 6",
+      "",
+      "Total Test time (real) =   4.30 sec"
+    ]
+  }
+}
