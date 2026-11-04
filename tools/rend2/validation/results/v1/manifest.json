@@ -1,0 +1,28 @@
+{
+  "schema": "org.openjk.validation-artifact-manifest/1",
+  "sources": {
+    "tools/rend2/validation/bridge.py": "b0443e6e12f959562433536516a803329e1753c397da8d7e16316bfa0fb795d0",
+    "tools/rend2/validation/lifecycle_runtime.py": "fdd8ffbff006ae592d0d57cce30ce2da3fddc7fcd6b0f59f6d244597aafcd35f",
+    "tools/rend2/validation/report.py": "867b202e782c028e385a8ff58c48d7d4976b9ff75e41b4517bc4c4e2a6791a38",
+    "tools/rend2/validation/run.py": "4d69191a1f8fedc792f2dc860381a22474b466fae690e701ee8e6aa2c36a17a6",
+    "tools/rend2/validation/runtime.py": "6f8f1f252c809c248b6602994a2f779df374de3fc6919ffbfc34511577b5e28b",
+    "tools/rend2/validation/runtime_mp.py": "ea76eeeadf1c8ab1efcd5bc2ec454764027825d87d1c95ab29486bbae0deb112",
+    "tools/rend2/validation/test_report.py": "86b19d5af2a8d1fb3a7efc0390d62b9a23b2f697f62841358f8174ed112c055f",
+    "tools/rend2/validation/verify.py": "44b0cd25f8764b274080a70ca7d3533beb8e859db141171a694dcb080df043e0",
+    "tools/rend2/validation/policy-v1.json": "33ab768b1844b5c9515d29db38e057b08e6e6eff0be6e2a5dfcd020514f7dbf7",
+    "tools/rend2/lightrecon_regression.py": "ac60f303cfd0d6c7705fb17bd8be92c2639353949f0162feafb652daaac8751f",
+    "tools/lightrecon_test/lightrecon_regions_inspect.cpp": "4e0a0a46a83bf5b2816d1be9a95647263119dabce9e5fe4959a814b4a0d5c87f",
+    "tools/lightrecon_test/lightrecon_validation_tool.cpp": "1c9b90991105f9862f57db5584d5e5b708b80ab379db8ec611530297d137bbc0",
+    "tools/lightrecon_test/CMakeLists.txt": "dcf34d7dd53464829d1fdb77dda71571432dfb581fc93b59c9c96047618b8cf6"
+  },
+  "artifacts": {
+    "angular.csv": "b33f554d308462677b2ad1afad4c72b6c8c10d6664692ae4c6e6e1f71ae7aacd",
+    "field.csv": "316733a58ed9075df0002d4875bddb43eab18876e4f3eeda6f3116bb6dcb7fc2",
+    "results.json": "1cfeb4221fb5c247a03e1feafd7afe1b39f5b4e00c66cd21140c78d80828cf51",
+    "shadow.csv": "181eeea7e0741e1e35fe09be899f981c5b32039e6638ccd3f3a0c9094e9eca34",
+    "stock.csv": "6d2c96b9cb9f17804c2950379bf0023e87434a0d2bce2ceca5ab8d44c7dc2531",
+    "tables.md": "808aadcd98121a5a4985fce2e6a00fa50278d2edd4e2f8362cf2b0682686ceb6"
+  },
+  "copyrighted_map_payloads": false,
+  "source_answers": "Owned controlled bridge only; stock answers unavailable"
+}

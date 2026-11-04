@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <map>
 #include <regex>
 #include <sstream>
 #include <stdexcept>
@@ -103,10 +104,12 @@ void Write(const std::string &name, const std::string &text)
 } // namespace
 int main(int argc, char **argv)
 {
-	if (argc != 10 && argc != 11)
+	if (argc != 10 && argc != 11 && argc != 12)
 	{
-		std::fprintf(stderr, "usage: lightrecon_regions_inspect map.bsp output-prefix cx cy cz "
-							 "radius coarse minimum sky-samples [geometry-only.jkobs]\n");
+		std::fprintf(
+			stderr,
+			"usage: lightrecon_regions_inspect map.bsp output-prefix cx cy cz "
+			"radius coarse minimum sky-samples [geometry-only.jkobs [controlled-materials.tsv]]\n");
 		return 2;
 	}
 	try
@@ -138,6 +141,38 @@ int main(int argc, char **argv)
 		identity.path += path.substr(path.find_last_of("/\\") + 1);
 		identity.bytes = r.bytes.size();
 		identity.sha256 = Disk::Hash(r.bytes.data(), r.bytes.size());
+		// V02 explicit authored-material fixture attestation. No source parameters,
+		// RGB observations, entities or arbitrary stock material assumptions.
+		std::map<uint32_t, std::pair<std::string, unsigned>> controlled;
+		if (argc == 12)
+		{
+			std::ifstream facts(argv[11], std::ios::binary | std::ios::ate);
+			if (!facts || facts.tellg() > (1 << 20))
+				throw std::runtime_error("Controlled material manifest missing/oversize");
+			facts.seekg(0);
+			std::string magic, hash;
+			size_t count = 0;
+			facts >> magic >> hash >> count;
+			if (magic != "JKCONTROLLEDMATERIAL1" || hash != Disk::Hex(identity.sha256) ||
+				count != surfaces.count)
+				throw std::runtime_error("Controlled material identity/span");
+			for (size_t j = 0; j < count; ++j)
+			{
+				uint32_t ordinal;
+				std::string material;
+				unsigned kind;
+				facts >> ordinal >> material >> kind;
+				if (!facts || ordinal >= surfaces.count || kind > 1 ||
+					!controlled.emplace(ordinal, std::make_pair(material, kind)).second ||
+					(material != "textures/bake_forward/white" &&
+					 material != "textures/bake_forward/panel" &&
+					 material != "textures/bake_forward/red"))
+					throw std::runtime_error("Controlled material declaration invalid");
+			}
+			std::string extra;
+			if (facts >> extra)
+				throw std::runtime_error("Trailing controlled material data");
+		}
 		BspSpaceInput space;
 		space.identity = identity;
 		space.worldBounds.known = true;
@@ -244,6 +279,25 @@ int main(int argc, char **argv)
 										   : kind == 3 ? BakedSurfaceKind::Triangles
 													   : BakedSurfaceKind::Unsupported;
 			s.materialIndex = shader;
+			const auto nameAt = shaders.offset + shader * 72;
+			size_t nameLength = 0;
+			while (nameLength < 64 && r.bytes[nameAt + nameLength])
+				++nameLength;
+			s.material =
+				std::string(reinterpret_cast<const char *>(r.bytes.data() + nameAt), nameLength);
+			for (unsigned k = 0; k < 4; ++k)
+			{
+				s.styles[k] = r.bytes[p + 28 + k];
+				s.vertexStyles[k] = r.bytes[p + 32 + k];
+				s.lightmap[k] = r.I(p + 36 + 4 * k);
+				s.chartX[k] = r.I(p + 52 + 4 * k);
+				s.chartY[k] = r.I(p + 68 + 4 * k);
+			}
+			s.chartWidth = r.I(p + 84);
+			s.chartHeight = r.I(p + 88);
+			s.lightmapOrigin = r.V(p + 92);
+			for (unsigned k = 0; k < 3; ++k)
+				s.lightmapBasis[k] = r.V(p + 104 + 12 * k);
 			uint32_t flags = r.U(shaders.offset + shader * 72 + 64),
 					 contents = r.U(shaders.offset + shader * 72 + 68);
 			s.materialFacts.surfaceFlags = flags;
@@ -256,8 +310,25 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				++unknownMaterials;
-				s.materialFacts.signals |= MaterialMissing;
+				auto known = controlled.find(i);
+				if (known == controlled.end())
+				{
+					++unknownMaterials;
+					s.materialFacts.signals |= MaterialMissing;
+				}
+				else
+				{
+					if (known->second.first != s.material)
+						throw std::runtime_error(
+							"Material manifest does not match original shader reference");
+					s.materialFacts.available = true;
+					s.materialFacts.signals =
+						s.lightmap[0] >= 0 ? MaterialLightmapped : MaterialVertexLit;
+					if (known->second.second)
+						s.materialFacts.signals |= MaterialGlow;
+					// Original q3map output is a declared relative observation,
+					// never an independently calibrated surface reflectance.
+				}
 			}
 			if (flags & noDrawFlag)
 				s.materialFacts.signals |= MaterialNoDraw;
@@ -275,6 +346,11 @@ int main(int argc, char **argv)
 					BakedVertex v;
 					v.position = r.V(verts.offset + (first + j) * 80);
 					v.shadingNormal = r.V(verts.offset + (first + j) * 80 + 52);
+					for (unsigned k = 0; k < 4; ++k)
+					{
+						size_t at = verts.offset + (first + j) * 80 + 20 + 8 * k;
+						v.lightmap[k] = LightmapUv(r.F(at), r.F(at + 4));
+					}
 					s.vertices.push_back(v);
 				}
 				for (uint32_t j = 0; j < countIndices; ++j)
@@ -319,7 +395,7 @@ int main(int argc, char **argv)
 		input.dynamic = dynamic;
 		std::shared_ptr<const LightingRegionGraph> graph;
 		Check(LightingRegionGraph::Build(std::move(input), options, Context(), graph));
-		if (argc == 11)
+		if (argc >= 11)
 		{
 			Offline::Sources source;
 			source.metadata.map = identity;

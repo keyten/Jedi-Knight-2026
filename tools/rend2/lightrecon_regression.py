@@ -69,6 +69,15 @@ def common_header(defines, compute=False):
     header += '#define M_PI 3.14159265358979323846\nuniform vec2 r_FBufScale;\n'
     header += ''.join(f'#define {k} {v}\n' for k, v in sorted(constants.items()))
     header += '#define USE_ALPHA_TEST\n'
+    # Mirror the current production-generated comparison header. These IDs and
+    # the macro come from its real inputs, rather than a new lighting equation.
+    compare_ids = re.findall(r'^COMPARE_FEATURE\(\s*(RC_\w+)', read('shared/rd-rend2/tr_compare.inc'), re.M)
+    header += ''.join(f'#define {name} {i}\n' for i, name in enumerate(compare_ids))
+    production_header = read('shared/rd-rend2/tr_glsl.cpp')
+    compare_macro = re.search(r'"(#define R_CompareOriginal[^\n]+)"\s*\n\s*"([^\n]+)"\);', production_header)
+    if not compare_macro or not compare_ids:
+        raise ValueError('Production comparison header changed; update fixture extraction')
+    header += json.loads('"' + compare_macro[1] + compare_macro[2] + '"')
     if 'USE_PHYSICAL_PBR' in defines:
         header += '#define PBR_METERS_PER_WORLD_UNIT_SQUARED 0.0009\n'
     return header + ''.join(f'#define {d}\n' for d in defines)
@@ -322,7 +331,7 @@ def production_audit():
                 continue
             text = strip_comments(path.read_text(encoding='utf-8', errors='replace'))
             for m in re.finditer(r'\br_lightRecon\w+|\bRend2LightRecon\b|\bR_LightReconConsumer\s*\(|\bR_ReconstructedLighting\s*\(', text):
-                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels', 'r_lightReconObservations', 'r_lightReconEvidence', 'r_lightReconExport', 'r_lightReconPreview') and path.name == 'tr_init.cpp':
+                if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels', 'r_lightReconObservations', 'r_lightReconEvidence', 'r_lightReconExport', 'r_lightReconPreview', 'r_lightReconDebug') and path.name == 'tr_init.cpp':
                     continue # diagnostic command registration, not a feature input
                 if shared_emission_utility(relative, text, m.start()):
                     continue
@@ -332,7 +341,13 @@ def production_audit():
     if re.search(r'\b(?:qgl\w+|GLSL_\w+|R_Volumetric\w+|R_ForwardPlus\w+)\s*\(|Cvar_(?:Set|Get)', adapter):
         failures.append('Canonical control adapter must not create GPU resources, shader permutations or force another cvar')
     debug = adapter[adapter.find('void R_LuxelDebugDraw('):]
-    if not re.search(r'if\s*\(\(s_luxelDebug.empty\(\)\s*&&\s*s_reconstructionPreview.empty\(\)\).*?\)\s*return;', debug, re.S):
+    # V03 adds explicitly imported, layer-selected, generation-checked markers.
+    # Verify all three empty states before shader registration; do not relax the
+    # renderer dependency fence for a general consumer or per-frame asset work.
+    guard = re.search(r'if\s*\(\(s_luxelDebug.empty\(\)\s*&&\s*s_reconstructionPreview.empty\(\)\s*&&\s*!diagnosticActive\).*?\)\s*return;', debug, re.S)
+    active = re.search(r'const bool diagnosticActive\s*=\s*s_diagnosticScene\s*&&\s*s_diagnosticSelection.layers\s*&&\s*s_diagnosticTicket\s*==\s*s_reconstructedLighting.Report\(\).ticket\s*;', debug)
+    register = debug.find('RE_RegisterShaderFromImage(')
+    if not guard or not active or register < guard.end():
         failures.append('Luxel/producer debug must return before shader registration/submission with no explicit markers')
     if not re.search(r'RE_RegisterShaderFromImage\("\*luxelDebug",\s*lightmapsVertex\b', debug):
         failures.append('Luxel markers must use the depth-tested vertex-colour shader, not a depth-disabled 2D shader')
