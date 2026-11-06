@@ -1,0 +1,14 @@
+{
+  "resources": {
+    "command": [
+      "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_appearance_tool.exe",
+      "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+      "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x18-stock-v3\\mp_duel4-repeat.json"
+    ],
+    "state": "Completed",
+    "exit_code": 0,
+    "wall_seconds": 4.547000000020489,
+    "peak_process_rss_bytes": 77963264
+  },
+  "semantic_equal": true
+}

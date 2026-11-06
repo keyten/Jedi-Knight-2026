@@ -1,0 +1,12 @@
+{
+  "artifacts": {
+    "preliminary.json": "2605ba940b56464c1d3a734c55980ecea6a69307819d4452180b5c8c41afed0c",
+    "protocol.json": "61df23228e8341e6a7013060151e29290f7896ab29fd33ed3932b53be13c920a",
+    "repeat.json": "01ef9c3a3e5177f10f23f728eedb4d604e98e3279d7fbbb33d497741f9d4a17d",
+    "stock.json": "b7724d0df4188839fcc260c44d7a3197997b5bcb9a1e9b4b9bd4adb740318714",
+    "summary.json": "21973b4ff05eb82e5de0e5dc89f9f08161c3a69e28cc5e17327cfee67c04b0b1",
+    "tables.md": "b41809d9eab4c203de6b143688a424732aef275e9edc3057d08af47ed7d6aa25",
+    "validation.json": "ec4f57e1ddfdc69481143815e4afffd0bd4245f6125606d730fec74a667d981b"
+  },
+  "original_stock_geometry_committed": false
+}

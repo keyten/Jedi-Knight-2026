@@ -1,5 +1,5 @@
-// Bounded source-conditioned angular integration and explicit appearance approximation.
-// SPDX-License-Identifier: GPL-2.0-or-later
+// Bounded source-conditioned angular integration and explicit appearance
+// approximation. SPDX-License-Identifier: GPL-2.0-or-later
 #include "field_internal.h"
 #include "photometry.h"
 #include <chrono>
@@ -173,6 +173,16 @@ struct Engine
 				 "Relative calibration mismatch");
 		if (s.route == Route::ObservationAppearance)
 		{
+			Need(r.options.appearanceNeighbours > 0 && r.options.appearanceNeighbours <= 256 &&
+					 std::isfinite(r.options.appearanceMinimumValidationFraction) &&
+					 r.options.appearanceMinimumValidationFraction > 0 &&
+					 r.options.appearanceMinimumValidationFraction <= 1,
+				 Code::InvalidInput, "Appearance support policy");
+			std::set<Id> ids;
+			for (const auto &x : r.appearance)
+				Need(x.id && ids.insert(x.id).second && Energy(V(x.value)) &&
+						 Finite(x.positionWorld) && std::isfinite(x.weight) && x.weight > 0,
+					 Code::InvalidInput, "Invalid/duplicate appearance evidence");
 			Need(s.quantity == ConditionalQuantity::LegacyAppearance &&
 					 s.domain == FieldDomain::LegacyAppearance && !r.appearance.empty() &&
 					 !r.appearanceValidation.empty() && !s.appearanceDomain.empty() &&
@@ -214,7 +224,8 @@ struct Engine
 					Need(!e->geometry.angularRadiusRadians.known ||
 							 e->geometry.angularRadiusRadians.value == 0,
 						 Code::Unavailable,
-						 "Finite solar extent requires a separately validated disk integration "
+						 "Finite solar extent requires a separately validated disk "
+						 "integration "
 						 "model");
 				Need(sun ? s.sun : s.directLocal, Code::InvalidInput, "Root class not selected");
 				Need(e->source.state != HypothesisState::Rejected, Code::Unavailable,
@@ -228,9 +239,9 @@ struct Engine
 								[&](const SourceUncertainty &u) { return u.source == id; }))
 				{
 					descriptor->uncertainty |= AttributionParametersUnknown;
-					descriptor->provenance +=
-						"; source=" + std::to_string(id) +
-						" parameter/observation uncertainty retained; no propagated upper bound";
+					descriptor->provenance += "; source=" + std::to_string(id) +
+											  " parameter/observation uncertainty "
+											  "retained; no propagated upper bound";
 				}
 				Need((e->source.state == HypothesisState::Resolved && !e->source.hypothesisGroup) ||
 						 (s.allowConditionalSources && s.configuration &&
@@ -278,7 +289,8 @@ struct Engine
 							 state->dimensions.halfLengthWorld == e->geometry.halfLengthWorld &&
 							 state->dimensions.radiusWorld == e->geometry.radiusWorld,
 						 Code::Unavailable,
-						 "Configuration parameters/amplitudes differ from selected emitter");
+						 "Configuration parameters/amplitudes differ from selected "
+						 "emitter");
 				}
 				if (s.domain == FieldDomain::PhysicallyAuthored)
 					Need(bool(Photometric::RequirePhysical(a, emission.value)), Code::Unavailable,
@@ -377,7 +389,8 @@ struct Engine
 		descriptor->provenance += "; passive=" + Disk::Hex(p.solution->key) +
 								  "; fixed-roots=" + Disk::Hex(p.solution->fixedRootsKey);
 		Need(s.quantity != ConditionalQuantity::IncomingRadiance, Code::Unavailable,
-			 "Passive radiance requires separately validated directional patch reference; "
+			 "Passive radiance requires separately validated directional patch "
+			 "reference; "
 			 "irradiance lift is supported");
 		if (!p.transfer->Report().completePatchSet || !p.transfer->Report().allPairsRepresented)
 			descriptor->uncertainty |= AttributionSupportMissing;
@@ -609,7 +622,8 @@ struct Engine
 	V ReferenceRadiance(Vec3 p, V w)
 	{
 		V rgb;
-		// Exact parametric emitting surfaces, independent of angular projection nodes.
+		// Exact parametric emitting surfaces, independent of angular projection
+		// nodes.
 		for (auto &d : direct)
 		{
 			const auto &e = d.emitter;
@@ -657,7 +671,8 @@ struct Engine
 				rgb = rgb + d.amplitude;
 		}
 		Need(bounce.empty(), Code::Unavailable,
-			 "Passive radiance reference requires independent patch angular validation; irradiance "
+			 "Passive radiance reference requires independent patch angular "
+			 "validation; irradiance "
 			 "supported");
 		if (!skies.empty())
 		{
@@ -719,22 +734,48 @@ struct Engine
 			{
 				V rgb;
 				double weight = 0;
-				for (auto &x : r.appearance)
+				std::vector<std::pair<double, const AppearanceSample *>> near;
+				near.reserve(r.options.appearanceNeighbours + 1);
+				auto order = [](const std::pair<double, const AppearanceSample *> &a,
+								const std::pair<double, const AppearanceSample *> &b) {
+					return a.first != b.first ? a.first < b.first : a.second->id < b.second->id;
+				};
+				for (const auto &x : r.appearance)
 				{
 					Tick();
-					Need(x.id && Energy(V(x.value)) && std::isfinite(x.weight) && x.weight > 0 &&
-							 Finite(x.positionWorld),
-						 Code::InvalidInput, "Invalid appearance evidence");
 					double d = Length(V(x.positionWorld) - V(p.positionWorld));
-					if (d > r.options.appearanceRadiusWorld)
-						continue;
-					bool visible = d < 1e-8 || Segment(p.positionWorld, x.positionWorld);
+					if (d <= r.options.appearanceRadiusWorld)
+					{
+						std::pair<double, const AppearanceSample *> entry(d, &x);
+						auto pos = std::lower_bound(near.begin(), near.end(), entry, order);
+						Tick(near.end() - pos);
+						near.insert(pos, entry);
+						if (near.size() > r.options.appearanceNeighbours)
+							near.pop_back();
+					}
+				}
+				for (const auto &entry : near)
+				{
+					const auto &x = *entry.second;
+					bool visible = entry.first < 1e-8, known = visible;
+					if (!visible)
+						Trace(p.positionWorld, x.positionWorld, false, x.surface, visible, known);
+					if (!known)
+					{
+						++out.work.appearanceUnknown;
+						diagnostic.issues |= AttributionVisibilityUnknown;
+						continue; // unknown support is absent, never a zero-valued
+								  // observation
+					}
 					if (visible)
 					{
-						double w = x.weight / (1 + d * d);
+						++out.work.appearanceVisible;
+						double w = x.weight / (1 + entry.first * entry.first);
 						rgb = rgb + V(x.value) * w;
 						weight += w;
 					}
+					else
+						++out.work.appearanceBlocked;
 				}
 				Need(weight > 0, Code::Unavailable, "No admissible appearance observations");
 				field.present = true;
@@ -811,7 +852,8 @@ struct Engine
 		{
 			out.asset.assessment.payloadsValidated = false;
 			out.asset.assessment.coverage.limitations.push_back(
-				"P01 fields are separately prepared; source-solver assessment is not blanket field "
+				"P01 fields are separately prepared; source-solver assessment is not "
+				"blanket field "
 				"payload certification");
 		}
 		out.topology = r.topology;
@@ -873,7 +915,34 @@ struct Engine
 															   : FieldMembership::Excluded;
 		if (s.route == Route::ObservationAppearance)
 		{
-			m.model = "observation-appearance/1";
+			m.model = "observation-appearance/2";
+			GeometryKey evidence;
+			evidence.F(r.options.appearanceRadiusWorld);
+			evidence.U(r.options.appearanceNeighbours);
+			evidence.F(r.options.appearanceMinimumValidationFraction);
+			for (const auto *samples : {&r.appearance, &r.appearanceValidation})
+			{
+				std::vector<const AppearanceSample *> ordered;
+				for (const auto &x : *samples)
+					ordered.push_back(&x);
+				std::sort(ordered.begin(), ordered.end(),
+						  [](const AppearanceSample *a, const AppearanceSample *b) {
+							  return a->id < b->id;
+						  });
+				evidence.U(ordered.size());
+				for (const auto *x : ordered)
+				{
+					evidence.U(x->id);
+					evidence.V(x->positionWorld);
+					evidence.V(x->value);
+					evidence.F(x->weight);
+					evidence.U(x->surface);
+				}
+			}
+			descriptor->provenance +=
+				"; immutable appearance evidence/policy sha256=" + Disk::Hex(evidence.Finish()) +
+				"; L0 encoded RGB proxy; no receiver-normal response or incoming "
+				"radiance";
 			m.directLocal = m.directSun = m.directSky = m.reflected = m.legacyAmbient =
 				FieldMembership::Unknown;
 			m.uncertainty |= AttributionRootsUnknown | AttributionProfileUnknown;
@@ -990,6 +1059,7 @@ Disk::Digest SourceIdentity(const ReconstructedLightingAsset &a)
 Error Build(const Request &r, const ReadContext &read, Artifact &out)
 {
 	out = {};
+	const auto started = std::chrono::steady_clock::now();
 	try
 	{
 		Need(!Cancelled(read), Code::Cancelled, "Field build cancelled");
@@ -1062,8 +1132,10 @@ Error Build(const Request &r, const ReadContext &read, Artifact &out)
 			for (const auto &x : r.appearanceValidation)
 			{
 				e.Tick();
-				Need(x.id && ids.insert(x.id).second && Energy(V(x.value)), Code::InvalidInput,
-					 "Appearance validation overlaps training IDs");
+				++out.work.appearanceValidationRequested;
+				Need(x.id && ids.insert(x.id).second && Energy(V(x.value)) &&
+						 Finite(x.positionWorld) && std::isfinite(x.weight) && x.weight > 0,
+					 Code::InvalidInput, "Appearance validation overlaps training IDs");
 				for (const auto &t : r.appearance)
 				{
 					e.Tick();
@@ -1071,26 +1143,45 @@ Error Build(const Request &r, const ReadContext &read, Artifact &out)
 						 "Appearance validation duplicates training position");
 				}
 				auto support = r.topology->Lookup(x.positionWorld, policy);
-				Need(support.status == Status::Ok, Code::Unavailable,
-					 "Independent appearance validation lacks geometry support");
+				if (support.status != Status::Ok)
+					continue;
 				V prediction;
+				bool available = true;
 				for (unsigned j = 0; j < support.count; ++j)
 				{
 					auto value = ValueAt(out.values, support.probes[j]);
-					Need(value, Code::Unavailable,
-						 "Independent appearance validation missing values");
+					if (!value)
+					{
+						available = false;
+						break;
+					}
 					prediction = prediction + VV(value->angular.sh[0]) *
 												  (support.weights[j] / std::sqrt(4 * pi));
 				}
+				if (!available)
+					continue;
+				++out.work.appearanceValidationAvailable;
 				V error = prediction - V(x.value);
-				se += Dot(error, error);
-				reference += Dot(V(x.value), V(x.value));
+				se += Dot(error, error) * x.weight;
+				reference += Dot(V(x.value), V(x.value)) * x.weight;
 				maximum = std::max(
 					maximum, std::max({std::abs(error.x), std::abs(error.y), std::abs(error.z)}));
 			}
-			Need(std::sqrt(se / std::max(reference, 1e-12)) <= r.options.maximumRelativeAngularRMSE,
+			if (out.work.appearanceValidationAvailable)
+				out.work.appearanceValidationRelativeRMSE = std::sqrt(se / std::max(reference, 1e-12));
+			Need(out.work.appearanceValidationAvailable > 0 &&
+					 double(out.work.appearanceValidationAvailable) /
+							 out.work.appearanceValidationRequested >=
+						 r.options.appearanceMinimumValidationFraction,
+				 Code::Unavailable,
+				 "Appearance independent-validation coverage below declared fraction");
+			Need(out.work.appearanceValidationRelativeRMSE <= r.options.maximumRelativeAngularRMSE,
 				 Code::Unavailable,
 				 "Appearance independent-validation error exceeds declared budget");
+			e.descriptor->provenance += "; validation available/requested=" +
+										std::to_string(out.work.appearanceValidationAvailable) +
+										"/" +
+										std::to_string(out.work.appearanceValidationRequested);
 		}
 		for (const auto &d : out.diagnostics)
 			if (d.state == ProbeState::Available)
@@ -1108,12 +1199,20 @@ Error Build(const Request &r, const ReadContext &read, Artifact &out)
 	}
 	catch (const Error &e)
 	{
+		auto work = out.work;
+		auto diagnostics = std::move(out.diagnostics);
 		out = {};
+		// Receipts survive rejection; no asset/descriptor/values can be prepared.
+		out.work = work;
+		out.work.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+		out.diagnostics = std::move(diagnostics);
 		return e;
 	}
 	catch (const std::bad_alloc &)
 	{
+		auto work = out.work;
 		out = {};
+		out.work = work;
 		return Failure(Code::MemoryLimit, "Field build allocation");
 	}
 }

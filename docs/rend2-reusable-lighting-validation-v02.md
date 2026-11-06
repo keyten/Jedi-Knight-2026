@@ -541,3 +541,12 @@ report.py --enforce writes all results and exits nonzero on any failed scientifi
 gate. run.py exits nonzero on failed/budget-exhausted phases. Without --enforce,
 report generation is a data-export operation, not physical-quality acceptance.
 The five additional Python checks include the no-implicit-game-launch contract.
+
+## X18 follow-up
+
+[Original-BSP appearance fields](rend2-legacy-appearance-x18.md) were independently
+evaluated on five stock maps in geometry-defined ROIs. Four partial L0 encoded
+RGB fields were admitted; missing support and failed regions remain explicit.
+These are conditional appearance proxies, not new stock physical source models,
+physical GI, incoming radiance or enabled renderer consumers. Original V02 results
+and its physical-source limitations remain unchanged.

@@ -10,7 +10,7 @@ namespace Core
 {
 namespace Fields
 {
-constexpr uint32_t kVersion = 2; // V01: payload binds frozen source geometry/photometry/configuration
+constexpr uint32_t kVersion = 3; // X18: bounded, independently assessed appearance support
 enum class Route
 {
 	SourceConditioned,
@@ -19,7 +19,8 @@ enum class Route
 struct Environment
 {
 	Id source = 0, dataset = 0;
-	Angular::Field incoming; // decoded directional distribution, NEVER inferred from mean RGB
+	Angular::Field incoming; // decoded directional distribution, NEVER inferred
+							 // from mean RGB
 	Disk::Digest content{};
 };
 struct EmitterSupport
@@ -32,6 +33,8 @@ struct AppearanceSample
 	Id id = 0;
 	Vec3 positionWorld, value;
 	double weight = 1;
+	Id surface = 0; // original StaticVisibility endpoint identity; 0 for volume
+					// observations
 	AppearanceSample() = default;
 	AppearanceSample(Id i, Vec3 p, Vec3 v, double w) : id(i), positionWorld(p), value(v), weight(w)
 	{
@@ -41,7 +44,8 @@ struct Passive
 {
 	std::shared_ptr<const Indirect::Transfer> transfer;
 	std::shared_ptr<const Indirect::Result> solution;
-	Disk::Digest sourceScene{}; // frozen source/configuration identity when E0 was prepared
+	Disk::Digest sourceScene{}; // frozen source/configuration identity when E0
+								// was prepared
 };
 struct Selection
 {
@@ -67,6 +71,8 @@ struct Options
 	double skyRayLengthWorld = 65536, maximumRelativeAngularRMSE = .08, absoluteErrorFloor = 1e-6,
 		   maximumWallSeconds = 300, appearanceRadiusWorld = 128;
 	bool allowConditionalStatic = false;
+	unsigned appearanceNeighbours = 32;
+	double appearanceMinimumValidationFraction = 1;
 };
 struct Request
 {
@@ -104,6 +110,9 @@ struct Work
 	uint64_t probes = 0, available = 0, rays = 0, traversal = 0, angularEvaluations = 0, bytes = 0,
 			 coefficients = 0;
 	double seconds = 0;
+	uint64_t appearanceVisible = 0, appearanceBlocked = 0, appearanceUnknown = 0;
+	uint64_t appearanceValidationRequested = 0, appearanceValidationAvailable = 0;
+	double appearanceValidationRelativeRMSE = 0;
 };
 struct Artifact
 {
@@ -117,10 +126,12 @@ struct Artifact
 	Work work;
 	bool partial = true;
 };
+// On failure only work/diagnostic receipts survive; no asset or values are published.
 Error Build(const Request &, const ReadContext &, Artifact &);
 Disk::Digest SourceIdentity(const ReconstructedLightingAsset &);
-// Actual passive first-bounce spatial lift uses rho*fixed-root E0/pi on original
-// disjoint patch triangles; scalar E1 is never inverted into angular radiance.
+// Actual passive first-bounce spatial lift uses rho*fixed-root E0/pi on
+// original disjoint patch triangles; scalar E1 is never inverted into angular
+// radiance.
 class Prepared final : public CpuEvaluator
 {
   public:

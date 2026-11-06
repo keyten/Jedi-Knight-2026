@@ -1,0 +1,489 @@
+{
+  "schema": "org.openjk.appearance-summary/1",
+  "maps": {
+    "hoth3": {
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_appearance_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x18-stock-v3\\hoth3.json"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 11.891000000061467,
+        "peak_process_rss_bytes": 98095104
+      },
+      "input": {
+        "map": "hoth3",
+        "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "dataset_sha256": "fdbf5351babdaf6a1b0e9d776a77d01f5396e82c5f3945ec46079e171385d613",
+        "dataset_bytes": 383228400
+      },
+      "rois": [
+        {
+          "ordinal": 0,
+          "admitted": false,
+          "reason": "Appearance independent-validation coverage below declared fraction",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 73,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.1066826581954956,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        },
+        {
+          "ordinal": 1,
+          "admitted": false,
+          "reason": "Insufficient independent folds",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 5,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.0661923885345459,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        },
+        {
+          "ordinal": 2,
+          "admitted": false,
+          "reason": "Appearance independent-validation error exceeds declared budget",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 108,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.18192064762115479,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        }
+      ],
+      "eligible_mapped_chart_area_fraction": 0.7124517208572934,
+      "exclusions": {
+        "mapping_or_side": 4404,
+        "material_style_encoding": 97897,
+        "nonplanar_or_moving": 32208
+      }
+    },
+    "hoth2": {
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_appearance_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth2\\all-pages.jkobs",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x18-stock-v3\\hoth2.json"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 5.937999999849126,
+        "peak_process_rss_bytes": 63815680
+      },
+      "input": {
+        "map": "hoth2",
+        "bsp_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+        "dataset_sha256": "39ee537e003f7aaac802b48e847f9e35afa0f37eb8379aa7baaca57df05fbbb0",
+        "dataset_bytes": 131790672
+      },
+      "rois": [
+        {
+          "ordinal": 0,
+          "admitted": false,
+          "reason": "Appearance independent-validation coverage below declared fraction",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 20,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.078022301197052,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        },
+        {
+          "ordinal": 1,
+          "admitted": false,
+          "reason": "Insufficient independent folds",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 2,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.8144023418426514,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        },
+        {
+          "ordinal": 2,
+          "admitted": false,
+          "reason": "Insufficient independent folds",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 2,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.6286550760269165,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        }
+      ],
+      "eligible_mapped_chart_area_fraction": 0.6205566641309942,
+      "exclusions": {
+        "mapping_or_side": 1626,
+        "material_style_encoding": 14824,
+        "nonplanar_or_moving": 19534
+      }
+    },
+    "vjun2": {
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_appearance_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-v4\\vjun2\\all-pages.jkobs",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x18-stock-v3\\vjun2.json"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 18.703999999910593,
+        "peak_process_rss_bytes": 144089088
+      },
+      "input": {
+        "map": "vjun2",
+        "bsp_sha256": "cf81f39198d71a6e5f0ecf9ed7b08382d76397674492934cb07057835c49a343",
+        "dataset_sha256": "ac37bef02c9034f2f8237118fb5b86d4a284eba9e73958c257ce6fdd0c6ceb55",
+        "dataset_bytes": 422778040
+      },
+      "rois": [
+        {
+          "ordinal": 0,
+          "admitted": true,
+          "reason": "",
+          "useful_on_scoped_surface_proxy": true,
+          "heldout_available": 40,
+          "heldout_requested": 128,
+          "selected_chart_area_fraction": 0.03584287776370069,
+          "geometry_volume_fraction": 0.3664281368255615,
+          "lighting_volume_fraction": 0.3092246651649475,
+          "common_domain": {
+            "constant": {
+              "requested": 40,
+              "available": 40,
+              "positive_targets_used": 40,
+              "selected_receiver_area": 1210.044647374241,
+              "supported_selected_area": 1210.044647374241,
+              "rmse_rgb8": 57.97172234138997,
+              "relative_rmse": 0.3756630749702361,
+              "max_channel_error": 154.44140625
+            },
+            "geometry_L0": {
+              "requested": 40,
+              "available": 40,
+              "positive_targets_used": 40,
+              "selected_receiver_area": 1210.044647374241,
+              "supported_selected_area": 1210.044647374241,
+              "rmse_rgb8": 29.818946714818942,
+              "relative_rmse": 0.19323002254954083,
+              "max_channel_error": 82.26554870605469
+            },
+            "legacy_grid_entity_proxy": {
+              "requested": 40,
+              "available": 40,
+              "positive_targets_used": 40,
+              "selected_receiver_area": 1210.044647374241,
+              "supported_selected_area": 1210.044647374241,
+              "rmse_rgb8": 152.62169061420266,
+              "relative_rmse": 0.9890051785187775,
+              "max_channel_error": 271.4546813964844
+            },
+            "nearest_surface": {
+              "requested": 40,
+              "available": 40,
+              "positive_targets_used": 40,
+              "selected_receiver_area": 1210.044647374241,
+              "supported_selected_area": 1210.044647374241,
+              "rmse_rgb8": 50.97711905028242,
+              "relative_rmse": 0.3303372838015586,
+              "max_channel_error": 195
+            }
+          }
+        },
+        {
+          "ordinal": 1,
+          "admitted": true,
+          "reason": "",
+          "useful_on_scoped_surface_proxy": true,
+          "heldout_available": 6,
+          "heldout_requested": 19,
+          "selected_chart_area_fraction": 0.481049068285177,
+          "geometry_volume_fraction": 0.10824966430664062,
+          "lighting_volume_fraction": 0.10438293218612671,
+          "common_domain": {
+            "constant": {
+              "requested": 6,
+              "available": 6,
+              "positive_targets_used": 6,
+              "selected_receiver_area": 6144,
+              "supported_selected_area": 6144,
+              "rmse_rgb8": 66.9367715134851,
+              "relative_rmse": 0.5019967655019925,
+              "max_channel_error": 118.68020629882812
+            },
+            "geometry_L0": {
+              "requested": 6,
+              "available": 6,
+              "positive_targets_used": 6,
+              "selected_receiver_area": 6144,
+              "supported_selected_area": 6144,
+              "rmse_rgb8": 40.999032383645265,
+              "relative_rmse": 0.307474967494586,
+              "max_channel_error": 83.58544921875
+            },
+            "legacy_grid_entity_proxy": {
+              "requested": 6,
+              "available": 6,
+              "positive_targets_used": 6,
+              "selected_receiver_area": 6144,
+              "supported_selected_area": 6144,
+              "rmse_rgb8": 65.99218598673387,
+              "relative_rmse": 0.49491278358222524,
+              "max_channel_error": 149.7894287109375
+            },
+            "nearest_surface": {
+              "requested": 6,
+              "available": 6,
+              "positive_targets_used": 6,
+              "selected_receiver_area": 6144,
+              "supported_selected_area": 6144,
+              "rmse_rgb8": 23.42837785440744,
+              "relative_rmse": 0.1757026763906842,
+              "max_channel_error": 54
+            }
+          }
+        },
+        {
+          "ordinal": 2,
+          "admitted": false,
+          "reason": "Appearance independent-validation coverage below declared fraction",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 15,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.3889949321746826,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        }
+      ],
+      "eligible_mapped_chart_area_fraction": 0.9277969003015206,
+      "exclusions": {
+        "mapping_or_side": 3564,
+        "material_style_encoding": 15036,
+        "nonplanar_or_moving": 14933
+      }
+    },
+    "mp/duel4": {
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_appearance_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x18-stock-v3\\mp_duel4.json"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 4.75,
+        "peak_process_rss_bytes": 77930496
+      },
+      "input": {
+        "map": "mp/duel4",
+        "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+        "dataset_sha256": "8173ddaa017c87dd4b341d240f95f6a99599f894d4164d0ab7902bc70b2ac3c5",
+        "dataset_bytes": 25475232
+      },
+      "rois": [
+        {
+          "ordinal": 0,
+          "admitted": true,
+          "reason": "",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 14,
+          "heldout_requested": 30,
+          "selected_chart_area_fraction": 0.5084511562510492,
+          "geometry_volume_fraction": 0.5693076252937317,
+          "lighting_volume_fraction": 0.20065975189208984,
+          "common_domain": {
+            "constant": {
+              "requested": 14,
+              "available": 14,
+              "positive_targets_used": 14,
+              "selected_receiver_area": 11264,
+              "supported_selected_area": 11264,
+              "rmse_rgb8": 59.62106267844805,
+              "relative_rmse": 0.4032899939418275,
+              "max_channel_error": 97.90740966796875
+            },
+            "geometry_L0": {
+              "requested": 14,
+              "available": 14,
+              "positive_targets_used": 14,
+              "selected_receiver_area": 11264,
+              "supported_selected_area": 11264,
+              "rmse_rgb8": 29.578594275642406,
+              "relative_rmse": 0.2000761236103165,
+              "max_channel_error": 83.1020736694336
+            },
+            "legacy_grid_entity_proxy": {
+              "requested": 14,
+              "available": 14,
+              "positive_targets_used": 14,
+              "selected_receiver_area": 11264,
+              "supported_selected_area": 11264,
+              "rmse_rgb8": 28.619541149203158,
+              "relative_rmse": 0.19358887712097494,
+              "max_channel_error": 70.27616882324219
+            },
+            "nearest_surface": {
+              "requested": 14,
+              "available": 14,
+              "positive_targets_used": 14,
+              "selected_receiver_area": 11264,
+              "supported_selected_area": 11264,
+              "rmse_rgb8": 35.92485543596854,
+              "relative_rmse": 0.24300363127157043,
+              "max_channel_error": 100
+            }
+          }
+        },
+        {
+          "ordinal": 1,
+          "admitted": true,
+          "reason": "",
+          "useful_on_scoped_surface_proxy": true,
+          "heldout_available": 42,
+          "heldout_requested": 88,
+          "selected_chart_area_fraction": 0.5183834145796318,
+          "geometry_volume_fraction": 0.45526695251464844,
+          "lighting_volume_fraction": 0.2434362769126892,
+          "common_domain": {
+            "constant": {
+              "requested": 42,
+              "available": 42,
+              "positive_targets_used": 42,
+              "selected_receiver_area": 34260.07734393497,
+              "supported_selected_area": 34260.07734393497,
+              "rmse_rgb8": 70.2780478079242,
+              "relative_rmse": 0.5682844788683716,
+              "max_channel_error": 178.27173614501953
+            },
+            "geometry_L0": {
+              "requested": 42,
+              "available": 42,
+              "positive_targets_used": 42,
+              "selected_receiver_area": 34260.07734393497,
+              "supported_selected_area": 34260.07734393497,
+              "rmse_rgb8": 50.03871359449954,
+              "relative_rmse": 0.40462456151332576,
+              "max_channel_error": 132.0794906616211
+            },
+            "legacy_grid_entity_proxy": {
+              "requested": 42,
+              "available": 42,
+              "positive_targets_used": 42,
+              "selected_receiver_area": 34260.07734393497,
+              "supported_selected_area": 34260.07734393497,
+              "rmse_rgb8": 102.72055783823969,
+              "relative_rmse": 0.8306220861415341,
+              "max_channel_error": 212
+            },
+            "nearest_surface": {
+              "requested": 42,
+              "available": 42,
+              "positive_targets_used": 42,
+              "selected_receiver_area": 34260.07734393497,
+              "supported_selected_area": 34260.07734393497,
+              "rmse_rgb8": 52.96742035485228,
+              "relative_rmse": 0.4283067588278287,
+              "max_channel_error": 146
+            }
+          }
+        },
+        {
+          "ordinal": 2,
+          "admitted": false,
+          "reason": "Appearance independent-validation coverage below declared fraction",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 24,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.1989954113960266,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        }
+      ],
+      "eligible_mapped_chart_area_fraction": 0.69484143879268,
+      "exclusions": {
+        "mapping_or_side": 616,
+        "material_style_encoding": 1740,
+        "nonplanar_or_moving": 6524
+      }
+    },
+    "t1_danger": {
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_appearance_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\t1_danger\\home\\rend2\\lightrecon\\v1\\observations\\t1_danger_all.jkobs",
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x18-stock-v3\\t1_danger.json"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 24.983999999938533,
+        "peak_process_rss_bytes": 45600768
+      },
+      "input": {
+        "map": "t1_danger",
+        "bsp_sha256": "6a24f3cd86d93766034fd064be480cd3f3e70cd512733c9826ecbc64cc444ca3",
+        "dataset_sha256": "e92302cfceace6627aede38d5be1f04333586ffa51b03d3dfda7d83c375b550c",
+        "dataset_bytes": 896223176
+      },
+      "rois": [
+        {
+          "ordinal": 0,
+          "admitted": false,
+          "reason": "Topology unavailable: Probe count budget",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 148,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.0,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        },
+        {
+          "ordinal": 1,
+          "admitted": false,
+          "reason": "Appearance independent-validation error exceeds declared budget",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 104,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.7789233326911926,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        },
+        {
+          "ordinal": 2,
+          "admitted": false,
+          "reason": "Appearance independent-validation coverage below declared fraction",
+          "useful_on_scoped_surface_proxy": false,
+          "heldout_available": 0,
+          "heldout_requested": 51,
+          "selected_chart_area_fraction": 0.0,
+          "geometry_volume_fraction": 0.38756632804870605,
+          "lighting_volume_fraction": 0.0,
+          "common_domain": {}
+        }
+      ],
+      "eligible_mapped_chart_area_fraction": 0.42481096843079125,
+      "exclusions": {
+        "mapping_or_side": 691,
+        "material_style_encoding": 368470,
+        "nonplanar_or_moving": 3975
+      }
+    }
+  },
+  "physical_source_models": 0,
+  "physical_irradiance_fields": 0,
+  "incoming_radiance_fields": 0,
+  "consumers_enabled": 0,
+  "scope": "Three geometry-defined ROIs per map, overlapping ROIs are not independent map coverage"
+}

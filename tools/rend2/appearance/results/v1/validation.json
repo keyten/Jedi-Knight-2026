@@ -1,0 +1,143 @@
+{
+  "schema": "org.openjk.appearance-validation/1",
+  "cpu": {
+    "passed": 45,
+    "failed": 0,
+    "seconds": 221.4
+  },
+  "controlled": {
+    "schema": "org.openjk.field-builder-results.v1",
+    "semantic": {
+      "schema": "org.openjk.field-builder-test.v1",
+      "checks": 12104,
+      "failures": 0,
+      "point_relative_error": 0.0151995,
+      "spot_relative_error": 0.0151995,
+      "rectangle_relative_error": 0.0132291,
+      "tube_relative_error": 0.0203436,
+      "sky_irradiance_available": 64,
+      "sky_radiance_available": 64,
+      "red_bounce_ratio": 16,
+      "bounce_heldout_used": 30,
+      "bounce_heldout_unavailable": 0,
+      "bounce_heldout_relative_rmse": 0.396277,
+      "fine_bounce_heldout_used": 30,
+      "fine_bounce_heldout_unavailable": 0,
+      "fine_bounce_heldout_relative_rmse": 0.0634251,
+      "fine_bounce_probes": 512,
+      "fine_bounce_requested_probes": 512,
+      "fine_bounce_rays": 32768,
+      "sky_irradiance_absolute_error": 8.74228e-08,
+      "sky_radiance_absolute_error": 0,
+      "point_probes": 8,
+      "point_maximum_angular_rmse": 0.0447185,
+      "point_maximum_energy_bias": 0.0017045,
+      "point_rays": 16,
+      "point_bytes": 7640,
+      "point_integration_work": 4856,
+      "point_traversal_work": 0,
+      "point_geometry_volume": 64,
+      "point_lighting_volume": 64,
+      "sky_irradiance_rays": 26624,
+      "sky_radiance_rays": 45056,
+      "passive_rays": 2304,
+      "point_archive_sha256": "7e7edf0a419ed9a78687745d9d68a6f54f5bf2e54124e885de3b3205118ff528",
+      "point_topology_sha256": "93313b9cefd387dbeae21fc2ae324ff83d1fb6df106d2c7191796f2f826a0e17",
+      "point_scene_sha256": "f3f84ad3930f62bb04d0304752287288d4d6f38b8654e544dd26b05d6a154bf9",
+      "l2_rejected_probes": 8,
+      "wall_blocked_checks": 32,
+      "positive_opening_checks": 12,
+      "partial_area_relative_error": 0.0422495,
+      "partial_area_fraction": 0.406098,
+      "heldout_used": 720,
+      "heldout_unavailable": 1080,
+      "heldout_relative_rmse": 0.267419,
+      "archive_bytes": 16000,
+      "appearance_wall_leak": 0
+    },
+    "resources": [
+      {
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.5722751999273896,
+        "cpu_seconds": 1.078125,
+        "peak_rss_bytes": 11550720
+      },
+      {
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.0903509000781924,
+        "cpu_seconds": 1.078125,
+        "peak_rss_bytes": 11554816
+      }
+    ],
+    "repeat_identical": true,
+    "missing_is_zero": false
+  },
+  "python_tests": 19,
+  "renderer_dlls": {
+    "rdsp-rend2_x86_64.dll": {
+      "sha256": "5c0a76bc16a1e6726bf43699887ee5c9602b3bbda1d94cae67d499a23f4db0a7",
+      "bytes": 5735424
+    },
+    "rd-rend2_x86_64.dll": {
+      "sha256": "052f40c6a7e520af8c06e920a21be4890f88bb66cdfcac20c2adc02a0bfe345f",
+      "bytes": 5704704
+    }
+  },
+  "disabled_shader_current_vs_X17": {
+    "schema": "org.openjk.producer-disabled-path.v1",
+    "revision": "ad6a7395a",
+    "source_differences": 0,
+    "programs": 27,
+    "gpu_compiled": true,
+    "driver": [
+      "Intel",
+      "Intel(R) UHD Graphics",
+      "3.2.0 - Build 27.20.100.8280"
+    ],
+    "historical_baseline_passed": false,
+    "historical_baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a",
+    "note": "Historical frozen baseline drift is reported separately; source revision comparison never rewrites it"
+  },
+  "historical_shader_baseline": {
+    "passed": false,
+    "programs": 27,
+    "stages": 51,
+    "gpu_compiled": true,
+    "driver": [
+      "Intel",
+      "Intel(R) UHD Graphics",
+      "3.2.0 - Build 27.20.100.8280"
+    ],
+    "gpu_interface_comparison": "matching-driver baseline compared",
+    "production_dependency_audit": "passed",
+    "differences": 7278,
+    "baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a"
+  },
+  "receipts_only_change_preserved_v2_numerical_results": true,
+  "stock_repeat": {
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_appearance_tool.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x18-stock-v3\\mp_duel4-repeat.json"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 4.547000000020489,
+      "peak_process_rss_bytes": 77963264
+    },
+    "semantic_equal": true
+  },
+  "statically_verified_query_links": 696,
+  "blocked_supported_links": 0,
+  "unknown_supported_links": 0,
+  "logs": {
+    "x18-ctest-final.log": "a4a1ea6ec6916cb41b8ded8d348419728d8deda3161731bd12a3fcf76bdd830a",
+    "x18-python-final.log": "0b755a2ca0a16e1842d9ed047993273e84b049870794758cdc94fecfc1f5a094",
+    "x18-renderers-final.log": "4431255135f53d8fcecf7d65c74ed29e2266b4d85be15c337037c65500467913"
+  },
+  "game_launched": false,
+  "runtime_consumers_enabled": false
+}

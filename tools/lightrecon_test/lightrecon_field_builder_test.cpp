@@ -387,7 +387,8 @@ int main(int argc, char **argv)
 			shapeErrors[shapeAt++] = relative;
 			CHECK(relative < .12);
 		}
-		// Physical sky must reach retained sky geometry, never a no-hit-to-infinity fallback.
+		// Physical sky must reach retained sky geometry, never a no-hit-to-infinity
+		// fallback.
 		Rig sky;
 		auto b = sky.scene.domain->world;
 		sky.scene.Quad(Vec3(-2, -2, 4), Vec3(2, -2, 4), Vec3(2, 2, 4), Vec3(-2, 2, 4), MaterialSky);
@@ -475,7 +476,8 @@ int main(int argc, char **argv)
 		CHECK(sunSky.work.available > 0);
 		CHECK(sunSky.descriptor->membership.directSun == FieldMembership::Included &&
 			  sunSky.descriptor->membership.directSky == FieldMembership::Included);
-		// Explicitly approximate encoded appearance. No physical capability or root separation.
+		// Explicitly approximate encoded appearance. No physical capability or root
+		// separation.
 		Rig appearance;
 		appearance.scene.Solid(Box(Vec3(-.05f, -2, 0), Vec3(.05f, 2, 4)));
 		appearance.Rebuild();
@@ -507,6 +509,58 @@ int main(int argc, char **argv)
 		CHECK(manager.Acquire().SampleIndirect(iq).status == Status::Unavailable);
 		CHECK(app.asset.transport.back().quantity == FieldQuantity::ApproximateAppearance);
 		CHECK(app.descriptor->membership.addition == CompositionRule::Forbidden);
+		CHECK(!app.descriptor->membership.rootsComplete &&
+			  !app.descriptor->membership.reflectionOrderKnown);
+		CHECK(app.work.appearanceValidationRequested == 2 &&
+			  app.work.appearanceValidationAvailable == 2);
+		// X18: sparse independent support has an explicit denominator. Missing is
+		// never filled with black; the default still requires complete validation.
+		auto sparseAppearance = aq;
+		sparseAppearance.appearanceValidation.push_back(
+			{103, Vec3(100, 100, 100), Vec3(10, 10, 10), 1});
+		F::Artifact sparseResult;
+		CHECK(F::Build(sparseAppearance, ReadContext(), sparseResult).code == Code::Unavailable);
+		CHECK(sparseResult.work.appearanceValidationRequested == 3 &&
+			  sparseResult.work.appearanceValidationAvailable == 2 && sparseResult.work.rays > 0);
+		CHECK(!sparseResult.descriptor && sparseResult.values.records.empty() &&
+			  sparseResult.asset.transport.empty());
+		sparseAppearance.options.appearanceMinimumValidationFraction = .5;
+		CHECK(F::Build(sparseAppearance, ReadContext(), sparseResult));
+		CHECK(sparseResult.work.appearanceValidationRequested == 3 &&
+			  sparseResult.work.appearanceValidationAvailable == 2);
+		auto reorderedAppearance = aq;
+		std::reverse(reorderedAppearance.appearance.begin(), reorderedAppearance.appearance.end());
+		std::reverse(reorderedAppearance.appearanceValidation.begin(),
+					 reorderedAppearance.appearanceValidation.end());
+		auto reorderedApp = Build(reorderedAppearance);
+		CHECK(reorderedApp.chunks.size() == app.chunks.size());
+		for (size_t j = 0; j < app.chunks.size(); ++j)
+			CHECK(reorderedApp.chunks[j].bytes == app.chunks[j].bytes);
+		F::Artifact loadedAppearance;
+		CHECK(F::Decode(app.asset, app.chunks, 1000, appearance.topology->GeometryKey(),
+						ReadContext(), loadedAppearance));
+		auto loadedBright = Sample(loadedAppearance, Vec3(1, -1, 1));
+		CHECK(loadedBright.value.x == bright.value.x &&
+			  loadedBright.descriptor->quantity == ConditionalQuantity::LegacyAppearance &&
+			  loadedBright.descriptor->unit == PhotometricUnit::Relative);
+		auto allAbsent = sparseAppearance;
+		allAbsent.appearanceValidation.erase(allAbsent.appearanceValidation.begin(),
+											 allAbsent.appearanceValidation.begin() + 2);
+		CHECK(F::Build(allAbsent, ReadContext(), sparseResult).code == Code::Unavailable);
+		auto unsupportedRoom = aq;
+		unsupportedRoom.appearance.erase(unsupportedRoom.appearance.begin() + 1);
+		unsupportedRoom.appearanceValidation.erase(unsupportedRoom.appearanceValidation.begin() + 1);
+		auto leftOnly = Build(unsupportedRoom);
+		CHECK(F::Prepare(leftOnly, ReadContext(), p));
+		ConditionalFieldQuery noSupport;
+		noSupport.optIn = true;
+		noSupport.field.id = 1000;
+		noSupport.quantity = ConditionalQuantity::LegacyAppearance;
+		noSupport.positionWorld = Vec3(1, -1, 1);
+		noSupport.directionOrNormalWorld = Vec3(0, 0, 1);
+		ConditionalFieldSample noValue;
+		CHECK(p->ConditionalField(leftOnly.asset, noSupport, noValue) == Status::Unavailable);
+		CHECK(Sample(app, Vec3(1, -1, 1), Vec3(0, 0, -1)).value.x == bright.value.x);
 		Attribution::Component appearanceComponent;
 		appearanceComponent.field = true;
 		appearanceComponent.dataset = 1001;
@@ -536,7 +590,8 @@ int main(int argc, char **argv)
 		auto physicalGI = manager.Acquire().SampleIndirect(iq);
 		CHECK(physicalGI && physicalGI.value.unit == PhotometricUnit::Lux);
 		CHECK(manager.Acquire().SampleIncomingRadiance(rq).status == Status::Unavailable);
-		// Independent positions and dense area quadrature for the same rho*E0/pi patch.
+		// Independent positions and dense area quadrature for the same rho*E0/pi
+		// patch.
 		auto reflector = Emitter(99, EmitterKind::Rectangle, Vec3(0, 0, 4),
 								 Vec3(float(80 / 3.141592653589793), float(5 / 3.141592653589793),
 									  float(5 / 3.141592653589793)));
@@ -716,6 +771,18 @@ int main(int argc, char **argv)
 				positiveOpening += x.value.x > 0;
 			}
 		CHECK(positiveOpening > 0);
+		// Appearance support may pass a real opening without inventing a lamp or
+		// claiming that the copied scalar proxy is directional incident radiance.
+		Rig wideDoor;
+		wideDoor.scene.Solid(Box(Vec3(-.05f, -2, 0), Vec3(.05f, -1.2f, 4)));
+		wideDoor.scene.Solid(Box(Vec3(-.05f, 1.2f, 0), Vec3(.05f, 2, 4)));
+		wideDoor.Rebuild();
+		auto appearanceDoor = wideDoor.Request();
+		appearanceDoor.selection = aq.selection;
+		appearanceDoor.appearance = {{1, Vec3(-1, 0, 1), Vec3(120, 40, 10), 1}};
+		appearanceDoor.appearanceValidation = {{2, Vec3(1, 0, 1), Vec3(120, 40, 10), 1}};
+		auto appearanceOpening = Build(appearanceDoor);
+		CHECK(Sample(appearanceOpening, Vec3(1, 0, 1)).value.x == 120);
 		Rig partial;
 		partial.scene.Solid(Box(Vec3(-.05f, -2, 2), Vec3(.05f, 2, 4)));
 		partial.Rebuild();
@@ -837,7 +904,8 @@ int main(int argc, char **argv)
 		}
 		double spatialRelativeRMSE = std::sqrt(spatialSE / spatialReference);
 		CHECK(heldoutUsed > 0 && spatialSE < blackSE);
-		// Canonical container persistence, not just an in-memory Angular round-trip.
+		// Canonical container persistence, not just an in-memory Angular
+		// round-trip.
 		Disk::Fingerprint fp;
 		fp.algorithm = "org.openjk.field-builder-test";
 		fp.algorithmVersion = 1;

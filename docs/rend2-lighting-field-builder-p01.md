@@ -1,5 +1,9 @@
 # P01 — prepared CPU spatial lighting fields
 
+X18 follow-up: [independent stock appearance-field evaluation](rend2-legacy-appearance-x18.md)
+reuses the conditional observation route. Its L0 encoded RGB proxies remain
+separate from P01 physical irradiance/radiance; derived field codec version is now 3.
+
 ## Result and scope
 
 P01 implements the second architecture layer: offline canonical-source evaluation,
