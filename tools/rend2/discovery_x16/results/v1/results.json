@@ -1,0 +1,4834 @@
+{
+  "schema": "org.openjk.discovery-x16-results/1",
+  "policy": {
+    "schema": "org.openjk.blind-discovery-policy-x16/6",
+    "parent_revision": "785bf36ed",
+    "frozen_date": "2026-11-04",
+    "input": "Original frozen V02 bridge-v2 BSP/public geometry/train/validation/heldout; no rebake or repartition",
+    "variants": [
+      "direct",
+      "passive_bounce1"
+    ],
+    "proposal_comparison": {
+      "same_original_training_requests": true,
+      "new_axes": "one original brightness-centroid seed and one brightness-weighted receiver-normal seed per position; both historical 128/64 target/radius; no answer axis",
+      "refinement": "up to four unique positions per kind, eight shared slots; same 384-node/ray/call/memory caps, kind round robin",
+      "max_nodes_per_area": 384,
+      "coarse_divisions": 4,
+      "rounds": 2,
+      "samples_per_area": 64,
+      "max_forward_calls": 100000,
+      "max_rays": 2000000,
+      "max_work": 64000000,
+      "max_bytes": 67108864,
+      "retained_per_channel_profile": 4,
+      "equal_caps_not_equal_spent_work": true
+    },
+    "catalog": {
+      "max_admitted": 16,
+      "per_shard_kind": 2,
+      "selection": "training shape-score ranks within source-kind and shard; round-robin shard/kind tickets; geometry plausibility checked by Joint",
+      "merge": "same candidate identity only; spatially nearby proposals remain alternatives with unknown source identity",
+      "point_spot_family": "same sampled pose as numerical type alternative, not certified lamp identity",
+      "finite": "Exact original planar faces; full-edge, same-material connectivity gives separate conditional assembly alternatives, never a global glow family. Full nonplanar prism remains unsupported.",
+      "profiles": "inverse-square and linear evaluated separately, never concatenated source energies"
+    },
+    "joint": {
+      "max_models": 128,
+      "max_sources": 8,
+      "rounds": 3,
+      "beam_width": 2,
+      "amplitude_sweeps": 2,
+      "amplitude_line_steps": 12,
+      "geometry_sweeps": 1,
+      "geometry": true,
+      "max_evaluations": 200000,
+      "max_rays": 12000000,
+      "max_work": 1000000000,
+      "max_bytes": 134217728,
+      "process_seconds": 600,
+      "maximum_required_block_rmse": 2,
+      "complexity_per_source": 0.001,
+      "complexity_per_parameter": 0.0001,
+      "missing_predictions_allowed": 0,
+      "heldout": "same frozen V02 geometry and values; only score once model parameters freeze"
+    },
+    "admission": {
+      "proposal_distance_world": 32,
+      "type_angle_degrees": 10,
+      "cone_degrees": 10,
+      "dimensions_relative": 0.25,
+      "required_local_roots": 3,
+      "final_interval_mse": 1,
+      "final_black_ratio_max": 0.02,
+      "absolute_photometry": "Unavailable",
+      "prism_recall": "Separate unsupported source-kind coverage, never counted in three-local-root success"
+    },
+    "ablations": [
+      "frozen-four-point",
+      "kind-aware-original-proposals",
+      "kind-aware-new-proposals",
+      "geometry-refinement-off",
+      "type-alternatives",
+      "source-add-remove"
+    ],
+    "renderer_consumers": false,
+    "game_launches": false,
+    "no_heldout_tuning": true,
+    "previous_revision": "v5 numerical search unchanged; after Solve freezes, at most three alternatives in existing validation order receive full parameter export and independent final diagnostic predictions. No held-out model reselection.",
+    "heldout_values_read_for_revision": false,
+    "revision_date": "2026-11-06",
+    "previous_revision_joint": "v2 16-kind catalog entered 77-81 models before mandatory 12M ray limit; all budget failures retained",
+    "revised_schedule": "Coarse bounded two-sweep nonlinear fits for all source alternatives; same strict reevaluation and independent acceptance; incomplete amplitude convergence stays partial",
+    "additional_ablation": "Export legacy4 and legacy8 exact historical target/radius with the new read-only adapter, to separate refinement budget from normal-axis benefit",
+    "baseline_adapter_scope": "Frozen old binary reproduces V02; legacy4 current binary reproduces geometry but preserves omitted old spot recipe values for fair downstream kind comparison",
+    "frozen_diagnostics": {
+      "max_alternatives": 3,
+      "order": "Existing validation order before final targets",
+      "selection_changed": false,
+      "work": "Reported separately from fitting"
+    }
+  },
+  "variants": {
+    "direct": {
+      "input_hashes": {
+        "views/inputs/train.jsonl": "226aac37fb7a5c76bdf17b36a54d4c749238a2de421e4e7059fe49ef2111510e",
+        "views/inputs/geometry.jkobs": "b777ea5a659daaebd9b8e8eb170b0a9a85eb91b1468382f55cf61b2a80b3cee9",
+        "views/evaluator/validation.jsonl": "814e9ddb76f2d85273e9c7bff66767b588f5cb78e4c2a6f9fa1765f4eb34ca15",
+        "views/evaluator/heldout.jsonl": "84e430b322b5a6ceeceba395a970499f774a45423628e71c45b3c33b2af31dae",
+        "recipe.json": "e9d53207fa9f4ba43b58c0cbe1a75844e9ea9635e94bcb427e7536fea540228c"
+      },
+      "labels": {
+        "baseline": {
+          "candidates": 208,
+          "by_kind": {
+            "0": 108,
+            "1": 100
+          },
+          "nearest": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": "16381765784974967246",
+              "axis_error_degrees": null,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 11.803071634112877,
+              "candidate": "1811676258873739203",
+              "axis_error_degrees": null,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 74.34253493122225,
+              "candidate": "8080030027197206336",
+              "axis_error_degrees": null,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "typed_nearest": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": "16381765784974967246",
+              "axis_error_degrees": null,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 11.803071634112877,
+              "candidate": "1811676258873739203",
+              "axis_error_degrees": null,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 87.13100768383205,
+              "candidate": "9047481566821907213",
+              "axis_error_degrees": 16.587984952070727,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "proposal_recall": 0.6666666666666666,
+          "far_from_all_local_roots": 188,
+          "final_physical_false_positives": null,
+          "photometry": null,
+          "work": {
+            "forward_calls": 24936,
+            "rays": 146640,
+            "work": 4654202
+          },
+          "accounted_job_peak_bytes": 11385344,
+          "nodes": 1400,
+          "job_counts": {
+            "Proposed": 7,
+            "NoSupportedEvidence": 1
+          },
+          "admitted": {
+            "0": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 6.269968101992227,
+                  "candidate": "1208187070533863751",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 23.017656266440333,
+                  "candidate": "9364145959001336776",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "7189391254875944022",
+                  "axis_error_degrees": 29.379633839970374,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 6.269968101992227,
+                  "candidate": "1208187070533863751",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 23.017656266440333,
+                  "candidate": "9364145959001336776",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "7189391254875944022",
+                  "axis_error_degrees": 29.379633839970374,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            },
+            "1": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 22.788429081443944,
+                  "candidate": "10277277444527729018",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 23.017656266440333,
+                  "candidate": "10562619059006515559",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 88.35333892955036,
+                  "candidate": "5563586232461796736",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 67.46295279633111,
+                  "candidate": "4236557418618687901",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 112.27199116431488,
+                  "candidate": "14603266866691279601",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "7311266521527233086",
+                  "axis_error_degrees": 29.379633839970374,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            }
+          }
+        },
+        "legacy_adapter": {
+          "candidates": 208,
+          "by_kind": {
+            "0": 108,
+            "1": 100
+          },
+          "nearest": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": "1208187070533863751",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 11.803071634112877,
+              "candidate": "18073287805428567869",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 74.34253493122225,
+              "candidate": "15470869610979556887",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "typed_nearest": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": "1208187070533863751",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 11.803071634112877,
+              "candidate": "18073287805428567869",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 87.13100768383205,
+              "candidate": "17952945410791804747",
+              "axis_error_degrees": 16.587984952070727,
+              "radius": 128,
+              "target": 128,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "proposal_recall": 0.6666666666666666,
+          "far_from_all_local_roots": 188,
+          "final_physical_false_positives": null,
+          "photometry": null,
+          "work": {
+            "forward_calls": 24936,
+            "rays": 146640,
+            "work": 4654202
+          },
+          "accounted_job_peak_bytes": 11409920,
+          "nodes": 1400,
+          "job_counts": {
+            "Proposed": 7,
+            "NoSupportedEvidence": 1
+          },
+          "admitted": {
+            "0": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 6.269968101992227,
+                  "candidate": "1208187070533863751",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 23.017656266440333,
+                  "candidate": "9364145959001336776",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "7189391254875944022",
+                  "axis_error_degrees": 29.379633839970374,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 6.269968101992227,
+                  "candidate": "1208187070533863751",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 23.017656266440333,
+                  "candidate": "9364145959001336776",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "7189391254875944022",
+                  "axis_error_degrees": 29.379633839970374,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            },
+            "1": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 22.788429081443944,
+                  "candidate": "10277277444527729018",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 23.017656266440333,
+                  "candidate": "10562619059006515559",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 88.35333892955036,
+                  "candidate": "5563586232461796736",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 67.46295279633111,
+                  "candidate": "4236557418618687901",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 112.27199116431488,
+                  "candidate": "14603266866691279601",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "7311266521527233086",
+                  "axis_error_degrees": 29.379633839970374,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            }
+          }
+        },
+        "budgetmatched": {
+          "candidates": 215,
+          "by_kind": {
+            "0": 113,
+            "1": 102
+          },
+          "nearest": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": "17317222453813036830",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 11.803071634112877,
+              "candidate": "4235948420589669711",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 74.34253493122225,
+              "candidate": "5707459483149446893",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "typed_nearest": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": "17317222453813036830",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 11.803071634112877,
+              "candidate": "4235948420589669711",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 93.63125813530436,
+              "candidate": "18056870455692827451",
+              "axis_error_degrees": 23.202613143560285,
+              "radius": 128,
+              "target": 128,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "proposal_recall": 0.6666666666666666,
+          "far_from_all_local_roots": 195,
+          "final_physical_false_positives": null,
+          "photometry": null,
+          "work": {
+            "forward_calls": 34160,
+            "rays": 203136,
+            "work": 6520368
+          },
+          "accounted_job_peak_bytes": 11409920,
+          "nodes": 1912,
+          "job_counts": {
+            "Proposed": 7,
+            "NoSupportedEvidence": 1
+          },
+          "admitted": {
+            "0": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 6.269968101992227,
+                  "candidate": "17317222453813036830",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 14.484905936870975,
+                  "candidate": "12904157343292670917",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "17810762129688093225",
+                  "axis_error_degrees": 29.379633839970374,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 6.269968101992227,
+                  "candidate": "17317222453813036830",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 14.484905936870975,
+                  "candidate": "12904157343292670917",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "17810762129688093225",
+                  "axis_error_degrees": 29.379633839970374,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            },
+            "1": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 22.788429081443944,
+                  "candidate": "16280395705811858296",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 23.017656266440333,
+                  "candidate": "12833149170794134083",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 88.35333892955036,
+                  "candidate": "6066531642843902913",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 34.31198770109362,
+                  "candidate": "16792169760842433132",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 73.29264969967998,
+                  "candidate": "11415224701227404314",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "11720263647984390349",
+                  "axis_error_degrees": 29.379633839970374,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            }
+          }
+        },
+        "new": {
+          "candidates": 194,
+          "by_kind": {
+            "0": 110,
+            "1": 84
+          },
+          "nearest": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": "15907575036214923309",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 11.803071634112877,
+              "candidate": "13808813188527239090",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 11.800423721205947,
+              "candidate": "9238665001017729196",
+              "axis_error_degrees": 0.0,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "typed_nearest": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": "15907575036214923309",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 11.803071634112877,
+              "candidate": "13808813188527239090",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 11.800423721205947,
+              "candidate": "9238665001017729196",
+              "axis_error_degrees": 0.0,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "proposal_recall": 1.0,
+          "far_from_all_local_roots": 176,
+          "final_physical_false_positives": null,
+          "photometry": null,
+          "work": {
+            "forward_calls": 34436,
+            "rays": 215376,
+            "work": 6990976
+          },
+          "accounted_job_peak_bytes": 11409920,
+          "nodes": 2024,
+          "job_counts": {
+            "Proposed": 7,
+            "NoSupportedEvidence": 1
+          },
+          "admitted": {
+            "0": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 6.269968101992227,
+                  "candidate": "15907575036214923309",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 23.017656266440333,
+                  "candidate": "12944862748354431589",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 12.700885795880538,
+                  "candidate": "10453497897944401719",
+                  "axis_error_degrees": 0.0,
+                  "radius": 64,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 6.269968101992227,
+                  "candidate": "15907575036214923309",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 23.017656266440333,
+                  "candidate": "12944862748354431589",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 12.700885795880538,
+                  "candidate": "10453497897944401719",
+                  "axis_error_degrees": 0.0,
+                  "radius": 64,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            },
+            "1": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 34.31198770109362,
+                  "candidate": "4206066192468541490",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 85.39211029129096,
+                  "candidate": "2969994166684865609",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 12.700885795880538,
+                  "candidate": "18427511873678457786",
+                  "axis_error_degrees": 0.0,
+                  "radius": 64,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 34.31198770109362,
+                  "candidate": "4206066192468541490",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 85.39211029129096,
+                  "candidate": "2969994166684865609",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 12.700885795880538,
+                  "candidate": "18427511873678457786",
+                  "axis_error_degrees": 0.0,
+                  "radius": 64,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            }
+          }
+        }
+      },
+      "last_shard_selected": 34,
+      "last_shard_positive": 19,
+      "last_shard_normals": {
+        "[-0.0, -0.0, 1.0]": 20,
+        "[-0.0, -1.0, -0.0]": 1,
+        "[0.0, -0.0, 1.0]": 5,
+        "[-0.0, -1.0, 0.0]": 8
+      },
+      "final_count_precision": null,
+      "prism": "Exact planar-face alternatives only; no complete multipart source model/count calibration"
+    },
+    "passive_bounce1": {
+      "input_hashes": {
+        "views/inputs/train.jsonl": "e6bdd9d9848ef3645589a0013c576291a9196e03a5779eb7af9de10322440ca5",
+        "views/inputs/geometry.jkobs": "e48a7ffb792a3478dea64416f33385857d9ee354066f8b588bcd2981c454e1a2",
+        "views/evaluator/validation.jsonl": "0fbd1de2d61f03aef0eef62eb2c7e4dfbf87f2f4093fbe56f6822cf9ae894753",
+        "views/evaluator/heldout.jsonl": "f754226dfd3037fed58a04852f26bb9b1112290b199ad4e5baf9c634f93e5754",
+        "recipe.json": "f5fdfe0f2c9b221f7e4e9cd290fe2c782f984beeaa14fcc911751b5166322b79"
+      },
+      "labels": {
+        "baseline": {
+          "candidates": 218,
+          "by_kind": {
+            "0": 108,
+            "1": 110
+          },
+          "nearest": [
+            {
+              "kind": "point",
+              "distance": 22.788429081443944,
+              "candidate": "9582883242121994632",
+              "axis_error_degrees": null,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 21.43157717014779,
+              "candidate": "14728979445267192043",
+              "axis_error_degrees": null,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 75.67570614140314,
+              "candidate": "3574778008054723512",
+              "axis_error_degrees": 25.28610316573623,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "typed_nearest": [
+            {
+              "kind": "point",
+              "distance": 22.788429081443944,
+              "candidate": "9582883242121994632",
+              "axis_error_degrees": null,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 21.43157717014779,
+              "candidate": "14728979445267192043",
+              "axis_error_degrees": null,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 75.67570614140314,
+              "candidate": "3574778008054723512",
+              "axis_error_degrees": 25.28610316573623,
+              "radius": null,
+              "target": null,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "proposal_recall": 0.6666666666666666,
+          "far_from_all_local_roots": 209,
+          "final_physical_false_positives": null,
+          "photometry": null,
+          "work": {
+            "forward_calls": 26144,
+            "rays": 162456,
+            "work": 5188134
+          },
+          "accounted_job_peak_bytes": 11385344,
+          "nodes": 1480,
+          "job_counts": {
+            "Proposed": 8
+          },
+          "admitted": {
+            "0": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "10207059194122801918",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "6884020356616111443",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "16363358945258273468",
+                  "axis_error_degrees": 33.78402964556267,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "10207059194122801918",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "6884020356616111443",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "16363358945258273468",
+                  "axis_error_degrees": 33.78402964556267,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            },
+            "1": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "15962362868163690394",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "9301016787862596530",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 89.02246907382428,
+                  "candidate": "2553313168825193709",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 79.3713581841712,
+                  "candidate": "10966240743458718258",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 90.26800374440548,
+                  "candidate": "871332766840529230",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "11584607482029941802",
+                  "axis_error_degrees": 33.78402964556267,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            }
+          }
+        },
+        "legacy_adapter": {
+          "candidates": 218,
+          "by_kind": {
+            "0": 108,
+            "1": 110
+          },
+          "nearest": [
+            {
+              "kind": "point",
+              "distance": 22.788429081443944,
+              "candidate": "2180395136865720157",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 21.43157717014779,
+              "candidate": "2777315450563249884",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 75.67570614140314,
+              "candidate": "6029794541633181253",
+              "axis_error_degrees": 25.28610316573623,
+              "radius": 128,
+              "target": 128,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "typed_nearest": [
+            {
+              "kind": "point",
+              "distance": 22.788429081443944,
+              "candidate": "2180395136865720157",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 21.43157717014779,
+              "candidate": "2777315450563249884",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 75.67570614140314,
+              "candidate": "6029794541633181253",
+              "axis_error_degrees": 25.28610316573623,
+              "radius": 128,
+              "target": 128,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "proposal_recall": 0.6666666666666666,
+          "far_from_all_local_roots": 209,
+          "final_physical_false_positives": null,
+          "photometry": null,
+          "work": {
+            "forward_calls": 26144,
+            "rays": 162456,
+            "work": 5188134
+          },
+          "accounted_job_peak_bytes": 11409920,
+          "nodes": 1480,
+          "job_counts": {
+            "Proposed": 8
+          },
+          "admitted": {
+            "0": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "10207059194122801918",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "6884020356616111443",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "16363358945258273468",
+                  "axis_error_degrees": 33.78402964556267,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "10207059194122801918",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "6884020356616111443",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "16363358945258273468",
+                  "axis_error_degrees": 33.78402964556267,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            },
+            "1": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "15962362868163690394",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "9301016787862596530",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 89.02246907382428,
+                  "candidate": "2553313168825193709",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 79.3713581841712,
+                  "candidate": "10966240743458718258",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 90.26800374440548,
+                  "candidate": "871332766840529230",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "11584607482029941802",
+                  "axis_error_degrees": 33.78402964556267,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            }
+          }
+        },
+        "budgetmatched": {
+          "candidates": 217,
+          "by_kind": {
+            "0": 111,
+            "1": 106
+          },
+          "nearest": [
+            {
+              "kind": "point",
+              "distance": 22.788429081443944,
+              "candidate": "10104598749243217824",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 21.43157717014779,
+              "candidate": "7920276137960048235",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 71.31838823192795,
+              "candidate": "2924784632108408726",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "typed_nearest": [
+            {
+              "kind": "point",
+              "distance": 22.788429081443944,
+              "candidate": "10104598749243217824",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 21.43157717014779,
+              "candidate": "7920276137960048235",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 75.67570614140314,
+              "candidate": "1763611753204015760",
+              "axis_error_degrees": 25.28610316573623,
+              "radius": 128,
+              "target": 128,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "proposal_recall": 0.6666666666666666,
+          "far_from_all_local_roots": 208,
+          "final_physical_false_positives": null,
+          "photometry": null,
+          "work": {
+            "forward_calls": 35884,
+            "rays": 221448,
+            "work": 7213778
+          },
+          "accounted_job_peak_bytes": 11409920,
+          "nodes": 2032,
+          "job_counts": {
+            "Proposed": 8
+          },
+          "admitted": {
+            "0": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "9738195600451819011",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "4918080089199231799",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "389940039318106381",
+                  "axis_error_degrees": 33.78402964556267,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "9738195600451819011",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "4918080089199231799",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "389940039318106381",
+                  "axis_error_degrees": 33.78402964556267,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            },
+            "1": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "18320265304621540242",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "16293300469453330891",
+                  "axis_error_degrees": null,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 88.35333892955036,
+                  "candidate": "1497458093428382459",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 79.3713581841712,
+                  "candidate": "5268637368001884628",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 107.27680317757422,
+                  "candidate": "8717309255120397889",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 105.1014390957612,
+                  "candidate": "15276240363714838602",
+                  "axis_error_degrees": 33.78402964556267,
+                  "radius": 128,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            }
+          }
+        },
+        "new": {
+          "candidates": 217,
+          "by_kind": {
+            "0": 117,
+            "1": 100
+          },
+          "nearest": [
+            {
+              "kind": "point",
+              "distance": 22.788429081443944,
+              "candidate": "15730876549668008201",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 21.43157717014779,
+              "candidate": "17877829756290643026",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 11.800423721205947,
+              "candidate": "7300168116575996703",
+              "axis_error_degrees": 3.974018820339051,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "typed_nearest": [
+            {
+              "kind": "point",
+              "distance": 22.788429081443944,
+              "candidate": "15730876549668008201",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 21.43157717014779,
+              "candidate": "17877829756290643026",
+              "axis_error_degrees": null,
+              "radius": 0,
+              "target": 0,
+              "underconstrained": true,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 11.800423721205947,
+              "candidate": "7300168116575996703",
+              "axis_error_degrees": 3.974018820339051,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": true,
+              "confidence": null
+            }
+          ],
+          "proposal_recall": 1.0,
+          "far_from_all_local_roots": 208,
+          "final_physical_false_positives": null,
+          "photometry": null,
+          "work": {
+            "forward_calls": 36872,
+            "rays": 240000,
+            "work": 7930280
+          },
+          "accounted_job_peak_bytes": 11409920,
+          "nodes": 2216,
+          "job_counts": {
+            "Proposed": 8
+          },
+          "admitted": {
+            "0": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "9308825277749324218",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "15074068056973931719",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 11.800423721205947,
+                  "candidate": "7300168116575996703",
+                  "axis_error_degrees": 3.974018820339051,
+                  "radius": 64,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 42.418303832190176,
+                  "candidate": "9308825277749324218",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 59.154987110132986,
+                  "candidate": "15074068056973931719",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 11.800423721205947,
+                  "candidate": "7300168116575996703",
+                  "axis_error_degrees": 3.974018820339051,
+                  "radius": 64,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            },
+            "1": {
+              "count": 16,
+              "types": {
+                "0": 8,
+                "1": 8
+              },
+              "nearest": [
+                {
+                  "kind": "point",
+                  "distance": 79.3713581841712,
+                  "candidate": "2850325641094393324",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 95.43747953503383,
+                  "candidate": "12287818737987483632",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 11.800423721205947,
+                  "candidate": "9888345367659099373",
+                  "axis_error_degrees": 3.974018820339051,
+                  "radius": 64,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ],
+              "typed_nearest": [
+                {
+                  "kind": "point",
+                  "distance": 79.3713581841712,
+                  "candidate": "2850325641094393324",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "point",
+                  "distance": 95.43747953503383,
+                  "candidate": "12287818737987483632",
+                  "axis_error_degrees": null,
+                  "radius": 0,
+                  "target": 0,
+                  "underconstrained": true,
+                  "confidence": null
+                },
+                {
+                  "kind": "spot",
+                  "distance": 11.800423721205947,
+                  "candidate": "9888345367659099373",
+                  "axis_error_degrees": 3.974018820339051,
+                  "radius": 64,
+                  "target": 128,
+                  "underconstrained": true,
+                  "confidence": null
+                }
+              ]
+            }
+          }
+        }
+      },
+      "last_shard_selected": 34,
+      "last_shard_positive": 26,
+      "last_shard_normals": {
+        "[-0.0, -0.0, 1.0]": 20,
+        "[-0.0, -1.0, -0.0]": 1,
+        "[0.0, -0.0, 1.0]": 5,
+        "[-0.0, -1.0, 0.0]": 8
+      },
+      "final_count_precision": null,
+      "prism": "Exact planar-face alternatives only; no complete multipart source model/count calibration"
+    }
+  },
+  "fits": [
+    {
+      "run": "jk-lightrecon-x16-fit-isq-v1",
+      "name": "direct-baseline-geometry0-finite0-profile0",
+      "status": "Failed",
+      "native_state": "Budget",
+      "reason": "Joint native ray budget",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 81,
+        "evaluations": 117027,
+        "rays": 12000000,
+        "cache_hits": null,
+        "preparation_calls": null
+      },
+      "seconds": 507.3221979998052,
+      "peak_rss_bytes": null,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 70,
+        "split": 10
+      },
+      "rejected_reasons": {
+        "Joint native ray budget": 1
+      },
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 80,
+      "candidate_deferred": null,
+      "run_policy_sha256": "8816b2a13a4acb297785a306c9c0cca6f0345a217a67da985d370de184d3ec0a",
+      "native_tool_sha256": "4f58106622d9017ea87fe590b29bc83bdb5c785cbd4c0e4c52d4046c88f5197e",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": "Mandatory native ray work",
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-isq-v1",
+      "name": "direct-new-geometry0-finite0-profile0",
+      "status": "Failed",
+      "native_state": "Budget",
+      "reason": "Joint native ray budget",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 77,
+        "evaluations": 119167,
+        "rays": 12000000,
+        "cache_hits": null,
+        "preparation_calls": null
+      },
+      "seconds": 486.8563258999493,
+      "peak_rss_bytes": null,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 67,
+        "split": 9
+      },
+      "rejected_reasons": {
+        "Joint native ray budget": 1
+      },
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 76,
+      "candidate_deferred": null,
+      "run_policy_sha256": "8816b2a13a4acb297785a306c9c0cca6f0345a217a67da985d370de184d3ec0a",
+      "native_tool_sha256": "4f58106622d9017ea87fe590b29bc83bdb5c785cbd4c0e4c52d4046c88f5197e",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": "Mandatory native ray work",
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-isq-v1",
+      "name": "direct-new-geometry1-finite1-profile0",
+      "status": "Failed",
+      "native_state": "Budget",
+      "reason": "Joint native ray budget",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 24,
+        "evaluations": 112301,
+        "rays": 12000000,
+        "cache_hits": null,
+        "preparation_calls": null
+      },
+      "seconds": 318.10982399992645,
+      "peak_rss_bytes": null,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 23
+      },
+      "rejected_reasons": {
+        "Physically invalid source support/path/bounds: source=4611686018427387904 position/search/translation bounds": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387905 position/search/translation bounds": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387906 position/search/translation bounds": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387907 position/search/translation bounds": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387908 position/search/translation bounds": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387909 position/search/translation bounds": 1,
+        "Joint native ray budget": 1
+      },
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 17,
+      "candidate_deferred": null,
+      "run_policy_sha256": "8816b2a13a4acb297785a306c9c0cca6f0345a217a67da985d370de184d3ec0a",
+      "native_tool_sha256": "4f58106622d9017ea87fe590b29bc83bdb5c785cbd4c0e4c52d4046c88f5197e",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": "Mandatory native ray work",
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-isq-v3",
+      "name": "direct-baseline-geometry0-finite0-profile0",
+      "status": "Completed",
+      "native_state": "Unidentifiable",
+      "reason": "Preferred conditional strict-forward model; source existence is not certified by residual or sparsity",
+      "selected_types": {
+        "1": 2
+      },
+      "source_metrics": {
+        "matches": [
+          {
+            "truth_index": 1,
+            "prediction_index": 0,
+            "position_world": 23.017656266440333,
+            "xyz_world": [
+              -13.25,
+              -5.5,
+              18
+            ],
+            "photometry": {
+              "relative_intensity": {
+                "status": "Available",
+                "value": 0.07574389648400007
+              },
+              "absolute_intensity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Not jointly physically authored/calibrated"
+              },
+              "chromaticity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Unknown/mismatched RGB primaries"
+              }
+            }
+          },
+          {
+            "truth_index": 0,
+            "prediction_index": 1,
+            "position_world": 6.269968101992227,
+            "xyz_world": [
+              -2.25,
+              5.5,
+              2
+            ],
+            "photometry": {
+              "relative_intensity": {
+                "status": "Available",
+                "value": 0.055876397026666684
+              },
+              "absolute_intensity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Not jointly physically authored/calibrated"
+              },
+              "chromaticity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Unknown/mismatched RGB primaries"
+              }
+            }
+          }
+        ],
+        "truth_count": 3,
+        "prediction_count": 2,
+        "geometric_summary": {
+          "position_world": {
+            "status": "Available",
+            "value": 14.64381218421628,
+            "unit": "world",
+            "count": 2
+          },
+          "direction_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          },
+          "cone_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          },
+          "dimension_relative": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "fraction",
+            "count": 0
+          },
+          "roll_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          }
+        },
+        "by_kind": {
+          "point": {
+            "truth": 2,
+            "predicted": 2,
+            "precision": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 2,
+              "denominator": 2
+            },
+            "recall": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 2,
+              "denominator": 2
+            }
+          },
+          "spot": {
+            "truth": 1,
+            "predicted": 0,
+            "precision": {
+              "status": "Unavailable",
+              "value": null,
+              "reason": "Empty denominator",
+              "numerator": 0,
+              "denominator": 0
+            },
+            "recall": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0,
+              "denominator": 1
+            }
+          }
+        },
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 1,
+        "precision": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 2,
+          "denominator": 2
+        },
+        "recall": {
+          "status": "Available",
+          "value": 0.6666666666666666,
+          "numerator": 2,
+          "denominator": 3
+        },
+        "f1": {
+          "status": "Available",
+          "value": 0.8,
+          "numerator": 4,
+          "denominator": 5
+        },
+        "confusion": {
+          "point->point": 2
+        },
+        "split_neighbourhoods": [],
+        "merge_neighbourhoods": [],
+        "unmatched_truth": [
+          2
+        ],
+        "unmatched_predictions": [],
+        "ambiguous_truth_count": 0,
+        "environment_and_transport": {
+          "truth": 0,
+          "predicted": 0
+        },
+        "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+        "compiler_Q_parameter_errors": [
+          {
+            "truth_index": 1,
+            "prediction_index": 0,
+            "channel_errors": [
+              2.674896240199999,
+              16.570419312000013,
+              37.87194824200003
+            ],
+            "relative_rgb_l2": 0.07659457769556946,
+            "scope": "Compiler Q parameters, not calibrated radiometric or Rec709 chromaticity accuracy"
+          },
+          {
+            "truth_index": 0,
+            "prediction_index": 1,
+            "channel_errors": [
+              25.14437866200001,
+              22.069633483999993,
+              19.5971984863
+            ],
+            "relative_rgb_l2": 0.08408608698441575,
+            "scope": "Compiler Q parameters, not calibrated radiometric or Rec709 chromaticity accuracy"
+          }
+        ]
+      },
+      "heldout": {
+        "available": true,
+        "positive": true,
+        "required": false,
+        "mse": 31.78438626910547,
+        "black": 232.25,
+        "objective": 24.063413598450744,
+        "worst": 28.945350806879734
+      },
+      "native_preferred_nonempty": true,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 90,
+        "evaluations": 51953,
+        "rays": 7373830,
+        "cache_hits": 252412,
+        "preparation_calls": 137825
+      },
+      "seconds": 463.6147090999875,
+      "peak_rss_bytes": 17678336,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 69,
+        "split": 18,
+        "type-alternative": 2
+      },
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 90,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": null,
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-isq-v3",
+      "name": "direct-new-geometry0-finite0-profile0",
+      "status": "Completed",
+      "native_state": "Unidentifiable",
+      "reason": "Preferred conditional strict-forward model; source existence is not certified by residual or sparsity",
+      "selected_types": {
+        "1": 2
+      },
+      "source_metrics": {
+        "matches": [
+          {
+            "truth_index": 0,
+            "prediction_index": 0,
+            "position_world": 6.269968101992227,
+            "xyz_world": [
+              -2.25,
+              5.5,
+              2
+            ],
+            "photometry": {
+              "relative_intensity": {
+                "status": "Available",
+                "value": 0.055876397026666684
+              },
+              "absolute_intensity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Not jointly physically authored/calibrated"
+              },
+              "chromaticity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Unknown/mismatched RGB primaries"
+              }
+            }
+          },
+          {
+            "truth_index": 1,
+            "prediction_index": 1,
+            "position_world": 23.017656266440333,
+            "xyz_world": [
+              -13.25,
+              -5.5,
+              18
+            ],
+            "photometry": {
+              "relative_intensity": {
+                "status": "Available",
+                "value": 0.07574389648400007
+              },
+              "absolute_intensity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Not jointly physically authored/calibrated"
+              },
+              "chromaticity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Unknown/mismatched RGB primaries"
+              }
+            }
+          }
+        ],
+        "truth_count": 3,
+        "prediction_count": 2,
+        "geometric_summary": {
+          "position_world": {
+            "status": "Available",
+            "value": 14.64381218421628,
+            "unit": "world",
+            "count": 2
+          },
+          "direction_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          },
+          "cone_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          },
+          "dimension_relative": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "fraction",
+            "count": 0
+          },
+          "roll_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          }
+        },
+        "by_kind": {
+          "point": {
+            "truth": 2,
+            "predicted": 2,
+            "precision": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 2,
+              "denominator": 2
+            },
+            "recall": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 2,
+              "denominator": 2
+            }
+          },
+          "spot": {
+            "truth": 1,
+            "predicted": 0,
+            "precision": {
+              "status": "Unavailable",
+              "value": null,
+              "reason": "Empty denominator",
+              "numerator": 0,
+              "denominator": 0
+            },
+            "recall": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0,
+              "denominator": 1
+            }
+          }
+        },
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 1,
+        "precision": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 2,
+          "denominator": 2
+        },
+        "recall": {
+          "status": "Available",
+          "value": 0.6666666666666666,
+          "numerator": 2,
+          "denominator": 3
+        },
+        "f1": {
+          "status": "Available",
+          "value": 0.8,
+          "numerator": 4,
+          "denominator": 5
+        },
+        "confusion": {
+          "point->point": 2
+        },
+        "split_neighbourhoods": [],
+        "merge_neighbourhoods": [],
+        "unmatched_truth": [
+          2
+        ],
+        "unmatched_predictions": [],
+        "ambiguous_truth_count": 0,
+        "environment_and_transport": {
+          "truth": 0,
+          "predicted": 0
+        },
+        "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+        "compiler_Q_parameter_errors": [
+          {
+            "truth_index": 0,
+            "prediction_index": 0,
+            "channel_errors": [
+              25.14437866200001,
+              22.069633483999993,
+              19.5971984863
+            ],
+            "relative_rgb_l2": 0.08408608698441575,
+            "scope": "Compiler Q parameters, not calibrated radiometric or Rec709 chromaticity accuracy"
+          },
+          {
+            "truth_index": 1,
+            "prediction_index": 1,
+            "channel_errors": [
+              2.674896240199999,
+              16.570419312000013,
+              37.87194824200003
+            ],
+            "relative_rgb_l2": 0.07659457769556946,
+            "scope": "Compiler Q parameters, not calibrated radiometric or Rec709 chromaticity accuracy"
+          }
+        ]
+      },
+      "heldout": {
+        "available": true,
+        "positive": true,
+        "required": false,
+        "mse": 31.78438626910547,
+        "black": 232.25,
+        "objective": 24.063413598450744,
+        "worst": 28.945350806879734
+      },
+      "native_preferred_nonempty": true,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 91,
+        "evaluations": 53776,
+        "rays": 8853232,
+        "cache_hits": 250829,
+        "preparation_calls": 155398
+      },
+      "seconds": 470.1848021999467,
+      "peak_rss_bytes": 13185024,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 72,
+        "split": 18
+      },
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 91,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": null,
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-isq-v3",
+      "name": "direct-new-geometry1-finite1-profile0",
+      "status": "Budget",
+      "native_state": "Budget",
+      "reason": "",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": null,
+        "catalog_models": null,
+        "catalog_admitted": null,
+        "catalog_deferred": null,
+        "finite_unsupported": null
+      },
+      "work": {
+        "models": null,
+        "evaluations": null,
+        "rays": null,
+        "cache_hits": null,
+        "preparation_calls": null
+      },
+      "seconds": 600.041971199913,
+      "peak_rss_bytes": null,
+      "attempted_proposals": {},
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 19,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": "OS wall safety; native work incomplete",
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-isq-v3",
+      "name": "passive_bounce1-baseline-geometry0-finite0-profile0",
+      "status": "Budget",
+      "native_state": "Budget",
+      "reason": "",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": null,
+        "catalog_models": null,
+        "catalog_admitted": null,
+        "catalog_deferred": null,
+        "finite_unsupported": null
+      },
+      "work": {
+        "models": null,
+        "evaluations": null,
+        "rays": null,
+        "cache_hits": null,
+        "preparation_calls": null
+      },
+      "seconds": 600.0869650999084,
+      "peak_rss_bytes": null,
+      "attempted_proposals": {},
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 84,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": "OS wall safety; native work incomplete",
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-isq-v3",
+      "name": "passive_bounce1-new-geometry0-finite0-profile0",
+      "status": "Completed",
+      "native_state": "Partial",
+      "reason": "Preferred conditional strict-forward model; source existence is not certified by residual or sparsity",
+      "selected_types": {
+        "1": 3
+      },
+      "source_metrics": {
+        "matches": [],
+        "truth_count": 3,
+        "prediction_count": 3,
+        "geometric_summary": {
+          "position_world": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "world",
+            "count": 0
+          },
+          "direction_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          },
+          "cone_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          },
+          "dimension_relative": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "fraction",
+            "count": 0
+          },
+          "roll_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          }
+        },
+        "by_kind": {
+          "point": {
+            "truth": 2,
+            "predicted": 3,
+            "precision": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0,
+              "denominator": 3
+            },
+            "recall": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0,
+              "denominator": 2
+            }
+          },
+          "spot": {
+            "truth": 1,
+            "predicted": 0,
+            "precision": {
+              "status": "Unavailable",
+              "value": null,
+              "reason": "Empty denominator",
+              "numerator": 0,
+              "denominator": 0
+            },
+            "recall": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0,
+              "denominator": 1
+            }
+          }
+        },
+        "true_positive": 0,
+        "false_positive": 3,
+        "false_negative": 3,
+        "precision": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 3
+        },
+        "recall": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 3
+        },
+        "f1": {
+          "status": "Available",
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 6
+        },
+        "confusion": {},
+        "split_neighbourhoods": [],
+        "merge_neighbourhoods": [],
+        "unmatched_truth": [
+          0,
+          1,
+          2
+        ],
+        "unmatched_predictions": [
+          0,
+          1,
+          2
+        ],
+        "ambiguous_truth_count": 0,
+        "environment_and_transport": {
+          "truth": 0,
+          "predicted": 0
+        },
+        "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+        "compiler_Q_parameter_errors": []
+      },
+      "heldout": {
+        "available": true,
+        "positive": true,
+        "required": false,
+        "mse": 32.21558879035137,
+        "black": 380.625,
+        "objective": 24.40092629079884,
+        "worst": 28.945350806879734
+      },
+      "native_preferred_nonempty": true,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 91,
+        "evaluations": 52294,
+        "rays": 7396444,
+        "cache_hits": 239343,
+        "preparation_calls": 154950
+      },
+      "seconds": 435.82407820015214,
+      "peak_rss_bytes": 12853248,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 72,
+        "split": 18
+      },
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 91,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": null,
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-isq-v3",
+      "name": "passive_bounce1-new-geometry1-finite1-profile0",
+      "status": "Budget",
+      "native_state": "Budget",
+      "reason": "Joint native ray budget",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 27,
+        "evaluations": 77824,
+        "rays": 12000000,
+        "cache_hits": 77535,
+        "preparation_calls": 236964
+      },
+      "seconds": 398.7218192999717,
+      "peak_rss_bytes": 11231232,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 26
+      },
+      "rejected_reasons": {
+        "Physically invalid source support/path/bounds: source=4611686018427387904 source-support:Clearance; Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 2,
+        "Physically invalid source support/path/bounds: source=4611686018427387905 source-support:Clearance; Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387906 source-support:Clearance; Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387907 source-support:UnknownGeometry; Occupied source support is not certified outside world solids": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387908 source-support:UnknownGeometry; Occupied source support is not certified outside world solids": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387909 source-support:UnknownGeometry; Occupied source support is not certified outside world solids": 1,
+        "Joint native ray budget": 1
+      },
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 19,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": "Mandatory native ray work",
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-linear-v3",
+      "name": "direct-baseline-geometry0-finite0-profile1",
+      "status": "Unavailable",
+      "native_state": "Unavailable",
+      "reason": "No model passes required independent spatial blocks",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 88,
+        "evaluations": 49495,
+        "rays": 6585860,
+        "cache_hits": 246306,
+        "preparation_calls": 123732
+      },
+      "seconds": 435.91673630010337,
+      "peak_rss_bytes": 17154048,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 72,
+        "split": 15
+      },
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 88,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": null,
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-linear-v3",
+      "name": "direct-new-geometry0-finite0-profile1",
+      "status": "Unavailable",
+      "native_state": "Unavailable",
+      "reason": "No model passes required independent spatial blocks",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 102,
+        "evaluations": 58091,
+        "rays": 9800814,
+        "cache_hits": 252705,
+        "preparation_calls": 182133
+      },
+      "seconds": 507.39460429991595,
+      "peak_rss_bytes": 13189120,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 77,
+        "split": 18,
+        "remove": 4,
+        "merge": 2
+      },
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 102,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": null,
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-linear-v3",
+      "name": "direct-new-geometry1-finite1-profile1",
+      "status": "Budget",
+      "native_state": "Budget",
+      "reason": "",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": null,
+        "catalog_models": null,
+        "catalog_admitted": null,
+        "catalog_deferred": null,
+        "finite_unsupported": null
+      },
+      "work": {
+        "models": null,
+        "evaluations": null,
+        "rays": null,
+        "cache_hits": null,
+        "preparation_calls": null
+      },
+      "seconds": 600.0222628000192,
+      "peak_rss_bytes": null,
+      "attempted_proposals": {},
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 18,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": "OS wall safety; native work incomplete",
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-linear-v3",
+      "name": "passive_bounce1-baseline-geometry0-finite0-profile1",
+      "status": "Unavailable",
+      "native_state": "Unavailable",
+      "reason": "No model passes required independent spatial blocks",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 82,
+        "evaluations": 46021,
+        "rays": 2808240,
+        "cache_hits": 294636,
+        "preparation_calls": 45693
+      },
+      "seconds": 472.83729639998637,
+      "peak_rss_bytes": 12869632,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 72,
+        "split": 9
+      },
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 82,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": null,
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-linear-v3",
+      "name": "passive_bounce1-new-geometry0-finite0-profile1",
+      "status": "Unavailable",
+      "native_state": "Unavailable",
+      "reason": "No model passes required independent spatial blocks",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 85,
+        "evaluations": 46558,
+        "rays": 3335234,
+        "cache_hits": 279007,
+        "preparation_calls": 69431
+      },
+      "seconds": 377.3036017001141,
+      "peak_rss_bytes": 12926976,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 72,
+        "split": 12
+      },
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 85,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": null,
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-linear-v3",
+      "name": "passive_bounce1-new-geometry1-finite1-profile1",
+      "status": "Budget",
+      "native_state": "Budget",
+      "reason": "Joint native ray budget",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 28,
+        "evaluations": 80357,
+        "rays": 12000000,
+        "cache_hits": 99724,
+        "preparation_calls": 236288
+      },
+      "seconds": 450.63017680007033,
+      "peak_rss_bytes": 10977280,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 27
+      },
+      "rejected_reasons": {
+        "Physically invalid source support/path/bounds: source=4611686018427387904 source-support:Clearance; Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 2,
+        "Physically invalid source support/path/bounds: source=4611686018427387905 source-support:Clearance; Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387906 source-support:Clearance; Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387907 source-support:UnknownGeometry; Occupied source support is not certified outside world solids": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387908 source-support:UnknownGeometry; Occupied source support is not certified outside world solids": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387909 source-support:UnknownGeometry; Occupied source support is not certified outside world solids": 1,
+        "Joint native ray budget": 1
+      },
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 20,
+      "candidate_deferred": null,
+      "run_policy_sha256": "4ff049e9d519a2bd0c15e1f97f76c701f2ea5804843f79034765855e8f634504",
+      "native_tool_sha256": "22008ecdcb9bdd45d64a2059c1368bd0ff366f4da7ef13265e660453a445ae9f",
+      "proposal_manifest_sha256": "90732f5a5bcebeb663d5ba4de8668dd278e3946ca3d17db88ccc7e6202976290",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": "Mandatory native ray work",
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-final-v5",
+      "name": "direct-new-geometry0-finite0-profile0",
+      "status": "Budget",
+      "native_state": "Budget",
+      "reason": "",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": null,
+        "catalog_models": null,
+        "catalog_admitted": null,
+        "catalog_deferred": null,
+        "finite_unsupported": null
+      },
+      "work": {
+        "models": null,
+        "evaluations": null,
+        "rays": null,
+        "cache_hits": null,
+        "preparation_calls": null
+      },
+      "seconds": 600.6917725999374,
+      "peak_rss_bytes": null,
+      "attempted_proposals": {},
+      "rejected_reasons": {},
+      "alternative_models": null,
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 81,
+      "candidate_deferred": null,
+      "run_policy_sha256": "61542e065a2f8d21201212eb7f8b17e1134397485626717c5d71c3b71f994986",
+      "native_tool_sha256": "d839867155dc8399462fc2b86652b2942dcafe016b84afa888f7e6ce8858ecc3",
+      "proposal_manifest_sha256": "3745ed70ee8c9288fe9dcdbaa11ebd625b93b8485a917dbe49e2ed1ed5ed5e85",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": "OS wall safety; native work incomplete",
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-final-v5",
+      "name": "direct-new-geometry1-finite1-profile0",
+      "status": "Budget",
+      "native_state": "Budget",
+      "reason": "Joint native ray budget",
+      "selected_types": {},
+      "source_metrics": null,
+      "heldout": null,
+      "native_preferred_nonempty": false,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 27,
+        "evaluations": 77942,
+        "rays": 12000000,
+        "cache_hits": 76595,
+        "preparation_calls": 234632
+      },
+      "seconds": 470.73382050008513,
+      "peak_rss_bytes": 11239424,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 26
+      },
+      "rejected_reasons": {
+        "Physically invalid source support/path/bounds: source=4611686018427387904 source-support:Clearance; Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 2,
+        "Physically invalid source support/path/bounds: source=4611686018427387905 source-support:Clearance; Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387906 source-support:Clearance; Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387907 source-support:UnknownGeometry; Occupied source support is not certified outside world solids": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387908 source-support:UnknownGeometry; Occupied source support is not certified outside world solids": 1,
+        "Physically invalid source support/path/bounds: source=4611686018427387909 source-support:UnknownGeometry; Occupied source support is not certified outside world solids": 1,
+        "Joint native ray budget": 1
+      },
+      "alternative_models": [],
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 19,
+      "candidate_deferred": 80,
+      "run_policy_sha256": "61542e065a2f8d21201212eb7f8b17e1134397485626717c5d71c3b71f994986",
+      "native_tool_sha256": "d839867155dc8399462fc2b86652b2942dcafe016b84afa888f7e6ce8858ecc3",
+      "proposal_manifest_sha256": "3745ed70ee8c9288fe9dcdbaa11ebd625b93b8485a917dbe49e2ed1ed5ed5e85",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": "Mandatory native ray work",
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-fit-final-repeat-v5",
+      "name": "direct-new-geometry0-finite0-profile0",
+      "status": "Completed",
+      "native_state": "Unidentifiable",
+      "reason": "Preferred conditional strict-forward model; source existence is not certified by residual or sparsity",
+      "selected_types": {
+        "1": 2
+      },
+      "source_metrics": {
+        "matches": [
+          {
+            "truth_index": 0,
+            "prediction_index": 0,
+            "position_world": 6.269968101992227,
+            "xyz_world": [
+              -2.25,
+              5.5,
+              2
+            ],
+            "photometry": {
+              "relative_intensity": {
+                "status": "Available",
+                "value": 0.055876397026666684
+              },
+              "absolute_intensity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Not jointly physically authored/calibrated"
+              },
+              "chromaticity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Unknown/mismatched RGB primaries"
+              }
+            }
+          },
+          {
+            "truth_index": 1,
+            "prediction_index": 1,
+            "position_world": 23.017656266440333,
+            "xyz_world": [
+              -13.25,
+              -5.5,
+              18
+            ],
+            "photometry": {
+              "relative_intensity": {
+                "status": "Available",
+                "value": 0.07574389648400007
+              },
+              "absolute_intensity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Not jointly physically authored/calibrated"
+              },
+              "chromaticity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Unknown/mismatched RGB primaries"
+              }
+            }
+          }
+        ],
+        "truth_count": 3,
+        "prediction_count": 2,
+        "geometric_summary": {
+          "position_world": {
+            "status": "Available",
+            "value": 14.64381218421628,
+            "unit": "world",
+            "count": 2
+          },
+          "direction_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          },
+          "cone_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          },
+          "dimension_relative": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "fraction",
+            "count": 0
+          },
+          "roll_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          }
+        },
+        "by_kind": {
+          "point": {
+            "truth": 2,
+            "predicted": 2,
+            "precision": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 2,
+              "denominator": 2
+            },
+            "recall": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 2,
+              "denominator": 2
+            }
+          },
+          "spot": {
+            "truth": 1,
+            "predicted": 0,
+            "precision": {
+              "status": "Unavailable",
+              "value": null,
+              "reason": "Empty denominator",
+              "numerator": 0,
+              "denominator": 0
+            },
+            "recall": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0,
+              "denominator": 1
+            }
+          }
+        },
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 1,
+        "precision": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 2,
+          "denominator": 2
+        },
+        "recall": {
+          "status": "Available",
+          "value": 0.6666666666666666,
+          "numerator": 2,
+          "denominator": 3
+        },
+        "f1": {
+          "status": "Available",
+          "value": 0.8,
+          "numerator": 4,
+          "denominator": 5
+        },
+        "confusion": {
+          "point->point": 2
+        },
+        "split_neighbourhoods": [],
+        "merge_neighbourhoods": [],
+        "unmatched_truth": [
+          2
+        ],
+        "unmatched_predictions": [],
+        "ambiguous_truth_count": 0,
+        "environment_and_transport": {
+          "truth": 0,
+          "predicted": 0
+        },
+        "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+        "compiler_Q_parameter_errors": [
+          {
+            "truth_index": 0,
+            "prediction_index": 0,
+            "channel_errors": [
+              25.14437866200001,
+              22.069633483999993,
+              19.5971984863
+            ],
+            "relative_rgb_l2": 0.08408608698441575,
+            "scope": "Compiler Q parameters, not calibrated radiometric or Rec709 chromaticity accuracy"
+          },
+          {
+            "truth_index": 1,
+            "prediction_index": 1,
+            "channel_errors": [
+              2.674896240199999,
+              16.570419312000013,
+              37.87194824200003
+            ],
+            "relative_rgb_l2": 0.07659457769556946,
+            "scope": "Compiler Q parameters, not calibrated radiometric or Rec709 chromaticity accuracy"
+          }
+        ]
+      },
+      "heldout": {
+        "available": true,
+        "positive": true,
+        "required": false,
+        "mse": 31.78438626910547,
+        "black": 232.25,
+        "objective": 24.063413598450744,
+        "worst": 28.945350806879734
+      },
+      "native_preferred_nonempty": true,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 91,
+        "evaluations": 53776,
+        "rays": 8853232,
+        "cache_hits": 250829,
+        "preparation_calls": 155398
+      },
+      "seconds": 328.99385880003683,
+      "peak_rss_bytes": 17649664,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 72,
+        "split": 18
+      },
+      "rejected_reasons": {},
+      "alternative_models": [
+        {
+          "key": "fe2b63e8ca9bfe531739860f5b377a1f20416937ba68f2f9c9479b015ae2ee01",
+          "preferred": true,
+          "sources": 2,
+          "training": 35.2460453432,
+          "validation": 0.31862578248,
+          "kinds": [
+            1,
+            1
+          ]
+        },
+        {
+          "key": "05ebeb85e472115782f5dcc6c9d7231e603dc26d5723c8afacbe5e31475b4cf7",
+          "preferred": false,
+          "sources": 3,
+          "training": 2.05529664396,
+          "validation": 0.31862578248,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "d66ef6261ad358c08c1c2327f69390fb737dd2777784306b72b7438614179517",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2431907126,
+          "validation": 0.31862578248,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "fca6fb45870692217cef3b209dc09b792dea28c4ad5af468df33f4d95882e81c",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2473453432,
+          "validation": 0.31862578248,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "a0e096ad6da70610f0a212a9844405bcc10130187133bd741e07b5b41f121d64",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2462432661,
+          "validation": 0.318630627535,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "d2db5dcced7acb8b7be9c5ca26f3187d8bd5e2f51aaa7c0c5a357a7c3cd6bbb7",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2609696491,
+          "validation": 0.320634159336,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "f7ed680bd4d27bd4caeb531cb47afd73986684f50b9d27c96ca93f3edc432ecf",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2611745911,
+          "validation": 0.328462372138,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "cddbfcaf511254732ff55f52dbadc29ed91265f9e87a287527d7669d9e7a6a11",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2612502475,
+          "validation": 0.328496416187,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "4113b443d0b4f78bd7dc3b4817d16ce068af93a891f6bc0c5ca3b53f42c16a0c",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2611697883,
+          "validation": 0.328499808072,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "c51cdb2db58b272638942250160bed6339b916247b06e771e590d496e885f695",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2474230111,
+          "validation": 0.335891244651,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "7baa6715d78c2aa56af71381a1d660786b58fad534f5d2f6f74e87234e9b4c47",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.3316373689,
+          "validation": 0.341781706554,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "32a0c5a6d3fe10e2f4af4651e61f2dd665d0901a9fd8e78a308a82f015189fb8",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2768953193,
+          "validation": 0.34949854109,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "1f1d2d47c59642f87a7c697201b72949e51d1b0bbb32576b9f51bbfc95a4ceb5",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2800585342,
+          "validation": 0.35780267292,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "116c82982bb9c18bb87802a5036d9c3a264e988fbe541507d9d877fed4dab689",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.3869926502,
+          "validation": 0.359315006286,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "c598e8f2469b9a764c5761be738acb741caa7b1a8abeec92f3c51b65e07e1564",
+          "preferred": false,
+          "sources": 3,
+          "training": 15.298137752,
+          "validation": 0.362317686057,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "ff33d4a13b6b15fa960bc0dfcaa9e5d781ee1c5efdb1f691d4f31bf6a1a5fe67",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2532758365,
+          "validation": 0.363585140965,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "746a44948a86dfc5482f9d650e388c30edd8281fa54280cef50d53008eb5634f",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2529929982,
+          "validation": 0.36536899574,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "fc50dc86f304a9260832a015e7d994252690f87d491a815774d55971f5bb3c3a",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2528059718,
+          "validation": 0.366100120835,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "frozen_alternative_diagnostics": null,
+      "validation_evaluations": 91,
+      "candidate_deferred": 80,
+      "run_policy_sha256": "61542e065a2f8d21201212eb7f8b17e1134397485626717c5d71c3b71f994986",
+      "native_tool_sha256": "d839867155dc8399462fc2b86652b2942dcafe016b84afa888f7e6ce8858ecc3",
+      "proposal_manifest_sha256": "b6c539403f3ffe1552ce54e6b45a78afa422a60fe7a08cf27e83c53441759606",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": null,
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    },
+    {
+      "run": "jk-lightrecon-x16-frozen-diagnostics-v6",
+      "name": "direct-new-geometry0-finite0-profile0",
+      "status": "Completed",
+      "native_state": "Unidentifiable",
+      "reason": "Preferred conditional strict-forward model; source existence is not certified by residual or sparsity",
+      "selected_types": {
+        "1": 2
+      },
+      "source_metrics": {
+        "matches": [
+          {
+            "truth_index": 0,
+            "prediction_index": 0,
+            "position_world": 6.269968101992227,
+            "xyz_world": [
+              -2.25,
+              5.5,
+              2
+            ],
+            "photometry": {
+              "relative_intensity": {
+                "status": "Available",
+                "value": 0.055876397026666684
+              },
+              "absolute_intensity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Not jointly physically authored/calibrated"
+              },
+              "chromaticity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Unknown/mismatched RGB primaries"
+              }
+            }
+          },
+          {
+            "truth_index": 1,
+            "prediction_index": 1,
+            "position_world": 23.017656266440333,
+            "xyz_world": [
+              -13.25,
+              -5.5,
+              18
+            ],
+            "photometry": {
+              "relative_intensity": {
+                "status": "Available",
+                "value": 0.07574389648400007
+              },
+              "absolute_intensity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Not jointly physically authored/calibrated"
+              },
+              "chromaticity": {
+                "status": "NotComparable",
+                "value": null,
+                "reason": "Unknown/mismatched RGB primaries"
+              }
+            }
+          }
+        ],
+        "truth_count": 3,
+        "prediction_count": 2,
+        "geometric_summary": {
+          "position_world": {
+            "status": "Available",
+            "value": 14.64381218421628,
+            "unit": "world",
+            "count": 2
+          },
+          "direction_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          },
+          "cone_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          },
+          "dimension_relative": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "fraction",
+            "count": 0
+          },
+          "roll_degrees": {
+            "status": "Unavailable",
+            "value": null,
+            "reason": "No comparable records",
+            "unit": "degrees",
+            "count": 0
+          }
+        },
+        "by_kind": {
+          "point": {
+            "truth": 2,
+            "predicted": 2,
+            "precision": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 2,
+              "denominator": 2
+            },
+            "recall": {
+              "status": "Available",
+              "value": 1.0,
+              "numerator": 2,
+              "denominator": 2
+            }
+          },
+          "spot": {
+            "truth": 1,
+            "predicted": 0,
+            "precision": {
+              "status": "Unavailable",
+              "value": null,
+              "reason": "Empty denominator",
+              "numerator": 0,
+              "denominator": 0
+            },
+            "recall": {
+              "status": "Available",
+              "value": 0.0,
+              "numerator": 0,
+              "denominator": 1
+            }
+          }
+        },
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 1,
+        "precision": {
+          "status": "Available",
+          "value": 1.0,
+          "numerator": 2,
+          "denominator": 2
+        },
+        "recall": {
+          "status": "Available",
+          "value": 0.6666666666666666,
+          "numerator": 2,
+          "denominator": 3
+        },
+        "f1": {
+          "status": "Available",
+          "value": 0.8,
+          "numerator": 4,
+          "denominator": 5
+        },
+        "confusion": {
+          "point->point": 2
+        },
+        "split_neighbourhoods": [],
+        "merge_neighbourhoods": [],
+        "unmatched_truth": [
+          2
+        ],
+        "unmatched_predictions": [],
+        "ambiguous_truth_count": 0,
+        "environment_and_transport": {
+          "truth": 0,
+          "predicted": 0
+        },
+        "claim": "Conditional source matching, not an automatic reconstruction-success decision",
+        "compiler_Q_parameter_errors": [
+          {
+            "truth_index": 0,
+            "prediction_index": 0,
+            "channel_errors": [
+              25.14437866200001,
+              22.069633483999993,
+              19.5971984863
+            ],
+            "relative_rgb_l2": 0.08408608698441575,
+            "scope": "Compiler Q parameters, not calibrated radiometric or Rec709 chromaticity accuracy"
+          },
+          {
+            "truth_index": 1,
+            "prediction_index": 1,
+            "channel_errors": [
+              2.674896240199999,
+              16.570419312000013,
+              37.87194824200003
+            ],
+            "relative_rgb_l2": 0.07659457769556946,
+            "scope": "Compiler Q parameters, not calibrated radiometric or Rec709 chromaticity accuracy"
+          }
+        ]
+      },
+      "heldout": {
+        "available": true,
+        "positive": true,
+        "required": false,
+        "mse": 31.78438626910547,
+        "black": 232.25,
+        "objective": 24.063413598450744,
+        "worst": 28.945350806879734
+      },
+      "native_preferred_nonempty": true,
+      "accepted_nonempty": false,
+      "source_state": "ConditionalCandidate",
+      "absolute_scale": "Unknown",
+      "exact_light_suitable": false,
+      "existence_probability": null,
+      "XYZ_interval_coverage": null,
+      "catalog": {
+        "catalog_input": 16,
+        "catalog_models": 16,
+        "catalog_admitted": 16,
+        "catalog_deferred": 0,
+        "finite_unsupported": 0
+      },
+      "work": {
+        "models": 91,
+        "evaluations": 53776,
+        "rays": 8853232,
+        "cache_hits": 250829,
+        "preparation_calls": 155398
+      },
+      "seconds": 359.0128464999143,
+      "peak_rss_bytes": 17645568,
+      "attempted_proposals": {
+        "no-source/boundary-only": 1,
+        "activate": 72,
+        "split": 18
+      },
+      "rejected_reasons": {},
+      "alternative_models": [
+        {
+          "key": "fe2b63e8ca9bfe531739860f5b377a1f20416937ba68f2f9c9479b015ae2ee01",
+          "preferred": true,
+          "sources": 2,
+          "training": 35.2460453432,
+          "validation": 0.31862578248,
+          "kinds": [
+            1,
+            1
+          ]
+        },
+        {
+          "key": "05ebeb85e472115782f5dcc6c9d7231e603dc26d5723c8afacbe5e31475b4cf7",
+          "preferred": false,
+          "sources": 3,
+          "training": 2.05529664396,
+          "validation": 0.31862578248,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "d66ef6261ad358c08c1c2327f69390fb737dd2777784306b72b7438614179517",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2431907126,
+          "validation": 0.31862578248,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "fca6fb45870692217cef3b209dc09b792dea28c4ad5af468df33f4d95882e81c",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2473453432,
+          "validation": 0.31862578248,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "a0e096ad6da70610f0a212a9844405bcc10130187133bd741e07b5b41f121d64",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2462432661,
+          "validation": 0.318630627535,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "d2db5dcced7acb8b7be9c5ca26f3187d8bd5e2f51aaa7c0c5a357a7c3cd6bbb7",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2609696491,
+          "validation": 0.320634159336,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "f7ed680bd4d27bd4caeb531cb47afd73986684f50b9d27c96ca93f3edc432ecf",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2611745911,
+          "validation": 0.328462372138,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "cddbfcaf511254732ff55f52dbadc29ed91265f9e87a287527d7669d9e7a6a11",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2612502475,
+          "validation": 0.328496416187,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "4113b443d0b4f78bd7dc3b4817d16ce068af93a891f6bc0c5ca3b53f42c16a0c",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2611697883,
+          "validation": 0.328499808072,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "c51cdb2db58b272638942250160bed6339b916247b06e771e590d496e885f695",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2474230111,
+          "validation": 0.335891244651,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "7baa6715d78c2aa56af71381a1d660786b58fad534f5d2f6f74e87234e9b4c47",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.3316373689,
+          "validation": 0.341781706554,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "32a0c5a6d3fe10e2f4af4651e61f2dd665d0901a9fd8e78a308a82f015189fb8",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2768953193,
+          "validation": 0.34949854109,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "1f1d2d47c59642f87a7c697201b72949e51d1b0bbb32576b9f51bbfc95a4ceb5",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2800585342,
+          "validation": 0.35780267292,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "116c82982bb9c18bb87802a5036d9c3a264e988fbe541507d9d877fed4dab689",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.3869926502,
+          "validation": 0.359315006286,
+          "kinds": [
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "key": "c598e8f2469b9a764c5761be738acb741caa7b1a8abeec92f3c51b65e07e1564",
+          "preferred": false,
+          "sources": 3,
+          "training": 15.298137752,
+          "validation": 0.362317686057,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "ff33d4a13b6b15fa960bc0dfcaa9e5d781ee1c5efdb1f691d4f31bf6a1a5fe67",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2532758365,
+          "validation": 0.363585140965,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "746a44948a86dfc5482f9d650e388c30edd8281fa54280cef50d53008eb5634f",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2529929982,
+          "validation": 0.36536899574,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "key": "fc50dc86f304a9260832a015e7d994252690f87d491a815774d55971f5bb3c3a",
+          "preferred": false,
+          "sources": 3,
+          "training": 35.2528059718,
+          "validation": 0.366100120835,
+          "kinds": [
+            1,
+            1,
+            1
+          ]
+        }
+      ],
+      "frozen_alternative_diagnostics": [
+        {
+          "key": "fe2b63e8ca9bfe531739860f5b377a1f20416937ba68f2f9c9479b015ae2ee01",
+          "validation_rank": 0,
+          "sources": [
+            {
+              "id": 3443597883937736629,
+              "kind": 1,
+              "position": [
+                -458.25,
+                -294.5,
+                210
+              ],
+              "axis": [
+                0,
+                0,
+                1
+              ],
+              "target": 128,
+              "radius": 64,
+              "rgb": [
+                475.144378662,
+                112.069633484,
+                64.5971984863
+              ]
+            },
+            {
+              "id": 5378014215917674905,
+              "kind": 1,
+              "position": [
+                434.75,
+                -325.5,
+                210
+              ],
+              "axis": [
+                0,
+                0,
+                1
+              ],
+              "target": 128,
+              "radius": 64,
+              "rgb": [
+                52.6748962402,
+                216.570419312,
+                537.871948242
+              ]
+            }
+          ],
+          "heldout": {
+            "available": true,
+            "positive": true,
+            "required": false,
+            "mse": 31.78438626910547,
+            "black": 232.25,
+            "objective": 24.063413598450744,
+            "worst": 28.945350806879734
+          },
+          "post_freeze_rays": 308,
+          "post_freeze_evaluations": 1,
+          "selection_changed": false,
+          "typed_nearest_root_errors": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": 3443597883937736629,
+              "axis_error_degrees": null,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": null,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 23.017656266440333,
+              "candidate": 5378014215917674905,
+              "axis_error_degrees": null,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": null,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": null,
+              "candidate": null,
+              "axis_error_degrees": null,
+              "radius": null,
+              "target": null,
+              "underconstrained": null,
+              "confidence": null
+            }
+          ],
+          "accepted_or_reselected": false,
+          "scope": "Independent diagnostic after parameter freeze; final scores never feed selection"
+        },
+        {
+          "key": "05ebeb85e472115782f5dcc6c9d7231e603dc26d5723c8afacbe5e31475b4cf7",
+          "validation_rank": 1,
+          "sources": [
+            {
+              "id": 3443597883937736629,
+              "kind": 1,
+              "position": [
+                -458.25,
+                -294.5,
+                210
+              ],
+              "axis": [
+                0,
+                0,
+                1
+              ],
+              "target": 128,
+              "radius": 64,
+              "rgb": [
+                475.144378662,
+                112.069633484,
+                64.5971984863
+              ]
+            },
+            {
+              "id": 5378014215917674905,
+              "kind": 1,
+              "position": [
+                434.75,
+                -325.5,
+                210
+              ],
+              "axis": [
+                0,
+                0,
+                1
+              ],
+              "target": 128,
+              "radius": 64,
+              "rgb": [
+                52.6748962402,
+                216.570419312,
+                537.871948242
+              ]
+            },
+            {
+              "id": 13639454534694629082,
+              "kind": 2,
+              "position": [
+                458.25,
+                356.5,
+                250
+              ],
+              "axis": [
+                0,
+                0,
+                -1
+              ],
+              "target": 128,
+              "radius": 64,
+              "rgb": [
+                95.739692688,
+                536.137756348,
+                119.764938354
+              ]
+            }
+          ],
+          "heldout": {
+            "available": true,
+            "positive": true,
+            "required": false,
+            "mse": 3.5099926410415927,
+            "black": 232.25,
+            "objective": 4.747667896234844,
+            "worst": 6.793402074626876
+          },
+          "post_freeze_rays": 462,
+          "post_freeze_evaluations": 1,
+          "selection_changed": false,
+          "typed_nearest_root_errors": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": 3443597883937736629,
+              "axis_error_degrees": null,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": null,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 23.017656266440333,
+              "candidate": 5378014215917674905,
+              "axis_error_degrees": null,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": null,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 12.700885795880538,
+              "candidate": 13639454534694629082,
+              "axis_error_degrees": 0.0,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": null,
+              "confidence": null
+            }
+          ],
+          "accepted_or_reselected": false,
+          "scope": "Independent diagnostic after parameter freeze; final scores never feed selection"
+        },
+        {
+          "key": "d66ef6261ad358c08c1c2327f69390fb737dd2777784306b72b7438614179517",
+          "validation_rank": 2,
+          "sources": [
+            {
+              "id": 3443597883937736629,
+              "kind": 1,
+              "position": [
+                -458.25,
+                -294.5,
+                210
+              ],
+              "axis": [
+                0,
+                0,
+                1
+              ],
+              "target": 128,
+              "radius": 64,
+              "rgb": [
+                475.144378662,
+                112.069633484,
+                64.5971984863
+              ]
+            },
+            {
+              "id": 5378014215917674905,
+              "kind": 1,
+              "position": [
+                434.75,
+                -325.5,
+                210
+              ],
+              "axis": [
+                0,
+                0,
+                1
+              ],
+              "target": 128,
+              "radius": 64,
+              "rgb": [
+                52.6748962402,
+                216.570419312,
+                537.871948242
+              ]
+            },
+            {
+              "id": 10805351789868124275,
+              "kind": 2,
+              "position": [
+                -387.75,
+                108.5,
+                50
+              ],
+              "axis": [
+                -0.5728520751,
+                0.785154402256,
+                0.235314905643
+              ],
+              "target": 128,
+              "radius": 64,
+              "rgb": [
+                0,
+                0,
+                32.9489059448
+              ]
+            }
+          ],
+          "heldout": {
+            "available": true,
+            "positive": true,
+            "required": false,
+            "mse": 31.795542769356093,
+            "black": 232.25,
+            "objective": 24.068991848576054,
+            "worst": 28.945350806879734
+          },
+          "post_freeze_rays": 462,
+          "post_freeze_evaluations": 1,
+          "selection_changed": false,
+          "typed_nearest_root_errors": [
+            {
+              "kind": "point",
+              "distance": 6.269968101992227,
+              "candidate": 3443597883937736629,
+              "axis_error_degrees": null,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": null,
+              "confidence": null
+            },
+            {
+              "kind": "point",
+              "distance": 23.017656266440333,
+              "candidate": 5378014215917674905,
+              "axis_error_degrees": null,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": null,
+              "confidence": null
+            },
+            {
+              "kind": "spot",
+              "distance": 894.5425157587537,
+              "candidate": 10805351789868124275,
+              "axis_error_degrees": 103.61018582597899,
+              "radius": 64,
+              "target": 128,
+              "underconstrained": null,
+              "confidence": null
+            }
+          ],
+          "accepted_or_reselected": false,
+          "scope": "Independent diagnostic after parameter freeze; final scores never feed selection"
+        }
+      ],
+      "validation_evaluations": 91,
+      "candidate_deferred": 80,
+      "run_policy_sha256": "bbdd1ea655f795ccce7fb0cbb92d82ecca024eff2e29cec3c8c5a7ad14c83def",
+      "native_tool_sha256": "3d957137b8d215bcc7a98c83117f51be25802408152347fc4f4958c53699ce3c",
+      "proposal_manifest_sha256": "b6c539403f3ffe1552ce54e6b45a78afa422a60fe7a08cf27e83c53441759606",
+      "finite_selected_separate_scope": 0,
+      "budget_scope": null,
+      "model_scope": "Conditional direct-only; missing prism-union and indirect transport are not certified zero"
+    }
+  ],
+  "source_answers_read_only_here": true,
+  "no_runtime_consumers": true,
+  "source_truth_scope": "Owned compiler-relative local roots; finite prism assessed separately, stock answers unavailable",
+  "supplied_answer_observability_control": {
+    "answer_sha256": "1907d460ddc1cb81f5eca15e434471919a809becacb640cbbb22d2de8577e783",
+    "variants": {
+      "direct": {
+        "bsp_sha256": "57f0827f4a62f9b1ce0de1d0e29ab66cbe0bfcff26b85d461a6114bec5185279",
+        "roots": {
+          "0": {
+            "type": "point",
+            "roles": {
+              "train": {
+                "requested": 64,
+                "available": 64,
+                "positive": 14,
+                "nonzero": 37,
+                "peak": 74,
+                "squared_energy": 20153,
+                "all_zero": false,
+                "rays": 64
+              },
+              "validation": {
+                "requested": 34,
+                "available": 34,
+                "positive": 4,
+                "nonzero": 20,
+                "peak": 30,
+                "squared_energy": 1971,
+                "all_zero": false,
+                "rays": 34
+              },
+              "heldout": {
+                "requested": 56,
+                "available": 56,
+                "positive": 8,
+                "nonzero": 32,
+                "peak": 37,
+                "squared_energy": 4112,
+                "all_zero": false,
+                "rays": 56
+              }
+            }
+          },
+          "1": {
+            "type": "point",
+            "roles": {
+              "train": {
+                "requested": 64,
+                "available": 64,
+                "positive": 6,
+                "nonzero": 14,
+                "peak": 70,
+                "squared_energy": 14162,
+                "all_zero": false,
+                "rays": 64
+              },
+              "validation": {
+                "requested": 34,
+                "available": 34,
+                "positive": 4,
+                "nonzero": 10,
+                "peak": 73,
+                "squared_energy": 12468,
+                "all_zero": false,
+                "rays": 34
+              },
+              "heldout": {
+                "requested": 56,
+                "available": 56,
+                "positive": 10,
+                "nonzero": 17,
+                "peak": 98,
+                "squared_energy": 29163,
+                "all_zero": false,
+                "rays": 56
+              }
+            }
+          },
+          "2": {
+            "type": "spot",
+            "roles": {
+              "train": {
+                "requested": 64,
+                "available": 64,
+                "positive": 3,
+                "nonzero": 3,
+                "peak": 69,
+                "squared_energy": 8367,
+                "all_zero": false,
+                "rays": 64
+              },
+              "validation": {
+                "requested": 34,
+                "available": 34,
+                "positive": 0,
+                "nonzero": 0,
+                "peak": 0,
+                "squared_energy": 0,
+                "all_zero": true,
+                "rays": 34
+              },
+              "heldout": {
+                "requested": 56,
+                "available": 56,
+                "positive": 2,
+                "nonzero": 2,
+                "peak": 56,
+                "squared_energy": 5027,
+                "all_zero": false,
+                "rays": 56
+              }
+            }
+          }
+        },
+        "discovery": false,
+        "recipe_scope": "Pinned local point/spot direct kernel, generic static traces; prism and compiler bounce not replayed"
+      },
+      "passive_bounce1": {
+        "bsp_sha256": "3087ba242708a781deb0bbe439091112a067b2befd5341856afe11dd13ce48a3",
+        "roots": {
+          "0": {
+            "type": "point",
+            "roles": {
+              "train": {
+                "requested": 64,
+                "available": 64,
+                "positive": 14,
+                "nonzero": 37,
+                "peak": 74,
+                "squared_energy": 20064,
+                "all_zero": false,
+                "rays": 64
+              },
+              "validation": {
+                "requested": 34,
+                "available": 34,
+                "positive": 4,
+                "nonzero": 20,
+                "peak": 30,
+                "squared_energy": 1971,
+                "all_zero": false,
+                "rays": 34
+              },
+              "heldout": {
+                "requested": 56,
+                "available": 56,
+                "positive": 8,
+                "nonzero": 32,
+                "peak": 37,
+                "squared_energy": 4112,
+                "all_zero": false,
+                "rays": 56
+              }
+            }
+          },
+          "1": {
+            "type": "point",
+            "roles": {
+              "train": {
+                "requested": 64,
+                "available": 64,
+                "positive": 6,
+                "nonzero": 13,
+                "peak": 70,
+                "squared_energy": 14212,
+                "all_zero": false,
+                "rays": 64
+              },
+              "validation": {
+                "requested": 34,
+                "available": 34,
+                "positive": 4,
+                "nonzero": 10,
+                "peak": 73,
+                "squared_energy": 12468,
+                "all_zero": false,
+                "rays": 34
+              },
+              "heldout": {
+                "requested": 56,
+                "available": 56,
+                "positive": 10,
+                "nonzero": 17,
+                "peak": 98,
+                "squared_energy": 29163,
+                "all_zero": false,
+                "rays": 56
+              }
+            }
+          },
+          "2": {
+            "type": "spot",
+            "roles": {
+              "train": {
+                "requested": 64,
+                "available": 64,
+                "positive": 3,
+                "nonzero": 3,
+                "peak": 67,
+                "squared_energy": 7534,
+                "all_zero": false,
+                "rays": 64
+              },
+              "validation": {
+                "requested": 34,
+                "available": 34,
+                "positive": 0,
+                "nonzero": 0,
+                "peak": 0,
+                "squared_energy": 0,
+                "all_zero": true,
+                "rays": 34
+              },
+              "heldout": {
+                "requested": 56,
+                "available": 56,
+                "positive": 2,
+                "nonzero": 2,
+                "peak": 56,
+                "squared_energy": 5027,
+                "all_zero": false,
+                "rays": 56
+              }
+            }
+          }
+        },
+        "discovery": false,
+        "recipe_scope": "Pinned local point/spot direct kernel, generic static traces; prism and compiler bounce not replayed"
+      }
+    },
+    "scope": "Post-fit oracle observability, never supplied to proposal/catalog/amplitude code"
+  },
+  "supplied_answer_observability_sha256": "f78270bb7be876b04a61ee78be26cd2374bdee1a650bd2d0c5ab7839fc9eb17c"
+}

@@ -1,0 +1,208 @@
+{
+  "schema": "org.openjk.discovery-x16-supplied-controls/1",
+  "scope": "Fixed supplied source XYZ; not blind recovery",
+  "tool_sha256": "d839867155dc8399462fc2b86652b2942dcafe016b84afa888f7e6ce8858ecc3",
+  "cases": [
+    {
+      "name": "point_room",
+      "wrong_profile": false,
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            299.854919434,
+            299.854919434,
+            299.854919434
+          ],
+          "relative_rgb_error": 0.00048360188666663357,
+          "true_compiler_rgb": [
+            300.0,
+            300.0,
+            300.0
+          ]
+        }
+      ],
+      "state": "Completed",
+      "training_interval_mse": 0,
+      "validation_interval_mse": 0,
+      "heldout_interval_mse": 0,
+      "heldout_black_mse": 2495.88888889,
+      "conditional_sources": 1,
+      "resolved_sources": 0,
+      "evaluations": 476,
+      "rays": 480,
+      "payload_bytes": 14352
+    },
+    {
+      "name": "point_room",
+      "wrong_profile": true,
+      "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "parameters": [],
+      "state": "DiagnosticOnly",
+      "training_interval_mse": null,
+      "validation_interval_mse": null,
+      "heldout_interval_mse": null,
+      "heldout_black_mse": null,
+      "conditional_sources": 0,
+      "resolved_sources": 0,
+      "evaluations": 1215,
+      "rays": 144,
+      "payload_bytes": 0
+    },
+    {
+      "name": "two_colour",
+      "wrong_profile": false,
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            287.158630371,
+            27.55534935,
+            6.30522537231
+          ],
+          "relative_rgb_error": 0.05161886670630411,
+          "true_compiler_rgb": [
+            300.0,
+            35.9999991,
+            8.99999979
+          ]
+        },
+        {
+          "candidate": 2,
+          "fitted_compiler_rgb": [
+            26.7347106934,
+            69.7119522095,
+            303.298187256
+          ],
+          "relative_rgb_error": 0.058636268504425326,
+          "true_compiler_rgb": [
+            11.99999973,
+            60.0000009,
+            300.0
+          ]
+        }
+      ],
+      "state": "Completed",
+      "training_interval_mse": 0.218169823821,
+      "validation_interval_mse": 2.17680241764,
+      "heldout_interval_mse": 0.222869236135,
+      "heldout_black_mse": 1170.60185185,
+      "conditional_sources": 2,
+      "resolved_sources": 0,
+      "evaluations": 4874,
+      "rays": 1440,
+      "payload_bytes": 18666
+    },
+    {
+      "name": "two_colour",
+      "wrong_profile": true,
+      "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "parameters": [],
+      "state": "DiagnosticOnly",
+      "training_interval_mse": null,
+      "validation_interval_mse": null,
+      "heldout_interval_mse": null,
+      "heldout_black_mse": null,
+      "conditional_sources": 0,
+      "resolved_sources": 0,
+      "evaluations": 3643,
+      "rays": 384,
+      "payload_bytes": 0
+    },
+    {
+      "name": "door_occlusion",
+      "wrong_profile": false,
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "parameters": [
+        {
+          "candidate": 1,
+          "fitted_compiler_rgb": [
+            299.854919434,
+            299.854919434,
+            299.854919434
+          ],
+          "relative_rgb_error": 0.00048360188666663357,
+          "true_compiler_rgb": [
+            300.0,
+            300.0,
+            300.0
+          ]
+        }
+      ],
+      "state": "Completed",
+      "training_interval_mse": 0,
+      "validation_interval_mse": 0,
+      "heldout_interval_mse": 0,
+      "heldout_black_mse": 2495.88888889,
+      "conditional_sources": 1,
+      "resolved_sources": 0,
+      "evaluations": 476,
+      "rays": 480,
+      "payload_bytes": 14352
+    },
+    {
+      "name": "door_occlusion",
+      "wrong_profile": true,
+      "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+      "parameters": [],
+      "state": "DiagnosticOnly",
+      "training_interval_mse": null,
+      "validation_interval_mse": null,
+      "heldout_interval_mse": null,
+      "heldout_black_mse": null,
+      "conditional_sources": 0,
+      "resolved_sources": 0,
+      "evaluations": 1215,
+      "rays": 144,
+      "payload_bytes": 0
+    }
+  ],
+  "repeat_archive_sha256": {
+    "033183fd5b75dfc09024e33b10ecb32eec1fc653d6464fca4d2fe388310cb2de.jklr": "3e3b85993b7b91490d325bea00494938af6c322a8707d961a91dd281e92c1490"
+  },
+  "resources": [
+    {
+      "name": "point_room",
+      "peak_process_rss_bytes": 10162176,
+      "seconds": 2.408294300083071
+    },
+    {
+      "name": "point_room-wrong",
+      "peak_process_rss_bytes": 6557696,
+      "seconds": 2.381927700014785
+    },
+    {
+      "name": "two_colour",
+      "peak_process_rss_bytes": 7585792,
+      "seconds": 12.197185799945146
+    },
+    {
+      "name": "two_colour-wrong",
+      "peak_process_rss_bytes": 6758400,
+      "seconds": 8.857924399897456
+    },
+    {
+      "name": "door_occlusion",
+      "peak_process_rss_bytes": 6897664,
+      "seconds": 0.8259765000548214
+    },
+    {
+      "name": "door_occlusion-wrong",
+      "peak_process_rss_bytes": 6459392,
+      "seconds": 1.955876500112936
+    },
+    {
+      "name": "two_colour",
+      "peak_process_rss_bytes": 7581696,
+      "seconds": 13.1332640000619
+    }
+  ]
+}

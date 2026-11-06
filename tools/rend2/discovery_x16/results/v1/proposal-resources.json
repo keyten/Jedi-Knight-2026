@@ -1,0 +1,1286 @@
+{
+  "direct": [
+    {
+      "job": 1,
+      "label": "baseline",
+      "count": 28,
+      "forward_calls": 3020,
+      "rays": 17136,
+      "work": 584520,
+      "nodes": 168,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\baseline\\search-1.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.547000000020489,
+        "peak_process_rss_bytes": 5349376
+      }
+    },
+    {
+      "job": 1,
+      "label": "legacy_adapter",
+      "count": 28,
+      "forward_calls": 3020,
+      "rays": 17136,
+      "work": 584520,
+      "nodes": 168,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\legacy_adapter\\search-1.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.031999999890104,
+        "peak_process_rss_bytes": 5337088
+      }
+    },
+    {
+      "job": 1,
+      "label": "budgetmatched",
+      "count": 32,
+      "forward_calls": 4316,
+      "rays": 24480,
+      "work": 841304,
+      "nodes": 240,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\budgetmatched\\search-1.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.1880000000819564,
+        "peak_process_rss_bytes": 5767168
+      }
+    },
+    {
+      "job": 1,
+      "label": "new",
+      "count": 28,
+      "forward_calls": 4396,
+      "rays": 25296,
+      "work": 870968,
+      "nodes": 248,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\new\\search-1.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.3910000000614673,
+        "peak_process_rss_bytes": 5816320
+      }
+    },
+    {
+      "job": 2,
+      "label": "baseline",
+      "count": 40,
+      "forward_calls": 5024,
+      "rays": 47040,
+      "work": 1230320,
+      "nodes": 280,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\baseline\\search-2.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 4.202999999979511,
+        "peak_process_rss_bytes": 6479872
+      }
+    },
+    {
+      "job": 2,
+      "label": "legacy_adapter",
+      "count": 40,
+      "forward_calls": 5024,
+      "rays": 47040,
+      "work": 1230320,
+      "nodes": 280,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\legacy_adapter\\search-2.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 3.719000000040978,
+        "peak_process_rss_bytes": 6500352
+      }
+    },
+    {
+      "job": 2,
+      "label": "budgetmatched",
+      "count": 40,
+      "forward_calls": 6896,
+      "rays": 64512,
+      "work": 1687296,
+      "nodes": 384,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\budgetmatched\\search-2.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 6.4219999997876585,
+        "peak_process_rss_bytes": 7143424
+      }
+    },
+    {
+      "job": 2,
+      "label": "new",
+      "count": 34,
+      "forward_calls": 6868,
+      "rays": 64512,
+      "work": 1687296,
+      "nodes": 384,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\new\\search-2.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 6.266000000061467,
+        "peak_process_rss_bytes": 7110656
+      }
+    },
+    {
+      "job": 3,
+      "label": "baseline",
+      "count": 29,
+      "forward_calls": 2880,
+      "rays": 11520,
+      "work": 392944,
+      "nodes": 160,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\baseline\\search-3.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.3440000000409782,
+        "peak_process_rss_bytes": 5201920
+      }
+    },
+    {
+      "job": 3,
+      "label": "legacy_adapter",
+      "count": 29,
+      "forward_calls": 2880,
+      "rays": 11520,
+      "work": 392944,
+      "nodes": 160,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\legacy_adapter\\search-3.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.4059999999590218,
+        "peak_process_rss_bytes": 5185536
+      }
+    },
+    {
+      "job": 3,
+      "label": "budgetmatched",
+      "count": 30,
+      "forward_calls": 4464,
+      "rays": 17856,
+      "work": 607856,
+      "nodes": 248,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\budgetmatched\\search-3.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.0630000000819564,
+        "peak_process_rss_bytes": 5582848
+      }
+    },
+    {
+      "job": 3,
+      "label": "new",
+      "count": 25,
+      "forward_calls": 4476,
+      "rays": 18432,
+      "work": 637056,
+      "nodes": 256,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\new\\search-3.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.5159999998286366,
+        "peak_process_rss_bytes": 5591040
+      }
+    },
+    {
+      "job": 4,
+      "label": "baseline",
+      "count": 48,
+      "forward_calls": 6296,
+      "rays": 27456,
+      "work": 723008,
+      "nodes": 352,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\baseline\\search-4.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 4.063000000081956,
+        "peak_process_rss_bytes": 6123520
+      }
+    },
+    {
+      "job": 4,
+      "label": "legacy_adapter",
+      "count": 48,
+      "forward_calls": 6296,
+      "rays": 27456,
+      "work": 723008,
+      "nodes": 352,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\legacy_adapter\\search-4.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 3.0780000002123415,
+        "peak_process_rss_bytes": 6115328
+      }
+    },
+    {
+      "job": 4,
+      "label": "budgetmatched",
+      "count": 48,
+      "forward_calls": 6880,
+      "rays": 29952,
+      "work": 788736,
+      "nodes": 384,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\budgetmatched\\search-4.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 3.5159999998286366,
+        "peak_process_rss_bytes": 6176768
+      }
+    },
+    {
+      "job": 4,
+      "label": "new",
+      "count": 42,
+      "forward_calls": 6332,
+      "rays": 29952,
+      "work": 788736,
+      "nodes": 384,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\new\\search-4.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 3.719000000040978,
+        "peak_process_rss_bytes": 5955584
+      }
+    },
+    {
+      "job": 5,
+      "label": "baseline",
+      "count": 26,
+      "forward_calls": 2784,
+      "rays": 11520,
+      "work": 543710,
+      "nodes": 160,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\baseline\\search-5.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.9370000001508743,
+        "peak_process_rss_bytes": 5177344
+      }
+    },
+    {
+      "job": 5,
+      "label": "legacy_adapter",
+      "count": 26,
+      "forward_calls": 2784,
+      "rays": 11520,
+      "work": 543710,
+      "nodes": 160,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\legacy_adapter\\search-5.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.3280000002123415,
+        "peak_process_rss_bytes": 5111808
+      }
+    },
+    {
+      "job": 5,
+      "label": "budgetmatched",
+      "count": 26,
+      "forward_calls": 3648,
+      "rays": 14976,
+      "work": 703628,
+      "nodes": 208,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\budgetmatched\\search-5.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.0160000000614673,
+        "peak_process_rss_bytes": 5406720
+      }
+    },
+    {
+      "job": 5,
+      "label": "new",
+      "count": 26,
+      "forward_calls": 3868,
+      "rays": 17280,
+      "work": 807532,
+      "nodes": 240,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\new\\search-5.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.6410000000614673,
+        "peak_process_rss_bytes": 5382144
+      }
+    },
+    {
+      "job": 6,
+      "label": "baseline",
+      "count": 0,
+      "forward_calls": 0,
+      "rays": 0,
+      "work": 0,
+      "nodes": 0,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\baseline\\search-6.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 0.1410000000614673,
+        "peak_process_rss_bytes": 4259840
+      }
+    },
+    {
+      "job": 6,
+      "label": "legacy_adapter",
+      "count": 0,
+      "forward_calls": 0,
+      "rays": 0,
+      "work": 0,
+      "nodes": 0,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\legacy_adapter\\search-6.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 0.125,
+        "peak_process_rss_bytes": 4239360
+      }
+    },
+    {
+      "job": 6,
+      "label": "budgetmatched",
+      "count": 0,
+      "forward_calls": 0,
+      "rays": 0,
+      "work": 0,
+      "nodes": 0,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\budgetmatched\\search-6.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 0.125,
+        "peak_process_rss_bytes": 4231168
+      }
+    },
+    {
+      "job": 6,
+      "label": "new",
+      "count": 0,
+      "forward_calls": 0,
+      "rays": 0,
+      "work": 0,
+      "nodes": 0,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\new\\search-6.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 0.26599999982863665,
+        "peak_process_rss_bytes": 4227072
+      }
+    },
+    {
+      "job": 7,
+      "label": "baseline",
+      "count": 24,
+      "forward_calls": 2736,
+      "rays": 12768,
+      "work": 494136,
+      "nodes": 152,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\baseline\\search-7.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.4370000001508743,
+        "peak_process_rss_bytes": 5152768
+      }
+    },
+    {
+      "job": 7,
+      "label": "legacy_adapter",
+      "count": 24,
+      "forward_calls": 2736,
+      "rays": 12768,
+      "work": 494136,
+      "nodes": 152,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\legacy_adapter\\search-7.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.781999999890104,
+        "peak_process_rss_bytes": 5169152
+      }
+    },
+    {
+      "job": 7,
+      "label": "budgetmatched",
+      "count": 24,
+      "forward_calls": 4320,
+      "rays": 20160,
+      "work": 779344,
+      "nodes": 240,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\budgetmatched\\search-7.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.25,
+        "peak_process_rss_bytes": 5554176
+      }
+    },
+    {
+      "job": 7,
+      "label": "new",
+      "count": 23,
+      "forward_calls": 4232,
+      "rays": 21504,
+      "work": 831200,
+      "nodes": 256,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\new\\search-7.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.3589999999385327,
+        "peak_process_rss_bytes": 5586944
+      }
+    },
+    {
+      "job": 8,
+      "label": "baseline",
+      "count": 13,
+      "forward_calls": 2196,
+      "rays": 19200,
+      "work": 685564,
+      "nodes": 128,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\baseline\\search-8.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.8910000000614673,
+        "peak_process_rss_bytes": 5255168
+      }
+    },
+    {
+      "job": 8,
+      "label": "legacy_adapter",
+      "count": 13,
+      "forward_calls": 2196,
+      "rays": 19200,
+      "work": 685564,
+      "nodes": 128,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\legacy_adapter\\search-8.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.875,
+        "peak_process_rss_bytes": 5271552
+      }
+    },
+    {
+      "job": 8,
+      "label": "budgetmatched",
+      "count": 15,
+      "forward_calls": 3636,
+      "rays": 31200,
+      "work": 1112204,
+      "nodes": 208,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\budgetmatched\\search-8.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 3.922000000020489,
+        "peak_process_rss_bytes": 5799936
+      }
+    },
+    {
+      "job": 8,
+      "label": "new",
+      "count": 16,
+      "forward_calls": 4264,
+      "rays": 38400,
+      "work": 1368188,
+      "nodes": 256,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\direct\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\direct\\new\\search-8.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 3.202999999979511,
+        "peak_process_rss_bytes": 6139904
+      }
+    }
+  ],
+  "passive_bounce1": [
+    {
+      "job": 1,
+      "label": "baseline",
+      "count": 29,
+      "forward_calls": 3164,
+      "rays": 17952,
+      "work": 616504,
+      "nodes": 176,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\baseline\\search-1.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.077999999979511,
+        "peak_process_rss_bytes": 5423104
+      }
+    },
+    {
+      "job": 1,
+      "label": "legacy_adapter",
+      "count": 29,
+      "forward_calls": 3164,
+      "rays": 17952,
+      "work": 616504,
+      "nodes": 176,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\legacy_adapter\\search-1.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.827999999979511,
+        "peak_process_rss_bytes": 5390336
+      }
+    },
+    {
+      "job": 1,
+      "label": "budgetmatched",
+      "count": 29,
+      "forward_calls": 4028,
+      "rays": 22848,
+      "work": 788568,
+      "nodes": 224,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\budgetmatched\\search-1.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.109999999869615,
+        "peak_process_rss_bytes": 5677056
+      }
+    },
+    {
+      "job": 1,
+      "label": "new",
+      "count": 25,
+      "forward_calls": 4396,
+      "rays": 25296,
+      "work": 877560,
+      "nodes": 248,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\new\\search-1.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.6560000001918525,
+        "peak_process_rss_bytes": 5787648
+      }
+    },
+    {
+      "job": 2,
+      "label": "baseline",
+      "count": 37,
+      "forward_calls": 5740,
+      "rays": 53760,
+      "work": 1406080,
+      "nodes": 320,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\baseline\\search-2.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 6.5,
+        "peak_process_rss_bytes": 6664192
+      }
+    },
+    {
+      "job": 2,
+      "label": "legacy_adapter",
+      "count": 37,
+      "forward_calls": 5740,
+      "rays": 53760,
+      "work": 1406080,
+      "nodes": 320,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\legacy_adapter\\search-2.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 4.968000000109896,
+        "peak_process_rss_bytes": 6656000
+      }
+    },
+    {
+      "job": 2,
+      "label": "budgetmatched",
+      "count": 29,
+      "forward_calls": 6892,
+      "rays": 64512,
+      "work": 1687296,
+      "nodes": 384,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\budgetmatched\\search-2.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 7.422000000020489,
+        "peak_process_rss_bytes": 7077888
+      }
+    },
+    {
+      "job": 2,
+      "label": "new",
+      "count": 37,
+      "forward_calls": 6652,
+      "rays": 63168,
+      "work": 1652144,
+      "nodes": 376,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\new\\search-2.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 5.937999999849126,
+        "peak_process_rss_bytes": 7061504
+      }
+    },
+    {
+      "job": 3,
+      "label": "baseline",
+      "count": 19,
+      "forward_calls": 2448,
+      "rays": 9792,
+      "work": 336880,
+      "nodes": 136,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\baseline\\search-3.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.202999999979511,
+        "peak_process_rss_bytes": 5120000
+      }
+    },
+    {
+      "job": 3,
+      "label": "legacy_adapter",
+      "count": 19,
+      "forward_calls": 2448,
+      "rays": 9792,
+      "work": 336880,
+      "nodes": 136,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\legacy_adapter\\search-3.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.4849999998696148,
+        "peak_process_rss_bytes": 5058560
+      }
+    },
+    {
+      "job": 3,
+      "label": "budgetmatched",
+      "count": 19,
+      "forward_calls": 3312,
+      "rays": 13248,
+      "work": 456016,
+      "nodes": 184,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\budgetmatched\\search-3.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.9369999999180436,
+        "peak_process_rss_bytes": 5292032
+      }
+    },
+    {
+      "job": 3,
+      "label": "new",
+      "count": 21,
+      "forward_calls": 3644,
+      "rays": 14976,
+      "work": 522592,
+      "nodes": 208,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\new\\search-3.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.7349999998696148,
+        "peak_process_rss_bytes": 5361664
+      }
+    },
+    {
+      "job": 4,
+      "label": "baseline",
+      "count": 48,
+      "forward_calls": 5612,
+      "rays": 24336,
+      "work": 640848,
+      "nodes": 312,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\baseline\\search-4.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.4689999998081475,
+        "peak_process_rss_bytes": 5885952
+      }
+    },
+    {
+      "job": 4,
+      "label": "legacy_adapter",
+      "count": 48,
+      "forward_calls": 5612,
+      "rays": 24336,
+      "work": 640848,
+      "nodes": 312,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\legacy_adapter\\search-4.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.8439999998081475,
+        "peak_process_rss_bytes": 5906432
+      }
+    },
+    {
+      "job": 4,
+      "label": "budgetmatched",
+      "count": 48,
+      "forward_calls": 6908,
+      "rays": 29952,
+      "work": 788736,
+      "nodes": 384,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\budgetmatched\\search-4.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 3.172000000020489,
+        "peak_process_rss_bytes": 6148096
+      }
+    },
+    {
+      "job": 4,
+      "label": "new",
+      "count": 44,
+      "forward_calls": 6460,
+      "rays": 29952,
+      "work": 788736,
+      "nodes": 384,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\new\\search-4.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.327999999979511,
+        "peak_process_rss_bytes": 6123520
+      }
+    },
+    {
+      "job": 5,
+      "label": "baseline",
+      "count": 24,
+      "forward_calls": 2204,
+      "rays": 9216,
+      "work": 438126,
+      "nodes": 128,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\baseline\\search-5.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 0.8279999999795109,
+        "peak_process_rss_bytes": 5046272
+      }
+    },
+    {
+      "job": 5,
+      "label": "legacy_adapter",
+      "count": 24,
+      "forward_calls": 2204,
+      "rays": 9216,
+      "work": 438126,
+      "nodes": 128,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\legacy_adapter\\search-5.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 0.7180000001098961,
+        "peak_process_rss_bytes": 5050368
+      }
+    },
+    {
+      "job": 5,
+      "label": "budgetmatched",
+      "count": 27,
+      "forward_calls": 3644,
+      "rays": 14976,
+      "work": 701258,
+      "nodes": 208,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\budgetmatched\\search-5.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.2190000000409782,
+        "peak_process_rss_bytes": 5476352
+      }
+    },
+    {
+      "job": 5,
+      "label": "new",
+      "count": 25,
+      "forward_calls": 3772,
+      "rays": 16704,
+      "work": 780176,
+      "nodes": 232,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\new\\search-5.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.125,
+        "peak_process_rss_bytes": 5439488
+      }
+    },
+    {
+      "job": 6,
+      "label": "baseline",
+      "count": 20,
+      "forward_calls": 2192,
+      "rays": 16632,
+      "work": 612456,
+      "nodes": 136,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\baseline\\search-6.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.2190000000409782,
+        "peak_process_rss_bytes": 5140480
+      }
+    },
+    {
+      "job": 6,
+      "label": "legacy_adapter",
+      "count": 20,
+      "forward_calls": 2192,
+      "rays": 16632,
+      "work": 612456,
+      "nodes": 136,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\legacy_adapter\\search-6.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.2190000000409782,
+        "peak_process_rss_bytes": 5165056
+      }
+    },
+    {
+      "job": 6,
+      "label": "budgetmatched",
+      "count": 20,
+      "forward_calls": 3324,
+      "rays": 24696,
+      "work": 908888,
+      "nodes": 208,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\budgetmatched\\search-6.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.7349999998696148,
+        "peak_process_rss_bytes": 5550080
+      }
+    },
+    {
+      "job": 6,
+      "label": "new",
+      "count": 20,
+      "forward_calls": 3032,
+      "rays": 25200,
+      "work": 928684,
+      "nodes": 224,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\new\\search-6.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.625,
+        "peak_process_rss_bytes": 5361664
+      }
+    },
+    {
+      "job": 7,
+      "label": "baseline",
+      "count": 28,
+      "forward_calls": 2736,
+      "rays": 12768,
+      "work": 494136,
+      "nodes": 152,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\baseline\\search-7.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.0160000000614673,
+        "peak_process_rss_bytes": 5197824
+      }
+    },
+    {
+      "job": 7,
+      "label": "legacy_adapter",
+      "count": 28,
+      "forward_calls": 2736,
+      "rays": 12768,
+      "work": 494136,
+      "nodes": 152,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\legacy_adapter\\search-7.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.0159999998286366,
+        "peak_process_rss_bytes": 5197824
+      }
+    },
+    {
+      "job": 7,
+      "label": "budgetmatched",
+      "count": 28,
+      "forward_calls": 4032,
+      "rays": 18816,
+      "work": 727488,
+      "nodes": 224,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\budgetmatched\\search-7.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.625,
+        "peak_process_rss_bytes": 5554176
+      }
+    },
+    {
+      "job": 7,
+      "label": "new",
+      "count": 22,
+      "forward_calls": 4284,
+      "rays": 21504,
+      "work": 831200,
+      "nodes": 256,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\new\\search-7.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.6090000001713634,
+        "peak_process_rss_bytes": 5591040
+      }
+    },
+    {
+      "job": 8,
+      "label": "baseline",
+      "count": 13,
+      "forward_calls": 2048,
+      "rays": 18000,
+      "work": 643104,
+      "nodes": 120,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-v1\\baseline-native\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\baseline\\search-8.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.125,
+        "peak_process_rss_bytes": 5328896
+      }
+    },
+    {
+      "job": 8,
+      "label": "legacy_adapter",
+      "count": 13,
+      "forward_calls": 2048,
+      "rays": 18000,
+      "work": 643104,
+      "nodes": 120,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\legacy_adapter\\search-8.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 1.2190000000409782,
+        "peak_process_rss_bytes": 5193728
+      }
+    },
+    {
+      "job": 8,
+      "label": "budgetmatched",
+      "count": 17,
+      "forward_calls": 3744,
+      "rays": 32400,
+      "work": 1155528,
+      "nodes": 216,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\budgetmatched\\search-8.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 2.046000000089407,
+        "peak_process_rss_bytes": 5865472
+      }
+    },
+    {
+      "job": 8,
+      "label": "new",
+      "count": 23,
+      "forward_calls": 4632,
+      "rays": 43200,
+      "work": 1549188,
+      "nodes": 288,
+      "resources": {
+        "command": [
+          "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_hidden_tool.exe",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-v02-bridge-v2\\bridge\\passive_bounce1\\views\\inputs\\geometry.jkobs",
+          "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x16-proposals-v5\\passive_bounce1\\new\\search-8.request"
+        ],
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 3.1880000000819564,
+        "peak_process_rss_bytes": 6115328
+      }
+    }
+  ]
+}

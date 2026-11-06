@@ -7,9 +7,11 @@
 #include "lightrecon/offline.h"
 #include "lightrecon/producer.h"
 #include <algorithm>
+#include <array>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <set>
 #include <stdexcept>
 using namespace Rend2LightRecon;
@@ -32,6 +34,17 @@ void Vec(std::istream &in, Vec3 &v)
 {
 	in >> v.x >> v.y >> v.z;
 	Need(bool(in) && Finite(v), "Finite geometry vector");
+}
+void JsonString(const std::string &value)
+{
+	std::cout<<'"';
+	for(unsigned char c:value){
+		if(c=='"'||c=='\\')std::cout<<'\\'<<c;
+		else if(c=='\n')std::cout<<"\\n";
+		else if(c=='\r')std::cout<<"\\r";
+		else if(c>=32)std::cout<<c;
+	}
+	std::cout<<'"';
 }
 template <class T> class Data final : public ChunkSource<T>
 {
@@ -242,7 +255,8 @@ int main(int argc, char **argv)
 		std::ifstream in(argv[2]);
 		std::string magic;
 		in >> magic;
-		Need(magic == "JKJOINT1" || magic == "JKJOINT13", "Joint protocol version");
+		Need(magic == "JKJOINT1" || magic == "JKJOINT13" || magic == "JKJOINT16", "Joint protocol version");
+		const bool discoveryMode = magic == "JKJOINT16";
 		Disk::Digest validationKey = Key("S11 external private validation partition v1"),
 					 heldoutKey = Key("External final held-out geometry");
 		BuildCoverage coverage;
@@ -311,12 +325,17 @@ int main(int argc, char **argv)
 			}
 		}
 		size_t candidates = 0;
+		unsigned refineGeometry=0,finiteGeometry=0;
+		if(discoveryMode)in>>refineGeometry>>finiteGeometry;
 		in >> candidates;
-		Need((candidates > 0 || stockMode) && candidates <= 8, "Native controlled candidate budget");
+		Need((candidates > 0 || stockMode) && candidates <= (discoveryMode?32:8),
+			 "Native controlled candidate budget");
 		for (size_t i = 0; i < candidates; ++i)
 		{
 			J::Candidate c;
 			in >> c.id;
+			unsigned kind=0;
+			if(discoveryMode)in>>kind>>c.family>>c.region;
 			Vec(in, c.shape.initial.geometry.position.world);
 			c.shape.initial.geometry.source.id = c.id;
 			c.shape.initial.geometry.position.known = true;
@@ -327,8 +346,36 @@ int main(int argc, char **argv)
 			c.shape.centreBounds = source.domain->Source().worldBounds;
 			c.shape.fitPosition = c.shape.fitFrame = c.shape.fitDimensions = c.shape.fitCone = false;
 			c.shape.maximumTranslationWorld = 0;
-			c.provider = "explicit-controlled-fixed-XYZ-prior";
-			c.provenance = "Allowed fixed geometry prior, no true amplitudes or count supplied as answers";
+			if(discoveryMode){
+				Need(kind<=1,"X16 point/spot source-kind declaration");
+				Vec3 axis;Vec(in,axis);
+				in>>c.shape.initial.spotTargetDistanceWorld>>c.shape.initial.spotRadiusWorld;
+				if(kind){
+					Need(Length(V(axis))>.99&&Length(V(axis))<1.01,"X16 unit spot axis");
+					auto forward=Unit(V(axis));
+					auto right=Unit(Cross(std::abs(forward.z)<.9?V(0,0,1):V(0,1,0),forward));
+					auto &g=c.shape.initial.geometry;
+					g.kind=EmitterKind::Spot;g.frame.known=true;
+					g.frame.forward=forward.Float();g.frame.right=right.Float();
+					g.frame.up=Cross(forward,right).Float();
+					g.angular.kind=AngularKind::SmoothCone;
+					double outer=std::atan((c.shape.initial.spotRadiusWorld+16)/
+										   c.shape.initial.spotTargetDistanceWorld);
+					g.angular.cosOuter=float(std::cos(outer));g.angular.cosInner=float(std::cos(.8*outer));
+					c.shape.directionalEvidence=false; // inferred seed is not independent angular certification
+				}
+				c.shape.evidence=Shape::ShapeEvidence::Inferred;
+				c.shape.fitPosition=refineGeometry;
+				c.shape.fitFrame=c.shape.fitCone=refineGeometry&&kind;
+				c.shape.maximumTranslationWorld=32;c.shape.maximumRotationRadians=.5;
+				c.shape.centreBounds.minWorld=(V(c.shape.initial.geometry.position.world)-V(32,32,32)).Float();
+				c.shape.centreBounds.maxWorld=(V(c.shape.initial.geometry.position.world)+V(32,32,32)).Float();
+				c.provider="training-only-Hidden";c.provenance="X16 public geometry proposal; source identity/type uncertain";
+			}
+            if(!discoveryMode){
+                c.provider = "explicit-controlled-fixed-XYZ-prior";
+                c.provenance = "Allowed fixed geometry prior, no true amplitudes or count supplied as answers";
+            }
 			request.candidates.push_back(c);
 		}
 		std::vector<RowSpec> specs;
@@ -425,6 +472,7 @@ int main(int argc, char **argv)
 		request.placement.domainKey = Key("Original archived BSP domain");
 		request.placement.geometry = visibility;
 		request.placement.dynamic = source.dynamic;
+		request.placement.originalSurfaces = source.geometry;
 		auto train = std::make_shared<Data<J::Observation>>(),
 			 validation = std::make_shared<Data<J::Observation>>(),
 			 held = std::make_shared<Data<J::Observation>>();
@@ -440,6 +488,111 @@ int main(int argc, char **argv)
 					  [](const J::Observation &a, const J::Observation &b) { return a.id < b.id; });
 		request.training = train;
 		request.count = train->records->size();
+		size_t catalogInput=0,catalogModels=0,catalogAdmitted=0,catalogDeferred=0,finiteUnsupported=0;
+		if(discoveryMode)
+		{
+			// Reuse S05 identity/provenance consolidation and progressive quotas.
+			// Supporting receivers are not fixture mounting surfaces.
+			auto proposals=request.candidates;
+			auto evidence=std::make_shared<Hidden::Result>();
+			evidence->key=Key("X16 public geometry declarations, exact catalog content hashed by S05");
+			for(const auto &c:proposals){
+				EmitterEvidence e;e.id=c.id;e.origin=EvidenceOrigin::SurfaceObservation;
+				e.source="X16 training-only source proposal";e.positionKnown=e.staticEligible=true;
+				e.position=c.shape.initial.geometry.position.world;
+				e.shapes=c.shape.initial.geometry.kind==EmitterKind::Spot?CandidateSpot:CandidatePoint;
+				e.issues=ShapeHypothesis|UncalibratedEmission|AmbiguousCorrespondence;
+				e.orientationKnown=c.shape.initial.geometry.frame.known;
+				e.outward=c.shape.initial.geometry.frame.forward;
+				e.right=c.shape.initial.geometry.frame.right;e.up=c.shape.initial.geometry.frame.up;
+				if(e.orientationKnown){e.coneKnown=true;e.coneDegrees=float(
+					std::acos(c.shape.initial.geometry.angular.cosOuter)*180/Pi);}
+				evidence->evidence.push_back(e);
+				EmitterCandidate v;v.id=c.id;v.primary=evidence->evidence.size()-1;
+				v.evidence={v.primary};v.shapes=e.shapes;v.staticEligible=true;evidence->candidates.push_back(v);
+				Hidden::Hypothesis h;h.candidate=c.id;h.region=c.region;
+				h.profile=request.profiles[0].model.profile.id;
+				h.sourceKind=c.shape.initial.geometry.kind==EmitterKind::Spot?Bake::SourceKind::Spot:Bake::SourceKind::Point;
+				h.spotTargetDistanceWorld=c.shape.initial.spotTargetDistanceWorld;
+				h.spotRadiusWorld=c.shape.initial.spotRadiusWorld;
+				evidence->hypotheses.push_back(h);
+			}
+			Candidates::Provider provider;
+			Check(Candidates::FromHidden("X16-public",request.mapKey,request.geometry.geometryKey,{},evidence,provider));
+			Candidates::Request q;q.map=request.mapKey;q.geometryKey=request.geometry.geometryKey;
+			q.providers={provider};q.visibility=visibility;
+			Candidates::Catalog catalog;Check(Candidates::Consolidate(q,read,catalog));
+			Candidates::Budget budget;budget.maxTickets=32;budget.perHome=32;
+			for(auto &v:budget.perClass)v=16;
+			Candidates::Cursor cursor;Candidates::Selection selection;
+			Check(Candidates::Select(catalog,budget,read,cursor,selection));
+			catalogInput=proposals.size();catalogModels=catalog.models.size();
+			request.candidates.clear();
+			for(const auto &ticket:selection.tickets){
+				auto model=std::find_if(catalog.models.begin(),catalog.models.end(),
+					[&](const Candidates::Model&m){return m.id==ticket.model;});
+				Need(model!=catalog.models.end(),"S05 ticket identity");
+				J::Candidate c;Need(P::MakeCandidate(catalog,*model,request,c),"X16 S05 model conversion");
+				auto original=std::find_if(proposals.begin(),proposals.end(),
+					[&](const J::Candidate&v){return std::find(c.parents.begin(),c.parents.end(),v.id)!=c.parents.end();});
+				Need(original!=proposals.end(),"X16 provenance propagation");
+				auto id=c.id;auto parents=c.parents;c=*original;c.id=id;c.parents=parents;
+				c.shape.initial.geometry.source.id=id;
+				request.candidates.push_back(c);
+			}
+			catalogAdmitted=request.candidates.size();catalogDeferred=selection.deferred.size();
+			if(finiteGeometry){
+				// Connected SAME-MATERIAL original faces may form one conditional
+				// assembly. Shared full geometric edges attest adjacency only, not
+				// a recovered source identity. Never put all map glow into one family.
+				std::map<unsigned,unsigned> parent;
+				auto root=[&](unsigned id){while(parent.at(id)!=id)id=parent.at(id);return id;};
+				using Edge=std::pair<unsigned,std::array<float,6>>;
+				std::map<Edge,unsigned> edges;
+				for(const auto&s:source.geometry->Surfaces())if(s.materialFacts.signals&MaterialGlow){
+					parent[s.ordinal]=s.ordinal;
+					for(size_t i=0;i+2<s.indices.size();i+=3)for(unsigned k=0;k<3;++k){
+						auto a=s.vertices.at(s.indices[i+k]).position;
+						auto b=s.vertices.at(s.indices[i+(k+1)%3]).position;
+						std::array<float,3> x{{a.x,a.y,a.z}},y{{b.x,b.y,b.z}};
+						if(y<x)std::swap(x,y);
+						Edge key{s.materialIndex,{{x[0],x[1],x[2],y[0],y[1],y[2]}}};
+						auto found=edges.emplace(key,s.ordinal);
+						if(!found.second){auto u=root(s.ordinal),v=root(found.first->second);
+							parent[std::max(u,v)]=std::min(u,v);}
+					}
+				}
+				for(const auto&s:source.geometry->Surfaces())
+					if(s.materialFacts.signals&MaterialGlow){
+						SourceSupport::Contract support;
+						if(!SourceSupport::FromSurfaces(source.geometry,*visibility,{s.ordinal},s.ordinal+1,read,support)){
+							++finiteUnsupported;continue;
+						}
+						J::Candidate c;c.id=0x4000000000000000ull+s.ordinal;c.region=s.ordinal+1;
+						c.provider="original-emitting-surface";
+						c.provenance="Exact original planar emitting face; multipart fixture/root/count remains unresolved";
+						auto &shape=c.shape;auto &g=shape.initial.geometry;
+						g.source.id=c.id;g.kind=EmitterKind::Rectangle;g.position.known=true;
+						V lo(s.vertices.front().position),hi=lo;
+						for(const auto&v:s.vertices)for(unsigned k=0;k<3;++k){
+							lo[k]=std::min(lo[k],V(v.position)[k]);hi[k]=std::max(hi[k],V(v.position)[k]);}
+						g.position.world=((lo+hi)*.5).Float();g.frame.known=true;
+						V forward(support.outward),right=Unit(Cross(std::abs(forward.z)<.9?V(0,0,1):V(0,1,0),forward));
+						g.frame.forward=forward.Float();g.frame.right=right.Float();g.frame.up=Cross(forward,right).Float();
+						g.geometry.known=true;g.geometry.halfWidthWorld=g.geometry.halfHeightWorld=1;
+						g.angular.kind=AngularKind::Lambertian;
+						shape.initial.support=support;shape.initial.rgbAmplitude=Vec3(64,64,64);
+						shape.centreBounds=source.domain->Source().worldBounds;
+						// Planar faces are partial-shape alternatives within their
+						// topology-connected assembly; the full nonplanar union is unsupported.
+						c.family=0x5000000000000000ull+root(s.ordinal);
+						shape.fitPosition=shape.fitFrame=shape.fitDimensions=shape.fitCone=false;
+						shape.evidence=Shape::ShapeEvidence::VisibleFixture;shape.upperRgb=Vec3(1200,1200,1200);
+						request.candidates.push_back(c);
+					}
+				request.profiles[0].model.allowFacetExpansion=true;
+			}
+		}
 		GeometryKey key;
 		for (const auto &x : *train->records)
 		{
@@ -464,6 +617,12 @@ int main(int argc, char **argv)
 		options.equivalentValidationSlack = .1;
 		options.complexityPerSource = .001;
 		options.complexityPerParameter = .0001;
+		if(discoveryMode){
+			options.rounds=3;options.beamWidth=2;options.maxModels=128;options.maxSources=8;
+			options.amplitudeSweeps=2;options.amplitudeLineSteps=12;
+			options.geometry=refineGeometry;options.geometrySweeps=1;options.mergeSplit=true;
+			options.residualSearch=false;
+		}
 		Controller controller(request, validation, validationKey);
 		FinalController final(request, held, heldoutKey);
 		size_t contributionQueries = 0, unavailableContributions = 0, zeroContributions = 0;
@@ -595,6 +754,11 @@ int main(int argc, char **argv)
 				  << "\",\"models\":" << result.work.attemptedModels
 				  << ",\"evaluations\":" << result.work.evaluations << ",\"rays\":" << result.work.rays
 				  << ",\"preferred_available\":" << (result.preferred != SIZE_MAX ? "true" : "false")
+				  << ",\"catalog_input\":"<<catalogInput<<",\"catalog_models\":"<<catalogModels
+				  << ",\"catalog_admitted\":"<<catalogAdmitted<<",\"catalog_deferred\":"<<catalogDeferred
+				  << ",\"finite_unsupported\":"<<finiteUnsupported
+				  << ",\"preparation_calls\":"<<result.work.preparationCalls
+				  << ",\"cache_hits\":"<<result.work.cacheHits
 				  << ",\"sources\":[";
 		if (result.preferred != SIZE_MAX)
 		{
@@ -604,7 +768,12 @@ int main(int argc, char **argv)
 				if (i)
 					std::cout << ',';
 				const auto &s = m.sources[i];
-				std::cout << "{\"id\":" << s.candidate.id << ",\"rgb\":[" << s.value.rgbAmplitude.x << ','
+				std::cout << "{\"id\":" << s.candidate.id;
+				if(discoveryMode)std::cout<<",\"kind\":"<<unsigned(s.value.geometry.kind)
+					<<",\"position\":["<<s.value.geometry.position.world.x<<','<<s.value.geometry.position.world.y<<','<<s.value.geometry.position.world.z<<']'
+					<<",\"axis\":["<<s.value.geometry.frame.forward.x<<','<<s.value.geometry.frame.forward.y<<','<<s.value.geometry.frame.forward.z<<']'
+					<<",\"target\":"<<s.value.spotTargetDistanceWorld<<",\"radius\":"<<s.value.spotRadiusWorld;
+				std::cout << ",\"rgb\":[" << s.value.rgbAmplitude.x << ','
 						  << s.value.rgbAmplitude.y << ',' << s.value.rgbAmplitude.z << "]}";
 			}
 		}
@@ -630,7 +799,55 @@ int main(int argc, char **argv)
 						  << ",\"rgb\":[" << p.rgb.x << ',' << p.rgb.y << ',' << p.rgb.z << "]}";
 			}
 		}
-		std::cout << "]}\n" << std::flush;
+		std::cout << ']';
+		if(discoveryMode){
+			std::cout<<",\"reason\":";JsonString(result.reason);
+			std::cout<<",\"alternatives\":"<<result.alternatives.size()<<",\"attempts\":[";
+			for(size_t i=0;i<result.attempts.size();++i){const auto&a=result.attempts[i];
+				if(i)std::cout<<',';std::cout<<"{\"proposal\":";JsonString(a.proposal);
+				std::cout<<",\"reason\":";JsonString(a.reason);
+				std::cout<<",\"state\":";JsonString(J::StateName(a.state));
+				std::cout<<'}';}
+			std::cout<<']';
+			std::cout<<",\"alternative_models\":[";
+			for(size_t i=0;i<result.alternatives.size();++i){const auto&m=result.alternatives[i];
+				if(i)std::cout<<',';
+				std::cout<<"{\"key\":\""<<Disk::Hex(m.key)<<"\",\"preferred\":"
+					<<(i==result.preferred?"true":"false")<<",\"sources\":"<<m.sources.size()
+					<<",\"training\":"<<m.training.Total()<<",\"validation\":"<<m.validation.objective
+					<<",\"kinds\":[";
+				for(size_t j=0;j<m.sources.size();++j){if(j)std::cout<<',';
+					std::cout<<unsigned(m.sources[j].value.geometry.kind);}
+				std::cout<<"]}";
+			}
+			std::cout<<']';
+			// Bounded post-freeze diagnostics in existing validation order. Values
+			// are predictions only: no final targets or scores can enter Solve.
+			std::cout<<",\"frozen_alternative_diagnostics\":[";
+			for(size_t i=0;i<std::min(size_t(3),result.alternatives.size());++i){
+				const auto&m=result.alternatives[i];if(i)std::cout<<',';
+				std::cout<<"{\"key\":\""<<Disk::Hex(m.key)<<"\",\"validation_rank\":"<<i
+					<<",\"sources\":[";
+				for(size_t j=0;j<m.sources.size();++j){const auto&s=m.sources[j];if(j)std::cout<<',';
+					std::cout<<"{\"id\":"<<s.candidate.id<<",\"kind\":"<<unsigned(s.value.geometry.kind)
+						<<",\"position\":["<<s.value.geometry.position.world.x<<','<<s.value.geometry.position.world.y<<','<<s.value.geometry.position.world.z<<']'
+						<<",\"axis\":["<<s.value.geometry.frame.forward.x<<','<<s.value.geometry.frame.forward.y<<','<<s.value.geometry.frame.forward.z<<']'
+						<<",\"target\":"<<s.value.spotTargetDistanceWorld<<",\"radius\":"<<s.value.spotRadiusWorld
+						<<",\"rgb\":["<<s.value.rgbAmplitude.x<<','<<s.value.rgbAmplitude.y<<','<<s.value.rgbAmplitude.z<<"]}";
+				}
+				std::cout<<"],\"heldout_predictions\":[";
+				J::Score score;J::Work postWork;std::vector<J::Prediction> values;
+				auto assessed=J::EvaluateFrozen(request,m,held,held->records->size(),J::Role::Heldout,
+					heldoutKey,read,score,&values,&postWork);
+				if(assessed)for(size_t j=0;j<values.size();++j){const auto&p=values[j];if(j)std::cout<<',';
+					std::cout<<"{\"id\":"<<p.id<<",\"available\":"<<(p.available?"true":"false")
+						<<",\"rgb\":["<<p.rgb.x<<','<<p.rgb.y<<','<<p.rgb.z<<"]}";}
+				std::cout<<"],\"reference_available\":"<<(assessed?"true":"false")
+					<<",\"post_freeze_rays\":"<<postWork.rays<<",\"post_freeze_evaluations\":"<<postWork.evaluations<<'}';
+			}
+			std::cout<<']';
+		}
+		std::cout << "}\n" << std::flush;
 		return error ? 0 : 1;
 	}
 	catch (const std::exception &e)

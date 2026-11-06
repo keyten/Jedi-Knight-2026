@@ -12,15 +12,15 @@ using namespace Rend2LightRecon::Core;
 using namespace Bake::Detail;
 namespace H = Rend2LightRecon::Core::Hidden;
 int checks = 0, failures = 0;
-#define CHECK(x)                                                                                             \
-	do                                                                                                       \
-	{                                                                                                        \
-		++checks;                                                                                            \
-		if (!(x))                                                                                            \
-		{                                                                                                    \
-			++failures;                                                                                      \
-			std::printf("FAIL %d %s\n", __LINE__, #x);                                                       \
-		}                                                                                                    \
+#define CHECK(x)                                                                                   \
+	do                                                                                             \
+	{                                                                                              \
+		++checks;                                                                                  \
+		if (!(x))                                                                                  \
+		{                                                                                          \
+			++failures;                                                                            \
+			std::printf("FAIL %d %s\n", __LINE__, #x);                                             \
+		}                                                                                          \
 	} while (0)
 template <class T> Chunk<T> Lease(std::shared_ptr<std::vector<T>> v)
 {
@@ -66,7 +66,10 @@ class RoomDomain final : public PointClassifier
 class Cancel final : public Cancellation
 {
   public:
-	bool IsCancelled() const noexcept override { return true; }
+	bool IsCancelled() const noexcept override
+	{
+		return true;
+	}
 };
 class UnknownRays final : public VisibilityProvider
 {
@@ -175,7 +178,8 @@ struct Scene
 		}
 		CHECK(capture.Freeze());
 		std::shared_ptr<const StaticVisibility> rays;
-		CHECK(StaticVisibility::Build(capture.Acquire(), VisibilityBuildOptions(), read, rays, domain));
+		CHECK(StaticVisibility::Build(capture.Acquire(), VisibilityBuildOptions(), read, rays,
+									  domain));
 		r.geometry.visibility = rays;
 		r.geometry.geometryKey = rays->CertificationKey();
 		for (int room = 0; room < (second ? 2 : 1); ++room)
@@ -292,8 +296,8 @@ struct Scene
 		o.allowAssumed = true;
 		Bake::Result result;
 		Bake::CpuForwardEvaluator evaluator;
-		CHECK(evaluator.Evaluate(r.profiles[0], Lease(emitters), Lease(receivers), Decode::Profile(),
-								 r.geometry, o, read, result));
+		CHECK(evaluator.Evaluate(r.profiles[0], Lease(emitters), Lease(receivers),
+								 Decode::Profile(), r.geometry, o, read, result));
 		for (size_t i = 0; i < samples->size(); ++i)
 		{
 			CHECK(result.predictions.data[i].available);
@@ -376,7 +380,8 @@ void Record(const char *name, const H::Result &r, const std::vector<V> &answers 
 			best = std::min(best, Length(V(e.position) - truth));
 		w.distances.push_back(best);
 	}
-	std::printf("%s candidates=%zu physical=%zu unknown-rays=%zu", name, w.candidates, w.physical, w.unknown);
+	std::printf("%s candidates=%zu physical=%zu unknown-rays=%zu", name, w.candidates, w.physical,
+				w.unknown);
 	for (double d : w.distances)
 		std::printf(" distance=%.4f", d);
 	std::puts("");
@@ -694,8 +699,8 @@ int main(int argc, char **argv)
 		Decode::Decoder decoder;
 		CHECK(decoder.Run(raw, observation));
 		H::Sample sample;
-		CHECK(
-			H::FromObservation(s.samples->front().receiver, observation, 256, true, true, 0, false, sample));
+		CHECK(H::FromObservation(s.samples->front().receiver, observation, 256, true, true, 0,
+								 false, sample));
 		CHECK(sample.rgb[0] == 255 && sample.rgb[1] == 127 && !sample.encodingAttested);
 		observation.raw.directionData = true;
 		CHECK(H::FromObservation(s.samples->front().receiver, observation, 256, true, true, 0,
@@ -717,8 +722,47 @@ int main(int argc, char **argv)
 		CHECK(r.report.areas[0].correlatedExcluded == correlated.samples->size() - 1);
 		correlated.samples->front().statisticalWeight = -1;
 		CHECK(correlated.Generate(r).code == Code::InvalidInput);
-		for(auto &s:*correlated.samples){s.correlationGroup=s.receiver.sample;s.statisticalWeight=1e308;}
-		CHECK(correlated.Generate(r).code==Code::InvalidInput);
+		for (auto &s : *correlated.samples)
+		{
+			s.correlationGroup = s.receiver.sample;
+			s.statisticalWeight = 1e308;
+		}
+		CHECK(correlated.Generate(r).code == Code::InvalidInput);
+	}
+	{
+		Scene s;
+		s.r.options.spots = true;
+		s.r.options.geometrySpotSeeds = s.r.options.balanceRefinementKinds = true;
+		s.r.options.refineSeeds = 8;
+		s.Bake({{V(-24, 24, 160), V(350, 250, 100)}}, true);
+		H::Result first, repeat;
+		CHECK(s.Generate(first));
+		CHECK(!first.hypotheses.empty());
+		uint64_t point = 0, spot = 0;
+		for (const auto &a : first.report.areas)
+		{
+			CHECK(a.nodes <= s.r.options.maxNodesPerArea);
+			CHECK(a.spotTrials == 2 * a.pointTrials);
+			point += a.pointRefinementSeeds;
+			spot += a.spotRefinementSeeds;
+		}
+		CHECK(point > 0 && spot > 0);
+		for (const auto &h : first.hypotheses)
+			if (h.sourceKind == Bake::SourceKind::Spot)
+			{
+				CHECK(h.spotTargetDistanceWorld == 128 && h.spotRadiusWorld == 64);
+				CHECK(!h.existenceConfidence.known);
+			}
+		auto key = first.key;
+		std::reverse(s.samples->begin(), s.samples->end());
+		CHECK(s.Generate(repeat));
+		CHECK(key == repeat.key);
+		CHECK(first.hypotheses.size() == repeat.hypotheses.size());
+		for (size_t i = 0; i < std::min(first.hypotheses.size(), repeat.hypotheses.size()); ++i)
+			CHECK(first.hypotheses[i].candidate == repeat.hypotheses[i].candidate);
+		s.r.options.geometrySpotSeeds = false;
+		CHECK(H::RequestIdentity(s.r) != key);
+		Record("geometry_spot_kind_quotas", first);
 	}
 	if (argc > 1)
 	{
@@ -731,9 +775,11 @@ int main(int argc, char **argv)
 			if (i)
 				f << ',';
 			f << "{\"name\":\"" << w.name << "\",\"candidates\":" << w.candidates
-			  << ",\"physical_candidates\":" << w.physical << ",\"ambiguous_candidates\":" << w.ambiguous
+			  << ",\"physical_candidates\":" << w.physical
+			  << ",\"ambiguous_candidates\":" << w.ambiguous
 			  << ",\"known_solid_rejected\":" << w.solid << ",\"unknown_rays\":" << w.unknown
-			  << ",\"rays\":" << w.rays << ",\"accounted_bytes\":" << w.bytes << ",\"nearest_truth_world\":[";
+			  << ",\"rays\":" << w.rays << ",\"accounted_bytes\":" << w.bytes
+			  << ",\"nearest_truth_world\":[";
 			for (size_t j = 0; j < w.distances.size(); ++j)
 			{
 				if (j)

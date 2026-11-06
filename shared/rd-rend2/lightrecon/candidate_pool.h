@@ -11,7 +11,7 @@ namespace Core
 {
 namespace Candidates
 {
-constexpr uint32_t kVersion = 1;
+constexpr uint32_t kVersion = 2; // preserve conditional historical spot parameters
 enum class Class : uint32_t
 {
 	Point,
@@ -59,6 +59,8 @@ struct Annotation
 	uint64_t geometryWork = 1;
 	Id canonicalSource = 0; // original immutable asset source, when wrapped from Solar
 	bool protectedAuthored = false, supported = true;
+	bool historicalSpotKnown = false;
+	double historicalSpotTargetWorld = 0, historicalSpotRadiusWorld = 0;
 };
 struct Provider
 {
@@ -73,8 +75,8 @@ struct Provider
 // Adapters retain immutable leases, not copies of whole evidence/observation data.
 Error FromEvidence(const std::string &, Disk::Digest geometryKey, Disk::Digest regionKey,
 				   std::shared_ptr<const EmitterEvidenceSet>, Provider &);
-Error FromHidden(const std::string &, Disk::Digest map, Disk::Digest geometryKey, Disk::Digest regionKey,
-				 std::shared_ptr<const Hidden::Result>, Provider &);
+Error FromHidden(const std::string &, Disk::Digest map, Disk::Digest geometryKey,
+				 Disk::Digest regionKey, std::shared_ptr<const Hidden::Result>, Provider &);
 // Each joint Solar explanation has its own scenario. Never sum these alternatives.
 Error FromSolar(const std::string &, Disk::Digest map, Disk::Digest geometryKey,
 				std::shared_ptr<const Solar::Result>, std::vector<Provider> &);
@@ -171,7 +173,8 @@ struct Report
 {
 	uint64_t inputs = 0, evidence = 0, bundles = 0, models = 0, merged = 0, alternatives = 0,
 			 fragmentParts = 0;
-	uint64_t pairTests = 0, rays = 0, rayWork = 0, relationWork = 0, accountedBytes = 0, borrowedBytes = 0;
+	uint64_t pairTests = 0, rays = 0, rayWork = 0, relationWork = 0, accountedBytes = 0,
+			 borrowedBytes = 0;
 	bool linksComplete = true;
 	std::vector<std::string> diagnostics;
 };
@@ -216,7 +219,8 @@ struct Budget
 	uint32_t classes = (1u << uint32_t(Class::Count)) - 1;
 	size_t perClass[size_t(Class::Count)] = {4, 4, 4, 2, 2, 2, 2, 2};
 	size_t perHome = 24, maxTickets = 256, maxPartsPerTicket = 64;
-	size_t coverageBonusPerHome = 2; // bounded extra jobs with new certified-visible receiver support
+	size_t coverageBonusPerHome =
+		2; // bounded extra jobs with new certified-visible receiver support
 	uint64_t maxGeometryWork = 4096, maxBytes = 32ull * 1024 * 1024;
 	std::vector<Demand> more;
 };

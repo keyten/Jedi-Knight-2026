@@ -1,0 +1,50 @@
+{
+  "schema": "org.openjk.discovery-x16-validation/1",
+  "cpu": {
+    "all_passed": false,
+    "total": null,
+    "seconds": 446.63
+  },
+  "renderers": {
+    "rdsp-rend2_x86_64.dll": {
+      "build_log_completed": true,
+      "sha256": "631e0b99e2925195a2b4925bb5a7dd05d5d293e8882747a78e5cc528d96d4975"
+    },
+    "rd-rend2_x86_64.dll": {
+      "build_log_completed": true,
+      "sha256": "48a088adbb3519cdb2893e3be1bb0471dad737eb27ffcebb73dbffe6ca578703"
+    }
+  },
+  "initial_build_failures": "Reused-node MSBuild tracker AccessDenied; isolated /nr:false retry completed",
+  "python_contract_log": "...........\n----------------------------------------------------------------------\nRan 11 tests in 0.286s\n\nOK\n",
+  "game_launches": 0,
+  "logs": {
+    "x16-build-v3-final.log": "682300c53ce035999a32700e53e61d4c5815684ffc79e0fb1fcbf671c40cda52",
+    "x16-build-v3.log": "f2d92ee992b8470f861e9181df4571cdf99b217007a8a30833e4dd2c35ca4c56",
+    "x16-cpu-build-all.log": "15c870a765d5803a077f2c59aa8284cb20da7ec11e688c0d837f7ab2321297fb",
+    "x16-cpu-tests.log": "e040d4c2708cef8f82736df2696c0068b25e99e6ce892bd829b1dc9e0494bf99",
+    "x16-fit-final-repeat-v5.log": "2616f8a385eb469d39f95b0efbda2de0b9a36b56331e94f2113c4e2c5531d1f9",
+    "x16-fit-final-v5.log": "97ee3f5b5f92526e41fce63f058e4c7d7bca4ad171f75b7a6c7bde61985f10cb",
+    "x16-fit-isq-v3.log": "d4d80c216be86e3d8a554dbd73d005064bec1779eccec928ae88c1f39cb116a8",
+    "x16-fit-isq.log": "8d25a91a16482cd5a5da9b558630ac72a27a03ff299c2600f11ffaf2273164d0",
+    "x16-fit-linear-v3.log": "bfcffc6e2b538725cabd1ba3b0be2392bf4ce6f38b64d6da9de7ce1d465d3ab3",
+    "x16-focused-tests.log": "8cb4078b6e1d4a2e42d3f97ede2b948e2c84f9ca8a4259a0c80465627d2d2f33",
+    "x16-frozen-diagnostics-v6.log": "2616f8a385eb469d39f95b0efbda2de0b9a36b56331e94f2113c4e2c5531d1f9",
+    "x16-hidden-v2-build.log": "f981887516a49e1cb010b09954bd0f2c975dc15f3d4140d900cd76f2ac418fae",
+    "x16-initial-build.log": "e086d8523d122857814974b53830545bf54e4103bf769c6933f0bb884152d6cd",
+    "x16-joint-build.log": "1c5c4c43a682ed4ad9804cdef9be38f9d69c7385410bdd815fa842d702273689",
+    "x16-oracle-scope.log": "b8fe52134c6c1a466ad46b072d6e13a9ec6212fd26f0002b2b3f0f8ac944baab",
+    "x16-proposals-v2.log": "dbae82437205c90a50b70fa3eb9b3c1178afb87bbc168144ef346352ca2286a1",
+    "x16-proposals-v4.log": "dbae82437205c90a50b70fa3eb9b3c1178afb87bbc168144ef346352ca2286a1",
+    "x16-proposals-v5.log": "dbae82437205c90a50b70fa3eb9b3c1178afb87bbc168144ef346352ca2286a1",
+    "x16-proposals.log": "dbae82437205c90a50b70fa3eb9b3c1178afb87bbc168144ef346352ca2286a1",
+    "x16-python-tests.log": "ba30f63fc6fb83c703cbf7ebd7b757354217f21abc227a7665094e8ffba1eba5",
+    "x16-renderers-build.log": "023eb8a92001ea259079bb363f1bcdc8c5f1da02ee1224e9fb858fe1764f0144",
+    "x16-renderers-configure.log": "d64c7e0274e2d9a6c45d0e9f2cd6fae4a93f8f8ba85698b6e8f5f73f6c702746",
+    "x16-renderers-isolated.log": "ee18038406023912350af56a7ce0455417018efe9c2b25d15e627d2c8331548e",
+    "x16-renderers-no-reuse.log": "2e67c05024b1367a1e069aed2fa7c773d44e6013b0b35885d410f85224466e52",
+    "x16-supplied-controls.log": "3ca839e16ae257caccbc045ea7acef5e0fa901d6f105c4bb8864b37d31aa2881",
+    "x16-tools-final-build.log": "c8aeda4901a43eda0e84571119bd7e2873dd35a7a74b041a1da74771c1dd84d1",
+    "x16-tools-frozen-diagnostics-build.log": "1c5c4c43a682ed4ad9804cdef9be38f9d69c7385410bdd815fa842d702273689"
+  }
+}

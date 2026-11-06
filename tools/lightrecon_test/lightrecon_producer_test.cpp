@@ -835,6 +835,44 @@ void Cache(const std::string &root)
 		"{\"name\":\"offline_cache_lifecycle\",\"warm_hit_without_fit\":true,\"production_mapload_"
 		"cache\":false}");
 }
+void HiddenAngularAndMounting()
+{
+	Rig rig;
+	auto request=Request(rig);
+	SurfaceCapture capture;capture.Begin(BuildPolicy::ForceRebuild);
+	CHECK(capture.SetMap(rig.scene.map));
+	for(const auto&s:rig.scene.surfaces)CHECK(capture.Add(s));
+	CHECK(capture.Freeze());
+	request.fitting.placement.originalSurfaces=capture.Acquire();
+	auto hidden=std::make_shared<Hidden::Result>();hidden->key=Key("X16 angular contract");
+	EmitterEvidence e;e.id=991;e.origin=EvidenceOrigin::SurfaceObservation;
+	e.source="training receivers, NOT luminous fixture";e.positionKnown=e.orientationKnown=e.staticEligible=true;
+	e.position=Vec3(0,0,1);e.outward=Vec3(0,0,-1);e.right=Vec3(1,0,0);e.up=Vec3(0,-1,0);
+	e.coneKnown=true;e.coneDegrees=53.130102f;e.surfaces={0};e.shapes=CandidateSpot;
+	e.issues=ShapeHypothesis|UncalibratedEmission;
+	hidden->evidence={e};
+	EmitterCandidate c;c.id=e.id;c.primary=0;c.evidence={0};c.shapes=CandidateSpot;c.staticEligible=true;
+	hidden->candidates={c};
+	Hidden::Hypothesis h;h.candidate=c.id;h.sourceKind=Bake::SourceKind::Spot;
+	h.spotTargetDistanceWorld=128;h.spotRadiusWorld=64;h.profile="conditional";
+	hidden->hypotheses={h};
+	Candidates::Provider provider;
+	CHECK(Candidates::FromHidden("X16",request.map.sha256,request.fitting.geometry.geometryKey,{},hidden,provider));
+	Candidates::Request q;q.map=request.map.sha256;q.geometryKey=request.fitting.geometry.geometryKey;q.providers={provider};
+	Candidates::Catalog catalog;CHECK(Candidates::Consolidate(q,Read(),catalog));
+	CHECK(catalog.models.size()==1);
+	if(!catalog.models.empty()){
+		J::Candidate v;CHECK(P::MakeCandidate(catalog,catalog.models[0],request.fitting,v));
+		CHECK(v.shape.initial.spotTargetDistanceWorld==128);
+		CHECK(v.shape.initial.spotRadiusWorld==64);
+		CHECK(v.shape.initial.support.kind==SourceSupport::Kind::LegacyVacuum);
+		CHECK(v.shape.evidence==Shape::ShapeEvidence::Inferred);
+	}
+	auto annotations=std::make_shared<std::vector<Candidates::Annotation>>(provider.annotations.data,provider.annotations.data+provider.annotations.count);
+	(*annotations)[0].historicalSpotTargetWorld=0;
+	provider.annotations=Lease(annotations);q.providers={provider};
+	CHECK(Candidates::Consolidate(q,Read(),catalog).code==Code::InvalidInput);
+}
 int main(int argc, char **argv)
 {
 	setvbuf(stdout, nullptr, _IONBF, 0);
@@ -847,6 +885,7 @@ int main(int argc, char **argv)
 		Negative();
 		ProviderIndependence();
 		ProviderScopes();
+		HiddenAngularAndMounting();
 		if (argc > 1)
 			Cache(argv[1]);
 		if (argc > 2)

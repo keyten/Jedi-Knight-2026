@@ -17,7 +17,10 @@ void Check(Error e)
 	if (!e)
 		throw std::runtime_error(e.message);
 }
-void Vector(std::ostream &s, Vec3 v) { s << '[' << v.x << ',' << v.y << ',' << v.z << ']'; }
+void Vector(std::ostream &s, Vec3 v)
+{
+	s << '[' << v.x << ',' << v.y << ',' << v.z << ']';
+}
 std::string Quote(const std::string &s)
 {
 	std::string out = "\"";
@@ -47,8 +50,8 @@ int main(int argc, char **argv)
 		O::RegionSnapshot graph;
 		Check(data->Load(s, graph));
 		if (s.images || s.grid || !s.geometry || s.metadata.hints != O::HintPolicy::BlindBenchmark)
-			throw std::runtime_error(
-				"Sanitized blind geometry required; full observation/answer archives are forbidden");
+			throw std::runtime_error("Sanitized blind geometry required; full observation/answer "
+									 "archives are forbidden");
 		for (const auto &surface : s.geometry->Surfaces())
 			for (const auto &v : surface.vertices)
 				if (v.colourPresent)
@@ -60,24 +63,37 @@ int main(int argc, char **argv)
 		f.seekg(0);
 		std::string magic, map;
 		f >> magic >> map;
-		if ((magic != "JKHIDDEN1"&&magic!="JKSAMPLE1") || map != Disk::Hex(s.metadata.map.sha256))
+		if ((magic != "JKHIDDEN1" && magic != "JKHIDDEN2" && magic != "JKSAMPLE1") ||
+			map != Disk::Hex(s.metadata.map.sha256))
 			throw std::runtime_error("Training schema/map fingerprint mismatch");
-		if(magic=="JKSAMPLE1")return SamplingProtocol(s,f);
+		if (magic == "JKSAMPLE1")
+			return SamplingProtocol(s, f);
 		H::Request r;
 		r.map = s.metadata.map;
 		r.units = s.metadata.units;
 		r.analysisBounds.known = true;
-		f >> r.analysisBounds.minWorld.x >> r.analysisBounds.minWorld.y >> r.analysisBounds.minWorld.z >>
-			r.analysisBounds.maxWorld.x >> r.analysisBounds.maxWorld.y >> r.analysisBounds.maxWorld.z;
+		f >> r.analysisBounds.minWorld.x >> r.analysisBounds.minWorld.y >>
+			r.analysisBounds.minWorld.z >> r.analysisBounds.maxWorld.x >>
+			r.analysisBounds.maxWorld.y >> r.analysisBounds.maxWorld.z;
 		unsigned spots = 0, direct = 0, encoding = 0;
-		f >> r.options.maxNodesPerArea >> r.options.coarseDivisions >> r.options.refinementRounds >> spots >>
-			direct >> encoding;
+		f >> r.options.maxNodesPerArea >> r.options.coarseDivisions >> r.options.refinementRounds >>
+			spots >> direct >> encoding;
 		if (spots > 1 || direct > 1 || encoding > 1)
 			throw std::runtime_error("Invalid explicit assumptions");
 		r.options.spots = spots;
 		r.options.directOnlyAttested = direct;
 		r.options.allowAssumedEncoding = encoding;
 		r.options.allowAssumedProfiles = true;
+		if (magic == "JKHIDDEN2")
+		{
+			unsigned axes = 0, balanced = 0, slots = 0;
+			f >> axes >> balanced >> slots;
+			if (!f || axes > 1 || balanced > 1 || slots < 1 || slots > 8)
+				throw std::runtime_error("Invalid X16 proposal policy");
+			r.options.geometrySpotSeeds = axes;
+			r.options.balanceRefinementKinds = balanced;
+			r.options.refineSeeds = slots;
+		}
 		r.options.maxSamples = 512;
 		r.options.samplesPerArea = 64;
 		r.options.retainedPerChannelProfile = 4;
@@ -116,18 +132,19 @@ int main(int argc, char **argv)
 			H::Sample sample;
 			unsigned surface = 0, attested = 0;
 			int rgb[3];
-			f >> sample.receiver.sample >> surface >> sample.receiver.world.x >> sample.receiver.world.y >>
-				sample.receiver.world.z >> sample.receiver.geometricNormal.x >>
-				sample.receiver.geometricNormal.y >> sample.receiver.geometricNormal.z >> rgb[0] >> rgb[1] >>
-				rgb[2] >> sample.areaWorldSquared >> attested;
+			f >> sample.receiver.sample >> surface >> sample.receiver.world.x >>
+				sample.receiver.world.y >> sample.receiver.world.z >>
+				sample.receiver.geometricNormal.x >> sample.receiver.geometricNormal.y >>
+				sample.receiver.geometricNormal.z >> rgb[0] >> rgb[1] >> rgb[2] >>
+				sample.areaWorldSquared >> attested;
 			if (!f || attested > 1 || !surfaces.count(surface))
 				throw std::runtime_error("Malformed training receiver/reference");
 			const auto &geometry = *surfaces.at(surface);
 			sample.receiver.surface = Id(surface) + 1;
 			sample.receiver.material = materials.at(geometry.material);
 			sample.receiver.shadingNormal = sample.receiver.geometricNormal;
-			sample.receiver.mappedPlanar =
-				geometry.kind == BakedSurfaceKind::Face || geometry.kind == BakedSurfaceKind::Triangles;
+			sample.receiver.mappedPlanar = geometry.kind == BakedSurfaceKind::Face ||
+										   geometry.kind == BakedSurfaceKind::Triangles;
 			sample.receiver.compilerPlacementCertified =
 				true; // caller's mapped training recipe, explicitly conditional traces
 			sample.materialUncertainty = MaterialUncertaintyFlags(geometry.materialFacts);
@@ -185,16 +202,18 @@ int main(int argc, char **argv)
 		Error code = H::Generate(r, read, result);
 		auto end = std::chrono::steady_clock::now();
 		std::cout << std::setprecision(12)
-				  << "{\"schema\":\"org.openjk.hidden-candidate-diagnostic.v1\",\"code\":" << int(code.code)
-				  << ",\"reason\":" << Quote(code.message) << ",\"key\":\"" << Disk::Hex(result.key)
-				  << "\",\"map_sha256\":\"" << map
-				  << "\",\"historical_profile\":\"UnknownProfile\",\"runtime_sources\":0,\"reconstructed\":"
+				  << "{\"schema\":\"org.openjk.hidden-candidate-diagnostic.v1\",\"code\":"
+				  << int(code.code) << ",\"reason\":" << Quote(code.message) << ",\"key\":\""
+				  << Disk::Hex(result.key) << "\",\"map_sha256\":\"" << map
+				  << "\",\"historical_profile\":\"UnknownProfile\",\"runtime_sources\":0,"
+					 "\"reconstructed\":"
 					 "false,\"search_complete\":"
-				  << (result.report.complete ? "true" : "false")
-				  << ",\"geometry_global_complete\":" << (rays->Report().complete ? "true" : "false")
+				  << (result.report.complete ? "true" : "false") << ",\"geometry_global_complete\":"
+				  << (rays->Report().complete ? "true" : "false")
 				  << ",\"geometry_bytes\":" << rays->Report().ownedBytes
 				  << ",\"accounted_bytes\":" << result.report.accountedPeakBytes
-				  << ",\"rays\":" << result.report.rays << ",\"forward_calls\":" << result.report.forwardCalls
+				  << ",\"rays\":" << result.report.rays
+				  << ",\"forward_calls\":" << result.report.forwardCalls
 				  << ",\"pairs\":" << result.report.sourceReceiverPairs
 				  << ",\"work\":" << result.report.traversalWork << ",\"areas\":[";
 		for (size_t i = 0; i < result.report.areas.size(); ++i)
@@ -205,12 +224,16 @@ int main(int argc, char **argv)
 			std::cout << "{\"id\":" << a.id << ",\"requested\":" << a.requested
 					  << ",\"selected\":" << a.selected << ",\"saturated\":" << a.saturated
 					  << ",\"excluded\":" << a.excluded
-					  << ",\"unsupported_receivers\":" << a.unsupportedReceivers << ",\"nodes\":" << a.nodes
-					  << ",\"solid_rejected\":" << a.rejectedSolid
+					  << ",\"unsupported_receivers\":" << a.unsupportedReceivers
+					  << ",\"nodes\":" << a.nodes << ",\"solid_rejected\":" << a.rejectedSolid
+					  << ",\"point_trials\":" << a.pointTrials << ",\"spot_trials\":" << a.spotTrials
+					  << ",\"point_refinement_seeds\":" << a.pointRefinementSeeds
+					  << ",\"spot_refinement_seeds\":" << a.spotRefinementSeeds
 					  << ",\"outside_rejected\":" << a.rejectedOutside
 					  << ",\"unknown_region\":" << a.unknownRegion
-					  << ",\"unknown_relations\":" << a.unknownVisibility << ",\"retained\":" << a.retained
-					  << ",\"limited\":" << ((a.searchLimited || a.sampleLimited) ? "true" : "false") << '}';
+					  << ",\"unknown_relations\":" << a.unknownVisibility
+					  << ",\"retained\":" << a.retained << ",\"limited\":"
+					  << ((a.searchLimited || a.sampleLimited) ? "true" : "false") << '}';
 		}
 		std::cout << "],\"candidates\":[";
 		for (size_t i = 0; i < result.hypotheses.size(); ++i)
@@ -223,20 +246,24 @@ int main(int argc, char **argv)
 			Vector(std::cout, v.position);
 			std::cout << ",\"outward\":";
 			Vector(std::cout, v.outward);
-			std::cout << ",\"area\":" << h.area << ",\"region\":" << h.region << ",\"kind\":" << int(h.kind)
-					  << ",\"source_kind\":" << int(h.sourceKind) << ",\"feasibility\":" << int(h.feasibility)
+			std::cout << ",\"area\":" << h.area << ",\"region\":" << h.region
+					  << ",\"kind\":" << int(h.kind) << ",\"source_kind\":" << int(h.sourceKind)
+					  << ",\"historical_target_distance\":" << h.spotTargetDistanceWorld
+					  << ",\"historical_radius\":" << h.spotRadiusWorld
+					  << ",\"feasibility\":" << int(h.feasibility)
 					  << ",\"context\":" << int(h.context) << ",\"method\":" << int(h.method)
 					  << ",\"profile\":" << Quote(h.profile) << ",\"channel\":" << h.channel
-					  << ",\"channel_mask\":" << h.evidenceChannels << ",\"bsp_leaf\":" << h.bsp.leaf
-					  << ",\"bsp_cluster\":" << h.bsp.cluster << ",\"bsp_area\":" << h.bsp.area
-					  << ",\"shape_score\":";
+					  << ",\"channel_mask\":" << h.evidenceChannels
+					  << ",\"bsp_leaf\":" << h.bsp.leaf << ",\"bsp_cluster\":" << h.bsp.cluster
+					  << ",\"bsp_area\":" << h.bsp.area << ",\"shape_score\":";
 			if (h.scoreAvailable)
 				std::cout << h.score;
 			else
 				std::cout << "null";
 			std::cout << ",\"surfaces\":" << h.distinctSurfaces
-					  << ",\"normal_diversity\":" << h.normalDiversity << ",\"visible\":" << h.visible
-					  << ",\"blocked\":" << h.blocked << ",\"unknown\":" << h.unknown
+					  << ",\"normal_diversity\":" << h.normalDiversity
+					  << ",\"visible\":" << h.visible << ",\"blocked\":" << h.blocked
+					  << ",\"unknown\":" << h.unknown
 					  << ",\"underconstrained\":" << (h.positionUnderconstrained ? "true" : "false")
 					  << ",\"intensity\":null,\"existence_confidence\":null,\"observations\":[";
 			for (size_t j = 0; j < h.observations.size(); ++j)
@@ -244,8 +271,8 @@ int main(int argc, char **argv)
 				if (j)
 					std::cout << ',';
 				const auto &o = h.observations[j];
-				std::cout << "[" << o.observation << ',' << o.surface << ',' << int(o.relation) << ','
-						  << o.issues << ']';
+				std::cout << "[" << o.observation << ',' << o.surface << ',' << int(o.relation)
+						  << ',' << o.issues << ']';
 			}
 			std::cout << "]}";
 		}

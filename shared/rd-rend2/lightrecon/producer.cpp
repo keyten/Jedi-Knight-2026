@@ -1107,8 +1107,10 @@ bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
 	s.fitPosition = model.tier > Candidates::Tier::Geometry;
 	s.fitFrame = s.fitCone = false;
 	s.fitDimensions = false;
-	s.evidence = model.protectedAuthored ? Shape::ShapeEvidence::Authored
-										 : Shape::ShapeEvidence::VisibleFixture;
+	s.evidence = e.origin == EvidenceOrigin::SurfaceObservation
+					 ? Shape::ShapeEvidence::Inferred
+					 : model.protectedAuthored ? Shape::ShapeEvidence::Authored
+											 : Shape::ShapeEvidence::VisibleFixture;
 	s.geometryPriorWeight = model.protectedAuthored ? 1 : .1;
 	s.maximumTranslationWorld = 16;
 	s.minimumDimensionWorld = .0001;
@@ -1167,6 +1169,23 @@ bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
 			g.angular.cosInner = float(std::cos(outer * .8));
 			s.initial.spotTargetDistanceWorld = 64;
 			s.initial.spotRadiusWorld = 64 * std::tan(outer);
+			const auto &angular = Candidates::InputAnnotation(catalog, part);
+			if (angular.historicalSpotKnown)
+			{
+				Need(std::isfinite(angular.historicalSpotTargetWorld) &&
+						 angular.historicalSpotTargetWorld > 0 &&
+						 std::isfinite(angular.historicalSpotRadiusWorld) &&
+						 angular.historicalSpotRadiusWorld >= 0,
+					 Code::InvalidInput, "Historical spot recipe annotation");
+				// A canonical full-cone display angle cannot reproduce the
+				// compiler's additive 16/32-WU angular transition.
+				s.initial.spotTargetDistanceWorld = angular.historicalSpotTargetWorld;
+				s.initial.spotRadiusWorld = angular.historicalSpotRadiusWorld;
+				outer = std::atan((angular.historicalSpotRadiusWorld + 16) /
+								  angular.historicalSpotTargetWorld);
+				g.angular.cosOuter = float(std::cos(outer));
+				g.angular.cosInner = float(std::cos(outer * .8));
+			}
 		}
 		else
 		{
@@ -1178,7 +1197,10 @@ bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
 			g.angular.twoSided = g.kind == EmitterKind::Rectangle && e.twoSided;
 		}
 	}
-	if(r.placement.originalSurfaces && !e.surfaces.empty()) {
+	// SurfaceObservation lists supporting RECEIVERS, not a luminous fixture.
+	// Never mount a hidden source on its illuminated floor/wall by association.
+	if(r.placement.originalSurfaces && !e.surfaces.empty() &&
+	   e.origin != EvidenceOrigin::SurfaceObservation) {
 		SourceSupport::Contract support;ReadContext read;read.maxBytes=1ull<<20;
 		auto prepared=SourceSupport::FromSurfaces(r.placement.originalSurfaces,*r.placement.geometry,e.surfaces,model.bundle,read,support);
 		if(!prepared){

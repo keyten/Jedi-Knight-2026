@@ -28,8 +28,8 @@ template <class T> Chunk<T> Lease(std::shared_ptr<std::vector<T>> p)
 }
 bool Inside(const Bounds &b, V p)
 {
-	return p.x >= b.minWorld.x && p.y >= b.minWorld.y && p.z >= b.minWorld.z && p.x <= b.maxWorld.x &&
-		   p.y <= b.maxWorld.y && p.z <= b.maxWorld.z;
+	return p.x >= b.minWorld.x && p.y >= b.minWorld.y && p.z >= b.minWorld.z &&
+		   p.x <= b.maxWorld.x && p.y <= b.maxWorld.y && p.z <= b.maxWorld.z;
 }
 bool Valid(const Bounds &b)
 {
@@ -80,7 +80,8 @@ struct Engine
 	const ReadContext &read;
 	Result &out;
 	Bake::EvaluationContext context;
-	Engine(const Request &i, const ReadContext &r, Result &o) : input(i), read(r), out(o), context(i.geometry)
+	Engine(const Request &i, const ReadContext &r, Result &o)
+		: input(i), read(r), out(o), context(i.geometry)
 	{
 		auto counted = std::make_shared<CountedVisibility>();
 		counted->engine = this;
@@ -89,10 +90,12 @@ struct Engine
 	void Check()
 	{
 		Need(!Cancelled(read), Code::Cancelled, "Hidden candidate search cancelled");
-		if(out.report.rays > input.options.maxRays || out.report.traversalWork > input.options.maxWork ||
-			out.report.forwardCalls > input.options.maxForwardCalls){
-			out.report.budgetScope=ProviderBudgetScope::Local;
-			throw Failure(Code::WorkLimit,"Hidden candidate work budget");
+		if (out.report.rays > input.options.maxRays ||
+			out.report.traversalWork > input.options.maxWork ||
+			out.report.forwardCalls > input.options.maxForwardCalls)
+		{
+			out.report.budgetScope = ProviderBudgetScope::Local;
+			throw Failure(Code::WorkLimit, "Hidden candidate work budget");
 		}
 	}
 };
@@ -102,19 +105,20 @@ Error CountedVisibility::Query(const RayQuery &q, const ReadContext &r, RayResul
 	++engine->out.report.rays;
 	engine->Check();
 	RayQuery bounded = q;
-	bounded.maxWork = std::min(q.maxWork, engine->input.options.maxWork - engine->out.report.traversalWork);
+	bounded.maxWork =
+		std::min(q.maxWork, engine->input.options.maxWork - engine->out.report.traversalWork);
 	auto e = engine->input.geometry.visibility->Query(bounded, r, hit);
 	engine->out.report.traversalWork += hit.nodeTests + hit.primitiveTests;
 	engine->Check();
 	// An optical-policy assumption is not either a certified clear or blocked ray.
 	// Unknown foreground cannot undo a definite opaque wall farther along the
 	// segment. Conversely, an assumed alpha blockage is not a geometric proof.
-	if (e &&
-		((hit.state == VisibilityState::Visible &&
-		  (hit.reliability != RayReliability::Geometric ||
-		   (hit.issues & (PolicyAssumption | OpticalUnknown | UnsupportedGeometry | IncompleteGeometry)))) ||
-		 (hit.state == VisibilityState::Blocked &&
-		  (hit.reliability != RayReliability::Geometric || (hit.issues & PolicyAssumption)))))
+	if (e && ((hit.state == VisibilityState::Visible &&
+			   (hit.reliability != RayReliability::Geometric ||
+				(hit.issues & (PolicyAssumption | OpticalUnknown | UnsupportedGeometry |
+							   IncompleteGeometry)))) ||
+			  (hit.state == VisibilityState::Blocked &&
+			   (hit.reliability != RayReliability::Geometric || (hit.issues & PolicyAssumption)))))
 		hit.state = VisibilityState::Unknown;
 	return e;
 }
@@ -140,9 +144,11 @@ Disk::Digest Key(const Request &r, const std::vector<Sample> &samples)
 	for (uint64_t v : std::initializer_list<uint64_t>{
 			 o.coarseDivisions, o.refinementRounds, o.refineSeeds, uint64_t(o.maxSamples),
 			 uint64_t(o.samplesPerArea), uint64_t(o.maxAreas), uint64_t(o.maxProfiles),
-			 uint64_t(o.maxNodesPerArea), uint64_t(o.retainedPerChannelProfile), o.maxRays, o.maxWork,
-			 o.maxForwardCalls, o.maxBytes, uint64_t(o.spots), uint64_t(o.allowAssumedProfiles),
-			 uint64_t(o.allowAssumedEncoding), uint64_t(o.directOnlyAttested)})
+			 uint64_t(o.maxNodesPerArea), uint64_t(o.retainedPerChannelProfile), o.maxRays,
+			 o.maxWork, o.maxForwardCalls, o.maxBytes, uint64_t(o.spots),
+			 uint64_t(o.allowAssumedProfiles), uint64_t(o.allowAssumedEncoding),
+			 uint64_t(o.directOnlyAttested), uint64_t(o.geometrySpotSeeds),
+			 uint64_t(o.balanceRefinementKinds)})
 		k.U(v);
 	for (const auto &s : samples)
 	{
@@ -303,18 +309,20 @@ bool Feasible(Engine &e, V p, Trial &t, AreaReport &report)
 	}
 	t.feasibility = point == PointDomain::Boundary
 						? Feasibility::Boundary
-						: regionFree ? Feasibility::ProvenFree
-									 : point == PointDomain::Unknown ? Feasibility::RegionVisibilityUnknown
-																	 : Feasibility::PlausibleUnverified;
+						: regionFree
+							  ? Feasibility::ProvenFree
+							  : point == PointDomain::Unknown ? Feasibility::RegionVisibilityUnknown
+															  : Feasibility::PlausibleUnverified;
 	if (t.dynamicPossible && t.feasibility == Feasibility::ProvenFree)
 		t.feasibility = Feasibility::PlausibleUnverified;
 	if (point == PointDomain::Free)
-		if (auto geometry = std::dynamic_pointer_cast<const StaticVisibility>(r.geometry.visibility))
+		if (auto geometry =
+				std::dynamic_pointer_cast<const StaticVisibility>(r.geometry.visibility))
 		{
 			GeometryBoxResult local;
-			auto error =
-				geometry->OverlapBox(Box(p - V(.001, .001, .001), p + V(.001, .001, .001)), e.read, local,
-									 std::max(uint64_t(1), r.options.maxWork - e.out.report.traversalWork));
+			auto error = geometry->OverlapBox(
+				Box(p - V(.001, .001, .001), p + V(.001, .001, .001)), e.read, local,
+				std::max(uint64_t(1), r.options.maxWork - e.out.report.traversalWork));
 			if (!error)
 				throw error;
 			e.out.report.traversalWork += local.work;
@@ -329,7 +337,8 @@ bool Feasible(Engine &e, V p, Trial &t, AreaReport &report)
 // Different material groups have independent normalization; material boundaries
 // cannot create a cross-material illumination gradient by themselves.
 double ShapeScore(const std::vector<Sample> &s, const std::vector<double> &weights,
-				  const Bake::Result &prediction, int channel, bool &available, double minimumContrast)
+				  const Bake::Result &prediction, int channel, bool &available,
+				  double minimumContrast)
 {
 	struct Group
 	{
@@ -342,7 +351,8 @@ double ShapeScore(const std::vector<Sample> &s, const std::vector<double> &weigh
 		if (!prediction.predictions.data[i].available)
 			continue;
 		auto &g = groups[s[i].receiver.material];
-		double y = s[i].rgb[channel], p = V(prediction.predictions.data[i].rgb)[channel], w = weights[i];
+		double y = s[i].rgb[channel], p = V(prediction.predictions.data[i].rgb)[channel],
+			   w = weights[i];
 		g.yy += w * y * y;
 		g.pp += w * p * p;
 		g.yp += w * y * p;
@@ -356,7 +366,8 @@ double ShapeScore(const std::vector<Sample> &s, const std::vector<double> &weigh
 	for (const auto &pair : groups)
 	{
 		const auto &g = pair.second;
-		if (g.count < 4 || g.positive < 4 || g.yy <= 0 || (g.hi - g.lo) / (g.hi + 1) < minimumContrast)
+		if (g.count < 4 || g.positive < 4 || g.yy <= 0 ||
+			(g.hi - g.lo) / (g.hi + 1) < minimumContrast)
 			continue;
 		// All blocked/backfacing/zero-envelope response is a poor model, not an
 		// invalid zero denominator or a fabricated successful black prediction.
@@ -373,7 +384,7 @@ std::vector<double> Weights(const std::vector<Sample> &samples)
 		double sum = 0;
 		for (const auto &s : samples)
 			sum += s.statisticalWeight;
-		Need(std::isfinite(sum)&&sum>0,Code::InvalidInput,"Sampling weight sum overflow");
+		Need(std::isfinite(sum) && sum > 0, Code::InvalidInput, "Sampling weight sum overflow");
 		std::vector<double> w;
 		for (const auto &s : samples)
 			w.push_back(s.statisticalWeight / sum);
@@ -389,7 +400,7 @@ std::vector<double> Weights(const std::vector<Sample> &samples)
 }
 void Evaluate(Engine &e, const std::vector<Sample> &samples, const std::vector<double> &weights,
 			  const Pose &pose, size_t profile, Bake::SourceKind kind, Trial base, double radius,
-			  std::vector<Trial> &trials)
+			  std::vector<Trial> &trials, bool normalAxis = false)
 {
 	e.Check();
 	const auto &r = e.input;
@@ -420,6 +431,18 @@ void Evaluate(Engine &e, const std::vector<Sample> &samples, const std::vector<d
 	if (kind == Bake::SourceKind::Spot)
 	{
 		V direction = centroid - pose.p;
+		if (normalAxis)
+		{
+			V incoming;
+			for (size_t i = 0; i < samples.size(); ++i)
+			{
+				double mass =
+					weights[i] * (samples[i].rgb[0] + samples[i].rgb[1] + samples[i].rgb[2]);
+				incoming = incoming - V(samples[i].receiver.geometricNormal) * mass;
+			}
+			if (Length(incoming) > 1e-6)
+				direction = incoming;
+		}
 		if (Length(direction) < 1e-6)
 			return;
 		source.orientation = FrameFor(Unit(direction));
@@ -440,12 +463,13 @@ void Evaluate(Engine &e, const std::vector<Sample> &samples, const std::vector<d
 	std::shared_ptr<const Bake::PreparedFactors> factors;
 	++e.out.report.forwardCalls;
 	e.Check();
-	auto error = evaluator.Prepare(r.profiles[profile], Lease(sources), Lease(receivers), e.context, options,
-								   e.read, factors);
+	auto error = evaluator.Prepare(r.profiles[profile], Lease(sources), Lease(receivers), e.context,
+								   options, e.read, factors);
 	if (!error)
 	{
 		if (error.code == Code::Unavailable ||
-			(error.code == Code::InvalidInput && error.message == "Coincident source/receiver direction"))
+			(error.code == Code::InvalidInput &&
+			 error.message == "Coincident source/receiver direction"))
 			return;
 		throw error;
 	}
@@ -458,23 +482,24 @@ void Evaluate(Engine &e, const std::vector<Sample> &samples, const std::vector<d
 		relation.observation = samples[i].receiver.sample;
 		relation.surface = samples[i].receiver.surface;
 		relation.issues = f.issues;
-		relation.relation = f.cosine <= 0
-								? Relation::BackFacing
-								: (f.issues & PolicyAssumption)
-									  ? Relation::Assumed
-									  : f.visibility == VisibilityState::Visible
-											? Relation::Visible
-											: f.visibility == VisibilityState::Blocked ? Relation::Blocked
-																					   : Relation::Unknown;
+		relation.relation = f.cosine <= 0 ? Relation::BackFacing
+										  : (f.issues & PolicyAssumption)
+												? Relation::Assumed
+												: f.visibility == VisibilityState::Visible
+													  ? Relation::Visible
+													  : f.visibility == VisibilityState::Blocked
+															? Relation::Blocked
+															: Relation::Unknown;
 		t.relations.push_back(relation);
 	}
 	bool visibleSupport = false, unknownSupport = false;
 	for (size_t i = 0; i < samples.size(); ++i)
 		if (samples[i].rgb[0] || samples[i].rgb[1] || samples[i].rgb[2])
 		{
-			visibleSupport |= t.relations[i].relation == Relation::Visible && factors->Records()[i].cone > 0;
-			unknownSupport |=
-				t.relations[i].relation == Relation::Unknown || t.relations[i].relation == Relation::Assumed;
+			visibleSupport |=
+				t.relations[i].relation == Relation::Visible && factors->Records()[i].cone > 0;
+			unknownSupport |= t.relations[i].relation == Relation::Unknown ||
+							  t.relations[i].relation == Relation::Assumed;
 		}
 	if (!visibleSupport && !unknownSupport)
 		return; // known geometry gives this proposal no possible positive receiver
@@ -485,14 +510,15 @@ void Evaluate(Engine &e, const std::vector<Sample> &samples, const std::vector<d
 		++e.out.report.forwardCalls;
 		e.Check();
 		e.out.report.sourceReceiverPairs += samples.size();
-		error = evaluator.Evaluate(r.profiles[profile], Lease(sources), Lease(receivers), Decode::Profile(),
-								   e.context, options, e.read, result);
+		error = evaluator.Evaluate(r.profiles[profile], Lease(sources), Lease(receivers),
+								   Decode::Profile(), e.context, options, e.read, result);
 		if (!error)
 			throw error;
 		for (int c = 0; c < 3; ++c)
 		{
 			bool available = false;
-			double score = ShapeScore(samples, weights, result, c, available, r.options.minimumContrast);
+			double score =
+				ShapeScore(samples, weights, result, c, available, r.options.minimumContrast);
 			if (available && (!t.available[c] || score < t.score[c]))
 			{
 				t.available[c] = true;
@@ -505,8 +531,9 @@ void Evaluate(Engine &e, const std::vector<Sample> &samples, const std::vector<d
 	for (const auto &d : r.directions)
 		if (d.usable && Length(pose.p - V(d.originWorld)) > 1e-6)
 		{
-			sum += std::max(0., std::acos(Clamp(Dot(Unit(pose.p - V(d.originWorld)), V(d.toSource)), -1, 1)) -
-									d.halfAngleRadians);
+			sum += std::max(
+				0., std::acos(Clamp(Dot(Unit(pose.p - V(d.originWorld)), V(d.toSource)), -1, 1)) -
+						d.halfAngleRadians);
 			++directions;
 		}
 	t.directionPenalty = directions ? sum / directions : 0;
@@ -557,7 +584,8 @@ std::vector<SearchArea> Areas(const Request &r, const std::vector<Sample> &sampl
 	if (!r.areas.empty())
 	{
 		auto a = r.areas;
-		std::sort(a.begin(), a.end(), [](const SearchArea &x, const SearchArea &y) { return x.id < y.id; });
+		std::sort(a.begin(), a.end(),
+				  [](const SearchArea &x, const SearchArea &y) { return x.id < y.id; });
 		return a;
 	}
 	using Cell = std::tuple<int64_t, int64_t, int64_t>;
@@ -660,10 +688,16 @@ void Publish(Engine &engine, const Trial &t, int channel, const SearchArea &area
 	h.bsp = t.bsp;
 	h.method = t.pose.method;
 	h.profile = r.profiles[t.profile].id;
-	h.profileScope = "Conditional local shape comparison; not source existence, intensity or stock compiler "
-					 "identification";
+	h.profileScope =
+		"Conditional local shape comparison; not source existence, intensity or stock compiler "
+		"identification";
 	h.channel = channel;
 	h.sourceKind = t.kind;
+	if (t.kind == Bake::SourceKind::Spot)
+	{
+		h.spotTargetDistanceWorld = 128;
+		h.spotRadiusWorld = t.radius;
+	}
 	h.score = t.score[channel];
 	h.scoreAvailable = t.available[channel];
 	h.directionalDisagreementRadians = t.directionPenalty;
@@ -685,12 +719,12 @@ void Publish(Engine &engine, const Trial &t, int channel, const SearchArea &area
 			hi[axis] = std::max(hi[axis], V(s.receiver.world)[axis]);
 		}
 		for (const auto &v : samples)
-			diversity =
-				std::max(diversity, 1 - Dot(V(s.receiver.geometricNormal), V(v.receiver.geometricNormal)));
+			diversity = std::max(
+				diversity, 1 - Dot(V(s.receiver.geometricNormal), V(v.receiver.geometricNormal)));
 		h.visible += t.relations[i].relation == Relation::Visible;
 		h.blocked += t.relations[i].relation == Relation::Blocked;
-		h.unknown +=
-			t.relations[i].relation == Relation::Unknown || t.relations[i].relation == Relation::Assumed;
+		h.unknown += t.relations[i].relation == Relation::Unknown ||
+					 t.relations[i].relation == Relation::Assumed;
 	}
 	h.distinctSurfaces = surfaces.size();
 	if (h.context == Context::Neighbourhood && h.visible)
@@ -699,10 +733,11 @@ void Publish(Engine &engine, const Trial &t, int channel, const SearchArea &area
 	h.receiverBaselineWorld = Length(hi - lo);
 	h.normalDiversity = diversity;
 	h.positionUnderconstrained = t.feasibility != Feasibility::ProvenFree || surfaces.size() < 3 ||
-								 diversity < .1 || !h.scoreAvailable || h.unknown > 0 || h.visible < 4 ||
-								 t.dynamicPossible;
-	h.kind = r.options.directOnlyAttested && !h.positionUnderconstrained ? Kind::PhysicalEmitterCandidate
-																		 : Kind::AmbiguousSourceOrTransport;
+								 diversity < .1 || !h.scoreAvailable || h.unknown > 0 ||
+								 h.visible < 4 || t.dynamicPossible;
+	h.kind = r.options.directOnlyAttested && !h.positionUnderconstrained
+				 ? Kind::PhysicalEmitterCandidate
+				 : Kind::AmbiguousSourceOrTransport;
 	if (transport)
 		h.kind = Kind::TransportEvidence;
 	if (r.regions)
@@ -711,21 +746,22 @@ void Publish(Engine &engine, const Trial &t, int channel, const SearchArea &area
 				Inside(c.sampledOpeningBounds, t.pose.p))
 				h.kind = Kind::TransportEvidence;
 	if (!h.region)
-		h.reasons.push_back("Region membership unavailable; direct geometry queries remain admissible");
+		h.reasons.push_back(
+			"Region membership unavailable; direct geometry queries remain admissible");
 	if (!r.options.directOnlyAttested)
-		h.reasons.push_back(
-			"Unknown direct/sky/bounce/material mixture: physical source versus transport unresolved");
+		h.reasons.push_back("Unknown direct/sky/bounce/material mixture: physical source versus "
+							"transport unresolved");
 	if (h.unknown)
-		h.reasons.push_back(
-			"Unknown rays were excluded from numerical shape comparison, not made transparent or black");
+		h.reasons.push_back("Unknown rays were excluded from numerical shape comparison, not made "
+							"transparent or black");
 	if (t.dynamicPossible)
-		h.reasons.push_back(
-			"Moving boundary near source; static topology does not certify all runtime/bake states");
+		h.reasons.push_back("Moving boundary near source; static topology does not certify all "
+							"runtime/bake states");
 	if (h.positionUnderconstrained)
-		h.reasons.push_back(
-			"Receiver/visibility support underconstrained; searched cell is not a calibrated XYZ interval");
-	h.reasons.push_back(
-		"Point/spot geometry and colour channel are proposals; source existence/count/photometry unknown");
+		h.reasons.push_back("Receiver/visibility support underconstrained; searched cell is not a "
+							"calibrated XYZ interval");
+	h.reasons.push_back("Point/spot geometry and colour channel are proposals; source "
+						"existence/count/photometry unknown");
 	GeometryKey key;
 	key.Digest(out.key);
 	key.U(area.id);
@@ -786,13 +822,15 @@ void Publish(Engine &engine, const Trial &t, int channel, const SearchArea &area
 }
 } // namespace
 
-Error FromObservation(const Bake::Receiver &r, const Decode::Observation &o, double area, bool eligible,
-					  bool attested, uint32_t materialUncertainty, bool transport, Sample &out)
+Error FromObservation(const Bake::Receiver &r, const Decode::Observation &o, double area,
+					  bool eligible, bool attested, uint32_t materialUncertainty, bool transport,
+					  Sample &out)
 {
 	out = Sample();
 	if (o.raw.missing || o.raw.directionData || o.raw.encoding != Decode::Encoding::Rgb8 ||
 		o.raw.component != Decode::Component::Lightmap)
-		return Failure(Code::Unavailable, "Hidden candidate input requires original colour lightmap RGB8");
+		return Failure(Code::Unavailable,
+					   "Hidden candidate input requires original colour lightmap RGB8");
 	if (!Finite(r.world) || !Normal(r.geometricNormal) || !std::isfinite(area) || area <= 0)
 		return Failure(Code::InvalidInput, "Invalid hidden candidate surface geometry");
 	out.receiver = r;
@@ -819,7 +857,8 @@ DirectionConstraint GridConstraint(const GridCell &c, Id id, double uncertainty)
 	d.provenance = "Original quantized grid mixture, weak surface-search seed only";
 	return d;
 }
-DirectionConstraint DeluxeConstraint(const Sample &s, const DeluxeDirection &c, Id id, double uncertainty)
+DirectionConstraint DeluxeConstraint(const Sample &s, const DeluxeDirection &c, Id id,
+									 double uncertainty)
 {
 	DirectionConstraint d;
 	d.id = id;
@@ -839,8 +878,8 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 		engine.Check();
 		const auto &o = r.options;
 		float metres = 0;
-		Need(r.map.sha256 != Disk::Digest{} && r.geometry.geometryKey != Disk::Digest{}, Code::InvalidInput,
-			 "Content-addressed map/geometry required");
+		Need(r.map.sha256 != Disk::Digest{} && r.geometry.geometryKey != Disk::Digest{},
+			 Code::InvalidInput, "Content-addressed map/geometry required");
 		Need(WorldToMeters(1, r.units, metres), Code::InvalidInput, "Invalid geometry unit policy");
 		Need(r.geometry.visibility != nullptr, Code::MissingGeometry,
 			 "Hidden candidates require static visibility");
@@ -849,28 +888,41 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 		Need(Valid(r.analysisBounds), Code::InvalidInput, "Finite analysis bounds required");
 		Need(o.coarseDivisions >= 2 && o.coarseDivisions <= 12 && o.refinementRounds <= 4 &&
 				 o.refineSeeds >= 1 && o.refineSeeds <= 8 && o.retainedPerChannelProfile >= 1 &&
-				 o.retainedPerChannelProfile <= 16 && o.maxNodesPerArea >= 8 && o.maxNodesPerArea <= 8192,
+				 o.retainedPerChannelProfile <= 16 && o.maxNodesPerArea >= 8 &&
+				 o.maxNodesPerArea <= 8192,
 			 Code::InvalidInput, "Invalid local search limits");
-		Need(o.maxSamples <= 4096 && o.samplesPerArea >= 6 && o.samplesPerArea <= 256 && o.maxAreas > 0 &&
-				 o.maxAreas <= 128 && o.maxProfiles > 0 && o.maxProfiles <= 8,
+		Need(o.maxSamples <= 4096 && o.samplesPerArea >= 6 && o.samplesPerArea <= 256 &&
+				 o.maxAreas > 0 && o.maxAreas <= 128 && o.maxProfiles > 0 && o.maxProfiles <= 8,
 			 Code::InvalidInput, "Invalid candidate input limits");
 		for (double x : {o.localCellWorld, o.reachWorld, o.minimumContrast, o.alternativeScoreDelta,
 						 o.probeAmplitudes[0], o.probeAmplitudes[1]})
-			Need(std::isfinite(x) && x > 0 && x <= 1e9, Code::InvalidInput, "Invalid finite candidate scale");
-		Need(r.training.count <= o.maxSamples && (!r.training.count || (r.training.owner && r.training.data)),
+			Need(std::isfinite(x) && x > 0 && x <= 1e9, Code::InvalidInput,
+				 "Invalid finite candidate scale");
+		Need(r.training.count <= o.maxSamples &&
+				 (!r.training.count || (r.training.owner && r.training.data)),
 			 Code::InvalidInput, "Invalid training sample lease");
-		Need(!read.maxBytes || r.training.count*sizeof(Sample)*8<=read.maxBytes,
-			Code::MemoryLimit,"Global input sample scratch budget");
-		if(r.training.count*sizeof(Sample)*8>o.maxBytes){out.report.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::MemoryLimit,"Hidden sample scratch budget");}
+		Need(!read.maxBytes || r.training.count * sizeof(Sample) * 8 <= read.maxBytes,
+			 Code::MemoryLimit, "Global input sample scratch budget");
+		if (r.training.count * sizeof(Sample) * 8 > o.maxBytes)
+		{
+			out.report.budgetScope = ProviderBudgetScope::Local;
+			throw Failure(Code::MemoryLimit, "Hidden sample scratch budget");
+		}
 		Need(r.profiles.size() <= o.maxProfiles && r.directions.size() <= 32, Code::InvalidInput,
 			 "Profile/direction budget");
-		if(r.areas.size()>o.maxAreas){out.report.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::WorkLimit,"Explicit area count budget before hashing");}
+		if (r.areas.size() > o.maxAreas)
+		{
+			out.report.budgetScope = ProviderBudgetScope::Local;
+			throw Failure(Code::WorkLimit, "Explicit area count budget before hashing");
+		}
 		for (const auto &a : r.areas)
 			Need(a.reason.size() <= 4096, Code::MemoryLimit, "Area provenance text budget");
 		std::set<std::string> profileIds;
 		for (const auto &p : r.profiles)
 		{
-			auto validProfile=ValidateProviderProfile(p);if(!validProfile)throw validProfile;
+			auto validProfile = ValidateProviderProfile(p);
+			if (!validProfile)
+				throw validProfile;
 			Need(!p.id.empty() && profileIds.insert(p.id).second, Code::InvalidInput,
 				 "Duplicate profile identity");
 			Need(p.id.size() <= 256 && p.family.size() <= 256, Code::MemoryLimit,
@@ -904,8 +956,9 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 		std::vector<Sample> samples;
 		if (r.training.count)
 			samples.assign(r.training.data, r.training.data + r.training.count);
-		std::sort(samples.begin(), samples.end(),
-				  [](const Sample &a, const Sample &b) { return a.receiver.sample < b.receiver.sample; });
+		std::sort(samples.begin(), samples.end(), [](const Sample &a, const Sample &b) {
+			return a.receiver.sample < b.receiver.sample;
+		});
 		Id last = 0;
 		for (const auto &s : samples)
 		{
@@ -932,16 +985,27 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 				 Code::InvalidInput, "Invalid directional mixture constraint");
 		out.key = Key(r, samples);
 		auto areas = Areas(r, samples);
-		if(areas.size()>o.maxAreas){out.report.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::WorkLimit,"Too many local areas; issue explicit deterministic area shards");}
+		if (areas.size() > o.maxAreas)
+		{
+			out.report.budgetScope = ProviderBudgetScope::Local;
+			throw Failure(Code::WorkLimit,
+						  "Too many local areas; issue explicit deterministic area shards");
+		}
 		uint64_t estimate =
 			uint64_t(o.maxNodesPerArea) * r.profiles.size() * (o.spots ? 3 : 1) *
 				(sizeof(Trial) + o.samplesPerArea * sizeof(SupportingObservation)) +
-			uint64_t(o.maxAreas) * r.profiles.size() * 3 * (o.spots ? 2 : 1) * o.retainedPerChannelProfile *
+			uint64_t(o.maxAreas) * r.profiles.size() * 3 * (o.spots ? 2 : 1) *
+				o.retainedPerChannelProfile *
 				(sizeof(Hypothesis) + sizeof(EmitterEvidence) + sizeof(EmitterCandidate) + 2048 +
 				 o.samplesPerArea * (sizeof(SupportingObservation) + sizeof(uint32_t))) +
 			samples.size() * sizeof(Sample) * 8;
-		Need(!read.maxBytes || estimate<=read.maxBytes,Code::MemoryLimit,"Global candidate memory budget");
-		if(estimate>o.maxBytes){out.report.budgetScope=ProviderBudgetScope::Local;throw Failure(Code::MemoryLimit,"Candidate accounted memory budget");}
+		Need(!read.maxBytes || estimate <= read.maxBytes, Code::MemoryLimit,
+			 "Global candidate memory budget");
+		if (estimate > o.maxBytes)
+		{
+			out.report.budgetScope = ProviderBudgetScope::Local;
+			throw Failure(Code::MemoryLimit, "Candidate accounted memory budget");
+		}
 		out.report.accountedPeakBytes = estimate;
 		size_t maximumOutput =
 			areas.size() * r.profiles.size() * 3 * (o.spots ? 2 : 1) * o.retainedPerChannelProfile;
@@ -1073,9 +1137,10 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 						support.allowAssumed = o.allowAssumedProfiles;
 						bool allowed = true;
 						for (const auto &s : selected)
-							allowed &= Bake::Capability(r.profiles[profile], Bake::SourceKind::Point,
-														s.receiver, support)
-										   .implemented;
+							allowed &=
+								Bake::Capability(r.profiles[profile], Bake::SourceKind::Point,
+												 s.receiver, support)
+									.implemented;
 						if (!allowed)
 						{
 							++report.profileUnsupported;
@@ -1086,12 +1151,18 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 							coincident |= Length(pose.p - V(s.receiver.world)) < 2e-3;
 						if (coincident)
 							continue;
-						Evaluate(engine, selected, weights, pose, profile, Bake::SourceKind::Point, base, 0,
-								 trials);
+						Evaluate(engine, selected, weights, pose, profile, Bake::SourceKind::Point,
+								 base, 0, trials);
+						++report.pointTrials;
 						if (o.spots)
-							for (double radius : {64., 128.})
-								Evaluate(engine, selected, weights, pose, profile, Bake::SourceKind::Spot,
-										 base, radius, trials);
+							for (unsigned seed = 0; seed < 2; ++seed)
+							{
+								Evaluate(engine, selected, weights, pose, profile,
+										 Bake::SourceKind::Spot, base,
+										 o.geometrySpotSeeds ? 64. : seed ? 128. : 64., trials,
+										 o.geometrySpotSeeds && seed == 1);
+								++report.spotTrials;
+							}
 					}
 				}
 				if (round == o.refinementRounds || report.searchLimited)
@@ -1104,8 +1175,26 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 						for (const auto &t : trials)
 							if (t.profile == profile && t.available[c])
 								order.push_back(&t);
-						std::sort(order.begin(), order.end(),
-								  [c](const Trial *a, const Trial *b) { return Better(*a, *b, c); });
+						std::sort(order.begin(), order.end(), [c](const Trial *a, const Trial *b) {
+							return Better(*a, *b, c);
+						});
+						if (o.balanceRefinementKinds && o.spots)
+						{
+							std::vector<const Trial *> kinds[2], balanced;
+							std::set<std::tuple<float, float, float>> seen[2];
+							for (auto t : order)
+							{
+								unsigned kind = t->kind == Bake::SourceKind::Spot;
+								auto p = t->pose.p.Float();
+								if (seen[kind].emplace(p.x, p.y, p.z).second)
+									kinds[kind].push_back(t);
+							}
+							for (size_t i = 0; i < std::max(kinds[0].size(), kinds[1].size()); ++i)
+								for (unsigned kind = 0; kind < 2; ++kind)
+									if (i < kinds[kind].size())
+										balanced.push_back(kinds[kind][i]);
+							order.swap(balanced);
+						}
 						std::set<std::tuple<float, float, float>> seedPositions;
 						size_t count = 0;
 						for (auto t : order)
@@ -1115,14 +1204,18 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 								continue;
 							if (count++ == o.refineSeeds)
 								break;
+							if (t->kind == Bake::SourceKind::Spot)
+								++report.spotRefinementSeeds;
+							else
+								++report.pointRefinementSeeds;
 							for (int z : {-1, 1})
 								for (int y : {-1, 1})
 									for (int x : {-1, 1})
 									{
 										Pose next;
 										next.half = t->pose.half * .5;
-										next.p =
-											t->pose.p + V(next.half.x * x, next.half.y * y, next.half.z * z);
+										next.p = t->pose.p + V(next.half.x * x, next.half.y * y,
+															   next.half.z * z);
 										next.method = Method::Refinement;
 										queue.push_back(next);
 									}
@@ -1138,8 +1231,9 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 							if (t.profile == profile &&
 								t.kind == (type ? Bake::SourceKind::Spot : Bake::SourceKind::Point))
 								order.push_back(&t);
-						std::sort(order.begin(), order.end(),
-								  [c](const Trial *a, const Trial *b) { return Better(*a, *b, c); });
+						std::sort(order.begin(), order.end(), [c](const Trial *a, const Trial *b) {
+							return Better(*a, *b, c);
+						});
 						size_t count = 0;
 						std::vector<V> retained;
 						for (auto t : order)
@@ -1154,9 +1248,9 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 								continue;
 							bool duplicate = false;
 							for (V p : retained)
-								duplicate |=
-									Length(t->pose.p - p) <
-									std::min(t->pose.half.x, std::min(t->pose.half.y, t->pose.half.z));
+								duplicate |= Length(t->pose.p - p) <
+											 std::min(t->pose.half.x,
+													  std::min(t->pose.half.y, t->pose.half.z));
 							if (duplicate)
 								continue;
 							// No contrast or no known rays => a few unresolved spatial cells,
@@ -1175,23 +1269,34 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 			out.report.complete &= !report.searchLimited && !report.sampleLimited;
 			out.report.areas.push_back(report);
 		}
-		if(out.candidates.empty()){
-			uint64_t supported=0,unsupported=0;for(const auto&a:out.report.areas){supported+=a.selected;unsupported+=a.unsupportedReceivers;}
-			out.report.outcome=(r.profiles.empty()||(!supported&&unsupported))?ProviderOutcome::UnsupportedCapability:ProviderOutcome::NoSupportedEvidence;
-			throw Failure(Code::Unavailable,"No supported multi-observation surface search; directions alone cannot create a lamp");
+		if (out.candidates.empty())
+		{
+			uint64_t supported = 0, unsupported = 0;
+			for (const auto &a : out.report.areas)
+			{
+				supported += a.selected;
+				unsupported += a.unsupportedReceivers;
+			}
+			out.report.outcome = (r.profiles.empty() || (!supported && unsupported))
+									 ? ProviderOutcome::UnsupportedCapability
+									 : ProviderOutcome::NoSupportedEvidence;
+			throw Failure(Code::Unavailable, "No supported multi-observation surface search; "
+											 "directions alone cannot create a lamp");
 		}
-		out.report.outcome=out.report.complete?ProviderOutcome::Produced:ProviderOutcome::Partial;
-		out.report.diagnostics.push_back("Candidate geometry only; no final amplitudes, source promotion, "
-										 "physical confidence or runtime capability");
+		out.report.outcome =
+			out.report.complete ? ProviderOutcome::Produced : ProviderOutcome::Partial;
+		out.report.diagnostics.push_back(
+			"Candidate geometry only; no final amplitudes, source promotion, "
+			"physical confidence or runtime capability");
 		return {};
 	}
 	catch (const Error &e)
 	{
-		out.report.outcome=ProviderFailure(e,out.report.outcome,out.report.budgetScope);
-		auto generation=out.key;
+		out.report.outcome = ProviderFailure(e, out.report.outcome, out.report.budgetScope);
+		auto generation = out.key;
 		auto report = std::move(out.report);
 		out = Result();
-		out.key=generation;
+		out.key = generation;
 		out.report = std::move(report);
 		out.report.complete = false;
 		out.report.diagnostics.push_back(e.message);
@@ -1199,9 +1304,12 @@ Error Generate(const Request &r, const ReadContext &read, Result &out)
 	}
 	catch (const std::bad_alloc &)
 	{
-		auto report=std::move(out.report);out = Result();out.report=std::move(report);
+		auto report = std::move(out.report);
+		out = Result();
+		out.report = std::move(report);
 		out.report.complete = false;
-		out.report.outcome=ProviderOutcome::BudgetExceeded;out.report.budgetScope=ProviderBudgetScope::Global;
+		out.report.outcome = ProviderOutcome::BudgetExceeded;
+		out.report.budgetScope = ProviderBudgetScope::Global;
 		return Failure(Code::MemoryLimit, "Hidden candidate allocation failed");
 	}
 }

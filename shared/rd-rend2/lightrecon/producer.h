@@ -11,7 +11,7 @@ namespace Core
 {
 namespace Producer
 {
-constexpr uint32_t kVersion = 7; // X15: frozen receiver support and coverage identity
+constexpr uint32_t kVersion = 8; // X16: preserved spot law and receiver-vs-fixture provenance
 struct PreparedProviders; // opaque immutable provider leases, created only by PrepareModelRequests
 struct ProviderPolicy
 {

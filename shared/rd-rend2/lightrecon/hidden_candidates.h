@@ -11,7 +11,7 @@ namespace Core
 {
 namespace Hidden
 {
-constexpr uint32_t kVersion = 2; // independent correlation groups and statistical sampling mass
+constexpr uint32_t kVersion = 3; // opt-in geometry-axis / source-kind-balanced refinement
 enum class Kind
 {
 	PhysicalEmitterCandidate,
@@ -56,8 +56,9 @@ struct Sample
 	bool eligible = false, encodingAttested = false, transportSuspected = false;
 	uint32_t materialUncertainty = 0;
 };
-Error FromObservation(const Bake::Receiver &, const Decode::Observation &, double area, bool eligible,
-					  bool encodingAttested, uint32_t materialUncertainty, bool transportSuspected, Sample &);
+Error FromObservation(const Bake::Receiver &, const Decode::Observation &, double area,
+					  bool eligible, bool encodingAttested, uint32_t materialUncertainty,
+					  bool transportSuspected, Sample &);
 struct DirectionConstraint
 {
 	Id id = 0;
@@ -69,7 +70,8 @@ struct DirectionConstraint
 // Additional mixture uncertainty is REQUIRED; quantization is not an accurate
 // sun/lamp likelihood. These constraints only seed/tie-break surface proposals.
 DirectionConstraint GridConstraint(const GridCell &, Id, double mixtureRadians);
-DirectionConstraint DeluxeConstraint(const Sample &, const DeluxeDirection &, Id, double mixtureRadians);
+DirectionConstraint DeluxeConstraint(const Sample &, const DeluxeDirection &, Id,
+									 double mixtureRadians);
 struct SearchArea
 {
 	Id id = 0;
@@ -87,6 +89,9 @@ struct Options
 	double probeAmplitudes[2] = {128, 512};
 	double minimumContrast = .03, alternativeScoreDelta = .03;
 	bool spots = true, allowAssumedProfiles = false, allowAssumedEncoding = false;
+	// Bounded alternative initialization, never an authored axis or source truth.
+	// Retains three trials/pose (point + two spot seeds), as the legacy search.
+	bool geometrySpotSeeds = false, balanceRefinementKinds = false;
 	// Only an independently known direct-only compiler experiment may attest this.
 	// Stock/unknown mixtures default to ambiguous source-versus-transport.
 	bool directOnlyAttested = false;
@@ -122,9 +127,10 @@ struct Hypothesis
 	Method method = Method::SurfaceResponseSearch;
 	std::string profile, profileScope;
 	Bake::SourceKind sourceKind = Bake::SourceKind::Point;
+	double spotTargetDistanceWorld = 0, spotRadiusWorld = 0;
 	uint32_t channel = 0;
 	uint32_t evidenceChannels =
-		0;					   // deduplicated same geometry; anonymous RGB-code channels if primaries unknown
+		0; // deduplicated same geometry; anonymous RGB-code channels if primaries unknown
 	Estimate channelScores[3]; // shape distances, not probabilities
 	Bounds searchedCell;	   // searched resolution cell, NOT a confidence interval
 	std::vector<SupportingObservation> observations;
@@ -146,6 +152,7 @@ struct AreaReport
 	uint64_t unknownRegion = 0, unknownVisibility = 0, profileUnsupported = 0;
 	bool searchLimited = false, sampleLimited = false;
 	uint64_t correlatedExcluded = 0, effectiveGroups = 0, largestMaterialGroup = 0;
+	uint64_t pointTrials = 0, spotTrials = 0, pointRefinementSeeds = 0, spotRefinementSeeds = 0;
 	std::string admission;
 };
 struct Report

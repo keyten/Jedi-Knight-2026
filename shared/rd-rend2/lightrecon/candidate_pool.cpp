@@ -17,8 +17,14 @@ namespace Candidates
 {
 namespace
 {
-bool Zero(const Disk::Digest &d) { return d == Disk::Digest{}; }
-bool Stop(const ReadContext &c) { return c.cancellation && c.cancellation->IsCancelled(); }
+bool Zero(const Disk::Digest &d)
+{
+	return d == Disk::Digest{};
+}
+bool Stop(const ReadContext &c)
+{
+	return c.cancellation && c.cancellation->IsCancelled();
+}
 void Text(GeometryKey &k, const std::string &s)
 {
 	k.U(s.size());
@@ -32,8 +38,14 @@ Id ID(const Disk::Digest &d)
 		x |= Id(d[i]) << (i * 8);
 	return x ? x : 1;
 }
-bool Finite(Vec3 p) { return std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z); }
-double Dot(Vec3 a, Vec3 b) { return double(a.x) * b.x + double(a.y) * b.y + double(a.z) * b.z; }
+bool Finite(Vec3 p)
+{
+	return std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z);
+}
+double Dot(Vec3 a, Vec3 b)
+{
+	return double(a.x) * b.x + double(a.y) * b.y + double(a.z) * b.z;
+}
 double Distance(Vec3 a, Vec3 b)
 {
 	Vec3 d(a.x - b.x, a.y - b.y, a.z - b.z);
@@ -49,17 +61,24 @@ bool HomeLess(const Home &a, const Home &b)
 	return std::tie(a.kind, a.region, a.cell[0], a.cell[1], a.cell[2]) <
 		   std::tie(b.kind, b.region, b.cell[0], b.cell[1], b.cell[2]);
 }
-bool SameHome(const Home &a, const Home &b) { return !HomeLess(a, b) && !HomeLess(b, a); }
+bool SameHome(const Home &a, const Home &b)
+{
+	return !HomeLess(a, b) && !HomeLess(b, a);
+}
 template <class T> void Unique(std::vector<T> &v)
 {
 	std::sort(v.begin(), v.end());
 	v.erase(std::unique(v.begin(), v.end()), v.end());
 }
-bool RefLess(const Ref &a, const Ref &b) { return a.scoped < b.scoped; }
+bool RefLess(const Ref &a, const Ref &b)
+{
+	return a.scoped < b.scoped;
+}
 void UniqueRefs(std::vector<Ref> &r)
 {
 	std::sort(r.begin(), r.end(), RefLess);
-	r.erase(std::unique(r.begin(), r.end(), [](const Ref &a, const Ref &b) { return a.scoped == b.scoped; }),
+	r.erase(std::unique(r.begin(), r.end(),
+						[](const Ref &a, const Ref &b) { return a.scoped == b.scoped; }),
 			r.end());
 }
 void HashSupport(GeometryKey &k, const Support &s)
@@ -77,9 +96,10 @@ bool SupportLess(const Support &a, const Support &b)
 void UniqueSupport(std::vector<Support> &s)
 {
 	std::sort(s.begin(), s.end(), SupportLess);
-	s.erase(std::unique(
-				s.begin(), s.end(),
-				[](const Support &a, const Support &b) { return !SupportLess(a, b) && !SupportLess(b, a); }),
+	s.erase(std::unique(s.begin(), s.end(),
+						[](const Support &a, const Support &b) {
+							return !SupportLess(a, b) && !SupportLess(b, a);
+						}),
 			s.end());
 }
 Disk::Digest ShapeKey(const EmitterEvidence &e)
@@ -180,7 +200,8 @@ Annotation Basic(const EmitterCandidate &c, const EmitterEvidence &e)
 	a.candidate = c.id;
 	a.protectedAuthored = Authored(e);
 	a.supported = c.staticEligible && e.staticEligible;
-	a.tier = a.protectedAuthored ? Tier::Authored : e.positionKnown ? Tier::Geometry : Tier::Unlocalized;
+	a.tier =
+		a.protectedAuthored ? Tier::Authored : e.positionKnown ? Tier::Geometry : Tier::Unlocalized;
 	if (!a.supported)
 		a.tier = Tier::Unsupported;
 	return a;
@@ -192,7 +213,8 @@ std::vector<Class> Classes(uint32_t shapes, Nature nature)
 	std::vector<Class> v;
 	const uint32_t bits[] = {CandidatePoint, CandidateSpot, CandidateRectangle | CandidateSurface,
 							 CandidateTube,	 CandidateSun,	CandidateSky};
-	const Class cls[] = {Class::Point, Class::Spot, Class::Area, Class::Tube, Class::Sun, Class::Sky};
+	const Class cls[] = {Class::Point, Class::Spot, Class::Area,
+						 Class::Tube,  Class::Sun,	Class::Sky};
 	for (size_t i = 0; i < 6; ++i)
 		if (shapes & bits[i])
 			v.push_back(cls[i]);
@@ -295,8 +317,9 @@ bool ValidEvidence(const EmitterEvidence &e)
 	if (!e.id || !Finite(e.position) || !Finite(e.right) || !Finite(e.up) || !Finite(e.outward) ||
 		!Finite(e.toSource) || !Finite(e.colour) || !Finite(e.chromaticity))
 		return false;
-	const float scalars[] = {e.halfWidth,	e.halfHeight, e.radius, e.areaWorld,		e.sourceRadiusHint,
-							 e.coneDegrees, e.intensity,  e.range,	e.geometricCoverage};
+	const float scalars[] = {e.halfWidth,		 e.halfHeight,	e.radius,	 e.areaWorld,
+							 e.sourceRadiusHint, e.coneDegrees, e.intensity, e.range,
+							 e.geometricCoverage};
 	for (float f : scalars)
 		if (!std::isfinite(f) || f < 0)
 			return false;
@@ -338,8 +361,8 @@ Error FromEvidence(const std::string &name, Disk::Digest geometry, Disk::Digest 
 	out = std::move(p);
 	return {};
 }
-Error FromHidden(const std::string &name, Disk::Digest map, Disk::Digest geometry, Disk::Digest regions,
-				 std::shared_ptr<const Hidden::Result> src, Provider &out)
+Error FromHidden(const std::string &name, Disk::Digest map, Disk::Digest geometry,
+				 Disk::Digest regions, std::shared_ptr<const Hidden::Result> src, Provider &out)
 {
 	out = {};
 	if (!src || src->candidates.size() != src->hypotheses.size())
@@ -362,6 +385,10 @@ Error FromHidden(const std::string &name, Disk::Digest map, Disk::Digest geometr
 			return Failure(Code::InvalidInput, "Hidden identity mismatch");
 		Annotation v = Basic(c, src->evidence[c.primary]);
 		v.profile = h.profile;
+		v.historicalSpotKnown =
+			h.sourceKind == Bake::SourceKind::Spot && h.spotTargetDistanceWorld > 0;
+		v.historicalSpotTargetWorld = h.spotTargetDistanceWorld;
+		v.historicalSpotRadiusWorld = h.spotRadiusWorld;
 		v.nature = h.kind == Hidden::Kind::TransportEvidence
 					   ? Nature::TransportEvidence
 					   : h.kind == Hidden::Kind::AmbiguousSourceOrTransport
@@ -485,8 +512,8 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 	{
 		out = {};
 		const auto &l = r.limits;
-		uint64_t cap = ctx.maxBytes ? std::min(ctx.maxBytes, l.maxBytes) : l.maxBytes, bytes = 0, text = 0,
-				 n = 0, evidence = 0, support = 0;
+		uint64_t cap = ctx.maxBytes ? std::min(ctx.maxBytes, l.maxBytes) : l.maxBytes, bytes = 0,
+				 text = 0, n = 0, evidence = 0, support = 0;
 		ReadContext queryContext = ctx;
 		queryContext.maxBytes = cap;
 		if (Stop(ctx))
@@ -494,13 +521,13 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 		if (Zero(r.map) || Zero(r.geometryKey) || r.providers.size() > l.maxProviders ||
 			!std::isfinite(l.localCellWorld) || l.localCellWorld <= 0 ||
 			!std::isfinite(l.possibleMatchWorld) || l.possibleMatchWorld <= 0 ||
-			l.possibleMatchWorld > l.localCellWorld || !std::isfinite(l.colourCosine) || l.colourCosine < 0 ||
-			l.colourCosine > 1 || !std::isfinite(l.directionCosine) || l.directionCosine < 0 ||
-			l.directionCosine > 1)
+			l.possibleMatchWorld > l.localCellWorld || !std::isfinite(l.colourCosine) ||
+			l.colourCosine < 0 || l.colourCosine > 1 || !std::isfinite(l.directionCosine) ||
+			l.directionCosine < 0 || l.directionCosine > 1)
 			return Failure(Code::InvalidInput, "invalid candidate scope/options");
-		if (r.regions &&
-			(r.regions->Identity().sha256 != r.map || r.regions->CertificationKey() != r.regionKey ||
-			 r.regions->VisibilityKey() != r.geometryKey))
+		if (r.regions && (r.regions->Identity().sha256 != r.map ||
+						  r.regions->CertificationKey() != r.regionKey ||
+						  r.regions->VisibilityKey() != r.geometryKey))
 			return Failure(Code::InvalidInput, "stale region certification");
 		Catalog c;
 		c.map = r.map;
@@ -510,12 +537,14 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 			if (p.name.size() > 4096 || !Add(text, p.name.size(), l.maxTextBytes))
 				return Failure(Code::MemoryLimit, "provider name/text limit");
 		c.providers = r.providers;
-		std::sort(c.providers.begin(), c.providers.end(),
-				  [](const Provider &a, const Provider &b) { return ProviderKey(a) < ProviderKey(b); });
+		std::sort(c.providers.begin(), c.providers.end(), [](const Provider &a, const Provider &b) {
+			return ProviderKey(a) < ProviderKey(b);
+		});
 		for (size_t p = 0; p < c.providers.size(); ++p)
 		{
 			const auto &v = c.providers[p];
-			if (v.name.empty() || Zero(v.generation) || v.map != r.map || v.geometryKey != r.geometryKey ||
+			if (v.name.empty() || Zero(v.generation) || v.map != r.map ||
+				v.geometryKey != r.geometryKey ||
 				(!Zero(v.regionKey) && v.regionKey != r.regionKey) ||
 				v.annotations.count != v.candidates.count ||
 				(p && ProviderKey(c.providers[p - 1]) == ProviderKey(v)))
@@ -533,7 +562,8 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 				const auto &e = v.evidence.data[j];
 				if (!ValidEvidence(e) || !ids.insert(e.id).second)
 					return Failure(Code::InvalidInput, "invalid/duplicate evidence ID or geometry");
-				for (const auto *s : {&e.source, &e.material, &e.emissionTexture, &e.name, &e.mode, &e.raw})
+				for (const auto *s :
+					 {&e.source, &e.material, &e.emissionTexture, &e.name, &e.mode, &e.raw})
 					if (!Add(text, s->size(), l.maxTextBytes))
 						return Failure(Code::MemoryLimit, "candidate text limit");
 				if (!Product(bytes, e.surfaces.size() + e.entities.size(), sizeof(uint32_t), cap))
@@ -550,7 +580,14 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 					std::find(s.evidence.begin(), s.evidence.end(), s.primary) == s.evidence.end())
 					return Failure(Code::InvalidInput, "invalid candidate/annotation reference");
 				if (!Zero(a.fragmentSet) && Zero(a.sourceIdentity))
-					return Failure(Code::InvalidInput, "fragment union lacks explicit same-source identity");
+					return Failure(Code::InvalidInput,
+								   "fragment union lacks explicit same-source identity");
+				if (!std::isfinite(a.historicalSpotTargetWorld) ||
+					!std::isfinite(a.historicalSpotRadiusWorld) ||
+					a.historicalSpotRadiusWorld < 0 ||
+					(a.historicalSpotKnown &&
+					 (a.historicalSpotTargetWorld <= 0 || !(s.shapes & CandidateSpot))))
+					return Failure(Code::InvalidInput, "Invalid historical spot annotation");
 				for (size_t x : s.evidence)
 					if (x >= v.evidence.count)
 						return Failure(Code::InvalidInput, "invalid evidence reference");
@@ -559,10 +596,12 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 						return Failure(Code::InvalidInput, "invalid support reference/state");
 				if (!Add(support, a.support.size(), l.maxSupport) ||
 					!Add(text, a.profile.size(), l.maxTextBytes) ||
-					!Product(bytes, s.evidence.size() + s.sourceIds.size() + a.regions.size(), 384, cap))
+					!Product(bytes, s.evidence.size() + s.sourceIds.size() + a.regions.size(), 384,
+							 cap))
 					return Failure(Code::MemoryLimit, "candidate reference/support limit");
 				const auto &e = v.evidence.data[s.primary];
-				for (double value : {double(e.position.x), double(e.position.y), double(e.position.z)})
+				for (double value :
+					 {double(e.position.x), double(e.position.y), double(e.position.z)})
 					if (std::abs(value / l.possibleMatchWorld) >
 						double(std::numeric_limits<int64_t>::max() / 4))
 						return Failure(Code::InvalidInput, "candidate spatial coordinate overflow");
@@ -572,13 +611,13 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 		uint64_t linkBound = n && l.maxNeighbours > l.maxLinks / n
 								 ? l.maxLinks
 								 : std::min<uint64_t>(l.maxLinks, n * l.maxNeighbours);
-		if (!Add(bytes, 4096, cap) || !Product(bytes, n, 8192, cap) || !Product(bytes, evidence, 512, cap) ||
-			!Product(bytes, support, 256, cap) || !Product(bytes, linkBound, 128, cap) ||
-			!Add(bytes, text * 2, cap))
+		if (!Add(bytes, 4096, cap) || !Product(bytes, n, 8192, cap) ||
+			!Product(bytes, evidence, 512, cap) || !Product(bytes, support, 256, cap) ||
+			!Product(bytes, linkBound, 128, cap) || !Add(bytes, text * 2, cap))
 			return Failure(Code::MemoryLimit, "candidate consolidation memory preflight");
 		c.report.accountedBytes = bytes;
-		c.report.borrowedBytes =
-			text + evidence * sizeof(EmitterEvidence) + n * (sizeof(EmitterCandidate) + sizeof(Annotation));
+		c.report.borrowedBytes = text + evidence * sizeof(EmitterEvidence) +
+								 n * (sizeof(EmitterCandidate) + sizeof(Annotation));
 		c.report.inputs = n;
 		c.report.evidence = evidence;
 		std::vector<Item> items;
@@ -676,8 +715,8 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 			for (const auto &key : records)
 				root.Digest(key);
 		}
-		// Include annotations/geometry as well as declared provider revisions: stale IDs cannot reuse a
-		// catalog key.
+		// Include annotations/geometry as well as declared provider revisions: stale IDs cannot
+		// reuse a catalog key.
 		for (const auto &t : items)
 		{
 			root.U(t.ref.scoped);
@@ -700,6 +739,9 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 			root.U(a.geometryWork);
 			root.U(a.protectedAuthored);
 			root.U(a.supported);
+			root.U(a.historicalSpotKnown);
+			root.F(a.historicalSpotTargetWorld);
+			root.F(a.historicalSpotRadiusWorld);
 			root.U(a.canonicalSource);
 			auto s = a.support;
 			UniqueSupport(s);
@@ -752,7 +794,8 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 			{
 				b.inputs.push_back(items[i].ref);
 				bk.U(items[i].ref.scoped);
-				b.evidence.insert(b.evidence.end(), items[i].evidence.begin(), items[i].evidence.end());
+				b.evidence.insert(b.evidence.end(), items[i].evidence.begin(),
+								  items[i].evidence.end());
 				b.sourceIdentityAttested |= !Zero(items[i].strong);
 			}
 			b.id = ID(bk.Finish());
@@ -765,8 +808,8 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 				const auto &a = InputAnnotation(c, t.ref);
 				const auto &v = c.providers[t.ref.provider];
 				const auto &cand = v.candidates.data[t.ref.index];
-				Ref primary =
-					MakeRef(v, t.ref.provider, cand.primary, v.evidence.data[cand.primary].id, true);
+				Ref primary = MakeRef(v, t.ref.provider, cand.primary,
+									  v.evidence.data[cand.primary].id, true);
 				const auto &e = Evidence(c, primary);
 				for (Class cls : Classes(cand.shapes, a.nature))
 				{
@@ -840,7 +883,8 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 						available[inserted.first->second] = true;
 					}
 				}
-				m.geometryKnown = std::all_of(available.begin(), available.end(), [](bool v) { return v; });
+				m.geometryKnown =
+					std::all_of(available.begin(), available.end(), [](bool v) { return v; });
 				m.parts = std::move(parts);
 				m.contradictoryPrior = m.protectedAuthored && models.size() > 1;
 				b.models.push_back(m.id);
@@ -849,8 +893,9 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 			}
 			Unique(b.models);
 			Unique(b.regions);
-			const auto &first = *std::find_if(c.models.end() - models.size(), c.models.end(),
-											  [&](const Model &m) { return m.id == b.models.front(); });
+			const auto &first =
+				*std::find_if(c.models.end() - models.size(), c.models.end(),
+							  [&](const Model &m) { return m.id == b.models.front(); });
 			const auto &e = Evidence(c, first.primary);
 			if (r.regions && e.positionKnown)
 			{
@@ -895,9 +940,10 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 				const auto &a = InputAnnotation(c, in);
 				z.action = !Zero(a.fragmentSet)
 							   ? InputAction::FragmentPart
-							   : b.models.size() > 1 ? InputAction::AlternativeModel
-													 : b.inputs.size() > 1 ? InputAction::MergedEvidence
-																		   : InputAction::Standalone;
+							   : b.models.size() > 1
+									 ? InputAction::AlternativeModel
+									 : b.inputs.size() > 1 ? InputAction::MergedEvidence
+														   : InputAction::Standalone;
 				c.mapping.push_back(z);
 			}
 			c.bundles.push_back(std::move(b));
@@ -944,13 +990,15 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 				for (int y = -1; y <= 1; ++y)
 					for (int z = -1; z <= 1; ++z)
 					{
-						auto bin = bins.find(Cell(home.cell[0] + x, home.cell[1] + y, home.cell[2] + z));
+						auto bin =
+							bins.find(Cell(home.cell[0] + x, home.cell[1] + y, home.cell[2] + z));
 						if (bin == bins.end())
 							continue;
 						auto begin = std::upper_bound(bin->second.begin(), bin->second.end(), i);
 						for (auto it = begin; it != bin->second.end(); ++it)
 						{
-							if (neighbours >= l.maxNeighbours || c.report.pairTests >= l.maxPairTests ||
+							if (neighbours >= l.maxNeighbours ||
+								c.report.pairTests >= l.maxPairTests ||
 								c.links.size() >= l.maxLinks)
 							{
 								c.report.linksComplete = false;
@@ -967,10 +1015,12 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 							link.b = c.bundles[j].id;
 							link.distanceWorld = dist;
 							const auto &a = *pe[i], &b = *pe[j];
-							link.directionCompatible = a.orientationKnown && b.orientationKnown &&
-													   Aligned(a.outward, b.outward, l.directionCosine);
+							link.directionCompatible =
+								a.orientationKnown && b.orientationKnown &&
+								Aligned(a.outward, b.outward, l.directionCosine);
 							const auto &ar = c.bundles[i].regions, &br = c.bundles[j].regions;
-							auto intersect = [&](const std::vector<Id> &a, const std::vector<Id> &b) {
+							auto intersect = [&](const std::vector<Id> &a,
+												 const std::vector<Id> &b) {
 								size_t x = 0, y = 0;
 								while (x < a.size() && y < b.size())
 								{
@@ -992,7 +1042,8 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 							};
 							link.sameRegion = intersect(ar, br);
 							link.sharedSupport = intersect(supportIds[i], supportIds[j]);
-							if (a.colourKnown && b.colourKnown && !(a.issues & ColourTransferUnknown) &&
+							if (a.colourKnown && b.colourKnown &&
+								!(a.issues & ColourTransferUnknown) &&
 								!(b.issues & ColourTransferUnknown) && a.unit == b.unit &&
 								!Aligned(a.colour, b.colour, l.colourCosine))
 								link.kind = LinkKind::ConflictingColour;
@@ -1003,12 +1054,14 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 								RayQuery q;
 								q.startWorld = pos[i];
 								q.endWorld = pos[j];
-								q.maxWork = std::min<uint64_t>(65536, l.maxRayWork - c.report.rayWork);
+								q.maxWork =
+									std::min<uint64_t>(65536, l.maxRayWork - c.report.rayWork);
 								RayResult result;
 								auto err = r.visibility->Query(q, queryContext, result);
 								++c.report.rays;
 								c.report.rayWork += result.nodeTests + result.primitiveTests;
-								if (!err && err.code != Code::Unavailable && err.code != Code::WorkLimit)
+								if (!err && err.code != Code::Unavailable &&
+									err.code != Code::WorkLimit)
 									return err;
 								if (err &&
 									(result.reliability == RayReliability::Geometric ||
@@ -1033,10 +1086,12 @@ Error Consolidate(const Request &r, const ReadContext &ctx, Catalog &out)
 			if (m.fragmentUnion)
 				c.report.fragmentParts += m.parts.size();
 		if (!c.report.linksComplete)
-			c.report.diagnostics.push_back("Local proposal work/links truncated; ALL source records "
-										   "retained. No optical claim inferred.");
-		c.report.diagnostics.push_back("Candidate work catalog only: no fitted intensities, calibrated "
-									   "confidence or recovered-light capability.");
+			c.report.diagnostics.push_back(
+				"Local proposal work/links truncated; ALL source records "
+				"retained. No optical claim inferred.");
+		c.report.diagnostics.push_back(
+			"Candidate work catalog only: no fitted intensities, calibrated "
+			"confidence or recovered-light capability.");
 		// IDs are persistent keys, so collisions must fail rather than alias records.
 		std::set<Id> ids;
 		for (const auto &p : c.provenance)
@@ -1080,14 +1135,16 @@ uint64_t VisibleCoverage(const Model &m)
 	return s.size();
 }
 } // namespace
-Error Select(const Catalog &c, const Budget &b, const ReadContext &ctx, Cursor &cursor, Selection &out)
+Error Select(const Catalog &c, const Budget &b, const ReadContext &ctx, Cursor &cursor,
+			 Selection &out)
 {
 	try
 	{
 		out = {};
 		if (Stop(ctx))
 			return Failure(Code::Cancelled, "candidate selection cancelled");
-		if (Zero(c.key) || !b.perHome || !b.maxTickets || !b.maxPartsPerTicket || !b.maxGeometryWork)
+		if (Zero(c.key) || !b.perHome || !b.maxTickets || !b.maxPartsPerTicket ||
+			!b.maxGeometryWork)
 			return Failure(Code::InvalidInput, "invalid catalog/wave budget");
 		uint64_t bytes = 0, cap = ctx.maxBytes ? std::min(ctx.maxBytes, b.maxBytes) : b.maxBytes;
 		if (b.more.size() > 4096)
@@ -1107,8 +1164,8 @@ Error Select(const Catalog &c, const Budget &b, const ReadContext &ctx, Cursor &
 			return Failure(Code::MemoryLimit, "wave memory preflight");
 		Cursor next = cursor;
 		auto policy = PolicyKey(b);
-		if (!Zero(next.catalog) &&
-			(next.catalog != c.key || next.policy != policy || next.nextPart.size() != c.models.size()))
+		if (!Zero(next.catalog) && (next.catalog != c.key || next.policy != policy ||
+									next.nextPart.size() != c.models.size()))
 			return Failure(Code::InvalidState,
 						   "cursor belongs to a different catalog/context; reset explicitly");
 		if (Zero(next.catalog))
@@ -1122,11 +1179,12 @@ Error Select(const Catalog &c, const Budget &b, const ReadContext &ctx, Cursor &
 			bundles[x.id] = &x;
 		for (const auto &m : c.models)
 		{
-			if (!m.id || size_t(m.sourceClass) >= size_t(Class::Count) || !bundles.count(m.bundle) ||
-				m.parts.empty())
+			if (!m.id || size_t(m.sourceClass) >= size_t(Class::Count) ||
+				!bundles.count(m.bundle) || m.parts.empty())
 				return Failure(Code::InvalidInput, "invalid consolidated model");
 			for (const auto &p : m.parts)
-				if (p.provider >= c.providers.size() || p.index >= c.providers[p.provider].annotations.count)
+				if (p.provider >= c.providers.size() ||
+					p.index >= c.providers[p.provider].annotations.count)
 					return Failure(Code::InvalidInput, "invalid consolidated model part");
 		}
 		std::set<std::string> profiles;
@@ -1299,7 +1357,8 @@ Error Select(const Catalog &c, const Budget &b, const ReadContext &ctx, Cursor &
 						}
 					}
 				}
-				if (result.tickets.size() >= b.maxTickets || result.geometryWork >= b.maxGeometryWork)
+				if (result.tickets.size() >= b.maxTickets ||
+					result.geometryWork >= b.maxGeometryWork)
 					break;
 			}
 			// Adaptive extra quota: only independently known-visible support not already
@@ -1336,10 +1395,12 @@ Error Select(const Catalog &c, const Budget &b, const ReadContext &ctx, Cursor &
 				{
 					const auto &m = c.models[i];
 					if (picked.count(m.bundle))
-						reason[i] = next.nextPart[i] > 0 ? Deferred::PartialGeometry : Deferred::Alternative;
+						reason[i] = next.nextPart[i] > 0 ? Deferred::PartialGeometry
+														 : Deferred::Alternative;
 					else if (counts[size_t(m.sourceClass)] >= quota[size_t(m.sourceClass)] ||
 							 homeCount >= b.perHome)
-						reason[i] = m.protectedAuthored ? Deferred::ProtectedOverflow : Deferred::LocalQuota;
+						reason[i] = m.protectedAuthored ? Deferred::ProtectedOverflow
+														: Deferred::LocalQuota;
 				}
 			if (result.tickets.size() >= b.maxTickets || result.geometryWork >= b.maxGeometryWork)
 			{
@@ -1361,8 +1422,9 @@ Error Select(const Catalog &c, const Budget &b, const ReadContext &ctx, Cursor &
 				any |= eligible[i];
 			}
 		result.exhausted = !any;
-		result.diagnostics.push_back("Tickets are alternative optimisation work, not simultaneous lights. "
-									 "Deferred records remain immutable and requestable.");
+		result.diagnostics.push_back(
+			"Tickets are alternative optimisation work, not simultaneous lights. "
+			"Deferred records remain immutable and requestable.");
 		if (!b.more.empty())
 			for (const auto &d : b.more)
 				result.diagnostics.push_back("Expansion: " + d.reason);
@@ -1427,7 +1489,8 @@ std::vector<Statistics> Summarize(const Catalog &c, const Selection &s)
 	auto less = [](const Statistics &a, const Statistics &b) {
 		if (!SameHome(a.home, b.home))
 			return HomeLess(a.home, b.home);
-		return std::tie(a.sourceClass, a.provider, a.reason) < std::tie(b.sourceClass, b.provider, b.reason);
+		return std::tie(a.sourceClass, a.provider, a.reason) <
+			   std::tie(b.sourceClass, b.provider, b.reason);
 	};
 	std::sort(rows.begin(), rows.end(), less);
 	std::vector<Statistics> out;

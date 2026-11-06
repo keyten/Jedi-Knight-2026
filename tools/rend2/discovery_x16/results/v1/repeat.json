@@ -1,0 +1,392 @@
+{
+  "schema": "org.openjk.discovery-x16-repeat/1",
+  "checks": [
+    {
+      "variant": "direct",
+      "policy": "baseline",
+      "shard": 1,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "baseline",
+      "shard": 2,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "baseline",
+      "shard": 3,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "baseline",
+      "shard": 4,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "baseline",
+      "shard": 5,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "baseline",
+      "shard": 6,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "baseline",
+      "shard": 7,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "baseline",
+      "shard": 8,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "legacy_adapter",
+      "shard": 1,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "legacy_adapter",
+      "shard": 2,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "legacy_adapter",
+      "shard": 3,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "legacy_adapter",
+      "shard": 4,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "legacy_adapter",
+      "shard": 5,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "legacy_adapter",
+      "shard": 6,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "legacy_adapter",
+      "shard": 7,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "legacy_adapter",
+      "shard": 8,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "budgetmatched",
+      "shard": 1,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "budgetmatched",
+      "shard": 2,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "budgetmatched",
+      "shard": 3,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "budgetmatched",
+      "shard": 4,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "budgetmatched",
+      "shard": 5,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "budgetmatched",
+      "shard": 6,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "budgetmatched",
+      "shard": 7,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "budgetmatched",
+      "shard": 8,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "new",
+      "shard": 1,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "new",
+      "shard": 2,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "new",
+      "shard": 3,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "new",
+      "shard": 4,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "new",
+      "shard": 5,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "new",
+      "shard": 6,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "new",
+      "shard": 7,
+      "equal": true
+    },
+    {
+      "variant": "direct",
+      "policy": "new",
+      "shard": 8,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "baseline",
+      "shard": 1,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "baseline",
+      "shard": 2,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "baseline",
+      "shard": 3,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "baseline",
+      "shard": 4,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "baseline",
+      "shard": 5,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "baseline",
+      "shard": 6,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "baseline",
+      "shard": 7,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "baseline",
+      "shard": 8,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "legacy_adapter",
+      "shard": 1,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "legacy_adapter",
+      "shard": 2,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "legacy_adapter",
+      "shard": 3,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "legacy_adapter",
+      "shard": 4,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "legacy_adapter",
+      "shard": 5,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "legacy_adapter",
+      "shard": 6,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "legacy_adapter",
+      "shard": 7,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "legacy_adapter",
+      "shard": 8,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "budgetmatched",
+      "shard": 1,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "budgetmatched",
+      "shard": 2,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "budgetmatched",
+      "shard": 3,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "budgetmatched",
+      "shard": 4,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "budgetmatched",
+      "shard": 5,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "budgetmatched",
+      "shard": 6,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "budgetmatched",
+      "shard": 7,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "budgetmatched",
+      "shard": 8,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "new",
+      "shard": 1,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "new",
+      "shard": 2,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "new",
+      "shard": 3,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "new",
+      "shard": 4,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "new",
+      "shard": 5,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "new",
+      "shard": 6,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "new",
+      "shard": 7,
+      "equal": true
+    },
+    {
+      "variant": "passive_bounce1",
+      "policy": "new",
+      "shard": 8,
+      "equal": true
+    }
+  ],
+  "passed": true,
+  "compared": "IDs, parameters, observation support, work, model keys; wall clock excluded",
+  "private_answers_read": false
+}
