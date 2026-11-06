@@ -60,18 +60,18 @@ double Component(Vec3 v, unsigned c)
 {
 	return V(v)[c];
 }
-class TransferVisibility final : public VisibilityProvider
+class SceneVisibility final : public VisibilityProvider
 {
-	std::shared_ptr<const Indirect::Transfer> transfer;
 	std::shared_ptr<const PointRefine::PlacementProvider> placement;
 	Work &work;
 	const Options &options;
+	DiagnosticSink *diagnostics;
+	const Id &source;
 
   public:
-	TransferVisibility(std::shared_ptr<const Indirect::Transfer> t,
-					   std::shared_ptr<const PointRefine::PlacementProvider> p, Work &w,
-					   const Options &o)
-		: transfer(std::move(t)), placement(std::move(p)), work(w), options(o)
+	SceneVisibility(std::shared_ptr<const PointRefine::PlacementProvider> p, Work &w,
+					const Options &o, DiagnosticSink *sink, const Id &id)
+		: placement(std::move(p)), work(w), options(o), diagnostics(sink), source(id)
 	{
 	}
 	Error Query(const RayQuery &q, const ReadContext &r, RayResult &result) const override
@@ -81,10 +81,13 @@ class TransferVisibility final : public VisibilityProvider
 		RayQuery bounded = q;
 		bounded.maxWork = std::min(q.maxWork, options.maxWork - work.traversal - work.arithmetic);
 		++work.rays;
-		auto error = transfer->QueryPath(bounded, r, result);
-		if (error)
-			error = placement->ConstrainVisibility(bounded, r, result);
+		// Direct factors belong to the declared bake scene. Transfer::QueryPath
+		// retains its independent runtime/transport uncertainty; clearing its
+		// Unknown here would be unsound. Requery the SAME static BVH through the
+		// placement scene so selected states and conditional bounds apply once.
+		auto error = placement->Query(bounded, r, result);
 		work.traversal += result.nodeTests + result.primitiveTests;
+		if (diagnostics) diagnostics->DirectRay(source, bounded, result, error);
 		return error;
 	}
 };
@@ -225,6 +228,7 @@ struct Engine
 	const ReadContext &read;
 	Work work;
 	std::string placementFailure;
+	Id pathSource = 0;
 	std::vector<Observation> training;
 	Disk::Digest identity{};
 	std::shared_ptr<const PointRefine::PlacementProvider> placement;
@@ -302,10 +306,29 @@ struct Engine
 		baseBytes = work.accountedBytes;
 		for (size_t i = 0; i < r.transfer->Patches().size(); ++i)
 			patchIndex[r.transfer->Patches()[i].id] = i;
+		// Validate record counts, leases, cancellation and metadata budgets before
+		// copying the interpretation for cross-provider consistency checks.
 		Check(PointRefine::MakePlacement(r.placement, read, placement));
+		// A separately prepared transport operator may retain additional model
+		// omissions. The direct scene must explicitly account for every one; a
+		// missing record is not an implicit open/absent bake-state selection.
+		const auto occupancy = PointRefine::CapturedOccupancy(r.placement);
+		for (const auto &moving : r.transfer->Moving())
+		{
+			auto found = std::find_if(occupancy.begin(), occupancy.end(),
+				[&](const PointRefine::OccupancyEvidence &e) {
+					return e.id == moving.id && e.model == moving.model;
+				});
+			Need(found != occupancy.end(), Code::InvalidInput,
+				 "Direct bake scene omits a transport occupancy record");
+			GeometryKey a, b;
+			a.B(moving.bounds); b.B(found->capturedBounds);
+			Need(a.Finish() == b.Finish(), Code::InvalidInput,
+				 "Direct/transport captured model support mismatch");
+		}
 		effectiveGeometry = r.geometry;
 		effectiveGeometry.visibility =
-			std::make_shared<TransferVisibility>(r.transfer, placement, work, r.options);
+			std::make_shared<SceneVisibility>(placement, work, r.options, r.diagnostics, pathSource);
 		GeometryKey occupancyGeneration;
 		occupancyGeneration.Digest(effectiveGeometry.observationPolicyKey);
 		occupancyGeneration.Digest(placement->PolicyKey());
@@ -801,6 +824,7 @@ struct Engine
 	Indirect::Root Primary(const Model &m, const Source &s, bool strict,
 						   const std::vector<Bake::Receiver> *observationReceivers = nullptr)
 	{
+		pathSource = s.candidate.id;
 		const auto &p = r.profiles.at(m.profile);
 		Indirect::Root root;
 		root.source = s.candidate.id;
@@ -812,6 +836,7 @@ struct Engine
 		root.provenance = s.candidate.provenance;
 		GeometryKey generation;
 		generation.Digest(r.transfer->Key());
+		generation.Digest(placement->PolicyKey());
 		generation.Digest(p.model.profile.contentKey);
 		HashSource(generation, s, true);
 		generation.F(p.fixedGain);
@@ -832,6 +857,7 @@ struct Engine
 								   : Shape::Output::RelativeIncident;
 				GeometryKey key;
 				key.Digest(r.transfer->Key());
+				key.Digest(placement->PolicyKey());
 				key.Digest(p.model.profile.contentKey);
 				key.U(m.profile);
 				key.U(strict);
@@ -877,8 +903,11 @@ struct Engine
 				++work.forwardCalls;
 				work.pairs += w.pairs;
 				Limit();
-				for (const auto &x : values)
+				for (size_t j = 0; j < values.size(); ++j)
 				{
+					const auto &x = values[j];
+					if (r.diagnostics) r.diagnostics->DirectPrediction(s, receivers->at(j),
+						x.available, x.value, x.visibilityIssues, strict, m.profile, model);
 					root.incident.push_back((V(x.value) * p.fixedGain).Float());
 					root.available.push_back(x.available);
 					root.visibilityIssues.push_back(x.visibilityIssues);
@@ -1241,6 +1270,7 @@ struct Engine
 	}
 	Bake::Prediction Auxiliary(const Model &m, const Observation &x)
 	{
+		pathSource = 0; // aggregate grid/deluxe operator, not one attributed source ray
 		Bake::Prediction value;
 		const auto &p = r.profiles.at(m.profile);
 		if (p.model.law != Shape::Law::HistoricalBake || p.contract.physicalTransportAssumed ||
@@ -1381,7 +1411,8 @@ struct Engine
 			if (directional)
 				prediction.available &= x.directionKnown && prediction.directionKnown;
 			prediction.available &= x.comparable && r.options.channelWeight[size_t(x.channel)] > 0;
-			if (m.occupancyConditional)
+			if (m.occupancyConditional ||
+				(prediction.visibilityIssues & (ConditionalBakePath | BakeOccupancyUnknown)))
 				prediction.issues |= Indirect::MovingPath;
 			prediction.available &= r.profiles.at(m.profile).contract.transferAttested &&
 									r.profiles.at(m.profile).contract.primariesAttested;
@@ -2537,6 +2568,18 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 			attempt.sources = candidate.sources.size();
 			++e.work.attemptedModels;
 			e.lastScore={};e.lastPredictions.clear();
+			auto coverageReceipt = [&]() {
+				attempt.coverage = e.lastScore.coverage;
+				attempt.receiverSupportKey = e.support ? e.support->Key() : Disk::Digest{};
+				for (const auto &g : e.lastScore.groups) attempt.supportedPositiveRows += g.positive;
+				for (const auto &p : e.lastPredictions)
+					if (!p.available && p.support != ReceiverSupport::RuntimeState::Excluded &&
+						attempt.unavailableReceivers.size() < 128) {
+						attempt.unavailableReceivers.push_back(p.id);
+						attempt.unavailableIssues.push_back(p.issues);
+						attempt.unavailableVisibilityIssues.push_back(p.visibilityIssues);
+					}
+			};
 			Model best;
 			bool have = false;
 			try
@@ -2597,10 +2640,13 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 				attempt.state = best.stationary ? State::Converged : State::Partial;
 				attempt.training = best.training.Total();
 				attempt.validation = best.validation.objective;
+				coverageReceipt();
 				checkpoint.completed.push_back(std::move(best));
 			}
 			catch (const Error &error)
 			{
+				attempt.failureCode = error.code;
+				coverageReceipt();
 				if (error.code == Code::Cancelled || error.code == Code::WorkLimit ||
 					error.code == Code::MemoryLimit)
 				{
@@ -2611,8 +2657,6 @@ Error Solve(const Request &r, const ReadContext &read, Result &out, const Valida
 				}
 				attempt.state = FailureState(error.code);
 				attempt.reason = error.message;
-				attempt.coverage=e.lastScore.coverage;attempt.receiverSupportKey=e.support?e.support->Key():Disk::Digest{};
-				for(const auto&p:e.lastPredictions)if(!p.available&&p.support!=ReceiverSupport::RuntimeState::Excluded&&attempt.unavailableReceivers.size()<128){attempt.unavailableReceivers.push_back(p.id);attempt.unavailableIssues.push_back(p.issues);attempt.unavailableVisibilityIssues.push_back(p.visibilityIssues);}
 				++e.work.rejectedModels;
 			}
 			seen.insert(structure);

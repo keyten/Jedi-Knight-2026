@@ -10,7 +10,7 @@ namespace Core
 {
 namespace PointRefine
 {
-constexpr uint32_t kVersion = 3; // X14: independent occupied-support occupancy query
+constexpr uint32_t kVersion = 4; // X17: scoped bake path, separate from runtime/GI envelope
 enum class OccupancyPolicy
 {
 	RuntimeConservative,

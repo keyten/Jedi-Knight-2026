@@ -1339,7 +1339,10 @@ std::string ReportJson(const Result &r)
 			const auto &a = b.attempts[j];
 			o << (j ? "," : "") << "{\"proposal\":" << Quoted(a.proposal)
 			  << ",\"status\":" << Quoted(Joint::StateName(a.state))
-			  << ",\"reason\":" << Quoted(a.reason) << ",\"sources\":" << a.sources;
+			  << ",\"reason\":" << Quoted(a.reason) << ",\"sources\":" << a.sources
+			  << ",\"failure_code\":" << unsigned(a.failureCode)
+			  << ",\"supported_positive_training_rows\":" << a.supportedPositiveRows
+			  << ",\"receiver_support_key\":" << Quoted(Disk::Hex(a.receiverSupportKey));
 			o<<",\"coverage_admitted\":"<<a.coverage.admitted<<",\"coverage_used\":"<<a.coverage.used<<",\"unknown_visibility\":"<<a.coverage.unknownVisibility<<",\"missing_predictions\":"<<a.coverage.missing<<",\"unavailable_receivers\":[";
 			for(size_t k=0;k<a.unavailableReceivers.size();++k)o<<(k?",":"")<<"{\"id\":\""<<a.unavailableReceivers[k]<<"\",\"issues\":"<<a.unavailableIssues[k]<<",\"visibility_issues\":"<<a.unavailableVisibilityIssues[k]<<'}';o<<"]}";
 		}

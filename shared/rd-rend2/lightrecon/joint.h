@@ -12,7 +12,7 @@ namespace Core
 namespace Joint
 {
 constexpr uint32_t kVersion =
-	7; // X15: frozen common receiver capability and runtime denominator
+	8; // X17: direct bake paths use the declared placement scene, not GI runtime guards
 enum class Channel
 {
 	Surface,
@@ -81,6 +81,11 @@ public:
 	virtual ~DiagnosticSink() = default;
 	virtual void Placement(const Source&,const PointRefine::PlacementResult&,const char *predicate,
 		Vec3 from,Vec3 to,double radius,size_t profile) noexcept = 0;
+	// Actual source-conditioned factor work. No target values; receipts cannot
+	// change source selection or the frozen receiver denominator.
+	virtual void DirectRay(Id, const RayQuery &, const RayResult &, const Error &) noexcept {}
+	virtual void DirectPrediction(const Source &, const Bake::Receiver &, bool, Vec3,
+		uint32_t, bool, size_t, const Shape::Model &) noexcept {}
 };
 struct Terms
 {
@@ -249,6 +254,8 @@ struct Attempt
 	State state = State::Unavailable;
 	double training = 0, validation = 0;
 	size_t sources = 0, profile = 0;
+	Code failureCode = Code::Ok;
+	uint64_t supportedPositiveRows = 0;
 	ReceiverSupport::Coverage coverage;
 	std::vector<Id> unavailableReceivers;
 	std::vector<uint32_t> unavailableIssues;

@@ -1,0 +1,18 @@
+{
+  "schema": "org.openjk.source-path-artifacts/1",
+  "before_manifest_sha256": "2510e01310d0ebcf97ef100b1e6a02b521795e9e43eed397670fd3f8a4daeb68",
+  "after_manifest_sha256": "2fff35ad21134a6e45bde92b3cb36a6606f9bbd14b94e6a6edb64d73321b0763",
+  "baseline_v02_sha256": "6d2c96b9cb9f17804c2950379bf0023e87434a0d2bce2ceca5ab8d44c7dc2531",
+  "artifacts": {
+    "after-protocol.json": "81aa98341697a811a2c7fd0c78968af75e21e9716d3aa0655089e3c03f3c1ffa",
+    "after.json": "2c584ecaa7844cc174eaafa622615771aa3d3913cded7cfe8986fe0376a356f3",
+    "before-protocol.json": "560a03414513e5211c635b452128dd982df02b4997c0fec7416a3fea6c58be3c",
+    "before.json": "8ec4611ec237fc1ba7d42d488676ccee8073c59a007768f1390a839a51eaf36b",
+    "comparison.json": "5a4c7aa6966be81829206168eafbb8b833670c3e481334af852407c14385901d",
+    "repeat.json": "5ebd1addca745047fb63b0e589fc64a8454d771a5014b5184904e81d35813016",
+    "tables.md": "92bb140e2b8a5d9b930075eb785a736f8ea20b74ecbc8e3efdada6b39651a7b8",
+    "validation.json": "a07112f2c300a0d76c5f9f753fa521d229ff61a73530c12b947d37afa968b27d"
+  },
+  "original_frozen_runs_overwritten": false,
+  "copyrighted_geometry_committed": false
+}

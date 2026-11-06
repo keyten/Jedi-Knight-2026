@@ -1,0 +1,39 @@
+{
+  "checks": {
+    "hoth3/isq": true,
+    "hoth3/linear": true,
+    "hoth3/input_domain": true,
+    "mp/duel4/isq": true,
+    "mp/duel4/linear": true,
+    "mp/duel4/input_domain": true
+  },
+  "passed": true,
+  "resources": {
+    "hoth3": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x17-repeat-v3\\lightrecon_map_solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x17-repeat-v3\\hoth3",
+        "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "scene-receiver-preflight"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 43.73399999993853,
+      "peak_process_rss_bytes": 119775232
+    },
+    "mp/duel4": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x17-repeat-v3\\lightrecon_map_solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-x17-repeat-v3\\mp_duel4",
+        "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+        "scene-receiver-preflight"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 7.875,
+      "peak_process_rss_bytes": 37224448
+    }
+  }
+}

@@ -88,6 +88,7 @@ class Transfer
 	Disk::Digest GeometryKey() const;
 	Disk::Digest PatchInterpretationKey() const;
 	const std::shared_ptr<const StaticVisibility> &Geometry() const;
+	const std::vector<DynamicBoundary> &Moving() const;
 	Error QueryPath(const RayQuery &, const ReadContext &, RayResult &) const;
 
   private:

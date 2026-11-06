@@ -142,6 +142,7 @@ Disk::Digest Transfer::MapKey() const { return data->input.mapKey; }
 Disk::Digest Transfer::GeometryKey() const { return data->input.geometry->CertificationKey(); }
 Disk::Digest Transfer::PatchInterpretationKey() const { return data->input.patchInterpretationKey; }
 const std::shared_ptr<const StaticVisibility> &Transfer::Geometry() const { return data->input.geometry; }
+const std::vector<DynamicBoundary> &Transfer::Moving() const { return data->input.moving; }
 Error Transfer::QueryPath(const RayQuery &q, const ReadContext &r, RayResult &out) const
 {
 	auto e = data->input.geometry->Query(q, r, out);

@@ -541,3 +541,15 @@ and unsupported compiler shading-normal replay. Positive input RGB is present.
 Passing compiled fixed-XYZ amplitude controls does not establish original stock
 lamp discovery. See the versioned JSON, private-debug hashes and explicit
 unperformed checks before interpreting stage completion as reconstruction.
+
+## X17 follow-up: conditional direct-path scope, eight-map comparison
+
+The [X17 production path audit](rend2-source-path-support-x17.md) separates
+declared bake-scene direct visibility from the passive transfer operator's
+runtime-motion guard. The frozen eight-map cohort reaches 64 native Joint calls;
+mandatory source-bearing coverage improves on hoth3, hoth2, kor1 and yavin1b.
+All receiver-domain IDs/folds/areas and complete-coverage gates remain unchanged.
+There is still no accepted nonempty stock source model or final held-out
+prediction. Remaining source-solid/clearance, patch, optical and bake-occupancy
+unknowns are retained with exact stable witness IDs. Original v4/X12/V02 results
+above are preserved; this is a separate paired run, not historical lamp truth.

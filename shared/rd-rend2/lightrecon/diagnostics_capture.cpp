@@ -86,6 +86,55 @@ void PlacementCapture::Placement(const Joint::Source &s, const PointRefine::Plac
 		scene_.complete = false;
 	}
 }
+void PlacementCapture::DirectRay(Id source, const RayQuery &q, const RayResult &hit,
+								 const Error &error) noexcept
+{
+	try {
+		GeometryKey key; key.U(source); key.V(q.startWorld); key.V(q.endWorld);
+		key.U(q.originSurface); key.U(q.targetSurface); key.U(unsigned(q.purpose));
+		key.U(unsigned(hit.state)); key.U(hit.issues); key.U(unsigned(error.code));
+		auto digest=key.Finish();
+		if(pathSeen_.count(digest)) return;
+		if(pathSeen_.size()>=4096) { ++scene_.omitted; scene_.complete=false; return; }
+		pathSeen_.insert(digest);
+		if(error) builder_.Ray(q.originSurface,source,q.startWorld,q.endWorld,hit,
+			"actual Joint direct ray in declared bake scene; NOT passive-GI/runtime sweep; originSurface ID, not observation ID");
+		else { ++scene_.invalidQueries; ++scene_.omitted; scene_.complete=false; }
+	} catch (...) { ++scene_.omitted; scene_.complete=false; }
+}
+void PlacementCapture::DirectPrediction(const Joint::Source &s, const Bake::Receiver &receiver,
+										bool available, Vec3 value, uint32_t issues,
+										bool strict, size_t profile, const Shape::Model &model) noexcept
+{
+	try {
+		GeometryKey key; key.U(s.candidate.id); key.U(receiver.sample); key.U(profile);
+		key.U(strict); key.V(s.value.geometry.position.world); key.U(available); key.U(issues);
+		key.V(s.value.geometry.frame.forward); key.U(unsigned(s.value.geometry.kind));
+		key.F(s.value.geometry.geometry.halfWidthWorld); key.F(s.value.geometry.geometry.halfHeightWorld);
+		key.F(s.value.geometry.geometry.halfLengthWorld); key.F(s.value.geometry.geometry.radiusWorld);
+		key.F(s.value.geometry.angular.cosInner); key.F(s.value.geometry.angular.cosOuter);
+		key.F(s.value.spotTargetDistanceWorld); key.F(s.value.spotRadiusWorld);
+		key.Digest(SourceSupport::Key(s.value.support));
+		auto digest=key.Finish();
+		// First response for each factor geometry/support, not every amplitude iterate.
+		if(predictionSeen_.count(digest)) return;
+		if(predictionSeen_.size()>=4096) { ++scene_.omitted; scene_.complete=false; return; }
+		predictionSeen_.insert(digest);
+		Record record; record.id=record.sample=receiver.sample; record.source=s.candidate.id;
+		record.layer=Layer::Direct; record.state=available?State::Conditional:State::Unavailable;
+		record.geometryKnown=true; record.a=receiver.world; record.b=s.value.geometry.position.world;
+		record.primitive=Primitive::Line; record.valueKnown=available; record.value=value;
+		record.issues=issues; record.profile=profile<profiles_.size()?profiles_[profile]:"unsupported-profile-index";
+		record.quantity="pre-encoding-direct-response-before-fixed-gain";
+		record.unit=model.output==Shape::Output::PhysicalLux?PhotometricUnit::Lux:PhotometricUnit::Relative;
+		record.domain=model.output==Shape::Output::PhysicalLux?"physical-lux":
+			model.law==Shape::Law::HistoricalBake?"compiler-relative-incident":"physical-integral-relative-incident";
+		record.reason=std::string("actual Joint factor response; strict=")+(strict?"true":"false")+
+			"; first amplitude at this factor geometry, not accepted source; unavailable != zero; receiver origin follows declared operator";
+		record.provenance=s.candidate.provenance;
+		builder_.Add(record);
+	} catch (...) { ++scene_.omitted; scene_.complete=false; }
+}
 Error TrainingPairs(const Joint::Request &q, const std::vector<Joint::Candidate> &candidates,
 					size_t maxSources, size_t maxRows, const ReadContext &read, Scene &scene)
 {

@@ -190,6 +190,86 @@ int main(int argc, char **argv)
 		CHECK(At(unbounded).state == P::Constraint::Conditional);
 		Must(Make(unbounded)->Query(ray, Read(), result));
 		CHECK(result.state == VisibilityState::Unknown);
+		CHECK((result.issues & (BakeOccupancyUnknown | UnboundedOccupancy)) ==
+			  (BakeOccupancyUnknown | UnboundedOccupancy));
+		// Independent positive/blocked production forward controls for the SAME
+		// declared geometry/state. No arbitrary relocation of historical samples.
+		auto forwardState = current;
+		forwardState.occupancy[0].states[1].verified = true;
+		forwardState.occupancy[0].selectedState = 902;
+		auto receivers = std::make_shared<std::vector<Bake::Receiver>>(1);
+		auto &receiver = receivers->at(0);
+		receiver.sample = 811; receiver.world = Vec3(-1, 0, 1);
+		receiver.geometricNormal = receiver.shadingNormal = Vec3(1, 0, 0);
+		receiver.mappedPlanar = receiver.compilerPlacementCertified = true;
+		auto lights = std::make_shared<std::vector<Bake::SourceHypothesis>>(1);
+		auto &light = lights->at(0); light.id=812; light.kind=Bake::SourceKind::Point;
+		light.position.known=true; light.position.world=Vec3(1,0,1);
+		light.amplitudeKnown=true; light.compilerRgbAmplitude=Vec3(1,2,3);
+		Bake::Recipe pathRecipe; pathRecipe.fast=false; pathRecipe.receiverPushWorld=0;
+		auto pathProfile=Bake::NetRadiantProfile(pathRecipe);
+		Bake::Options pathOptions; pathOptions.allowAssumed=true;
+		Bake::EvaluationContext context; context.geometryKey=input.geometry->CertificationKey();
+		Bake::CpuForwardEvaluator evaluator; Bake::Result pathPrediction;
+		context.visibility=Make(forwardState); context.observationPolicyKey=Make(forwardState)->PolicyKey();
+		std::shared_ptr<const Bake::PreparedFactors> openFactors;
+		Must(evaluator.Prepare(pathProfile,Lease(lights),Lease(receivers),context,pathOptions,Read(),openFactors));
+		Must(evaluator.Evaluate(pathProfile,Lease(lights),Lease(receivers),{},context,pathOptions,Read(),pathPrediction));
+		CHECK(pathPrediction.predictions.data[0].available && pathPrediction.predictions.data[0].compilerRelative.x>0);
+		forwardState.occupancy[0].selectedState=901;
+		context.visibility=Make(forwardState); context.observationPolicyKey=Make(forwardState)->PolicyKey();
+		Must(evaluator.Evaluate(pathProfile,Lease(lights),Lease(receivers),{},context,pathOptions,Read(),pathPrediction));
+		CHECK(pathPrediction.predictions.data[0].available && pathPrediction.predictions.data[0].compilerRelative.x==0);
+		pathOptions.factors=openFactors;
+		CHECK(evaluator.Evaluate(pathProfile,Lease(lights),Lease(receivers),{},context,pathOptions,Read(),pathPrediction).code==Code::InvalidState);
+		pathOptions.factors.reset(); forwardState.occupancy[0].selectedState=0;
+		context.visibility=Make(forwardState); context.observationPolicyKey=Make(forwardState)->PolicyKey();
+		Must(evaluator.Evaluate(pathProfile,Lease(lights),Lease(receivers),{},context,pathOptions,Read(),pathPrediction));
+		CHECK(!pathPrediction.predictions.data[0].available && (pathPrediction.predictions.data[0].visibilityIssues&BakeOccupancyUnknown));
+		// Segment/AABB support is local: overlap of enclosing boxes alone is not
+		// intersection. Still an explicit conditional assumption, never Geometric.
+		auto diagonal=input; diagonal.dynamic[0].bounds=Box(V(-.9,.8,.8),V(-.8,.9,1.2));
+		RayQuery diag=ray; diag.startWorld=Vec3(-1,-1,1); diag.endWorld=Vec3(1,1,1);
+		Must(Make(diagonal)->Query(diag,Read(),result));
+		CHECK(result.state==VisibilityState::Visible && result.reliability==RayReliability::Assumed &&
+			  (result.issues&ConditionalBakePath));
+		diag.startWorld=Vec3(-1,.85f,1); diag.endWorld=Vec3(1,.85f,1);
+		Must(Make(diagonal)->Query(diag,Read(),result));
+		CHECK(result.state==VisibilityState::Unknown && (result.issues&BakeOccupancyUnknown));
+		auto biased=input;
+		biased.dynamic[0].bounds=Box(V(-.1,-.1,1.13),V(.1,.1,1.17));
+		RayQuery shifted=ray; shifted.originSurface=1; shifted.bias.normalKnown=true;
+		shifted.endWorld.z=1.1f; // non-tangent normal bias actually applied by StaticVisibility
+		shifted.bias.geometricNormal=Vec3(0,0,1); shifted.bias.absoluteWorld=.2;
+		shifted.bias.maximumWorld=.2;
+		Must(Make(biased)->Query(shifted,Read(),result));
+		CHECK(result.appliedBiasWorld>0 && result.state==VisibilityState::Unknown &&
+			  (result.issues&BakeOccupancyUnknown));
+		biased.dynamic[0].bounds=Box(V(-.1,.4,1.13),V(.1,.6,1.17));
+		Must(Make(biased)->Query(shifted,Read(),result));
+		CHECK(result.appliedBiasWorld>0 && result.state==VisibilityState::Visible && result.reliability==RayReliability::Assumed);
+		receiver.world=Vec3(-1,-1,1);
+		receiver.geometricNormal=receiver.shadingNormal=Unit(V(1,1,0)).Float();
+		light.position.world=Vec3(1,1,1);
+		context.visibility=Make(diagonal); context.observationPolicyKey=Make(diagonal)->PolicyKey();
+		Must(evaluator.Evaluate(pathProfile,Lease(lights),Lease(receivers),{},context,pathOptions,Read(),pathPrediction));
+		CHECK(pathPrediction.predictions.data[0].available && pathPrediction.predictions.data[0].compilerRelative.x>0 &&
+			  (pathPrediction.predictions.data[0].visibilityIssues&ConditionalBakePath));
+		receiver.world=Vec3(-1,.85f,1); receiver.geometricNormal=receiver.shadingNormal=Vec3(1,0,0);
+		light.position.world=Vec3(1,.85f,1);
+		Must(evaluator.Evaluate(pathProfile,Lease(lights),Lease(receivers),{},context,pathOptions,Read(),pathPrediction));
+		CHECK(!pathPrediction.predictions.data[0].available &&
+			  (pathPrediction.predictions.data[0].visibilityIssues&BakeOccupancyUnknown));
+		for (unsigned variant=0; variant<3; ++variant) {
+			Scene world(true,variant!=2,false,variant==1,variant==2);
+			auto scoped=input; scoped.map=world.map; scoped.domain=world.domain;
+			scoped.geometry=world.visibility; scoped.originalSurfaces.reset();
+			Must(Make(scoped)->Query(ray,Read(),result));
+			if(variant==0) CHECK(result.state==VisibilityState::Blocked);
+			else CHECK(result.state==VisibilityState::Unknown);
+			if(variant==1) CHECK(result.issues&OpticalUnknown);
+			if(variant==2) CHECK(result.issues&IncompleteGeometry);
+		}
 		std::shared_ptr<const P::PlacementProvider> p;
 		auto stale = current;
 		stale.occupancy[0].geometryGeneration = Key("changed geometry");
@@ -226,6 +306,11 @@ int main(int argc, char **argv)
 		Bake::Recipe recipe;
 		recipe.fast = false;
 		Historical(fit, recipe);
+		// Coplanar zero-reflectance receiver support isolates direct-path scope
+		// from unavailable GI links. Runtime transfer guards remain unchanged.
+		fit.scene.patches.erase(std::remove_if(fit.scene.patches.begin(),fit.scene.patches.end(),
+			[](const I::Patch &p){return p.receiver.surface!=1;}),fit.scene.patches.end());
+		fit.request.transfer=fit.scene.Transfer(1000);
 		auto source = CompilerPoint(10, V(0, 0, 60));
 		fit.request.candidates = {source};
 		fit.Observations(fit.Truth({Answer(source, V(35, 12, 21))}), true);
@@ -234,6 +319,17 @@ int main(int argc, char **argv)
 		fit.request.placement.dynamic = {far};
 		fit.request.placement.occupancyPolicy = P::OccupancyPolicy::ConditionalBake;
 		fit.request.placement.occupancyProvenance = input.occupancyProvenance;
+		I::BuildInput transferInput; transferInput.mapKey=fit.request.mapKey;
+		transferInput.patchInterpretationKey=fit.request.transfer->PatchInterpretationKey();
+		transferInput.patches=fit.request.transfer->Patches(); transferInput.geometry=fit.scene.visibility;
+		transferInput.completePatchSet=true; transferInput.moving={far};
+		Must(I::Transfer::Build(transferInput,{},Read(),fit.request.transfer));
+		RayQuery direct; direct.startWorld=Vec3(0,0,1); direct.endWorld=Vec3(0,0,60);
+		direct.originKnownFree=true;
+		Must(fit.request.transfer->QueryPath(direct,Read(),result));
+		CHECK(result.state==VisibilityState::Unknown); // legacy GI/runtime scope preserved
+		Must(Make(fit.request.placement)->Query(direct,Read(),result));
+		CHECK(result.state==VisibilityState::Visible && result.reliability==RayReliability::Assumed);
 		Oracle oracle(fit);
 		J::Result fitted;
 		Must(J::Solve(fit.request, Read(), fitted, &oracle));
@@ -261,6 +357,8 @@ int main(int argc, char **argv)
 		J::Result attached;
 		Must(J::Solve(fit.request, Read(), attached, &oracle));
 		CHECK(attached.preferred == SIZE_MAX);
+		fit.request.placement.dynamic.clear();
+		CHECK(J::Solve(fit.request,Read(),attached,&oracle).code==Code::InvalidInput);
 	}
 	catch (const std::exception &e)
 	{

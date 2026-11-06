@@ -114,11 +114,15 @@ class PlacementCapture final : public Joint::DiagnosticSink
 	std::vector<std::string> profiles_;
 	size_t maximum_, stored_ = 0;
 	std::set<Disk::Digest> seen_;
+	std::set<Disk::Digest> pathSeen_, predictionSeen_;
 
   public:
 	PlacementCapture(Scene &, std::vector<std::string> profiles, size_t maximum = 128, Limits = {});
 	void Placement(const Joint::Source &, const PointRefine::PlacementResult &, const char *, Vec3,
 				   Vec3, double, size_t) noexcept override;
+	void DirectRay(Id, const RayQuery &, const RayResult &, const Error &) noexcept override;
+	void DirectPrediction(const Joint::Source &, const Bake::Receiver &, bool, Vec3,
+		uint32_t, bool, size_t, const Shape::Model &) noexcept override;
 };
 // Explicit diagnostic-only work AFTER search/freeze. Uses the production Shape
 // operator on training observations only; it never certifies a rejected source.

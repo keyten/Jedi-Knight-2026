@@ -346,3 +346,15 @@ three boundary); two remain uncertain patch paths. New coarse schedules do not
 silently retain only easy observations: remaining unavailable predictions still
 reject a candidate. No stock physical source recovery or historical profile
 identity is established by this follow-up.
+
+## X17 follow-up: direct visibility uses the declared bake scene
+
+The [separate X17 eight-map audit](rend2-source-path-support-x17.md) repairs the
+downstream coupling between conditional source placement and the passive-GI
+runtime-motion path guard. Supported historical direct rays now use the same
+static geometry/bake-state interpretation as placement; Transfer and uncertain
+GI links retain their original scope. hoth3 reaches 63/64 mandatory coarse rows,
+and coverage also improves on hoth2, kor1 and yavin1b. The remaining missing paths
+still reject the entire source-bearing model. No receiver normal, target fold,
+positive-light gate, known blocker or stock physical-source certificate is
+relaxed. No accepted nonempty stock fit is claimed.

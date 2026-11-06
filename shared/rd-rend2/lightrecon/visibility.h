@@ -90,7 +90,10 @@ enum RayIssue : uint32_t
 	BiasObstructed = 1u << 11,
 	PrecisionLimit = 1u << 12,
 	PolicyAssumption = 1u << 13,
-	CoincidentSurfaces = 1u << 14
+	CoincidentSurfaces = 1u << 14,
+	BakeOccupancyUnknown = 1u << 15,
+	UnboundedOccupancy = 1u << 16,
+	ConditionalBakePath = 1u << 17
 };
 struct RayBias
 {

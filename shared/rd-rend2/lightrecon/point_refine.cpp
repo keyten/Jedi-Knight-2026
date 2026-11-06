@@ -71,6 +71,33 @@ bool In(const Bounds &b, V p)
 			return false;
 	return true;
 }
+// A segment's enclosing AABB can overlap an unrelated model at a diagonal
+// corner. Test actual segment support; these bounds are still NOT filled solids
+// or a measured bake pose. Unknown/unbounded support remains unknown.
+bool SegmentOverlap(const Bounds &b, Vec3 start, Vec3 end)
+{
+	if (!b.known)
+		return true;
+	V a(start), d = V(end) - a;
+	double lo = 0, hi = 1;
+	for (unsigned c = 0; c < 3; ++c)
+	{
+		if (d[c] == 0)
+		{
+			if (a[c] < V(b.minWorld)[c] || a[c] > V(b.maxWorld)[c])
+				return false;
+		}
+		else
+		{
+			double x = (V(b.minWorld)[c] - a[c]) / d[c];
+			double y = (V(b.maxWorld)[c] - a[c]) / d[c];
+			if (x > y) std::swap(x, y);
+			lo = std::max(lo, x); hi = std::min(hi, y);
+			if (lo > hi) return false;
+		}
+	}
+	return true;
+}
 bool Valid(const Bounds &b)
 {
 	if (!b.known || !Finite(b.minWorld) || !Finite(b.maxWorld))
@@ -332,11 +359,16 @@ class Scene final : public PlacementProvider
 			return {};
 		try
 		{
-			Bounds box = Box(
-				V(std::min(q.startWorld.x, q.endWorld.x), std::min(q.startWorld.y, q.endWorld.y),
-				  std::min(q.startWorld.z, q.endWorld.z)),
-				V(std::max(q.startWorld.x, q.endWorld.x), std::max(q.startWorld.y, q.endWorld.y),
-				  std::max(q.startWorld.z, q.endWorld.z)));
+			// Static normal bias can bend the effective support away from the
+			// original segment. Keep both the guarded bias segment and final ray;
+			// a miss of only the unshifted line must not clear mover uncertainty.
+			const Vec3 effectiveOrigin = out.effectiveOriginWorld;
+			const bool shifted = out.appliedBiasWorld > 0;
+			auto intersects = [&](const Bounds &support) {
+				return SegmentOverlap(support, q.startWorld, q.endWorld) ||
+					(shifted && (SegmentOverlap(support, q.startWorld, effectiveOrigin) ||
+								 SegmentOverlap(support, effectiveOrigin, q.endWorld)));
+			};
 			uint64_t checks = 0, nodes = 0, primitives = 0, baseNodes = out.nodeTests,
 					 basePrimitives = out.primitiveTests;
 			Need(baseNodes <= q.maxWork && basePrimitives <= q.maxWork - baseNodes, Code::WorkLimit,
@@ -345,7 +377,7 @@ class Scene final : public PlacementProvider
 			auto assumed = [&]() {
 				if (out.state == VisibilityState::Visible)
 					out.reliability = RayReliability::Assumed;
-				out.issues |= PolicyAssumption;
+				out.issues |= PolicyAssumption | ConditionalBakePath;
 			};
 			for (const auto &e : records)
 			{
@@ -354,7 +386,7 @@ class Scene final : public PlacementProvider
 					 "Bake-state visibility work");
 				const auto *s = Selected(e);
 				bool allow = input.occupancyPolicy == OccupancyPolicy::ConditionalBake;
-				if (!allow && !s && e.runtimeSweptKnown && !Overlap(box, e.runtimeSweptBounds))
+				if (!allow && !s && e.runtimeSweptKnown && !intersects(e.runtimeSweptBounds))
 					continue;
 				if (s && s->participation == BakeParticipation::Excluded)
 				{
@@ -363,7 +395,7 @@ class Scene final : public PlacementProvider
 					continue;
 				}
 				if (s && s->participation == BakeParticipation::Included && !s->geometry &&
-					!s->domain && s->supportComplete && !Overlap(box, s->support))
+					!s->domain && s->supportComplete && !intersects(s->support))
 				{
 					if (!s->verified)
 						assumed();
@@ -397,13 +429,16 @@ class Scene final : public PlacementProvider
 						continue;
 					}
 				}
-				if (allow && !s && e.capturedBounds.known && !Overlap(box, e.capturedBounds))
+				if (allow && !s && e.capturedBounds.known && !intersects(e.capturedBounds))
 					assumed();
 				else
 				{
 					out.state = VisibilityState::Unknown;
 					out.reliability = RayReliability::Unknown;
-					out.issues |= IncompleteGeometry | PolicyAssumption;
+					out.issues |= IncompleteGeometry | PolicyAssumption | BakeOccupancyUnknown;
+					if ((!s && !e.capturedBounds.known) ||
+						(!allow && !s && !e.runtimeSweptKnown))
+						out.issues |= UnboundedOccupancy;
 				}
 			}
 			out.nodeTests += checks + nodes;
