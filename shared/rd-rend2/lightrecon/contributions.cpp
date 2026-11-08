@@ -253,7 +253,7 @@ Status Prepared::Contribution(const ReconstructedLightingAsset &, const Contribu
 	output.upper = v->upper;
 	output.issues = v->issues;
 	output.quantity = ref->quantity;
-	output.domain = ref->domain;
+	output.metadata = ConstRecord<ContributionReference>(data_, ref);
 	output.configuration = ref->configuration;
 	output.dataset = ref->dataset;
 	if (ref->quantity != ContributionQuantity::LegacyRelativeChannels)

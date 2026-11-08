@@ -550,3 +550,11 @@ RGB fields were admitted; missing support and failed regions remain explicit.
 These are conditional appearance proxies, not new stock physical source models,
 physical GI, incoming radiance or enabled renderer consumers. Original V02 results
 and its physical-source limitations remain unchanged.
+
+## X19 follow-up
+
+[Runtime query hardening](rend2-runtime-hardening-x19.md) removes the measured
+P06 query allocations on the same V02 workload while retaining metadata leases
+and failure statuses. The MP harness now requires independent frozen-world A/A
+evidence, but an actual X19 MP run remains Unperformed without explicit permission.
+The original V02 failed MP controls and historical shader drift are preserved.

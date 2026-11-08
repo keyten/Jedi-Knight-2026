@@ -1,0 +1,26 @@
+[
+  {
+    "status": "Unperformed",
+    "map": "mp/duel4",
+    "profile": "legacy",
+    "reason": "MP launch requires explicit permission; no process or network configuration attempted"
+  },
+  {
+    "status": "Unperformed",
+    "map": "mp/duel4",
+    "profile": "modern",
+    "reason": "MP launch requires explicit permission; no process or network configuration attempted"
+  },
+  {
+    "status": "Unperformed",
+    "map": "mp/ffa3",
+    "profile": "legacy",
+    "reason": "MP launch requires explicit permission; no process or network configuration attempted"
+  },
+  {
+    "status": "Unperformed",
+    "map": "mp/ffa3",
+    "profile": "modern",
+    "reason": "MP launch requires explicit permission; no process or network configuration attempted"
+  }
+]

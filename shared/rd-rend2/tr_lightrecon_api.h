@@ -196,7 +196,14 @@ struct ContributionSample
 	Vec3 value, lower, upper; // conditional payload values/bounds, not calibrated confidence
 	ContributionQuantity quantity = ContributionQuantity::IrradianceRGB;
 	Id dataset = 0, configuration = 0;
-	std::string domain;
+	// Aliased immutable record lease: copying a successful result does not copy
+	// domain/membership strings or vectors. Survives snapshot reset/map change.
+	ConstRecord<ContributionReference> metadata;
+	const std::string& Domain() const
+	{
+		static const std::string empty;
+		return metadata ? metadata->domain : empty;
+	}
 	uint32_t issues = 0;
 	bool lightingSampleAvailable = false; // Rec.709 adapter available; unit may still be Relative
 };

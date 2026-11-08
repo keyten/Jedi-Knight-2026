@@ -351,6 +351,8 @@ void QueriesAndPhysics()
 	auto result = snapshot.SampleContribution(q);
 	CHECK(result);
 	CHECK(result.value.value.x == 6.25 && result.value.lightingSampleAvailable);
+	CHECK(result.value.metadata && result.value.Domain() == "physical-irradiance-lux" &&
+		  result.value.metadata->sources[0] == source);
 	A::Ledger ledger;
 	CHECK(p->Audit(1000, 701, ledger) == Status::Ok);
 	CHECK(ledger.attributionComplete && ledger.ratioAvailable && ledger.modelObservedRatio.x == 1);
@@ -362,6 +364,15 @@ void QueriesAndPhysics()
 	CHECK(snapshot.SampleContribution(f.Query()).status ==
 		  Status::InvalidArgument); // source generation is mandatory
 	CHECK(snapshot.SampleContribution(q).status == Status::NotFound); // old snapshot remains pinned
+	// A retained result owns its own immutable publication lease, even after all
+	// caller snapshot copies disappear. Borrowed metadata remains readable.
+	auto weak = snapshot.Weak();
+	snapshot = {};
+	CHECK(weak.Lock() && result.value.Domain() == "physical-irradiance-lux");
+	CHECK(result.value.metadata->calibration == f.asset.contributions[0].calibration &&
+		  result.value.metadata->membership.reflectionOrders[0] == 0);
+	result = {};
+	CHECK(weak.Lock().status == Status::Expired);
 	auto changed = f.asset;
 	changed.contributions[0].replacement.scope = "changed";
 	CHECK(manager.Publish(changed, Completeness::Partial, p) == Status::Corrupt);
@@ -708,6 +719,34 @@ void EncodedCoupling()
 	q.allowLegacyRelativeChannels = true;
 	auto result = snapshot.SampleContribution(q);
 	CHECK(result && result.value.value.x == 510 && !result.value.lightingSampleAvailable);
+	CHECK(result.value.metadata && result.value.Domain() == "compiler-relative255/pre-encoding");
+	// Provider metadata must be checked before replacing it with the canonical
+	// snapshot lease. A corrupted domain cannot be hidden by attaching that lease.
+	struct BadDomain : CpuEvaluator
+	{
+		std::shared_ptr<const A::Prepared> prepared;
+		ConstRecord<ContributionReference> wrong;
+		Status AcceptsAsset(const ReconstructedLightingAsset &a) const override
+		{ return prepared->AcceptsAsset(a); }
+		Status Supports(Capability c) const override { return prepared->Supports(c); }
+		Status Contribution(const ReconstructedLightingAsset &a, const ContributionQuery &q,
+							ContributionSample &out) const override
+		{
+			auto s = prepared->Contribution(a, q, out);
+			out.metadata = wrong;
+			return s;
+		}
+	};
+	auto bad = std::make_shared<BadDomain>();
+	bad->prepared = p;
+	auto wrongDomain = std::make_shared<ContributionReference>(f.asset.contributions[0]);
+	wrongDomain->domain = "corrupt-provider-domain";
+	bad->wrong = wrongDomain;
+	Manager corruptOwner;
+	CHECK(corruptOwner.Publish(f.asset, Completeness::Partial, bad) == Status::Ok);
+	auto corruptQuery = q;
+	corruptQuery.source = corruptOwner.Acquire().IdentifySource(q.source.id).value;
+	CHECK(corruptOwner.Acquire().SampleContribution(corruptQuery).status == Status::Corrupt);
 	A::Ledger ledger;
 	CHECK(p->Audit(1000, 701, ledger) == Status::Ok && ledger.preencodingTotal.x == 510 &&
 		  ledger.modelObservation.x == 255);

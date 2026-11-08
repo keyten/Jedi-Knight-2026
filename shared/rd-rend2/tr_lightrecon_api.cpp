@@ -502,12 +502,16 @@ Result<ContributionSample> Snapshot::SampleContribution(const ContributionQuery&
 				r.value.upper.y >= r.value.value.y && r.value.upper.z >= r.value.value.z &&
 				r.value.quantity == query.quantity && r.value.dataset == reference->dataset &&
 				r.value.configuration == reference->configuration &&
-				r.value.domain == reference->domain && !r.value.lightingSampleAvailable;
+				r.value.Domain() == reference->domain && !r.value.lightingSampleAvailable;
 	else if (r)
 		valid = ValidLighting(*data_, r.value.lighting, query.quantity == ContributionQuantity::IrradianceRGB ? PhotometricUnit::Lux : PhotometricUnit::Nits) &&
 			r.value.lighting.unit == reference->unit && r.value.lighting.calibration == reference->calibration && r.value.lighting.source == query.source.id;
 	if (!ValidStatus(r.status) || !valid) return Failure<ContributionSample>(Status::Corrupt);
-	return r ? r : Failure<ContributionSample>(r.status);
+	if (!r) return Failure<ContributionSample>(r.status);
+	// Bind returned metadata to this exact immutable publication, including for
+	// providers that only return a physically typed LightingSample.
+	r.value.metadata = ConstRecord<ContributionReference>(data_, reference);
+	return r;
 }
 Result<VisibilitySample> Snapshot::QuerySkyVisibility(const SkyVisibilityQuery& query) const
 {

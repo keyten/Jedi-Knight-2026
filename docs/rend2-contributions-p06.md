@@ -329,3 +329,11 @@ failed and is not relabelled passed or rewritten. The architecture dependency
 audit passes, including the new prepared evaluator. No dynamic replacement,
 world-diffuse change, fog/Ghoul2/shadow modification or runtime consumer activation
 is introduced.
+
+## X19 query ownership update
+
+The [X19 runtime hardening report](rend2-runtime-hardening-x19.md) documents the
+allocation-free prepared query. `ContributionSample` now retains a canonical
+`metadata` lease; use `Domain()` or `metadata->domain` while retaining that lease.
+The serialized attribution model, quantity/calibration and composition rules
+remain unchanged. C++ consumers must be rebuilt for the API layout change.

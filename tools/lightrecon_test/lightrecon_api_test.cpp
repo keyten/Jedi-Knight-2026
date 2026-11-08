@@ -283,6 +283,8 @@ void PreparedCpuBoundaryAndNoReadAllocations()
 	CHECK(s.LookupRegion(Vec3()).value.id == 7); CHECK(s.QueryVisibility(Visibility()).value.transmittance == 0.75f);
 	CHECK(s.QuerySkyVisibility(SkyVisibility()).value.transmittance == 0.75f && backend->lastDirection.z == 1.0f);
 	CHECK(s.SampleContribution(Contribution(s)).value.lighting.rgb.z == 3.0f);
+	CHECK(s.SampleContribution(Contribution(s)).value.metadata &&
+		s.SampleContribution(Contribution(s)).value.metadata->sources[0] == 1001);
 	const auto handle = s.IdentifySource(1001).value;
 	allocations = 0; countAllocations = true;
 	for (unsigned n = 0; n < 100; ++n)
@@ -309,6 +311,16 @@ void PreparedCpuBoundaryAndNoReadAllocations()
 	CHECK(m.Publish(a, Completeness::Partial, backend) == Status::Ok);
 	CHECK(m.Acquire().SampleIndirect(Irradiance()).status == Status::Unavailable);
 	CHECK(m.Acquire().SampleIndirect(Irradiance()).value.rgb.x == 0.0f); // failed provider output discarded
+	for (Status expected : {Status::Unavailable, Status::Ambiguous, Status::Corrupt})
+	{
+		backend = std::make_shared<PreparedValues>(); backend->result = expected;
+		CHECK(m.Publish(a, Completeness::Partial, backend) == Status::Ok);
+		auto current = m.Acquire(); auto result = current.SampleContribution(Contribution(current));
+		CHECK(result.status == expected && !result.value.metadata);
+	}
+	backend = std::make_shared<PreparedValues>(); backend->indirect.rgb.x = std::numeric_limits<float>::quiet_NaN();
+	CHECK(m.Publish(a, Completeness::Partial, backend) == Status::Ok);
+	CHECK(m.Acquire().SampleContribution(Contribution(m.Acquire())).status == Status::Corrupt);
 	backend = std::make_shared<PreparedValues>(); backend->support = Status::Ok;
 	a.contributions[0].quantity = ContributionQuantity::AttributionFraction;
 	a.contributions[0].unit = PhotometricUnit::Relative; a.contributions[0].calibration = 0;

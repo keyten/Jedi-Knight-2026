@@ -1,0 +1,10 @@
+{
+  "artifacts": {
+    "protocol.json": "834f7aef206f50ea2808815e6b9fcd02c303f23b4fc55827e23cce8cfc7dc25b",
+    "queries.json": "d2010915272e889506f3e82277bf0ef9a26da9dd17cc381573f6c3d4daa7ee6a",
+    "results.json": "a3661128517ba6d74d52a3181148dba13c2e020d8f16596fde08ba4396470f66",
+    "runtime-mp.json": "8ddb54e7c256109de3c78681a71b084b6b2ca044b37e2e87b64825a773f1936e",
+    "tables.md": "da4f00f78a519f50a856f1d5eba9047ff8ff321fb3fee478c89c675503b83eeb"
+  },
+  "original_stock_geometry_committed": false
+}

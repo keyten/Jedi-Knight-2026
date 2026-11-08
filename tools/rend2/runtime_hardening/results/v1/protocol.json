@@ -1,0 +1,34 @@
+{
+  "schema": "org.openjk.runtime-hardening-protocol/1",
+  "revision": "07241cc39284a5f86b044b061aafabbaeb035425",
+  "before_revision": "07241cc39 (frozen pre-X19 native executable)",
+  "executables": {
+    "before": "9261870bb5bf18d6420d2b8f011827b568d1bd0d55462f985b71e49152422325",
+    "after": "bdcf7600efa8764bcb89c4665f6143fb5ee42ee3963172686a97298a18a34ffa"
+  },
+  "sources": {
+    "shared/rd-rend2/tr_lightrecon_api.h": "fd0532d09655c7c8eac4b131f77b67868452d74d55561f6b85b5ee1d9fb4e958",
+    "shared/rd-rend2/tr_lightrecon_api.cpp": "22bf0a00c1b122dad1f2efdcc9a3189d311deab9812a4ca25931ff041a0274e6",
+    "shared/rd-rend2/lightrecon/contributions.cpp": "624ce3ab834ad4ba19af8e034373a6767f652b565e7e79f3891997569c78e5b6",
+    "tools/lightrecon_test/lightrecon_validation_tool.cpp": "2866a7ece1def6886c948d6f7e5a7bf31222a3e83a2ef37f7a002548c9424c12",
+    "tools/lightrecon_test/lightrecon_api_test.cpp": "6325c1c9d7043152f35a0a66cb30e8494e015dee61b4c94d86a6fe9da2e7eb8c",
+    "tools/lightrecon_test/lightrecon_contributions_test.cpp": "013482e12e525e36678b955350cdaab368a8084acd4cb91d29df689334febc3a",
+    "tools/rend2/validation/runtime_mp.py": "dc0a281119d4f77df0e8f8bddce1ecf480330b9f0d08eaa46f2d1cb2e8821c10",
+    "tools/rend2/validation/mp_control.py": "73fa72dc934e3c2a3daf1a70be8a69831dd43596c235ac99c8992607fa14681a"
+  },
+  "samples": 4096,
+  "batch": 8,
+  "warmup": 128,
+  "repetitions": 3,
+  "contribution_calls": 32768,
+  "max_success_allocations": 0,
+  "p95_soft_budget_ns": 250000,
+  "known_source_inputs": true,
+  "mp_launch_authorized": false,
+  "mp_processes": 0,
+  "environment": {
+    "os": "Windows-10-10.0.19045-SP0",
+    "cpu": "Intel64 Family 6 Model 165 Stepping 2, GenuineIntel",
+    "compiler": "GCC 16.2 C++11 Release -O3 -DNDEBUG"
+  }
+}

@@ -1,0 +1,432 @@
+{
+  "schema": "org.openjk.runtime-hardening-results/1",
+  "status": "Partial",
+  "query_heap_allocations": "Passed",
+  "source_metadata_lifetime": "Passed",
+  "actual_mp_frozen_world_AA": "Unperformed",
+  "pending": "Explicit user permission required for any MP process; synthetic control tests are not actual runtime validation",
+  "query_comparison": [
+    {
+      "repetition": 1,
+      "before": {
+        "samples": 4096,
+        "calls": 32768,
+        "ok": 32768,
+        "unavailable": 0,
+        "allocations": 65536,
+        "p50_ns": 375,
+        "p95_ns": 625,
+        "p99_ns": 625,
+        "max_ns": 3125
+      },
+      "after": {
+        "samples": 4096,
+        "calls": 32768,
+        "ok": 32768,
+        "unavailable": 0,
+        "allocations": 0,
+        "p50_ns": 125,
+        "p95_ns": 125,
+        "p99_ns": 250,
+        "max_ns": 3500
+      }
+    },
+    {
+      "repetition": 2,
+      "before": {
+        "samples": 4096,
+        "calls": 32768,
+        "ok": 32768,
+        "unavailable": 0,
+        "allocations": 65536,
+        "p50_ns": 375,
+        "p95_ns": 625,
+        "p99_ns": 625,
+        "max_ns": 875
+      },
+      "after": {
+        "samples": 4096,
+        "calls": 32768,
+        "ok": 32768,
+        "unavailable": 0,
+        "allocations": 0,
+        "p50_ns": 125,
+        "p95_ns": 125,
+        "p99_ns": 250,
+        "max_ns": 375
+      }
+    },
+    {
+      "repetition": 3,
+      "before": {
+        "samples": 4096,
+        "calls": 32768,
+        "ok": 32768,
+        "unavailable": 0,
+        "allocations": 65536,
+        "p50_ns": 375,
+        "p95_ns": 625,
+        "p99_ns": 625,
+        "max_ns": 2250
+      },
+      "after": {
+        "samples": 4096,
+        "calls": 32768,
+        "ok": 32768,
+        "unavailable": 0,
+        "allocations": 0,
+        "p50_ns": 125,
+        "p95_ns": 250,
+        "p99_ns": 250,
+        "max_ns": 2500
+      }
+    }
+  ],
+  "source_controls": {
+    "schema": "org.openjk.contribution-benchmark.v1",
+    "protocol": "Owned fixed-source attribution receipts + actual native S13 production fitting",
+    "historical_stock_profile": "UnknownProfile",
+    "stock_exact_replacement": false,
+    "report": {
+      "schema": "org.openjk.contribution-tests.v1",
+      "checks": 504,
+      "failures": 0,
+      "cases": [
+        {
+          "name": "point_plane_query_roundtrip",
+          "value_lux": 6.25,
+          "safe_authored_receiver": true
+        },
+        {
+          "name": "sparse_zero_unknown_corruption",
+          "missing_is_zero": false
+        },
+        {
+          "name": "grid_total_without_source_reduction",
+          "total_available": true,
+          "source_attribution": "Unavailable"
+        },
+        {
+          "name": "root_order_alternative_composition",
+          "double_count_rejected": true
+        },
+        {
+          "name": "field_direct_bounce_total_unknown",
+          "unknown_roots_additive": false
+        },
+        {
+          "name": "unsafe_replacement_adversaries",
+          "negative_cases": 14,
+          "signed_discrepancy_becomes_GI": false
+        },
+        {
+          "name": "shared_peak_encoded_censoring",
+          "preencoding_r": 510,
+          "encoded_r": 255,
+          "encoded_g": 127.5,
+          "sum_encoded_sources_g": 255,
+          "replacement": false
+        },
+        {
+          "name": "point_opaque_wall",
+          "positive": false,
+          "predicted_r": 0,
+          "rays": 2
+        },
+        {
+          "name": "spot_opaque_wall",
+          "positive": false,
+          "predicted_r": 0,
+          "rays": 2
+        },
+        {
+          "name": "point_opening",
+          "positive": true,
+          "predicted_r": 9.24146,
+          "rays": 2
+        },
+        {
+          "name": "spot_opening",
+          "positive": true,
+          "predicted_r": 9.24146,
+          "rays": 2
+        },
+        {
+          "name": "spot_partial_aperture_footprint",
+          "partial_r": 3.94129,
+          "unoccluded_r": 8.12987,
+          "compiler_boundary_claim": false
+        },
+        {
+          "name": "unknown_alpha_path",
+          "known_zero_claimed": false
+        },
+        {
+          "name": "sun_sky_coloured_bounce_receipt",
+          "components_separate": true
+        },
+        {
+          "name": "same_colour_allocation_ambiguity",
+          "unique_allocation_claimed": false
+        },
+        {
+          "name": "production_two_colour_observation_attribution",
+          "observation_root_datasets": 2,
+          "exact_replacement": false,
+          "maximum_root_reference_error": 0,
+          "prepared_samples": 60,
+          "prepared_records": 120,
+          "prepared_accounted_bytes": 20584,
+          "decomposition_rays": 336,
+          "decomposition_forward_calls": 4
+        }
+      ]
+    },
+    "semantic_repeat": true,
+    "resources": [
+      {
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 0.875,
+        "peak_process_rss_bytes": 6725632
+      },
+      {
+        "state": "Completed",
+        "exit_code": 0,
+        "wall_seconds": 0.2039999999999509,
+        "peak_process_rss_bytes": 6725632
+      }
+    ],
+    "native_sha256": "ff3fd5aa7557bb5476322e8c8954e7fc000e93da6e9c4b81029515da7beba105",
+    "base_commit": "07241cc39284a5f86b044b061aafabbaeb035425"
+  },
+  "cpu": {
+    "passed": 46,
+    "seconds": 2142.81
+  },
+  "point_refine_repeat": {
+    "command": [
+      "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_point_refine_test.exe",
+      "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x19-point-timing\\cases.csv"
+    ],
+    "state": "Completed",
+    "exit_code": 0,
+    "wall_seconds": 263.922,
+    "peak_process_rss_bytes": 14028800
+  },
+  "point_refine_case_work": {
+    "seconds": 263.848,
+    "cases": [
+      {
+        "name": "open_multinormal",
+        "seconds": 2.20347
+      },
+      {
+        "name": "wall_adjacent",
+        "seconds": 11.6105
+      },
+      {
+        "name": "recessed_fixture",
+        "seconds": 2.20659
+      },
+      {
+        "name": "partial_occlusion",
+        "seconds": 3.58138
+      },
+      {
+        "name": "wrong_start_bounded_expansion",
+        "seconds": 15.3291
+      },
+      {
+        "name": "single_broad_plane_multiple_starts",
+        "seconds": 3.85396
+      },
+      {
+        "name": "symmetric_two_receivers",
+        "seconds": 0.100518
+      },
+      {
+        "name": "parallel_direction_depth_ambiguity",
+        "seconds": 0.083424
+      },
+      {
+        "name": "two_nearby_coloured_sources",
+        "seconds": 117.309
+      },
+      {
+        "name": "sparse_grid_plus_surface",
+        "seconds": 105.071
+      },
+      {
+        "name": "prior_driven_ambiguity",
+        "seconds": 0.157424
+      }
+    ]
+  },
+  "python_tests": 29,
+  "renderer_dlls": {
+    "rdsp-rend2_x86_64.dll": "c035b4c5300fee6e55736fe50d6b7143f1338c902042d10f15fb6aa2000d0793",
+    "rd-rend2_x86_64.dll": "835889de1f52ee97b041e425254eff33c3deed8be8b03ae243b639a380386a07"
+  },
+  "disabled_path": {
+    "schema": "org.openjk.producer-disabled-path.v1",
+    "revision": "07241cc39",
+    "source_differences": 0,
+    "programs": 27,
+    "gpu_compiled": true,
+    "driver": [
+      "Intel",
+      "Intel(R) UHD Graphics",
+      "3.2.0 - Build 27.20.100.8280"
+    ],
+    "historical_baseline_passed": false,
+    "historical_baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a",
+    "note": "Historical frozen baseline drift is reported separately; source revision comparison never rewrites it"
+  },
+  "historical_shader_baseline": {
+    "passed": false,
+    "programs": 27,
+    "stages": 51,
+    "gpu_compiled": true,
+    "driver": [
+      "Intel",
+      "Intel(R) UHD Graphics",
+      "3.2.0 - Build 27.20.100.8280"
+    ],
+    "gpu_interface_comparison": "matching-driver baseline compared",
+    "production_dependency_audit": "passed",
+    "differences": 7278,
+    "baseline_revision": "380ee0f7e352300ce329aabfdc477512d532a77a"
+  },
+  "runtime_mp": [
+    {
+      "status": "Unperformed",
+      "map": "mp/duel4",
+      "profile": "legacy",
+      "reason": "MP launch requires explicit permission; no process or network configuration attempted"
+    },
+    {
+      "status": "Unperformed",
+      "map": "mp/duel4",
+      "profile": "modern",
+      "reason": "MP launch requires explicit permission; no process or network configuration attempted"
+    },
+    {
+      "status": "Unperformed",
+      "map": "mp/ffa3",
+      "profile": "legacy",
+      "reason": "MP launch requires explicit permission; no process or network configuration attempted"
+    },
+    {
+      "status": "Unperformed",
+      "map": "mp/ffa3",
+      "profile": "modern",
+      "reason": "MP launch requires explicit permission; no process or network configuration attempted"
+    }
+  ],
+  "network_or_firewall_changes": false,
+  "logs": {
+    "x19-ctest.log": "101b217b54ed57aefe1e5d71755e5daddbdaf319cf843ccfbba56f450a04b618",
+    "x19-python-final.log": "b65cdd7427f5a31ed191ee9f4d6528d416ed572def51376e1e65f87e83498549",
+    "x19-renderers.log": "31a79ba3666498d10fc5a006ae23201a0983046c689854d8961edba8b92f6b73"
+  },
+  "development_fixture_assertion": {
+    "failed_checks": 1,
+    "reason": "New lifetime check initially expected calibration 1; the owned input fixture declares 2. Corrected to compare the immutable input record.",
+    "receipt": {
+      "schema": "org.openjk.contribution-tests.v1",
+      "checks": 504,
+      "failures": 1,
+      "cases": [
+        {
+          "name": "point_plane_query_roundtrip",
+          "value_lux": 6.25,
+          "safe_authored_receiver": true
+        },
+        {
+          "name": "sparse_zero_unknown_corruption",
+          "missing_is_zero": false
+        },
+        {
+          "name": "grid_total_without_source_reduction",
+          "total_available": true,
+          "source_attribution": "Unavailable"
+        },
+        {
+          "name": "root_order_alternative_composition",
+          "double_count_rejected": true
+        },
+        {
+          "name": "field_direct_bounce_total_unknown",
+          "unknown_roots_additive": false
+        },
+        {
+          "name": "unsafe_replacement_adversaries",
+          "negative_cases": 14,
+          "signed_discrepancy_becomes_GI": false
+        },
+        {
+          "name": "shared_peak_encoded_censoring",
+          "preencoding_r": 510,
+          "encoded_r": 255,
+          "encoded_g": 127.5,
+          "sum_encoded_sources_g": 255,
+          "replacement": false
+        },
+        {
+          "name": "point_opaque_wall",
+          "positive": false,
+          "predicted_r": 0,
+          "rays": 2
+        },
+        {
+          "name": "spot_opaque_wall",
+          "positive": false,
+          "predicted_r": 0,
+          "rays": 2
+        },
+        {
+          "name": "point_opening",
+          "positive": true,
+          "predicted_r": 9.24146,
+          "rays": 2
+        },
+        {
+          "name": "spot_opening",
+          "positive": true,
+          "predicted_r": 9.24146,
+          "rays": 2
+        },
+        {
+          "name": "spot_partial_aperture_footprint",
+          "partial_r": 3.94129,
+          "unoccluded_r": 8.12987,
+          "compiler_boundary_claim": false
+        },
+        {
+          "name": "unknown_alpha_path",
+          "known_zero_claimed": false
+        },
+        {
+          "name": "sun_sky_coloured_bounce_receipt",
+          "components_separate": true
+        },
+        {
+          "name": "same_colour_allocation_ambiguity",
+          "unique_allocation_claimed": false
+        },
+        {
+          "name": "production_two_colour_observation_attribution",
+          "observation_root_datasets": 2,
+          "exact_replacement": false,
+          "maximum_root_reference_error": 0,
+          "prepared_samples": 60,
+          "prepared_records": 120,
+          "prepared_accounted_bytes": 20584,
+          "decomposition_rays": 336,
+          "decomposition_forward_calls": 4
+        }
+      ]
+    }
+  }
+}

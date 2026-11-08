@@ -39,7 +39,7 @@ void operator delete[](void *p) noexcept
 }
 volatile double sink = 0;
 template <class Operation>
-void Measure(std::ostream &o, const char *name, Operation op, bool comma = true)
+uint64_t Measure(std::ostream &o, const char *name, Operation op, bool comma = true)
 {
 	const unsigned samples = 4096, batch = 8;
 	std::vector<double> times(samples);
@@ -72,6 +72,7 @@ void Measure(std::ostream &o, const char *name, Operation op, bool comma = true)
 	  << ",\"ok\":" << good << ",\"unavailable\":" << bad << ",\"allocations\":" << count
 	  << ",\"p50_ns\":" << times[samples / 2] << ",\"p95_ns\":" << times[size_t(samples * .95)]
 	  << ",\"p99_ns\":" << times[size_t(samples * .99)] << ",\"max_ns\":" << times.back() << '}';
+	return count;
 }
 ReconstructedLightingAsset Asset()
 {
@@ -289,7 +290,7 @@ int main(int argc, char **argv)
 				sink += x.value.staticGeometry.value;
 			return bool(x);
 		});
-		Measure(out, "contribution", [&] {
+		auto contributionAllocations = Measure(out, "contribution", [&] {
 			auto x = as.SampleContribution(aq);
 			if (x)
 				sink += x.value.value.x;
@@ -307,6 +308,8 @@ int main(int argc, char **argv)
 			   "queries\":false}\n";
 		if (!out)
 			throw std::runtime_error("Output write");
+		if (contributionAllocations)
+			throw std::runtime_error("SampleContribution allocated on the V02 successful query workload");
 		return 0;
 	}
 	catch (const std::exception &e)
