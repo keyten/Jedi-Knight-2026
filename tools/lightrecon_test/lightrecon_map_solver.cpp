@@ -3,6 +3,7 @@
 #include "lightrecon/geometry_key.h"
 #include "lightrecon/offline.h"
 #include "lightrecon/producer.h"
+#include "lightrecon/shape_selection.h"
 #include "lightrecon/shadow_evidence.h"
 #include "lightrecon/transport_mesh.h"
 #include "lightrecon/sampling.h"
@@ -1334,11 +1335,12 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 }
 #include "mount_diagnosis.h"
 #include "mount_audit.h"
+#include "shape_selection_audit.h"
 int main(int argc, char **argv)
 {
 	try
 	{
-		Need(argc == 4 || (argc == 5 && (std::string(argv[4]) == "mounting-diagnosis" || std::string(argv[4]) == "receiver-support-only" || std::string(argv[4]) == "scene-receiver-preflight" || std::string(argv[4]) == "mounting-only" || std::string(argv[4]) == "local-density" ||
+		Need(argc == 4 || (argc == 5 && (std::string(argv[4]) == "shape-selection-only" || std::string(argv[4]) == "mounting-diagnosis" || std::string(argv[4]) == "receiver-support-only" || std::string(argv[4]) == "scene-receiver-preflight" || std::string(argv[4]) == "mounting-only" || std::string(argv[4]) == "local-density" ||
 									   std::string(argv[4]) == "transport-only" ||
 									   std::string(argv[4]) == "sampling-only" ||
 									   std::string(argv[4]) == "hierarchical" || std::string(argv[4]) == "scene" || std::string(argv[4]) == "scene-bake-conditional")),
@@ -1373,10 +1375,12 @@ int main(int argc, char **argv)
 		Need(bool(opened), "Dataset hash read");
 		Disk::Digest archiveHash;
 		Need(bool(Disk::HashContent(*reader, archiveHash, 1024ull << 20)), "Dataset hash budget");
-		if(argc==5 && (std::string(argv[4])=="mounting-only" || std::string(argv[4])=="mounting-diagnosis")){
+		if(argc==5 && (std::string(argv[4])=="shape-selection-only" || std::string(argv[4])=="mounting-only" || std::string(argv[4])=="mounting-diagnosis")){
 			auto geometry=Sanitized(source);VisibilityBuildOptions b;b.maxBytes=256ull<<20;
 			b.patchToleranceWorld=data->Info().visibilityPatchToleranceWorld;std::shared_ptr<const StaticVisibility> rays;
-			Check(StaticVisibility::Build(geometry,b,read,rays,source.domain));MountAudit(source,geometry,rays,read,argv[2],std::string(argv[4])=="mounting-diagnosis");return 0;
+			Check(StaticVisibility::Build(geometry,b,read,rays,source.domain));
+			if(std::string(argv[4])=="shape-selection-only")ShapeSelectionAudit(source,geometry,rays,read,argv[2]);
+			else MountAudit(source,geometry,rays,read,argv[2],std::string(argv[4])=="mounting-diagnosis");return 0;
 		}
 		Census census;
 		std::cerr << "scan all original pages\n";

@@ -1,0 +1,10 @@
+{
+  "command": [
+    "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v2\\controlled.exe",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\shape_selection\\results\\asr19-v2\\controlled-first.json"
+  ],
+  "state": "Completed",
+  "exit_code": 0,
+  "wall_seconds": 0.6720000000059372,
+  "peak_process_rss_bytes": 5206016
+}

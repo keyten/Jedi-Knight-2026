@@ -20,6 +20,7 @@ add_library(rend2_lightrecon_core STATIC
 	amplitude_fit.cpp amplitude_fit.h
 	point_refine.cpp point_refine.h
 	emitter_shape.cpp emitter_shape.h
+	shape_selection.cpp shape_selection.h
 	receiver_support.cpp receiver_support.h
 	fit_evidence.h shadow_evidence.cpp shadow_evidence.h
 	indirect.cpp indirect.h

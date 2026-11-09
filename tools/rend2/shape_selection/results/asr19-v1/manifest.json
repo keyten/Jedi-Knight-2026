@@ -1,0 +1,19 @@
+{
+  "sources_unchanged_during_audit": true,
+  "stock_repeat_identical": true,
+  "controlled_repeat_identical": true,
+  "unchanged_solver_and_admission": true,
+  "canonical_storage_changed": false,
+  "runtime_changed": false,
+  "licensed_geometry_committed": false,
+  "artifacts": {
+    "controlled-first-resources.json": "0eb87189efb0204f06529446f63be1f87aa9779b0530f633b8dba79ff809bfa3",
+    "controlled-first.json": "37d60b5dec498b39338c35b2460837f95571e8bb89e817aa63bf1ca68ce360ec",
+    "controlled-first.log": "ac2c3574f037bbed94fae9e081489f7b4e0c6dbe8d5fca0263c989b9c1720a1c",
+    "controlled-repeat-resources.json": "9888fdd7c31d3aa39035bc54f2c15ded6224030eab8af486b3d16a00be4cf7ab",
+    "controlled-repeat.json": "37d60b5dec498b39338c35b2460837f95571e8bb89e817aa63bf1ca68ce360ec",
+    "controlled-repeat.log": "ac2c3574f037bbed94fae9e081489f7b4e0c6dbe8d5fca0263c989b9c1720a1c",
+    "protocol.json": "30abfd3c0a820784fbab3bb360c367f8a3fd087ab0fd7ba6a1350faf72719c50",
+    "stock.json": "96d39c7c3549a58adf2e0ddf2b1ac9444bb7bab71c41c1e1295685ebe06c16a4"
+  }
+}

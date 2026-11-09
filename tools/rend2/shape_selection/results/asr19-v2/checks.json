@@ -1,0 +1,55 @@
+{
+  "schema": "org.openjk.modern-shape-selection-checks.v1",
+  "build": {
+    "command": "cmake --build build/s06-gcc -j 2",
+    "passed": true
+  },
+  "native": {
+    "fixtures": 14,
+    "assertions": 352,
+    "failures": 0,
+    "repeat_identical": true
+  },
+  "compiler": {
+    "command": "c++ -std=c++11 -Wall -Wextra -pedantic -fsyntax-only -I shared/rd-rend2 shared/rd-rend2/lightrecon/shape_selection.cpp",
+    "warnings": 0
+  },
+  "ctest": {
+    "command": "ctest --test-dir build/s06-gcc --output-on-failure -j 2 -E '^lightrecon_point_refine$'",
+    "tests": 54,
+    "passed": 54,
+    "failed": 0,
+    "wall_seconds": 102.78,
+    "excluded": [
+      "lightrecon_point_refine"
+    ],
+    "exclusion_reason": "Unchanged long-running coordinate solver; full ASR18 test passed; existing Shape and new selector regressions included"
+  },
+  "final_targeted": {
+    "tests": 3,
+    "passed": 3,
+    "failed": 0
+  },
+  "python": {
+    "tests": 5,
+    "passed": 5,
+    "command": "python -X utf8 -m unittest tools.rend2.emitter_support.test_diagnosis -v"
+  },
+  "stock": {
+    "fixtures": 136,
+    "exact_mask_unknown": 136,
+    "reads_target_rgb": false,
+    "fits_attempted": false,
+    "all_three_asr18_admission_reports_and_ordered_reason_tsvs_unchanged": true,
+    "small_map_repeat_identical": true,
+    "known_fixture_truth": "Unavailable"
+  },
+  "canonical_storage_changed": false,
+  "historical_solver_changed": false,
+  "runtime_changed": false,
+  "limitations": [
+    "Stock archives lack exact clipped luminous-mask triangle leases; whole-face shape proxies stay bounded approximations",
+    "Spot smooth cones and Lambertian emission remain conditional modern hypotheses",
+    "No SI irradiance or historical source existence is inferred from RGB8"
+  ]
+}

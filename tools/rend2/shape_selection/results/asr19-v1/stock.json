@@ -1,0 +1,956 @@
+{
+  "mp/duel4": {
+    "summary": {
+      "schema": "org.openjk.stock-shape-priors.v1",
+      "map": "maps/mp/duel4.bsp",
+      "attempts": 8,
+      "primitive_unknown": 8,
+      "work": 4186,
+      "reads_observed_rgb": false,
+      "stock_fits_attempted": false,
+      "profile": "UnknownProfile",
+      "historical_source_truth": "Unavailable",
+      "bound_only_top_preferences": {
+        "1": 4,
+        "3": 2
+      },
+      "reason_counts": {
+        "BodyUnavailable": 8,
+        "ExtendedArea": 5,
+        "FlatStrip": 2,
+        "MaskUnknown": 15,
+        "NoDirectionalEvidence": 8,
+        "NonRectangular": 5,
+        "NotHistoricalTruth": 32,
+        "PlacementRejected": 6,
+        "PointCollapsesExtent": 16
+      },
+      "selection": "First 64 stable named-surface candidate IDs; identical surface aliases collapsed for audit only; 16M work cap"
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\mp_duel4",
+        "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+        "shape-selection-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 1.110000000000582,
+      "peak_process_rss_bytes": 21536768
+    },
+    "input": {
+      "map": "mp/duel4",
+      "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+      "dataset_sha256": "8173ddaa017c87dd4b341d240f95f6a99599f894d4164d0ab7902bc70b2ac3c5",
+      "dataset_bytes": 25475232
+    },
+    "samples": [
+      {
+        "fixture": "57292475056481383",
+        "key": "f3993eebfde8990bbd602203db1271b0ee8ecdddd2a35a1e58e0132bd211f6a3",
+        "material": "textures/mp/s_flatwhite",
+        "primitive_known": 0,
+        "limitation": "Exact original union retained; a supported primitive decomposition is unavailable",
+        "ranked": [
+          {
+            "type": "Point",
+            "status": "Unknown",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown",
+              "NonRectangular"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence",
+              "NonRectangular"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Rectangle",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "NonRectangular",
+              "NonRectangular"
+            ],
+            "uncertainties": []
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable",
+              "NonRectangular"
+            ],
+            "uncertainties": []
+          }
+        ]
+      },
+      {
+        "fixture": "92351316824979625",
+        "key": "ee378d0303c02044de49cfc44e9cbf2ad7908e237bc4b81bd3cf98e487fdc399",
+        "material": "textures/mp/s_tracklight2",
+        "primitive_known": 0,
+        "limitation": "",
+        "ranked": [
+          {
+            "type": "Point",
+            "status": "Approximation",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution"
+            ]
+          },
+          {
+            "type": "Rectangle",
+            "status": "Rejected",
+            "preference": 0,
+            "reasons": [
+              "NotHistoricalTruth",
+              "ExtendedArea",
+              "MaskUnknown",
+              "PlacementRejected"
+            ],
+            "uncertainties": [
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Lambertian surface hypothesis; radiance and texture modulation remain unknown",
+              "Incomplete local visual support"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable"
+            ],
+            "uncertainties": []
+          }
+        ]
+      },
+      {
+        "fixture": "341810589353832308",
+        "key": "474cd703ca136c14c72206ecbfc0c88c514d2684c7742f6f8f737146d1278017",
+        "material": "textures/mp/s_tracklight2",
+        "primitive_known": 0,
+        "limitation": "",
+        "ranked": [
+          {
+            "type": "Rectangle",
+            "status": "Approximation",
+            "preference": 0,
+            "reasons": [
+              "NotHistoricalTruth",
+              "ExtendedArea",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Lambertian surface hypothesis; radiance and texture modulation remain unknown"
+            ]
+          },
+          {
+            "type": "Point",
+            "status": "Approximation",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable"
+            ],
+            "uncertainties": []
+          }
+        ]
+      },
+      {
+        "fixture": "592340638552986249",
+        "key": "7ee7b81246cc7c1dbdfbeb2269e192e3123f05aae46500477c89700e413134b9",
+        "material": "textures/mp/s_tracklight2",
+        "primitive_known": 0,
+        "limitation": "",
+        "ranked": [
+          {
+            "type": "Rectangle",
+            "status": "Approximation",
+            "preference": 0,
+            "reasons": [
+              "NotHistoricalTruth",
+              "ExtendedArea",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Lambertian surface hypothesis; radiance and texture modulation remain unknown"
+            ]
+          },
+          {
+            "type": "Point",
+            "status": "Approximation",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable"
+            ],
+            "uncertainties": []
+          }
+        ]
+      }
+    ],
+    "admission_resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\mp_duel4-admission",
+        "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 1.0,
+      "peak_process_rss_bytes": 27574272
+    },
+    "admission_semantic_and_witness_match": true,
+    "private_artifacts": {
+      "native-resources.json": "885e1043366a1fb46b80cb8749576e58edb708139352b2e49a5a0eb0170104d1",
+      "native.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "shape-selection-summary.json": "3362346e9f301de8c25382d9efedcadc9d476ce7598da2f744cc91950f7cf717",
+      "shape-selection.jsonl": "15f64aa5da6484cafd1f0bf868ba647d43c56cd0100f52afb01ff08b26dea22a"
+    }
+  },
+  "mp/siege_desert": {
+    "summary": {
+      "schema": "org.openjk.stock-shape-priors.v1",
+      "map": "maps/mp/siege_desert.bsp",
+      "attempts": 64,
+      "primitive_unknown": 64,
+      "work": 54146,
+      "reads_observed_rgb": false,
+      "stock_fits_attempted": false,
+      "profile": "UnknownProfile",
+      "historical_source_truth": "Unavailable",
+      "bound_only_top_preferences": {
+        "1": 9,
+        "3": 54
+      },
+      "reason_counts": {
+        "BodyUnavailable": 64,
+        "ExtendedArea": 64,
+        "MaskUnknown": 128,
+        "NoDirectionalEvidence": 64,
+        "NotHistoricalTruth": 256,
+        "PlacementRejected": 11,
+        "PointCollapsesExtent": 128
+      },
+      "selection": "First 64 stable named-surface candidate IDs; identical surface aliases collapsed for audit only; 16M work cap"
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_siege_desert\\home\\rend2\\lightrecon\\v1\\observations\\mp_siege_desert_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\mp_siege_desert",
+        "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+        "shape-selection-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 5.202999999994063,
+      "peak_process_rss_bytes": 50638848
+    },
+    "input": {
+      "map": "mp/siege_desert",
+      "bsp_sha256": "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+      "dataset_sha256": "868eb79f14c7bcfda2b973d42871e9f0e32c458acb39cc2e7ffbda2075fe3881",
+      "dataset_bytes": 263183008
+    },
+    "samples": [
+      {
+        "fixture": "1327354449872395",
+        "key": "a804acf80436fcdd08e50d85de1e2764a7879a20b8b006264e99c2efc2e18e08",
+        "material": "textures/desert/light_yellow",
+        "primitive_known": 0,
+        "limitation": "",
+        "ranked": [
+          {
+            "type": "Rectangle",
+            "status": "Approximation",
+            "preference": 0,
+            "reasons": [
+              "NotHistoricalTruth",
+              "ExtendedArea",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Lambertian surface hypothesis; radiance and texture modulation remain unknown"
+            ]
+          },
+          {
+            "type": "Point",
+            "status": "Approximation",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable"
+            ],
+            "uncertainties": []
+          }
+        ]
+      },
+      {
+        "fixture": "5194657029733799",
+        "key": "d54d2e10a9961cb479223b1458a48f4a482d58790059329595e2748bd6294e2a",
+        "material": "textures/desert/light_yellow",
+        "primitive_known": 0,
+        "limitation": "",
+        "ranked": [
+          {
+            "type": "Rectangle",
+            "status": "Rejected",
+            "preference": 0,
+            "reasons": [
+              "NotHistoricalTruth",
+              "ExtendedArea",
+              "MaskUnknown",
+              "PlacementRejected"
+            ],
+            "uncertainties": [
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Lambertian surface hypothesis; radiance and texture modulation remain unknown",
+              "Occupied source support is not certified outside world solids"
+            ]
+          },
+          {
+            "type": "Point",
+            "status": "Rejected",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown",
+              "PlacementRejected"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution",
+              "Occupied source support is not certified outside world solids"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable"
+            ],
+            "uncertainties": []
+          }
+        ]
+      },
+      {
+        "fixture": "23326209768757381",
+        "key": "df58ef57ffd16fca33daf82daeef85ed7d27069e72b0208b012aa277ee6da474",
+        "material": "textures/desert/light_yellow",
+        "primitive_known": 0,
+        "limitation": "",
+        "ranked": [
+          {
+            "type": "Rectangle",
+            "status": "Approximation",
+            "preference": 0,
+            "reasons": [
+              "NotHistoricalTruth",
+              "ExtendedArea",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Lambertian surface hypothesis; radiance and texture modulation remain unknown"
+            ]
+          },
+          {
+            "type": "Point",
+            "status": "Approximation",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable"
+            ],
+            "uncertainties": []
+          }
+        ]
+      },
+      {
+        "fixture": "43843966034433325",
+        "key": "7576aa8597a30ddc664d6f30cf5dc00ca6bb07ca69cdb65cc75f694b905c7b2d",
+        "material": "textures/desert/panel_monitor_on",
+        "primitive_known": 0,
+        "limitation": "",
+        "ranked": [
+          {
+            "type": "Point",
+            "status": "Approximation",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution"
+            ]
+          },
+          {
+            "type": "Rectangle",
+            "status": "Rejected",
+            "preference": 0,
+            "reasons": [
+              "NotHistoricalTruth",
+              "ExtendedArea",
+              "MaskUnknown",
+              "PlacementRejected"
+            ],
+            "uncertainties": [
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Lambertian surface hypothesis; radiance and texture modulation remain unknown",
+              "Occupied source support is not certified outside world solids"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable"
+            ],
+            "uncertainties": []
+          }
+        ]
+      }
+    ],
+    "admission_resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_siege_desert\\home\\rend2\\lightrecon\\v1\\observations\\mp_siege_desert_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\mp_siege_desert-admission",
+        "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 6.0310000000026776,
+      "peak_process_rss_bytes": 54345728
+    },
+    "admission_semantic_and_witness_match": true,
+    "private_artifacts": {
+      "native-resources.json": "63f4fcfec7ac2ccb0d1900fdc9bff4d59afb8fd737737524911936acdf6db7e8",
+      "native.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "shape-selection-summary.json": "e70b90c2eb9c7642e668805b777efc12b26905abefd0185d53d8ecce8128bf38",
+      "shape-selection.jsonl": "7c684f6552fb6dde35a2d7f6379dd0ecb0873ab3809cfff30f31fb896dace031"
+    }
+  },
+  "hoth3": {
+    "summary": {
+      "schema": "org.openjk.stock-shape-priors.v1",
+      "map": "maps/hoth3.bsp",
+      "attempts": 64,
+      "primitive_unknown": 64,
+      "work": 40323,
+      "reads_observed_rgb": false,
+      "stock_fits_attempted": false,
+      "profile": "UnknownProfile",
+      "historical_source_truth": "Unavailable",
+      "bound_only_top_preferences": {
+        "1": 21,
+        "3": 14
+      },
+      "reason_counts": {
+        "BodyUnavailable": 64,
+        "ExtendedArea": 49,
+        "FlatStrip": 3,
+        "MaskUnknown": 116,
+        "NoDirectionalEvidence": 64,
+        "NonRectangular": 60,
+        "NotHistoricalTruth": 256,
+        "PlacementRejected": 57,
+        "PointCollapsesExtent": 128
+      },
+      "selection": "First 64 stable named-surface candidate IDs; identical surface aliases collapsed for audit only; 16M work cap"
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\hoth3",
+        "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "shape-selection-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 8.21799999999348,
+      "peak_process_rss_bytes": 87838720
+    },
+    "input": {
+      "map": "hoth3",
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "dataset_sha256": "fdbf5351babdaf6a1b0e9d776a77d01f5396e82c5f3945ec46079e171385d613",
+      "dataset_bytes": 383228400
+    },
+    "samples": [
+      {
+        "fixture": "123658976617686847",
+        "key": "8b47565ae074538d8a93d288c7368bdb4eb904ddb6218eb4a305f4c0df2b28e5",
+        "material": "textures/hoth/light_01b",
+        "primitive_known": 0,
+        "limitation": "Exact original union retained; a supported primitive decomposition is unavailable",
+        "ranked": [
+          {
+            "type": "Point",
+            "status": "Unknown",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown",
+              "NonRectangular"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence",
+              "NonRectangular"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Rectangle",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "NonRectangular",
+              "NonRectangular"
+            ],
+            "uncertainties": []
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable",
+              "NonRectangular"
+            ],
+            "uncertainties": []
+          }
+        ]
+      },
+      {
+        "fixture": "146717076310966124",
+        "key": "fabce5924ed1abd1bbd4ef2777e0fd13af5e2847a4aa1a7b189ba46e26956114",
+        "material": "textures/hoth/light_01b",
+        "primitive_known": 0,
+        "limitation": "Exact original union retained; a supported primitive decomposition is unavailable",
+        "ranked": [
+          {
+            "type": "Point",
+            "status": "Unknown",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown",
+              "PlacementRejected",
+              "NonRectangular"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution",
+              "Emitting support is behind its mounting side or outside declared fixture stand-off"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence",
+              "NonRectangular"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Rectangle",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "NonRectangular",
+              "NonRectangular"
+            ],
+            "uncertainties": []
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable",
+              "NonRectangular"
+            ],
+            "uncertainties": []
+          }
+        ]
+      },
+      {
+        "fixture": "156001741674513563",
+        "key": "bb25059fbca4694bb005937c88a18ec9c1fc76a11c7b7e7c8c2f4c633eb6560f",
+        "material": "textures/hoth/light_ceiling",
+        "primitive_known": 0,
+        "limitation": "",
+        "ranked": [
+          {
+            "type": "Point",
+            "status": "Approximation",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution"
+            ]
+          },
+          {
+            "type": "Rectangle",
+            "status": "Rejected",
+            "preference": 0,
+            "reasons": [
+              "NotHistoricalTruth",
+              "ExtendedArea",
+              "MaskUnknown",
+              "PlacementRejected"
+            ],
+            "uncertainties": [
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Lambertian surface hypothesis; radiance and texture modulation remain unknown",
+              "Occupied source support is not certified outside world solids"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable"
+            ],
+            "uncertainties": []
+          }
+        ]
+      },
+      {
+        "fixture": "180059381321833880",
+        "key": "296c3d25f01f3c5dcf49e85e2581db5d0cdb591b76df8c2ca0f0a1a8f094fb66",
+        "material": "textures/hoth/light_ceiling",
+        "primitive_known": 0,
+        "limitation": "",
+        "ranked": [
+          {
+            "type": "Point",
+            "status": "Approximation",
+            "preference": 4,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "MaskUnknown"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent",
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Isotropic point proxy; no measured angular distribution"
+            ]
+          },
+          {
+            "type": "Rectangle",
+            "status": "Rejected",
+            "preference": 0,
+            "reasons": [
+              "NotHistoricalTruth",
+              "ExtendedArea",
+              "MaskUnknown",
+              "PlacementRejected"
+            ],
+            "uncertainties": [
+              "Emitting geometry bounds are known; luminous mask is not attested",
+              "Lambertian surface hypothesis; radiance and texture modulation remain unknown",
+              "Occupied source support is not certified outside world solids"
+            ]
+          },
+          {
+            "type": "Spot",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "PointCollapsesExtent",
+              "NoDirectionalEvidence"
+            ],
+            "uncertainties": [
+              "Ideal point collapses the measured visible emitting extent"
+            ]
+          },
+          {
+            "type": "Tube",
+            "status": "Unknown",
+            "preference": 100,
+            "reasons": [
+              "NotHistoricalTruth",
+              "BodyUnavailable"
+            ],
+            "uncertainties": []
+          }
+        ]
+      }
+    ],
+    "admission_resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr19-asr19-v1\\hoth3-admission",
+        "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 7.217999999993481,
+      "peak_process_rss_bytes": 89853952
+    },
+    "admission_semantic_and_witness_match": true,
+    "private_artifacts": {
+      "native-resources.json": "c2bab9fe25ff4e927ba6803138733c008c8e4bb207922c69fb666627c6bddab7",
+      "native.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "shape-selection-summary.json": "bc884ef7c6df5f44fd654cb4ada995d3461f0bbdaef1a5f376e578f0f8d7a22c",
+      "shape-selection.jsonl": "d7d2428e3f399e71314d84fb7ea5514ddcb0d70b2de19f47f7147a72293e5db8"
+    }
+  }
+}
