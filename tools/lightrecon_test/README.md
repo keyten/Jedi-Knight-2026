@@ -29,6 +29,9 @@ All executables link the one `rend2_lightrecon_core` static target:
   separate normals, coverage/area, seams/overlaps, analytic patches and lifetime.
 - `lightrecon_classification_test`: deluxe correspondence/direction quantization,
   distinct lightstyles/vertex RGBA/HDR, material categories and conservative eligibility.
+- `lightrecon_fixture_tool [report.tsv]`: ASR03 owned visible-luminaire demonstration;
+  tool-only fixture membership views of existing surface evidence, with uncertainty
+  and alias checks. See [methods, limits and reproduction](../../docs/rend2-visible-emitters-asr03.md).
 - `lightrecon_visibility_test`: immutable CPU BVH, static surface/patch rays,
   optics/sky/domain uncertainty, independent reference, batches and concurrent readers.
 - `lightrecon_regions_test`: adaptive free-space certificates, BSP domains,

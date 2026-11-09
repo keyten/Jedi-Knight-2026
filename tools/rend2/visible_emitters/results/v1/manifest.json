@@ -1,0 +1,40 @@
+{
+  "checks": {
+    "byte_identical_second_process": true,
+    "fixture_executable": "ASR03: 28 checks passed; 5 regions -> 3 fixture views.",
+    "targeted_ctest_failed": 0,
+    "targeted_ctest_passed": 3,
+    "targeted_ctest_regex": "^lightrecon_(fixture_discovery|evidence|emitter_support)$"
+  },
+  "date": "2026-11-09",
+  "experiment": "ASR03 visible-emitter fixture grouping",
+  "files_sha256": {
+    "docs/rend2-visible-emitters-asr03.md": "524d483e2d12a65391ad61f8d02dedf6426c7a21acbfeabd7d4b070129ebaf49",
+    "tools/lightrecon_test/CMakeLists.txt": "268236672e709bc903630976c97f98fb9f808c4e649ec22b0bde83ff25de5e95",
+    "tools/lightrecon_test/fixture_hypothesis.h": "8752d6650ae3c4d4d35f270f4531f73baeb8e54b189ea812d4ff0f7c1e1d2e0b",
+    "tools/lightrecon_test/lightrecon_fixture_tool.cpp": "a30c43400893a90ea5eb9b3d63f6b9272fc7f2eef6331ee00b68cc13c4fa085d",
+    "tools/rend2/visible_emitters/inventory.py": "39cd428add5f292e7b44e93afa5f69b8374776c283ecd3ddef638f7da6225ff9",
+    "tools/rend2/visible_emitters/results/v1/fixtures.tsv": "e187f4e83334fde4b4b9a0497d61789dfe925121ad43f58be971db7c90f10bd1",
+    "tools/rend2/visible_emitters/results/v1/stock-inventory.json": "a0a96681543c18e40cef43875f4b141f3a8909a593b6a3c5e1e35f693fddaf8f"
+  },
+  "local_only_artifacts": {
+    "compiler": {
+      "path": "C:/Users/Keyten/Desktop/projects/OpenJK/build/toolchain/w64devkit/bin/c++.exe",
+      "sha256": "2b04a44bac7caa35292dc3d08a00f1a6e90d5b38aa42164fdf26c026c8377a69"
+    },
+    "measured_executable": {
+      "path": "build/s06-gcc/lightrecon_fixture_tool.exe",
+      "sha256": "9351cb3d4bd630af6e0156ef05c717cb8b82f64923e3202c603b88996fabb842"
+    },
+    "primary_peng_pdf": {
+      "path": "build/asr03-research/peng2025.pdf",
+      "sha256": "d29f2dd38dbcb0b767d75b1010221efa52a25ba3b7c1792498dc2cdfaa0b64e3"
+    }
+  },
+  "parent_revision": "c3431f732fa5f753dc04b14df8560f0441290b96",
+  "primary_sources": {
+    "Li": "https://arxiv.org/html/2205.09343v2",
+    "Peng": "https://www.jcad.cn/cn/article/pdf/preview/10.3724/SP.J.1089.2024-00342.pdf"
+  },
+  "scope": "Owned geometric fixture views and installed stock metadata; no discovery precision or historical certification claim"
+}

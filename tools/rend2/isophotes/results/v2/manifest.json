@@ -1,0 +1,56 @@
+{
+  "checks": {
+    "cases": 20,
+    "measured_checks_passed": 126,
+    "physical_sources_certified": 0,
+    "second_process_byte_identical": true,
+    "unit_tests_passed": 7
+  },
+  "commands": [
+    "python -X utf8 -m unittest tools.rend2.isophotes.test_isophotes -v",
+    "python -X utf8 tools/rend2/isophotes/run.py --out build/asr04-pinned",
+    "python -X utf8 tools/rend2/isophotes/run.py --out build/asr04-pinned-repeat",
+    "python -X utf8 -m tools.rend2.isophotes.verify build/asr04-pinned --repeat build/asr04-pinned-repeat"
+  ],
+  "date": "2026-11-09",
+  "documents_sha256_utf8_lf": {
+    "docs/rend2-isophote-cues-asr04.md": "21323f30218289dbd6a03b8f466947dafa204bc354d51b1971187f7d3eaf77e6",
+    "docs/rend2-light-localization-research.md": "a690881658c6dcf80ba0f641756ec56e88e98365eb3b07157d5cdab8ba5b6452"
+  },
+  "experiment": "ASR04/2",
+  "files_sha256": {
+    "tools/rend2/isophotes/README.md": "6c7b80ed5bfcedbb44ce42d3a33eafb2cf4c29b7c4d53f19b2852cf44d40987b",
+    "tools/rend2/isophotes/policy.json": "68a45d67c72a3107ddc7d82f9def56db8d6d850374faa2f8a0f7ce31138a039a",
+    "tools/rend2/isophotes/prototype.py": "81467ff0be8ecb0e4071cbc403729fa5d0a636d6380a7927f983419427cbac98",
+    "tools/rend2/isophotes/results/v2/checks.json": "6f2b615931b46554767c65a587fcce97b3a67d1c2c281750c2cbe93c756eafa0",
+    "tools/rend2/isophotes/results/v2/frozen-estimates.json": "76419afb3afefd0b42f2af05af2fd5e9b41ed9f61d58f96a8ff3ba932e1d14e6",
+    "tools/rend2/isophotes/results/v2/protocol.json": "4e9c5e617ae68e3168dd56fef6b04eae07ce5667158b49c2d7c98f461a8a606b",
+    "tools/rend2/isophotes/results/v2/results.json": "5e45677e4d01299e2e06058c3cb42ec328715eefe027ff570ef8bac3a741e264",
+    "tools/rend2/isophotes/results/v2/tables.md": "37d9f3bec52e20225d4140c7df0d3a737d73e244c9d54bed0c7671616a0220a0",
+    "tools/rend2/isophotes/run.py": "4466e576232a55a11f6f8ae65e8b6709d240fa2498e07709e008c1916db5183c",
+    "tools/rend2/isophotes/test_isophotes.py": "e6870319fd17b70e67e03af0493fa9f0ba25febbb312a5e32e5002ae9a27a0be",
+    "tools/rend2/isophotes/verify.py": "b3c5f35d55f4c450e302b5d25ec8d4c8f35c7230dcdeca84beffc080810e9835"
+  },
+  "primary_source": {
+    "local_path": "build/asr04-research/isophotes2024.pdf",
+    "pages": 34,
+    "read_sections": [
+      "3",
+      "4",
+      "6",
+      "7"
+    ],
+    "sha256": "943fa7d3c91ac47f66ba605fcf3099faf93f65a864c22afee59eeab309008e7d",
+    "url": "https://encov.ip.uca.fr/publications/pubfiles/2024_Mariyanayagam_etal_CVIU_isophote.pdf"
+  },
+  "python": "3.8.5 (tags/v3.8.5:580fbb0, Jul 20 2020, 15:57:54) [MSC v.1924 64 bit (AMD64)]",
+  "scope": "Owned JA compiler receiver study only; no commercial stock bake, no production C++ edits, no canonical/runtime output",
+  "superseded_exploratory_v1": {
+    "local_files_sha256": {
+      "build\\asr04-v1\\protocol.json": "d1129c8c84547400e0c5e17cb9f2b98fe68415cbd4f538443b70167119305f80",
+      "build\\asr04-v1\\results.json": "166ab4e70e7cc1695a85fbd8996d004395d80e5cccbc7b2554ab96fcff71625c",
+      "build\\asr04-v1\\tables.md": "c8c41e641dfafef206dfb9e767d4849b07bde67762ecd7aa3fbdb706d0bf51a9"
+    },
+    "scope": "Initial over-strict short-contour veto; zero-bounce control only. Source hashes describe superseded working code, not a replay contract. Final thresholds were not relaxed."
+  }
+}

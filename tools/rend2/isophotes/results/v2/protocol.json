@@ -1,0 +1,138 @@
+{
+  "code": {
+    "prototype.py": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\isophotes\\prototype.py",
+      "sha256": "81467ff0be8ecb0e4071cbc403729fa5d0a636d6380a7927f983419427cbac98"
+    },
+    "run.py": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\isophotes\\run.py",
+      "sha256": "4466e576232a55a11f6f8ae65e8b6709d240fa2498e07709e008c1916db5183c"
+    },
+    "test_isophotes.py": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\isophotes\\test_isophotes.py",
+      "sha256": "e6870319fd17b70e67e03af0493fa9f0ba25febbb312a5e32e5002ae9a27a0be"
+    },
+    "verify.py": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\isophotes\\verify.py",
+      "sha256": "b3c5f35d55f4c450e302b5d25ec8d4c8f35c7230dcdeca84beffc080810e9835"
+    }
+  },
+  "controlled_fields": "Explicit relative unoccluded point field, gain/transfer/quantization/seam/shadow edits. bounce_virtual is the isolated specular mirror-return component (.2x+.1y+z=88.8); direct component suppressed, NOT compiler bounce.",
+  "experiment": "ASR04/2",
+  "inputs": {
+    "bounce_colour": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\bounce_colour.q3map-recipe.json",
+        "sha256": "a82ab0f13e5cba8a1ebfa784d24de0d087b06c65316942dac3ae98a652c66d49"
+      },
+      "bsp": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\authoring\\base\\maps\\bounce_colour.bsp",
+        "sha256": "d0edab94b2a28f2f26542528d281dd7c49d84d2226627490a46da64201959617"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\bounce_colour.rows.jsonl",
+        "sha256": "4625847dc072d0bc5f308a843531fa7f4853826369307df3fc6906f6630dac35"
+      },
+      "source": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\bounce_colour.source.json",
+        "sha256": "43df8ee1c2abb636947485fdff0fd5bf9085f238622aaaab686aea412352c8b7"
+      }
+    },
+    "bounce_control": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\bounce_control.q3map-recipe.json",
+        "sha256": "7ab0b342d101c8cdbf805a27c94de39c2a39a72fe5a00eb15fb458dfd07eb992"
+      },
+      "bsp": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\authoring\\base\\maps\\bounce_control.bsp",
+        "sha256": "1fbee6e56a4e10f6b03ba1eac9bbc0cb6da0c76dad793a681a789ad2fb244cbe"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\bounce_control.rows.jsonl",
+        "sha256": "9c45e1057c48214255e80301088ea32a1550516eaeeb6d8c20263b75d5496b1e"
+      },
+      "source": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\bounce_control.source.json",
+        "sha256": "d10658891b60318b3344949b019637b16d07ebd59ac33307bf558f588c55884f"
+      }
+    },
+    "door_occlusion": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\door_occlusion.q3map-recipe.json",
+        "sha256": "8ab4cd1047ab76cd1211aaad0b51c9bd49946b84f4c69076aeb555e9b6782c7e"
+      },
+      "bsp": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\authoring\\base\\maps\\door_occlusion.bsp",
+        "sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\door_occlusion.rows.jsonl",
+        "sha256": "dddcb5729924a2b16a7c65ce95eaf78b2b148bab8858fd36f7da5ff9f25bdc05"
+      },
+      "source": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\door_occlusion.source.json",
+        "sha256": "9341b91ad9685af355060d6ef6ad112017a9e816e09fdd2ed32a23b31785a4bb"
+      }
+    },
+    "point_room": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\point_room.q3map-recipe.json",
+        "sha256": "ab9cbf34cea31daf2393b8aec024a495bacaac2511fd78aa2d6a2644f2a49294"
+      },
+      "bsp": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\authoring\\base\\maps\\point_room.bsp",
+        "sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room.rows.jsonl",
+        "sha256": "50214d85ec49104f08a67f1a7a653e0d1019fb7272d1d33642d4baa2ac06fdee"
+      },
+      "source": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room.source.json",
+        "sha256": "c7a5c06ae959a36edc444220461c689d4c0557348972282b1ae21a20238cae5c"
+      }
+    },
+    "spot": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\spot.q3map-recipe.json",
+        "sha256": "8889893942ac2f957bbd62794748bb0af4701dac2112e4c7212f1cdad4fe07fc"
+      },
+      "bsp": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\authoring\\base\\maps\\spot.bsp",
+        "sha256": "3670bbca350eae4e67b058f709900f3937ea79daac2e7b1f0f30f50f5ce3b7ee"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\spot.rows.jsonl",
+        "sha256": "4a90a4f8e9f3d4df50fafbbd0394a78a0126464b5773ee6808b7361dc11c6f2e"
+      },
+      "source": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\spot.source.json",
+        "sha256": "8ef9ebcd90d86e6f835d4d0445b6046e2deab1cf1d7576731ff7e1c9626f9183"
+      }
+    },
+    "two_colour": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\two_colour.q3map-recipe.json",
+        "sha256": "b70590e1ba2c70d1e3406be3a654c276cb5fb9b9c2438310c6b27e24e618ca21"
+      },
+      "bsp": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\authoring\\base\\maps\\two_colour.bsp",
+        "sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\two_colour.rows.jsonl",
+        "sha256": "ddedac4624754775d632638a178b38f8490e57b38cfa978e6adef983e6613d35"
+      },
+      "source": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\two_colour.source.json",
+        "sha256": "f14a3c9d4fc17ba7cbc5b68a76eea6bb7d3db579bda5a900d8596f94281dd6b8"
+      }
+    }
+  },
+  "note": "Full owned compiler captures; new deterministic within-patch holdout, not reuse of ASR01/02 scores. No claimed OS sandbox or blind human experiment.",
+  "policy": {
+    "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\isophotes\\policy.json",
+    "sha256": "68a45d67c72a3107ddc7d82f9def56db8d6d850374faa2f8a0f7ce31138a039a"
+  },
+  "revision": "c3431f732fa5f753dc04b14df8560f0441290b96"
+}

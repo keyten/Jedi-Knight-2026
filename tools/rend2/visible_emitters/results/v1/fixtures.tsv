@@ -1,0 +1,8 @@
+# ASR03 diagnostic hypotheses; all placement/bake participation unknown; no fitted intensity
+# original_candidates=5 fixtures=3 unassigned=0 non_surface=0
+fixture_id	object	centroid_known	summary_centroid	common_normal_known	common_normal	region_id	alias_ids	surfaces	region_position_known	region_position	region_normal_known	region_normal	right	up	half_width	half_height	area_estimate	shape_alternatives_bits	shape_alternatives	two_sided	colour_prior_known	relative_rgb	mask_sampled	issues_bits	static_eligible
+392efd899f49cdd7c04ba7f020084e0ba8b6a8041269063a2f47690616ac234e	owned/dual-slot	1	16,4,64	1	0,0,1	1241429110237635519	1241429110237635519,2548590981947327535,	0,	1	4,4,64	1	0,0,1	1,0,0	0,1,0	4	4	64	2	rectangle,	0	1	1,0.5,0.25	1	515	1
+392efd899f49cdd7c04ba7f020084e0ba8b6a8041269063a2f47690616ac234e	owned/dual-slot	1	16,4,64	1	0,0,1	8857846897677844113	2082705618356097332,8857846897677844113,	0,	1	28,4,64	1	0,0,1	1,0,0	0,1,0	4	4	64	2	rectangle,	0	1	1,0.5,0.25	1	515	1
+94e51060eecc6b1e549a29e5284d54418cba3d762419512b34fb6454edc2e061	owned/wall-strip	1	48,16,17	1	1,0,0	13428265860210312391	13428265860210312391,	1,	1	48,16,17	1	1,0,0	0,1,0	0,0,1	15.75	1.125	64	6	rectangle,tube,	0	1	1,0.5,0.25	1	515	1
+9c2e8ce94898570cfd7493c14fe07649f65c8810f7fc566da6a15eddb93c2b43	owned/corner-lamp	1	98,4,18	0	0,0,0	7699365229387891287	7699365229387891287,	2,	1	100,4,16	1	0,0,1	1,0,0	0,1,0	4.125	3.75	64	2	rectangle,	0	1	1,0.5,0.25	1	515	1
+9c2e8ce94898570cfd7493c14fe07649f65c8810f7fc566da6a15eddb93c2b43	owned/corner-lamp	1	98,4,18	0	0,0,0	12535849277311396339	12535849277311396339,	3,	1	96,4,20	1	1,0,0	0,1,0	0,0,1	4.125	3.75	64	2	rectangle,	0	1	1,0.5,0.25	1	515	1

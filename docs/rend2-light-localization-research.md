@@ -6,6 +6,10 @@ using the supplied [bake-model investigation](rend2-bake-model.md). It proposes
 constraints and uncertainty reporting, with small synthetic demonstrations.
 No production solver, renderer consumer or canonical schema is changed.
 
+The later [ASR04 numerical study](rend2-isophote-cues-asr04.md) tests planar
+gradient/isophote cues on owned JA compiler receivers, including gamma,
+quantization, material, bounce and shadow failures.
+
 **A low RGB error is evidence of predictive agreement, not of a uniquely
 localized physical lamp.** Geometry, transfer/attenuation profile, materials,
 component separation and observation coverage determine what can be identified.

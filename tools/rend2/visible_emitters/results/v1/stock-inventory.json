@@ -1,0 +1,175 @@
+{
+  "fixtures": [
+    {
+      "archive": "assets1.pk3",
+      "frames": 1,
+      "path": "models/map_objects/hoth/light_wall.md3",
+      "sha256": "288323c2a018ce0daf30785438887ec7711621133c661133c66f6ec443082ce3",
+      "surfaces": [
+        {
+          "frames": 1,
+          "name": "light_wall",
+          "shaders": [
+            "models/map_objects/hoth/light_wall.tga"
+          ],
+          "triangles": 40,
+          "vertices": 42
+        },
+        {
+          "frames": 1,
+          "name": "mesh01",
+          "shaders": [
+            "models/map_objects/hoth/light_wall.tga"
+          ],
+          "triangles": 70,
+          "vertices": 56
+        },
+        {
+          "frames": 1,
+          "name": "mesh02",
+          "shaders": [
+            "models/map_objects/hoth/light_wall_bulb.tga"
+          ],
+          "triangles": 12,
+          "vertices": 14
+        }
+      ]
+    },
+    {
+      "archive": "assets1.pk3",
+      "frames": 1,
+      "path": "models/map_objects/factory/ceiling_light.md3",
+      "sha256": "f7e9566866baeae92a160f47070e815958222abefdfd7687ec069ab61d33d178",
+      "surfaces": [
+        {
+          "frames": 1,
+          "name": "box01",
+          "shaders": [
+            "models/map_objects/factory/ceiling_light_new.tga"
+          ],
+          "triangles": 154,
+          "vertices": 218
+        }
+      ]
+    },
+    {
+      "archive": "assets1.pk3",
+      "frames": 1,
+      "path": "models/map_objects/taspir/lamp2_double.md3",
+      "sha256": "ac302ce3d949c72a8355c847a712e1c97c908678108e88e9f511e44dbd983015",
+      "surfaces": [
+        {
+          "frames": 1,
+          "name": "box03",
+          "shaders": [
+            "models/map_objects/imp_mine/minelamp_on.jpg"
+          ],
+          "triangles": 8,
+          "vertices": 16
+        },
+        {
+          "frames": 1,
+          "name": "box01",
+          "shaders": [
+            "models/map_objects/taspir/lamp2.tga"
+          ],
+          "triangles": 80,
+          "vertices": 130
+        },
+        {
+          "frames": 1,
+          "name": "mesh01",
+          "shaders": [
+            "models/map_objects/taspir/lamp2_bulb.tga"
+          ],
+          "triangles": 2,
+          "vertices": 4
+        },
+        {
+          "frames": 1,
+          "name": "mesh02",
+          "shaders": [
+            "models/map_objects/taspir/lamp2_bulb.tga"
+          ],
+          "triangles": 2,
+          "vertices": 4
+        },
+        {
+          "frames": 1,
+          "name": "box05",
+          "shaders": [
+            "models/map_objects/imp_mine/minelamp_on.jpg"
+          ],
+          "triangles": 8,
+          "vertices": 16
+        },
+        {
+          "frames": 1,
+          "name": "box04",
+          "shaders": [
+            "models/map_objects/taspir/lamp2.tga"
+          ],
+          "triangles": 80,
+          "vertices": 130
+        }
+      ]
+    }
+  ],
+  "scope": "Stock metadata only; no instance pose, fitted emission or historical-source claim",
+  "shader_declarations": {
+    "models/map_objects/factory/ceiling_light_new": [
+      {
+        "archive": "assets1.pk3",
+        "glow": true,
+        "maps": [
+          "models/map_objects/factory/ceiling_light_new",
+          "models/map_objects/factory/ceiling_light_new_glow"
+        ],
+        "path": "shaders/factory.shader",
+        "rgb_wave": false,
+        "two_sided": false
+      }
+    ],
+    "models/map_objects/hoth/light_wall": [],
+    "models/map_objects/hoth/light_wall_bulb": [
+      {
+        "archive": "assets1.pk3",
+        "glow": true,
+        "maps": [
+          "$lightmap",
+          "models/map_objects/hoth/light_wall_bulb",
+          "models/map_objects/hoth/light_wall_bulb_glow"
+        ],
+        "path": "shaders/hoth.shader",
+        "rgb_wave": false,
+        "two_sided": false
+      }
+    ],
+    "models/map_objects/imp_mine/minelamp_on": [
+      {
+        "archive": "assets1.pk3",
+        "glow": true,
+        "maps": [
+          "models/map_objects/imp_mine/minelamp_on"
+        ],
+        "path": "shaders/models.shader",
+        "rgb_wave": true,
+        "two_sided": true
+      }
+    ],
+    "models/map_objects/taspir/lamp2": [],
+    "models/map_objects/taspir/lamp2_bulb": [
+      {
+        "archive": "assets1.pk3",
+        "glow": false,
+        "maps": [
+          "models/map_objects/taspir/lamp2_bulb"
+        ],
+        "path": "shaders/taspir.shader",
+        "rgb_wave": false,
+        "two_sided": false
+      }
+    ]
+  },
+  "shader_scope": "All matching definitions in assets?.pk3; loose/mod overrides not inspected"
+}

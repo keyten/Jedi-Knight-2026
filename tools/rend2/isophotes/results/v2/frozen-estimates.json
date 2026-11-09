@@ -1,0 +1,2707 @@
+{
+  "compiled/bounce_colour/5": {
+    "case": {
+      "kind": "OriginalCompilerRGB8",
+      "scene": "bounce_colour"
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 194.046875,
+          "heldout_relative_rms": 0.019334724593503213,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            105.0,
+            -9.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 196.48702595909714,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.022222061522882215,
+          "minimum_eigenvalue_over_trace": 0.3174897254415314,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            104.4765960104867,
+            -5.943622652919899
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Unavailable",
+          "contours": [
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.014892658388654433,
+              "level": 98.53333333333335,
+              "points": 22,
+              "projection": [
+                101.98586411892663,
+                -6.846518758013321
+              ],
+              "radius": 67.14717909341309,
+              "relative_rms": 0.0333205430379038
+            }
+          ],
+          "failures": [],
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "reason": "Insufficient isophote support",
+          "rejected_contours": [
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.005117722098111707,
+              "level": 38.13333333333334,
+              "points": 12,
+              "projection": [
+                99.54810523217174,
+                -5.167466422035094
+              ],
+              "radius": 195.39943373810223,
+              "relative_rms": 0.001967258155148472
+            },
+            {
+              "angular_bins": 5,
+              "curvature_world_inverse": 0.006579053981668464,
+              "level": 58.26666666666667,
+              "points": 20,
+              "projection": [
+                110.5192647890579,
+                -8.355332701706468
+              ],
+              "radius": 151.99753684744772,
+              "relative_rms": 0.022421648502994242
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.009055921238171654,
+              "level": 78.4,
+              "points": 29,
+              "projection": [
+                104.65928775813342,
+                -13.137452841984192
+              ],
+              "radius": 110.42498865658146,
+              "relative_rms": 0.046964871021677186
+            }
+          ],
+          "state": "Unavailable",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "compiled/bounce_control/5": {
+    "case": {
+      "kind": "OriginalCompilerRGB8",
+      "scene": "bounce_control"
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 157.625,
+          "heldout_relative_rms": 0.004297667715052426,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            100.0,
+            0.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 157.36468142492959,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.010510665208669523,
+          "minimum_eigenvalue_over_trace": 0.35496876286668255,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            98.06695433657711,
+            -2.653759860638259
+          ],
+          "state": "Conditional",
+          "stencils": 126,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Conditional",
+          "center_spread": 0.2627434267107398,
+          "contours": [
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.0075562522743709715,
+              "level": 40.0,
+              "points": 32,
+              "projection": [
+                99.88638269818628,
+                -0.0522389853702423
+              ],
+              "radius": 132.3407376685615,
+              "relative_rms": 0.005711609926700646
+            },
+            {
+              "angular_bins": 9,
+              "curvature_world_inverse": 0.010577276845207645,
+              "level": 56.0,
+              "points": 24,
+              "projection": [
+                100.15946091867406,
+                0.11116327793958813
+              ],
+              "radius": 94.54229237207497,
+              "relative_rms": 0.005132611434108425
+            },
+            {
+              "angular_bins": 12,
+              "curvature_world_inverse": 0.01655313128251652,
+              "level": 72.0,
+              "points": 21,
+              "projection": [
+                99.73044866303222,
+                -0.08373033905820004
+              ],
+              "radius": 60.41153078126093,
+              "relative_rms": 0.006691171675661649
+            }
+          ],
+          "failures": [],
+          "height": 158.8668978892189,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.0047993919999448475,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            99.92543075996419,
+            -0.008268682162951402
+          ],
+          "rejected_contours": [
+            {
+              "angular_bins": 4,
+              "curvature_world_inverse": 0.005586923679989071,
+              "level": 24.0,
+              "points": 17,
+              "projection": [
+                92.44110337680387,
+                0.3692090211957346
+              ],
+              "radius": 178.98937899970673,
+              "relative_rms": 0.0031431933037874356
+            }
+          ],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "compiled/door_occlusion/10": {
+    "case": {
+      "kind": "OriginalCompilerRGB8",
+      "scene": "door_occlusion"
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 10
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Unavailable",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [
+            "Single-point held-out discrepancy"
+          ],
+          "height": 144.828125,
+          "heldout_relative_rms": 0.13548151707547965,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -103.75,
+            24.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Unavailable",
+          "failures": [
+            "Single-point held-out discrepancy"
+          ],
+          "height": 178.16477104205507,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.15768346223486246,
+          "minimum_eigenvalue_over_trace": 0.3945454310990703,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -93.8018828327331,
+            31.144947768335715
+          ],
+          "state": "Conditional",
+          "stencils": 100,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Unavailable",
+          "contours": [
+            {
+              "angular_bins": 8,
+              "curvature_world_inverse": 0.008753338968486377,
+              "level": 41.4,
+              "points": 27,
+              "projection": [
+                -96.32669532472949,
+                31.84013004813691
+              ],
+              "radius": 114.24211990420834,
+              "relative_rms": 0.02659234293561693
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.013629503306776088,
+              "level": 55.2,
+              "points": 24,
+              "projection": [
+                -95.96359326684443,
+                32.036406733155594
+              ],
+              "radius": 73.37024523137514,
+              "relative_rms": 0.004390195242627414
+            }
+          ],
+          "failures": [],
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "reason": "Insufficient isophote support",
+          "rejected_contours": [
+            {
+              "angular_bins": 9,
+              "curvature_world_inverse": 0.010510308914340944,
+              "level": 13.8,
+              "points": 26,
+              "projection": [
+                45.59584292383691,
+                -7.585258251035947
+              ],
+              "radius": 95.14468205930041,
+              "relative_rms": 0.25844961919881004
+            },
+            {
+              "angular_bins": 7,
+              "curvature_world_inverse": 0.007333918672497363,
+              "level": 27.6,
+              "points": 21,
+              "projection": [
+                -83.71112901064704,
+                3.958121655541234
+              ],
+              "radius": 136.35275282640646,
+              "relative_rms": 0.09950091736087376
+            }
+          ],
+          "state": "Unavailable",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "compiled/point_room/3": {
+    "case": {
+      "kind": "OriginalCompilerRGB8",
+      "scene": "point_room"
+    },
+    "frame": {
+      "axes": [
+        0,
+        2
+      ],
+      "axis": 1,
+      "coordinate": -128,
+      "normal": [
+        0,
+        1,
+        0
+      ],
+      "surface": 3
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 158.609375,
+          "heldout_relative_rms": 0.004496888855699369,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -96.25,
+            180.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 156.50574091990413,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.006963999722878538,
+          "minimum_eigenvalue_over_trace": 0.37160058321247924,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -95.12670492745775,
+            177.86193056965504
+          ],
+          "state": "Conditional",
+          "stencils": 127,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Conditional",
+          "center_spread": 0.39322343810094823,
+          "contours": [
+            {
+              "angular_bins": 7,
+              "curvature_world_inverse": 0.007442387850971438,
+              "level": 39.4,
+              "points": 26,
+              "projection": [
+                -96.51553367104493,
+                180.06965758673817
+              ],
+              "radius": 134.36547785795284,
+              "relative_rms": 0.0038012359691958686
+            },
+            {
+              "angular_bins": 6,
+              "curvature_world_inverse": 0.01049652533601806,
+              "level": 55.6,
+              "points": 16,
+              "projection": [
+                -96.000541029272,
+                180.12682049394215
+              ],
+              "radius": 95.26962189750289,
+              "relative_rms": 0.004270680144808603
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.01642029764272057,
+              "level": 71.8,
+              "points": 24,
+              "projection": [
+                -95.9111091541234,
+                179.640302155069
+              ],
+              "radius": 60.900235900615286,
+              "relative_rms": 0.00670682734623512
+            }
+          ],
+          "failures": [],
+          "height": 159.65709652204984,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.005378322883846261,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -96.14239461814678,
+            179.94559341191643
+          ],
+          "rejected_contours": [
+            {
+              "angular_bins": 5,
+              "curvature_world_inverse": 0.005223543521773179,
+              "level": 23.2,
+              "points": 16,
+              "projection": [
+                -97.90892850081593,
+                181.66152772762842
+              ],
+              "radius": 191.44092431348997,
+              "relative_rms": 0.005228650090367259
+            }
+          ],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "compiled/point_room/4": {
+    "case": {
+      "kind": "OriginalCompilerRGB8",
+      "scene": "point_room"
+    },
+    "frame": {
+      "axes": [
+        1,
+        2
+      ],
+      "axis": 0,
+      "coordinate": -192,
+      "normal": [
+        1,
+        0,
+        0
+      ],
+      "surface": 4
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 73,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 94.625,
+          "heldout_relative_rms": 0.0013088766378892126,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            32.0,
+            180.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 95.77032938551915,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.0029530096772314727,
+          "minimum_eigenvalue_over_trace": 0.46199584025856133,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            31.764831265868544,
+            180.09259992026617
+          ],
+          "state": "Conditional",
+          "stencils": 84,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Conditional",
+          "center_spread": 0.12295385767038475,
+          "contours": [
+            {
+              "angular_bins": 7,
+              "curvature_world_inverse": 0.008513382900924587,
+              "level": 61.6,
+              "points": 24,
+              "projection": [
+                32.03276142377865,
+                180.07392490696822
+              ],
+              "radius": 117.46211954021193,
+              "relative_rms": 0.002299335968753484
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.012227873023762246,
+              "level": 108.2,
+              "points": 28,
+              "projection": [
+                32.03056518591166,
+                179.8926990522587
+              ],
+              "radius": 81.78037161955433,
+              "relative_rms": 0.0018963536214192207
+            },
+            {
+              "angular_bins": 6,
+              "curvature_world_inverse": 0.017335932930539814,
+              "level": 154.79999999999998,
+              "points": 12,
+              "projection": [
+                31.91171312388206,
+                180.05578357803375
+              ],
+              "radius": 57.68365648429292,
+              "relative_rms": 0.002861553644790188
+            },
+            {
+              "angular_bins": 9,
+              "curvature_world_inverse": 0.027354889847232056,
+              "level": 201.4,
+              "points": 12,
+              "projection": [
+                32.02291527447335,
+                179.85632955717307
+              ],
+              "radius": 36.55653543423742,
+              "relative_rms": 0.006229394052590387
+            }
+          ],
+          "failures": [],
+          "height": 94.93875009991699,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.0014692753954046252,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            31.99948875201143,
+            179.96968427360844
+          ],
+          "rejected_contours": [],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 216
+    }
+  },
+  "compiled/point_room/5": {
+    "case": {
+      "kind": "OriginalCompilerRGB8",
+      "scene": "point_room"
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 177.3125,
+          "heldout_relative_rms": 0.004512713822064387,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -96.25,
+            32.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 177.7667044037788,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.008450925658322613,
+          "minimum_eigenvalue_over_trace": 0.36512924376262335,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -94.10273845635938,
+            30.447379533822566
+          ],
+          "state": "Conditional",
+          "stencils": 127,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Conditional",
+          "center_spread": 0.2749284015526929,
+          "contours": [
+            {
+              "angular_bins": 7,
+              "curvature_world_inverse": 0.00687325702229445,
+              "level": 32.400000000000006,
+              "points": 27,
+              "projection": [
+                -96.10491023554667,
+                32.27196791180302
+              ],
+              "radius": 145.49143102845545,
+              "relative_rms": 0.005261745260329235
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.009548533632142468,
+              "level": 44.6,
+              "points": 21,
+              "projection": [
+                -95.6435644107177,
+                32.22175399446283
+              ],
+              "radius": 104.72812250812832,
+              "relative_rms": 0.006339906413568008
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.014558257019960661,
+              "level": 56.800000000000004,
+              "points": 28,
+              "projection": [
+                -95.99085789512016,
+                32.00914210487984
+              ],
+              "radius": 68.68954151784182,
+              "relative_rms": 0.005827358863204319
+            }
+          ],
+          "failures": [],
+          "height": 177.7333435193381,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.0046076037161123535,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -95.91311084712818,
+            32.167621337048566
+          ],
+          "rejected_contours": [
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.005008836976052966,
+              "level": 20.200000000000003,
+              "points": 14,
+              "projection": [
+                -94.06548271443938,
+                33.30519651574751
+              ],
+              "radius": 199.647144592838,
+              "relative_rms": 0.004995829666184743
+            }
+          ],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "compiled/spot/5": {
+    "case": {
+      "kind": "OriginalCompilerRGB8",
+      "scene": "spot"
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Unavailable",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [
+            "Single-point held-out discrepancy"
+          ],
+          "height": 94.625,
+          "heldout_relative_rms": 0.14035123982787265,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -6.25,
+            22.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Unavailable",
+          "failures": [
+            "Single-point held-out discrepancy"
+          ],
+          "height": 162.97074840744017,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.21728569730305458,
+          "minimum_eigenvalue_over_trace": 0.23932167119931058,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            12.335760617269994,
+            -14.669497745350105
+          ],
+          "state": "Conditional",
+          "stencils": 60,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Unavailable",
+          "contours": [],
+          "failures": [],
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "reason": "Insufficient isophote support",
+          "rejected_contours": [
+            {
+              "angular_bins": 7,
+              "curvature_world_inverse": 0.007210168703716626,
+              "level": 9.600000000000001,
+              "points": 22,
+              "projection": [
+                -36.53471672016827,
+                66.34471295850322
+              ],
+              "radius": 138.69300998248903,
+              "relative_rms": 0.049621472415600734
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.010264420250727024,
+              "level": 19.200000000000003,
+              "points": 32,
+              "projection": [
+                -13.19615465788612,
+                23.731392336636603
+              ],
+              "radius": 97.42391441242583,
+              "relative_rms": 0.13115315718535878
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.013725565685647997,
+              "level": 28.799999999999997,
+              "points": 23,
+              "projection": [
+                7.365827133425982,
+                6.730892088243761
+              ],
+              "radius": 72.85674214838666,
+              "relative_rms": 0.22936606850654362
+            }
+          ],
+          "state": "Unavailable",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "compiled/two_colour/5": {
+    "case": {
+      "kind": "OriginalCompilerRGB8",
+      "scene": "two_colour"
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Unavailable",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [
+            "Single-point held-out discrepancy"
+          ],
+          "height": 260.984375,
+          "heldout_relative_rms": 0.12471223562436035,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            26.25,
+            -12.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Unavailable",
+          "failures": [
+            "Single-point held-out discrepancy"
+          ],
+          "height": 193.641340836219,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.17456702853883652,
+          "minimum_eigenvalue_over_trace": 0.2724604532518836,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            13.233854525410488,
+            1.8229957122067384
+          ],
+          "state": "Conditional",
+          "stencils": 116,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Unavailable",
+          "contours": [],
+          "failures": [],
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "reason": "Insufficient isophote support",
+          "rejected_contours": [
+            {
+              "angular_bins": 6,
+              "curvature_world_inverse": 0.005533584768662138,
+              "level": 20.4,
+              "points": 26,
+              "projection": [
+                -9.234454460425098,
+                35.00885696748638
+              ],
+              "radius": 180.71467986958686,
+              "relative_rms": 0.05691485382100117
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.006743210936603578,
+              "level": 26.46666666666667,
+              "points": 40,
+              "projection": [
+                12.385858715371494,
+                -2.151211551985619
+              ],
+              "radius": 148.29730367350487,
+              "relative_rms": 0.20563619350737494
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.008614678136728617,
+              "level": 32.53333333333333,
+              "points": 47,
+              "projection": [
+                26.849437737816356,
+                -9.014833330598027
+              ],
+              "radius": 116.08094743975488,
+              "relative_rms": 0.2132154372397334
+            },
+            {
+              "angular_bins": 9,
+              "curvature_world_inverse": 0.014772150436273125,
+              "level": 38.6,
+              "points": 20,
+              "projection": [
+                60.28999972812952,
+                -16.094466637675712
+              ],
+              "radius": 67.69495100351081,
+              "relative_rms": 0.1170616838149896
+            }
+          ],
+          "state": "Unavailable",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/bounce_virtual": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -86.85714285714286,
+          4.571428571428571,
+          45.71428571428572
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 159.59375,
+          "heldout_relative_rms": 0.0010130381772482258,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.75,
+            16.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 160.8632494388972,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.0016199197756903774,
+          "minimum_eigenvalue_over_trace": 0.3723619380392554,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -64.14784657281672,
+            16.004461852957757
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Conditional",
+          "center_spread": 0.012075801538384738,
+          "contours": [
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.007689958282392149,
+              "level": 93.48354616857115,
+              "points": 39,
+              "projection": [
+                -63.99381948206403,
+                15.979822706826644
+              ],
+              "radius": 130.03971715811775,
+              "relative_rms": 0.0007397721700970939
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.010614978782791898,
+              "level": 128.00138656848566,
+              "points": 20,
+              "projection": [
+                -63.99234626925988,
+                15.992346269259874
+              ],
+              "radius": 94.20650012236625,
+              "relative_rms": 0.0003377265871197125
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.016281839184936524,
+              "level": 162.51922696840018,
+              "points": 22,
+              "projection": [
+                -64.00190475113772,
+                16.00190475113771
+              ],
+              "radius": 61.41812289395232,
+              "relative_rms": 0.0012187737545783027
+            }
+          ],
+          "failures": [],
+          "height": 160.26397555941506,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.0005124154481955721,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.99602350082054,
+            15.991357909074743
+          ],
+          "rejected_contours": [
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.005575734666636039,
+              "level": 58.96570576865663,
+              "points": 15,
+              "projection": [
+                -63.79215504856778,
+                16.03415039751071
+              ],
+              "radius": 179.3485629766026,
+              "relative_rms": 0.0005415713101529581
+            }
+          ],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/distant": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          2000.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Unavailable",
+          "bound_hit": true,
+          "evaluations": 837,
+          "failures": [
+            "Insufficient contrast",
+            "Single-point held-out discrepancy",
+            "Search bound reached"
+          ],
+          "height": 512.0,
+          "heldout_relative_rms": 2.2731768010729545,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -5.0,
+            2.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Unavailable",
+          "failures": [
+            "Insufficient contrast"
+          ],
+          "height": null,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "minimum_eigenvalue_over_trace": 0.3729083453321877,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -64.0000440315542,
+            15.99999730274362
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Unavailable",
+          "contours": [
+            {
+              "angular_bins": 12,
+              "curvature_world_inverse": 0.008024052204142786,
+              "level": 1.2725614282248556,
+              "points": 37,
+              "projection": [
+                -63.984082273436485,
+                15.990328873566256
+              ],
+              "radius": 124.62531082284136,
+              "relative_rms": 0.0007476109707601448
+            }
+          ],
+          "failures": [
+            "Insufficient contrast"
+          ],
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "reason": "Insufficient isophote support",
+          "rejected_contours": [
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.004002525518659988,
+              "level": 1.250614323410424,
+              "points": 15,
+              "projection": [
+                -64.10197248576134,
+                16.043899732355438
+              ],
+              "radius": 249.84225468093743,
+              "relative_rms": 0.00011674974838730318
+            },
+            {
+              "angular_bins": 4,
+              "curvature_world_inverse": 0.004627581262246409,
+              "level": 1.2579300250152345,
+              "points": 14,
+              "projection": [
+                -64.23176380963497,
+                15.983763386901773
+              ],
+              "radius": 216.09561093143523,
+              "relative_rms": 0.00015426818438980954
+            },
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.0056880662438941665,
+              "level": 1.265245726620045,
+              "points": 16,
+              "projection": [
+                -63.729507506994196,
+                15.986394447815684
+              ],
+              "radius": 175.8066726233096,
+              "relative_rms": 0.00025439327415174905
+            }
+          ],
+          "state": "Unavailable",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/gain17": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          160.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 159.59375,
+          "heldout_relative_rms": 0.0010130381772482137,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.75,
+            16.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 160.8632494388972,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.0016199197756903588,
+          "minimum_eigenvalue_over_trace": 0.37236193803925544,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -64.14784657281669,
+            16.00446185295776
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Conditional",
+          "center_spread": 0.012075801538379729,
+          "contours": [
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.007689958282392149,
+              "level": 1589.2202848657096,
+              "points": 39,
+              "projection": [
+                -63.99381948206404,
+                15.979822706826653
+              ],
+              "radius": 130.03971715811775,
+              "relative_rms": 0.0007397721700970716
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.0106149787827919,
+              "level": 2176.0235716642565,
+              "points": 20,
+              "projection": [
+                -63.99234626925989,
+                15.99234626925988
+              ],
+              "radius": 94.20650012236622,
+              "relative_rms": 0.000337726587119641
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.016281839184936527,
+              "level": 2762.826858462803,
+              "points": 22,
+              "projection": [
+                -64.00190475113772,
+                16.001904751137715
+              ],
+              "radius": 61.418122893952315,
+              "relative_rms": 0.001218773754578349
+            }
+          ],
+          "failures": [],
+          "height": 160.26397555941503,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.0005124154481954996,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.99602350082055,
+            15.991357909074749
+          ],
+          "rejected_contours": [
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.005575734666636038,
+              "level": 1002.4169980671629,
+              "points": 15,
+              "projection": [
+                -63.792155048567835,
+                16.034150397510725
+              ],
+              "radius": 179.34856297660264,
+              "relative_rms": 0.0005415713101529426
+            }
+          ],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/gamma_half": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          160.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 262.953125,
+          "heldout_relative_rms": 0.02340750451687388,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -62.5,
+            16.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 261.3465891152891,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.024476064607336097,
+          "minimum_eigenvalue_over_trace": 0.37260727155278317,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -64.08160975981336,
+            16.0025443558593
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Conditional",
+          "center_spread": 0.017882072409130312,
+          "contours": [
+            {
+              "angular_bins": 8,
+              "curvature_world_inverse": 0.006424867180398114,
+              "level": 137.03528890328766,
+              "points": 29,
+              "projection": [
+                -63.98010065618507,
+                16.00914168395645
+              ],
+              "radius": 155.6452408932188,
+              "relative_rms": 0.0004924439727269196
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.008786223323835102,
+              "level": 166.07444025733074,
+              "points": 29,
+              "projection": [
+                -64.00703446699444,
+                16.002879198709312
+              ],
+              "radius": 113.81454387657308,
+              "relative_rms": 0.0005878489626792889
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.013505744657349663,
+              "level": 195.1135916113738,
+              "points": 24,
+              "projection": [
+                -64.00597852902683,
+                16.00597852902684
+              ],
+              "radius": 74.04256672776737,
+              "relative_rms": 0.0009087952044334898
+            }
+          ],
+          "failures": [],
+          "height": 256.0471466978728,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.026969559131037397,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.99770455073545,
+            16.005999803897534
+          ],
+          "rejected_contours": [
+            {
+              "angular_bins": 4,
+              "curvature_world_inverse": 0.004838347959757621,
+              "level": 107.9961375492446,
+              "points": 12,
+              "projection": [
+                -63.56879140346473,
+                15.990004275645596
+              ],
+              "radius": 206.68211718491105,
+              "relative_rms": 0.00020793571351272814
+            }
+          ],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/gamma_half_wall": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          160.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        2
+      ],
+      "axis": 1,
+      "coordinate": -128,
+      "normal": [
+        0,
+        1,
+        0
+      ],
+      "surface": 3
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 242.28125,
+          "heldout_relative_rms": 0.02528771590597038,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -62.5,
+            161.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 243.14030445564947,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.025834083648727895,
+          "minimum_eigenvalue_over_trace": 0.38201233819631275,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -64.1033294759188,
+            159.99350906421012
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Conditional",
+          "center_spread": 0.04201146469622496,
+          "contours": [
+            {
+              "angular_bins": 8,
+              "curvature_world_inverse": 0.006708126270204495,
+              "level": 145.31279146855303,
+              "points": 34,
+              "projection": [
+                -63.97094156978811,
+                159.98997089312078
+              ],
+              "radius": 149.07292434874148,
+              "relative_rms": 0.0005835627948263321
+            },
+            {
+              "angular_bins": 9,
+              "curvature_world_inverse": 0.009353220424951297,
+              "level": 180.51660016893322,
+              "points": 25,
+              "projection": [
+                -64.03084226910354,
+                159.95131087954138
+              ],
+              "radius": 106.91504685726544,
+              "relative_rms": 0.0004262842744043616
+            },
+            {
+              "angular_bins": 9,
+              "curvature_world_inverse": 0.014729463893239472,
+              "level": 215.72040886931342,
+              "points": 22,
+              "projection": [
+                -63.99994243335193,
+                160.00005756664808
+              ],
+              "radius": 67.89113352991617,
+              "relative_rms": 0.001894401569279627
+            }
+          ],
+          "failures": [],
+          "height": 233.0960147730478,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.029569848150885696,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -64.00057542408119,
+            159.98044644643676
+          ],
+          "rejected_contours": [
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.004930762691316127,
+              "level": 110.10898276817285,
+              "points": 13,
+              "projection": [
+                -63.07242462408175,
+                159.92550162549114
+              ],
+              "radius": 202.80838129994822,
+              "relative_rms": 0.0003338726388816644
+            }
+          ],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/hard_shadow": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          160.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Unavailable",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [
+            "Single-point held-out discrepancy"
+          ],
+          "height": 107.421875,
+          "heldout_relative_rms": 0.1612245268161275,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -96.25,
+            15.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Unavailable",
+          "failures": [
+            "Single-point held-out discrepancy"
+          ],
+          "height": 161.14315615844467,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.23643566018025639,
+          "minimum_eigenvalue_over_trace": 0.3731851623079948,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -64.0013240736797,
+            16.097509944128742
+          ],
+          "state": "Conditional",
+          "stencils": 57,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Unavailable",
+          "contours": [],
+          "failures": [],
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "reason": "Insufficient isophote support",
+          "rejected_contours": [
+            {
+              "angular_bins": 8,
+              "curvature_world_inverse": 0.008167160582981765,
+              "level": 78.81482694732588,
+              "points": 24,
+              "projection": [
+                -96.33587618923991,
+                0.3671152330665777
+              ],
+              "radius": 122.44157438066534,
+              "relative_rms": 0.1368095877454294
+            },
+            {
+              "angular_bins": 9,
+              "curvature_world_inverse": 0.010609827958913345,
+              "level": 118.22224042098881,
+              "points": 21,
+              "projection": [
+                -83.1555417968731,
+                9.48467986333609
+              ],
+              "radius": 94.25223517973232,
+              "relative_rms": 0.12378800025879858
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.01562095480225407,
+              "level": 157.62965389465177,
+              "points": 28,
+              "projection": [
+                -68.00870793527429,
+                16.712723354021378
+              ],
+              "radius": 64.01657342070423,
+              "relative_rms": 0.058419743096997066
+            }
+          ],
+          "state": "Unavailable",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/ideal": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          160.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 159.59375,
+          "heldout_relative_rms": 0.0010130381772482258,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.75,
+            16.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 160.8632494388972,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.0016199197756903774,
+          "minimum_eigenvalue_over_trace": 0.3723619380392554,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -64.14784657281672,
+            16.004461852957757
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Conditional",
+          "center_spread": 0.012075801538384738,
+          "contours": [
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.007689958282392149,
+              "level": 93.48354616857115,
+              "points": 39,
+              "projection": [
+                -63.99381948206403,
+                15.979822706826644
+              ],
+              "radius": 130.03971715811775,
+              "relative_rms": 0.0007397721700970939
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.010614978782791898,
+              "level": 128.00138656848566,
+              "points": 20,
+              "projection": [
+                -63.99234626925988,
+                15.992346269259874
+              ],
+              "radius": 94.20650012236625,
+              "relative_rms": 0.0003377265871197125
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.016281839184936524,
+              "level": 162.51922696840018,
+              "points": 22,
+              "projection": [
+                -64.00190475113772,
+                16.00190475113771
+              ],
+              "radius": 61.41812289395232,
+              "relative_rms": 0.0012187737545783027
+            }
+          ],
+          "failures": [],
+          "height": 160.26397555941506,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.0005124154481955721,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.99602350082054,
+            15.991357909074743
+          ],
+          "rejected_contours": [
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.005575734666636039,
+              "level": 58.96570576865663,
+              "points": 15,
+              "projection": [
+                -63.79215504856778,
+                16.03415039751071
+              ],
+              "radius": 179.3485629766026,
+              "relative_rms": 0.0005415713101529581
+            }
+          ],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/material_seam": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          160.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Unavailable",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [
+            "Material seam",
+            "Single-point held-out discrepancy"
+          ],
+          "height": 125.140625,
+          "heldout_relative_rms": 0.09233647461717699,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -88.75,
+            15.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Unavailable",
+          "failures": [
+            "Material seam",
+            "Single-point held-out discrepancy"
+          ],
+          "height": 159.8695942648365,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.14296890655798866,
+          "minimum_eigenvalue_over_trace": 0.340298459333783,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -67.37681960583431,
+            10.982880824517427
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Unavailable",
+          "contours": [],
+          "failures": [
+            "Material seam"
+          ],
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "reason": "Insufficient isophote support",
+          "rejected_contours": [
+            {
+              "angular_bins": 4,
+              "curvature_world_inverse": 0.00584516834740244,
+              "level": 47.23073039166042,
+              "points": 12,
+              "projection": [
+                -135.1113454649907,
+                3.2957075215983505
+              ],
+              "radius": 171.0814711511935,
+              "relative_rms": 0.042056141708980914
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.008318178971089846,
+              "level": 84.68231463582399,
+              "points": 28,
+              "projection": [
+                -91.2492128537854,
+                4.073142276413165
+              ],
+              "radius": 120.21862038260284,
+              "relative_rms": 0.12348208606310089
+            },
+            {
+              "angular_bins": 8,
+              "curvature_world_inverse": 0.010795427573399184,
+              "level": 122.13389887998756,
+              "points": 19,
+              "projection": [
+                -83.7854589799527,
+                8.2834864513415
+              ],
+              "radius": 92.63181038461893,
+              "relative_rms": 0.10760633029893171
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.01602502959531066,
+              "level": 159.58548312415112,
+              "points": 28,
+              "projection": [
+                -67.41632950355958,
+                16.6291871758933
+              ],
+              "radius": 62.40238085380047,
+              "relative_rms": 0.04921298840845672
+            }
+          ],
+          "state": "Unavailable",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/normal_change": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          160.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Unavailable",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [
+            "Changing normals"
+          ],
+          "height": 159.59375,
+          "heldout_relative_rms": 0.0010130381772482258,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.75,
+            16.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Unavailable",
+          "failures": [
+            "Changing normals"
+          ],
+          "height": 160.8632494388972,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.0016199197756903774,
+          "minimum_eigenvalue_over_trace": 0.3723619380392554,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -64.14784657281672,
+            16.004461852957757
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Unavailable",
+          "center_spread": 0.012075801538384738,
+          "contours": [
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.007689958282392149,
+              "level": 93.48354616857115,
+              "points": 39,
+              "projection": [
+                -63.99381948206403,
+                15.979822706826644
+              ],
+              "radius": 130.03971715811775,
+              "relative_rms": 0.0007397721700970939
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.010614978782791898,
+              "level": 128.00138656848566,
+              "points": 20,
+              "projection": [
+                -63.99234626925988,
+                15.992346269259874
+              ],
+              "radius": 94.20650012236625,
+              "relative_rms": 0.0003377265871197125
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.016281839184936524,
+              "level": 162.51922696840018,
+              "points": 22,
+              "projection": [
+                -64.00190475113772,
+                16.00190475113771
+              ],
+              "radius": 61.41812289395232,
+              "relative_rms": 0.0012187737545783027
+            }
+          ],
+          "failures": [
+            "Changing normals"
+          ],
+          "height": 160.26397555941506,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.0005124154481955721,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.99602350082054,
+            15.991357909074743
+          ],
+          "rejected_contours": [
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.005575734666636039,
+              "level": 58.96570576865663,
+              "points": 15,
+              "projection": [
+                -63.79215504856778,
+                16.03415039751071
+              ],
+              "radius": 179.3485629766026,
+              "relative_rms": 0.0005415713101529581
+            }
+          ],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/quantized": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          160.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Conditional",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [],
+          "height": 159.59375,
+          "heldout_relative_rms": 0.0019955812100508176,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.75,
+            16.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Conditional",
+          "failures": [],
+          "height": 160.70259513634485,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.0032579289022217307,
+          "minimum_eigenvalue_over_trace": 0.3715724424608376,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -64.33721165407418,
+            15.32957039295591
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Conditional",
+          "center_spread": 0.02111336830559604,
+          "contours": [
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.007676357132647277,
+              "level": 93.2,
+              "points": 39,
+              "projection": [
+                -64.00769046954322,
+                15.969147458005818
+              ],
+              "radius": 130.27012458123335,
+              "relative_rms": 0.002507990789999438
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.010580667653513157,
+              "level": 127.8,
+              "points": 20,
+              "projection": [
+                -63.982280449960264,
+                15.982280449960273
+              ],
+              "radius": 94.51199420936018,
+              "relative_rms": 0.001727628751558117
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.01630695100266636,
+              "level": 162.4,
+              "points": 22,
+              "projection": [
+                -63.971744746339276,
+                15.971744746339283
+              ],
+              "radius": 61.32354232477238,
+              "relative_rms": 0.003113156974745468
+            }
+          ],
+          "failures": [],
+          "height": 160.23705258700576,
+          "height_assumption": "Known linear inverse-square radial intensity law",
+          "heldout_relative_rms": 0.0017047294565551545,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -63.98723855528092,
+            15.974390884768457
+          ],
+          "rejected_contours": [
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.005574144404086627,
+              "level": 58.6,
+              "points": 15,
+              "projection": [
+                -63.50927893591074,
+                15.926036742514032
+              ],
+              "radius": 179.39972980729746,
+              "relative_rms": 0.002089720114440107
+            }
+          ],
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/saturated": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          160.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Unavailable",
+          "bound_hit": true,
+          "evaluations": 837,
+          "failures": [
+            "Saturated training sample",
+            "Single-point held-out discrepancy",
+            "Search bound reached"
+          ],
+          "height": 512.0,
+          "heldout_relative_rms": 0.1668980572718433,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -47.5,
+            5.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Unavailable",
+          "failures": [
+            "Saturated training sample",
+            "Single-point held-out discrepancy"
+          ],
+          "height": 165.24113182052082,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.8732677903338145,
+          "minimum_eigenvalue_over_trace": 0.11575459964517978,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            -58.00709886072566,
+            12.641331102317658
+          ],
+          "state": "Conditional",
+          "stencils": 20,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Unavailable",
+          "contours": [],
+          "failures": [
+            "Saturated training sample"
+          ],
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "reason": "Insufficient isophote support",
+          "rejected_contours": [
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.0037662072686958387,
+              "level": 168.6,
+              "points": 12,
+              "projection": [
+                -66.77132174630142,
+                16.138078185026068
+              ],
+              "radius": 265.5191094531236,
+              "relative_rms": 0.0004312362150153517
+            },
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.004068012180915444,
+              "level": 190.2,
+              "points": 15,
+              "projection": [
+                -60.836195444928904,
+                15.827103792288664
+              ],
+              "radius": 245.82030621524962,
+              "relative_rms": 0.00042314360749094894
+            },
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.004247586305344451,
+              "level": 211.8,
+              "points": 16,
+              "projection": [
+                -62.99480356606193,
+                15.959759488768647
+              ],
+              "radius": 235.42782373645178,
+              "relative_rms": 0.00037938116420046673
+            },
+            {
+              "angular_bins": 3,
+              "curvature_world_inverse": 0.004412229713604947,
+              "level": 233.4,
+              "points": 15,
+              "projection": [
+                -65.74843150310906,
+                16.110001278698306
+              ],
+              "radius": 226.6427781211248,
+              "relative_rms": 0.0006934696997083048
+            }
+          ],
+          "state": "Unavailable",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  },
+  "control/two_points": {
+    "case": {
+      "kind": "AuthoredFieldOnCompiledGeometry",
+      "scene": "point_room",
+      "truth": [
+        [
+          -64.0,
+          16.0,
+          160.0
+        ],
+        [
+          96.0,
+          -32.0,
+          100.0
+        ]
+      ]
+    },
+    "frame": {
+      "axes": [
+        0,
+        1
+      ],
+      "axis": 2,
+      "coordinate": 0,
+      "normal": [
+        0,
+        0,
+        1
+      ],
+      "surface": 5
+    },
+    "result": {
+      "domain": "RelativeOrCodeProxy_NoCalibration",
+      "heldout": 107,
+      "methods": {
+        "forward": {
+          "admission": "Unavailable",
+          "bound_hit": false,
+          "evaluations": 891,
+          "failures": [
+            "Single-point held-out discrepancy"
+          ],
+          "height": 195.03125,
+          "heldout_relative_rms": 0.11774185528490251,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            37.5,
+            -20.0
+          ],
+          "search_complete": false,
+          "state": "Conditional",
+          "type_or_orientation_available": false
+        },
+        "gradient": {
+          "admission": "Unavailable",
+          "failures": [
+            "Single-point held-out discrepancy"
+          ],
+          "height": 155.7812568952905,
+          "height_assumption": "Single unoccluded inverse-square point; linear scalar response",
+          "heldout_relative_rms": 0.14740755374373368,
+          "minimum_eigenvalue_over_trace": 0.34162381892708843,
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "projection": [
+            17.45915479302277,
+            -9.038956829188571
+          ],
+          "state": "Conditional",
+          "stencils": 129,
+          "type_or_orientation_available": false
+        },
+        "isophote": {
+          "admission": "Unavailable",
+          "contours": [],
+          "failures": [],
+          "physical_depth_available": false,
+          "primary_or_transport_ambiguous": true,
+          "reason": "Insufficient isophote support",
+          "rejected_contours": [
+            {
+              "angular_bins": 9,
+              "curvature_world_inverse": 0.005942949815077043,
+              "level": 125.10064033858374,
+              "points": 27,
+              "projection": [
+                2.8269708413089845,
+                -24.092737462211456
+              ],
+              "radius": 168.2666068394246,
+              "relative_rms": 0.1093901749876048
+            },
+            {
+              "angular_bins": 10,
+              "curvature_world_inverse": 0.008094068022308436,
+              "level": 186.8594727384024,
+              "points": 47,
+              "projection": [
+                27.291603756887657,
+                -9.438022558270633
+              ],
+              "radius": 123.547269091865,
+              "relative_rms": 0.18610805040673317
+            },
+            {
+              "angular_bins": 8,
+              "curvature_world_inverse": 0.012545935049451371,
+              "level": 248.61830513822102,
+              "points": 20,
+              "projection": [
+                58.871886554568505,
+                -24.88571442101766
+              ],
+              "radius": 79.70709206275778,
+              "relative_rms": 0.13232631863476296
+            },
+            {
+              "angular_bins": 11,
+              "curvature_world_inverse": 0.02319615036408733,
+              "level": 310.3771375380397,
+              "points": 16,
+              "projection": [
+                84.05161247684262,
+                -27.797628005331674
+              ],
+              "radius": 43.11060172933768,
+              "relative_rms": 0.04521030083294956
+            }
+          ],
+          "state": "Unavailable",
+          "type_or_orientation_available": false
+        }
+      },
+      "orientation_available": false,
+      "physical_source_certified": false,
+      "receiver_pitch": 16.0,
+      "state": "Measured",
+      "training": 318
+    }
+  }
+}
