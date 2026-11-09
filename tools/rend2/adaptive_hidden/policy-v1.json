@@ -1,0 +1,17 @@
+{
+  "schema": "org.openjk.adaptive-hidden-policy.v1",
+  "max_nodes_per_area": 128,
+  "coarse_divisions": 4,
+  "refinement_rounds": 2,
+  "refine_seeds": 4,
+  "max_rays": 50000,
+  "max_forward_calls": 2304,
+  "max_work": 64000000,
+  "retained_per_channel_profile": 4,
+  "matching_world": 32,
+  "shape_score_gate": 0.12,
+  "source_kind_required_for_position_recall": false,
+  "equal_caps_not_equal_spent_work": true,
+  "source_answers_used_for_search": false,
+  "historical_source_certified": false
+}

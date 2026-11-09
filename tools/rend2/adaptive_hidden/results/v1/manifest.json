@@ -1,0 +1,11 @@
+{
+  "artifact_scope": "Owned compiler controls, numerical counts, source/input hashes; no licensed stock payloads",
+  "files": {
+    "evaluation.json": "0d2fa02a3bbec2e6a957587d0fe6b1679b1e91cce4232696c5527b50b4979c85",
+    "strict-parity.json": "b0266f7ce8ddb2a5de33b153cc633fe66446610d132d109589b2d63a9e2c3f4f",
+    "validation.json": "2ebd8fc4c02459590f163778345c9cdf4e1f7eb3b89464700c25b4d3b0b43359",
+    "verification.json": "ff2bcd47d55c69a80dd0d0f137a5dd93f98fa00d0ee40a6bba2bcb40493ef327"
+  },
+  "historical_source_certified": false,
+  "schema": "org.openjk.adaptive-hidden-artifacts.v1"
+}

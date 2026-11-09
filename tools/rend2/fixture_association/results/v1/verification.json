@@ -1,0 +1,126 @@
+{
+  "aggregate": {
+    "association": {
+      "f1": 1.0,
+      "fn": 0,
+      "fp": 0,
+      "tp": 10
+    },
+    "colour_only": {
+      "f1": 0.7,
+      "fn": 3,
+      "fp": 3,
+      "tp": 7
+    },
+    "nearest": {
+      "f1": 0.4,
+      "fn": 6,
+      "fp": 6,
+      "tp": 4
+    },
+    "nearest_colour": {
+      "f1": 0.5,
+      "fn": 5,
+      "fp": 5,
+      "tp": 5
+    }
+  },
+  "compiled_panel": {
+    "adapter_diagnostics": {
+      "grid_rejections": {
+        "aggregate_direction_multiple_styles_or_weak": 2,
+        "unknown_or_nonfree_grid_geometry": 5
+      },
+      "receiver_rejections": {
+        "ambiguous_or_unsupported_receiver": 50,
+        "unmapped_or_missing_geometry": 14056
+      }
+    },
+    "associations": 12,
+    "input": {
+      "fixture_centroid_roi_world": null,
+      "geometry": {
+        "capture_sha256": "6607d5dc4d2269b554dc374eaaa448bba09e1c28f70bfb5aea0107180d038ecf",
+        "metadata": {
+          "cells": 105,
+          "compiler_known": true,
+          "dynamic_models": 0,
+          "geometry_key": "fd9a6e966aab933592859705797820d204ad8552c827f45eec79cc760480e2da",
+          "indices_sha256": "7b53e3e5fc8f7d7d383dda78397bfc09fc81561a1ecdf1033d36ac540ef7ef79",
+          "map_sha256": "e48b9ebed9b8b61f71535a17e6f41bd1cf12331ab8d4ab22c6827cfadd1fbe4a",
+          "origin": [
+            -192,
+            -128,
+            0
+          ],
+          "records_sha256": "7039ebca69043a2cc81548a6d98e756137ae6287dc158e2c4c8d15b8009254e2",
+          "schema": "org.openjk.grid-geometry-bridge.v1",
+          "shape": [
+            7,
+            5,
+            3
+          ],
+          "spacing": [
+            64,
+            64,
+            128
+          ],
+          "synthetic": true
+        },
+        "tool_sha256": "5fe5a70cfb37df772f942173f1f36c4a2136ce85f7133acf97aa616c8db92eaa"
+      },
+      "grid_interpretation": "consumer256_unknown",
+      "grid_roi_world": [
+        -128.0,
+        -128.0,
+        16.0,
+        128.0,
+        128.0,
+        224.0
+      ],
+      "map_sha256": "e48b9ebed9b8b61f71535a17e6f41bd1cf12331ab8d4ab22c6827cfadd1fbe4a",
+      "sources": [
+        {
+          "role": "fixture_catalogue",
+          "schema": "org.openjk.research.bsp-fixtures/1",
+          "sha256": "d44fcec9186f7ef7d557bf0f9169c78ae1c3932516f3290f153b17af8f0041ad"
+        },
+        {
+          "role": "patches",
+          "schema": "org.openjk.lightmap-patches.v1",
+          "sha256": "449809c50739f009edac1d6f467273151f361179c36430ac32d755c6f3be4248"
+        },
+        {
+          "role": "original_rows",
+          "sha256": "af2d8a3f875a9ee3f28b83dbc47d158a471720ee911d0da401f831dcbb5987ef"
+        }
+      ]
+    },
+    "interpretation": "Existing owned compiled panel; integration test only, no recovery-accuracy claim",
+    "repeat_equal": true,
+    "report_sha256": "28800037e9fe537a3960c7a16747bd6237aa7bfe19dedbf1ff5e8bc1b985a2ab",
+    "selected": 0,
+    "statuses": {
+      "ambiguous": 9,
+      "rejected": 3
+    },
+    "unmatched_observations": 2,
+    "visibility": {
+      "blocked": 103,
+      "unknown": 161
+    }
+  },
+  "controlled_repeat_equal": true,
+  "controlled_sha256": "529f4fef4129f8cd1df947636f4b967baa5dc07a32998b9c31357648b4c9ad8a",
+  "historical_source_certified": false,
+  "implementation_sha256": {
+    "adapters.py": "5edd3917d18696a26b0ca4911c217a63162daaebfb43a350d8e3cf0bae889570",
+    "associate.py": "7c214e09a097851759b32b3827fe912c27c1de5e27209eeac2b77eb8d54c4fe5",
+    "controls.py": "ecea5846acb802dd8a1cbc166764553e32374bf44b27273386e02bf9cc1e5dfd",
+    "evaluate.py": "ce04e5d53fb4ee8716d8906281d98d6ef0f63b82c6850bb89c3de5ac53a52cf8",
+    "run.py": "827a59dba1ff57fce7544f8465eb2d9b86331a5a6d3c17e31c56913096992ed2",
+    "test_associate.py": "d039a58a2c49aa0be262fdba197bd5b130dfc02d363436649511b1c8432a0a1b",
+    "verify.py": "70120e92a7386bdb3e803a67c302f0e17d445603128130be52b7569c1d96e07e"
+  },
+  "schema": "org.openjk.fixture-association-verification.v1"
+}

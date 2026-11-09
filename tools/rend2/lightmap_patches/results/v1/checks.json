@@ -1,0 +1,42 @@
+{
+  "cmake_configure": "Passed; Visual Studio 16 2019",
+  "ctest": [
+    {
+      "name": "lightrecon_sampling",
+      "status": "run"
+    },
+    {
+      "name": "lightrecon_shadow",
+      "status": "run"
+    },
+    {
+      "name": "lightrecon_lightmaps",
+      "status": "run"
+    },
+    {
+      "name": "lightrecon_grid_triangulation",
+      "status": "run"
+    },
+    {
+      "name": "lightrecon_lightmap_patches",
+      "status": "run"
+    },
+    {
+      "name": "lightrecon_surfaces",
+      "status": "run"
+    }
+  ],
+  "ctest_failures": 0,
+  "ctest_xml_sha256": "c80ee14e7296c01bc9985a64ee5f4c1451712dcd29020a5735deac2bbb99fb40",
+  "native_targets_built": [
+    "lightrecon_sampling_test",
+    "lightrecon_shadow_test",
+    "lightrecon_lightmaps_test",
+    "lightrecon_surfaces_test"
+  ],
+  "python_patch_unit_tests": 15,
+  "repeated_controlled_and_compiled_descriptors": true,
+  "repeated_stock_descriptors": true,
+  "schema": "org.openjk.lightmap-patch-checks.v1",
+  "scope": "Offline tools and tests only; no renderer execution or new q3map2 compilation in ASR14"
+}

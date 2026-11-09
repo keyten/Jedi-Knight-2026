@@ -1,0 +1,1507 @@
+{
+  "compiled": [
+    {
+      "answer_sha256": "ab9cbf34cea31daf2393b8aec024a495bacaac2511fd78aa2d6a2644f2a49294",
+      "bounce_iterations": 0,
+      "candidate_metrics": [
+        {
+          "position_error_world": 0.10022405599730119,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.058717785653982446,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.11218014365267502,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.11367770307001294,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.07072578406746288,
+          "state": "UnknownGeometry"
+        }
+      ],
+      "constraints": [
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            0.0,
+            0.9851385282302975,
+            -0.17176169595181381
+          ],
+          "id": "31e41bbd6814b543ffc44edec253c3e3dcb76afd59b2c2aa0f092067ca1442af",
+          "maximum_world": [
+            192.0,
+            31.99999999999997,
+            179.8260869565217
+          ],
+          "projection_error_world": null,
+          "receivers": 206,
+          "surface": 0
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -96.0,
+            128.0,
+            179.95209462493466
+          ],
+          "footprint_axis": [
+            0.9999232805161002,
+            0.0,
+            0.012386810805054138
+          ],
+          "id": "3a73d7fe19e0363b37a25d05825a3c993c06bff71ef1cb17bd55b3a547ad66fc",
+          "maximum_world": [
+            -96.0,
+            128.0,
+            179.96564413584593
+          ],
+          "projection_error_world": 0.04790537506534065,
+          "receivers": 156,
+          "surface": 1
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -95.92126024414365,
+            31.92126024414364,
+            0.0
+          ],
+          "footprint_axis": null,
+          "id": "5e7f78c77bc9f6f07e5450e4d6788db4d484d3998c44b47b7cadb7e649cc9760",
+          "maximum_world": [
+            -96.0,
+            32.0,
+            0.0
+          ],
+          "projection_error_world": 0.11135483063000226,
+          "receivers": 268,
+          "surface": 5
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -192.0,
+            32.0,
+            179.93046980375738
+          ],
+          "footprint_axis": [
+            0.0,
+            -1.0,
+            6.123233995736766e-17
+          ],
+          "id": "925afe66567ee04aacc0031070b0edf42b283dfe34e053cc303d3a6fee6458c4",
+          "maximum_world": [
+            -192.0,
+            32.0,
+            179.9656441358459
+          ],
+          "projection_error_world": 0.06953019624262424,
+          "receivers": 130,
+          "surface": 4
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": null,
+          "id": "941aec3f4f7b85c14debd26221d3d6c63a213143f5cc6456e599c5c51ae7f74e",
+          "maximum_world": [
+            -103.52831526444606,
+            32.00000000000017,
+            256.0
+          ],
+          "projection_error_world": null,
+          "receivers": 167,
+          "surface": 2
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -96.0,
+            -128.0,
+            179.92807862810767
+          ],
+          "footprint_axis": [
+            -0.9753445785186159,
+            0.0,
+            -0.2206874558155572
+          ],
+          "id": "c390ee48ba5ba6e73cb9d2da2f2dfe7bd8d43397b0ba226020c0c1151993c31d",
+          "maximum_world": [
+            -95.99999999999999,
+            -128.0,
+            180.91781722550954
+          ],
+          "projection_error_world": 0.07192137189232994,
+          "receivers": 232,
+          "surface": 3
+        }
+      ],
+      "descriptor_sha256": "16f14e278971b532b6bca5f90d7ab5a3dd55a8887b99956fabd759951bfe7ec0",
+      "emitter_orientation_available": false,
+      "map_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "name": "point_room",
+      "patches": 6,
+      "physical_emitters_published": 0,
+      "receiver_footprint_metrics": {
+        "detections": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 1,
+        "matched": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 32
+      },
+      "repeat_identical": true,
+      "rows_sha256": "50214d85ec49104f08a67f1a7a653e0d1019fb7272d1d33642d4baa2ac06fdee",
+      "source_sha256": "c7a5c06ae959a36edc444220461c689d4c0557348972282b1ae21a20238cae5c"
+    },
+    {
+      "answer_sha256": "8889893942ac2f957bbd62794748bb0af4701dac2112e4c7212f1cdad4fe07fc",
+      "bounce_iterations": 0,
+      "candidate_metrics": [],
+      "constraints": [
+        {
+          "apparent_boundaries": 5,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            -0.7854226212398756,
+            0.6189598581852324,
+            0.0
+          ],
+          "id": "0d09690957936f37e7174757cfa6ced7f9221f0056c75b50931a18ef5792dc30",
+          "maximum_world": [
+            0,
+            0,
+            0
+          ],
+          "projection_error_world": null,
+          "receivers": 154,
+          "surface": 5
+        },
+        {
+          "apparent_boundaries": 32,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            -0.999672533070318,
+            0.0,
+            0.025589580394645494
+          ],
+          "id": "48335d55dcc929860bb93ec03cee05a37f6b3c4bd490dac65dd5db608767d16d",
+          "maximum_world": [
+            10.263737537841763,
+            128.0,
+            69.5734563916852
+          ],
+          "projection_error_world": null,
+          "receivers": 120,
+          "surface": 1
+        },
+        {
+          "apparent_boundaries": 15,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            0.21552434439597726,
+            0.9764984674707299,
+            0.0
+          ],
+          "id": "7b2eeac62bc4109cf97887cd1147f4aa626fcc9f06d2c957f5218298ee3117f2",
+          "maximum_world": [
+            26.599280268406545,
+            -13.970571705682957,
+            0.0
+          ],
+          "projection_error_world": null,
+          "receivers": 52,
+          "surface": 5
+        },
+        {
+          "apparent_boundaries": 1,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            0.0,
+            0.9639549365586852,
+            0.2660655563656089
+          ],
+          "id": "bd392cbf6f4992e9a27086fb7708179e569271418001944754ddadd131051edd",
+          "maximum_world": [
+            -192.0,
+            63.26128191410919,
+            15.69349391821187
+          ],
+          "projection_error_world": null,
+          "receivers": 33,
+          "surface": 4
+        }
+      ],
+      "descriptor_sha256": "237ab9de924cc7bccd40542f9ba024602cecf22cf4bfadb724f5c5f567aa90c8",
+      "emitter_orientation_available": false,
+      "map_sha256": "3670bbca350eae4e67b058f709900f3937ea79daac2e7b1f0f30f50f5ce3b7ee",
+      "name": "spot",
+      "patches": 4,
+      "physical_emitters_published": 0,
+      "receiver_footprint_metrics": {
+        "detections": 2,
+        "false_negatives": 1,
+        "false_positives": 2,
+        "labelled_footprints": 1,
+        "matched": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "tolerance_world": 48
+      },
+      "repeat_identical": true,
+      "rows_sha256": "4a90a4f8e9f3d4df50fafbbd0394a78a0126464b5773ee6808b7361dc11c6f2e",
+      "source_sha256": "8ef9ebcd90d86e6f835d4d0445b6046e2deab1cf1d7576731ff7e1c9626f9183"
+    },
+    {
+      "answer_sha256": "bbf3e78d4de170a4851bd2b3026eded64c8975dc254e400e96e6782544ddbc48",
+      "bounce_iterations": 0,
+      "candidate_metrics": [],
+      "constraints": [
+        {
+          "apparent_boundaries": 35,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            -1.0,
+            -6.123233995736766e-17,
+            0.0
+          ],
+          "id": "ba373ebac0ce8d7b18f00ea22606a90ad58b494b81a825bf665e1b40143917f0",
+          "maximum_world": [
+            2.842170943040401e-14,
+            0.0,
+            256.0
+          ],
+          "projection_error_world": null,
+          "receivers": 51,
+          "surface": 8
+        }
+      ],
+      "descriptor_sha256": "29f90ab61c8943c2a5a07af2b9f0d065f460c28473300a26f7a5875fb190fc44",
+      "emitter_orientation_available": false,
+      "map_sha256": "e48b9ebed9b8b61f71535a17e6f41bd1cf12331ab8d4ab22c6827cfadd1fbe4a",
+      "name": "panel",
+      "patches": 1,
+      "physical_emitters_published": 0,
+      "receiver_footprint_metrics": {
+        "detections": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 1,
+        "matched": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 32
+      },
+      "repeat_identical": true,
+      "rows_sha256": "af2d8a3f875a9ee3f28b83dbc47d158a471720ee911d0da401f831dcbb5987ef",
+      "source_sha256": "07eba269de4ce3e113f5886fd2148011a0bd5233e089c940e7411a2d2654b893"
+    },
+    {
+      "answer_sha256": "b70590e1ba2c70d1e3406be3a654c276cb5fb9b9c2438310c6b27e24e618ca21",
+      "bounce_iterations": 0,
+      "candidate_metrics": [
+        {
+          "position_error_world": 6.398320928143533,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 3.952526726414048,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 6.5750893891785855,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 6.592216631110304,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 2.8146129861762965,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.6386044697890837,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.5915569302166287,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.5654328643143667,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 6.161594944046751,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 4.809523408933507,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 3.6553563570097674,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 1.8944765533156405,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.6201093344510982,
+          "state": "UnknownGeometry"
+        }
+      ],
+      "constraints": [
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            -0.5063639917377951,
+            -0.8623198408197309,
+            0.0
+          ],
+          "id": "193fe55add0a8f41413dc88e8ccb70965625afb5a7b16e7dabceb1161989022e",
+          "maximum_world": [
+            -86.17115634990519,
+            22.91906999059259,
+            256.0
+          ],
+          "projection_error_world": null,
+          "receivers": 40,
+          "surface": 2
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -89.68953920693718,
+            30.031133606922168,
+            0.0
+          ],
+          "footprint_axis": [
+            0.28402545501527965,
+            0.9588167399995493,
+            0.0
+          ],
+          "id": "4d90d01c42de95dd7944f6f1ab0fa9e6ad2b95b9a622e03610fe7b1398e3aed7",
+          "maximum_world": [
+            -91.17353112929293,
+            30.87336205255366,
+            0.0
+          ],
+          "projection_error_world": 6.61047277390765,
+          "receivers": 172,
+          "surface": 5
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            192.0,
+            -31.849152018424462,
+            160.05000980813736
+          ],
+          "footprint_axis": null,
+          "id": "611a61e9c70f747ac6af4d52865dfd859ac626cc7b8a5175466030dd6b108dce",
+          "maximum_world": [
+            192.0,
+            -31.930063971349526,
+            160.025549771008
+          ],
+          "projection_error_world": 0.15892166137864738,
+          "receivers": 133,
+          "surface": 0
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -192.0,
+            31.870340889350615,
+            179.87492819547106
+          ],
+          "footprint_axis": [
+            0.0,
+            0.999930547881731,
+            0.011785559509048927
+          ],
+          "id": "631d204a1cd80f5eea8ca240b83f1d4fdf28993d0fa74a6b66f47d351b2fae19",
+          "maximum_world": [
+            -192.0,
+            31.943373675472998,
+            179.95387299789675
+          ],
+          "projection_error_world": 0.1801511622569103,
+          "receivers": 132,
+          "surface": 4
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            -0.7042513929236186,
+            -0.7099506853050731,
+            0.0
+          ],
+          "id": "89d1fedc85c12d35eecaca203d4eb569ae4e2a2ddeb86660e775fa0aaf7d37a6",
+          "maximum_world": [
+            -104.80130952446726,
+            41.09820110866585,
+            256.0
+          ],
+          "projection_error_world": null,
+          "receivers": 108,
+          "surface": 2
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            89.42180105139346,
+            128.0,
+            160.75463568024537
+          ],
+          "footprint_axis": [
+            0.20173660672088423,
+            0.0,
+            0.9794398100489602
+          ],
+          "id": "972278ed1bf5c002b2d711be7eca85a61a9826c056e5b2a8c83fbe5bf2fce1cf",
+          "maximum_world": [
+            90.84700094362648,
+            128.0,
+            160.4215088371574
+          ],
+          "projection_error_world": 6.621342493584485,
+          "receivers": 153,
+          "surface": 1
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            93.23036550526211,
+            -31.153511435367932,
+            0.0
+          ],
+          "footprint_axis": [
+            0.28488531161335334,
+            0.9585616095102926,
+            0.0
+          ],
+          "id": "9c58d2df34af4f3118c39871427c6056082f21a1b3a353f9369460d980bd620d",
+          "maximum_world": [
+            93.81741860169058,
+            -31.277848448200032,
+            0.0
+          ],
+          "projection_error_world": 2.8961039560925372,
+          "receivers": 190,
+          "surface": 5
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -95.45672384032979,
+            128.0,
+            179.9489598695973
+          ],
+          "footprint_axis": null,
+          "id": "a7d236ca421aae3382ab2232144abb83f54062b86efbcd3465ca39ea1116d310",
+          "maximum_world": [
+            -95.7836329586684,
+            128.0,
+            179.74961548721032
+          ],
+          "projection_error_world": 0.5456684713061033,
+          "receivers": 141,
+          "surface": 1
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            95.38162019628135,
+            -128.0,
+            160.05327569214342
+          ],
+          "footprint_axis": [
+            -0.23395076168809134,
+            0.0,
+            -0.9722484461831563
+          ],
+          "id": "d599d6c31e70ca78f5a8ce1799df8f38fa728b9209072556ceda2b1494729f55",
+          "maximum_world": [
+            95.64300024251673,
+            -128.0,
+            160.01322301511172
+          ],
+          "projection_error_world": 0.6206705092240813,
+          "receivers": 152,
+          "surface": 3
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -89.85561326854689,
+            -128.0,
+            179.24200337259163
+          ],
+          "footprint_axis": [
+            -0.007036531081291868,
+            0.0,
+            -0.9999752433087241
+          ],
+          "id": "e16e626d01e82c37e7e7db36732a0f1455e44bf28ea7ce504b4a54e05091b5c0",
+          "maximum_world": [
+            -90.17851946940534,
+            -128.0,
+            179.0911018446533
+          ],
+          "projection_error_world": 6.19096496459312,
+          "receivers": 141,
+          "surface": 3
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            95.43357984460658,
+            -31.824615988408198,
+            256.0
+          ],
+          "footprint_axis": null,
+          "id": "f16e50480a72745c1fa167e27e6af9f7d511bf8941297dde1534c719c8d2dcb0",
+          "maximum_world": [
+            95.67595675162607,
+            -31.957715884422555,
+            256.0
+          ],
+          "projection_error_world": 0.5929513841437047,
+          "receivers": 139,
+          "surface": 2
+        }
+      ],
+      "descriptor_sha256": "db29302b24717ef886234bb9129418b2b5c061df162d68903db604a91dc7c5ae",
+      "emitter_orientation_available": false,
+      "map_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "name": "two_colour",
+      "patches": 11,
+      "physical_emitters_published": 0,
+      "receiver_footprint_metrics": {
+        "detections": 2,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 2,
+        "matched": 2,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 32
+      },
+      "repeat_identical": true,
+      "rows_sha256": "ddedac4624754775d632638a178b38f8490e57b38cfa978e6adef983e6613d35",
+      "source_sha256": "f14a3c9d4fc17ba7cbc5b68a76eea6bb7d3db579bda5a900d8596f94281dd6b8"
+    },
+    {
+      "answer_sha256": "8ab4cd1047ab76cd1211aaad0b51c9bd49946b84f4c69076aeb555e9b6782c7e",
+      "bounce_iterations": 0,
+      "candidate_metrics": [
+        {
+          "position_error_world": 0.0800112453551094,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.06953019624262424,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.04899016752747798,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.005240524556256787,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.010270014357558921,
+          "state": "UnknownGeometry"
+        }
+      ],
+      "constraints": [
+        {
+          "apparent_boundaries": 17,
+          "constraint": "Conditional",
+          "foot_world": [
+            -96.0,
+            32.0,
+            0.0
+          ],
+          "footprint_axis": [
+            -0.9406722822849469,
+            0.3393164560418918,
+            0.0
+          ],
+          "id": "050d3fe3384400ada6320c409d1b6f5a065096fc6d17c369a30919267c9be167",
+          "maximum_world": [
+            -96.0,
+            32.0,
+            0.0
+          ],
+          "projection_error_world": 0.0,
+          "receivers": 282,
+          "surface": 10
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            -0.3982888904574175,
+            0.0,
+            -0.9172600284206215
+          ],
+          "id": "066b2e8f988b34c357a85aa87fc7a963e2da122fdda327219d808908885f1fda",
+          "maximum_world": [
+            176,
+            -128,
+            64
+          ],
+          "projection_error_world": null,
+          "receivers": 30,
+          "surface": 8
+        },
+        {
+          "apparent_boundaries": 7,
+          "constraint": "Conditional",
+          "foot_world": [
+            -96.0,
+            128.0,
+            180.0800112453551
+          ],
+          "footprint_axis": null,
+          "id": "3b0ffcd30b5a82900ca0ab833c59c24300ab21849d2ce6e125550e29431889e3",
+          "maximum_world": [
+            -96.0,
+            128.0,
+            179.96564413584593
+          ],
+          "projection_error_world": 0.0800112453551094,
+          "receivers": 161,
+          "surface": 6
+        },
+        {
+          "apparent_boundaries": 12,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            0.0,
+            0.09641845738831714,
+            -0.9953408868698489
+          ],
+          "id": "3cc14de1ecde2da4815a189f68eaee5c3dfbda36e50bf8d9785161c1cb9fc1ea",
+          "maximum_world": [
+            192,
+            32,
+            96
+          ],
+          "projection_error_world": null,
+          "receivers": 26,
+          "surface": 0
+        },
+        {
+          "apparent_boundaries": 7,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            -0.12052299945009806,
+            -0.9927105351528973,
+            0.0
+          ],
+          "id": "7084c54785e1a3e9a9bde1102aa3518815fffe735879d53876d9327848fa03bc",
+          "maximum_world": [
+            -88.47168473555439,
+            32.00000000000017,
+            256.0
+          ],
+          "projection_error_world": null,
+          "receivers": 87,
+          "surface": 7
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -192.0,
+            32.0,
+            179.93046980375738
+          ],
+          "footprint_axis": [
+            0.0,
+            -1.0,
+            6.123233995736766e-17
+          ],
+          "id": "7c8fb8e32f17c7021e5fea956c860a05343a1da6ce3a1967ce14651d67f7c772",
+          "maximum_world": [
+            -192.0,
+            32.0,
+            179.9656441358459
+          ],
+          "projection_error_world": 0.06953019624262424,
+          "receivers": 130,
+          "surface": 9
+        },
+        {
+          "apparent_boundaries": 6,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            -0.9504700786642142,
+            0.0,
+            -0.3108160703117562
+          ],
+          "id": "8b93b27eee19958a6d15747b85f1747cf25af8201a3c74abb0e10b4fb4d1a1e2",
+          "maximum_world": [
+            144,
+            -128,
+            112
+          ],
+          "projection_error_world": null,
+          "receivers": 12,
+          "surface": 8
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            -0.08869011926235411,
+            -0.9960592666830771,
+            0.0
+          ],
+          "id": "9c759c66ac1ef6644b5adf66b30007940ca2392661a92687d836a172347e6416",
+          "maximum_world": [
+            -104.96514175675948,
+            40.96514175675949,
+            256.0
+          ],
+          "projection_error_world": null,
+          "receivers": 85,
+          "surface": 7
+        },
+        {
+          "apparent_boundaries": 9,
+          "constraint": "Conditional",
+          "foot_world": [
+            -96.0,
+            -128.0,
+            180.04899016752748
+          ],
+          "footprint_axis": [
+            -0.11701656516969651,
+            0.0,
+            -0.9931299630339859
+          ],
+          "id": "9f6723bf00f2d4c1d853fe72a9769d6899ddc4c27b5e7c1b699fd958341143d0",
+          "maximum_world": [
+            -95.99999999999999,
+            -128.0,
+            180.91781722550954
+          ],
+          "projection_error_world": 0.04899016752747798,
+          "receivers": 212,
+          "surface": 8
+        },
+        {
+          "apparent_boundaries": 8,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            0.0,
+            0.9634197473346707,
+            -0.267996997083175
+          ],
+          "id": "b1c7a0d5647f781d206b8a4b7c9b88a8cb8e017a195cedef99d10abc44ba5575",
+          "maximum_world": [
+            192,
+            -16,
+            80
+          ],
+          "projection_error_world": null,
+          "receivers": 70,
+          "surface": 0
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            0.0,
+            0.9398629336939804,
+            -0.34155184945794753
+          ],
+          "id": "d2987aeaf341e50b451b093aca590538394f440964901e35bb93f41f93452f54",
+          "maximum_world": [
+            -2.0,
+            32.0,
+            180.0460780464081
+          ],
+          "projection_error_world": null,
+          "receivers": 111,
+          "surface": 2
+        }
+      ],
+      "descriptor_sha256": "eba74bec61ce4890bc9727adcd3d131506fd01d5133e37123f320f751994245a",
+      "emitter_orientation_available": false,
+      "map_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "name": "door_occlusion",
+      "patches": 11,
+      "physical_emitters_published": 0,
+      "receiver_footprint_metrics": {
+        "detections": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 1,
+        "matched": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 32
+      },
+      "repeat_identical": true,
+      "rows_sha256": "dddcb5729924a2b16a7c65ce95eaf78b2b148bab8858fd36f7da5ff9f25bdc05",
+      "source_sha256": "9341b91ad9685af355060d6ef6ad112017a9e816e09fdd2ed32a23b31785a4bb"
+    },
+    {
+      "answer_sha256": "e214b68adaa8631dc50e01bb3a81144ff0084030d82b0ca904afda7f582ab7e3",
+      "bounce_iterations": 0,
+      "candidate_metrics": [
+        {
+          "position_error_world": 0.1233066815062216,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.05475299932783173,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.1233066815062216,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.03427684108919493,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 0.03427684108919493,
+          "state": "UnknownGeometry"
+        }
+      ],
+      "constraints": [
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": null,
+          "id": "19702724d833c6173998190e791d796dbdfd2c781ac2143077248f6b3a28bc00",
+          "maximum_world": [
+            -2.0,
+            0.0,
+            179.95565309357644
+          ],
+          "projection_error_world": null,
+          "receivers": 124,
+          "surface": 2
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            0.09872753345571429,
+            -0.9951145030285463,
+            0.0
+          ],
+          "id": "29798ca257fec83837f595d4b3564607e528c9856dde1ad0493399f9651cd9c4",
+          "maximum_world": [
+            -104.96514175675954,
+            -8.965141756759536,
+            256.0
+          ],
+          "projection_error_world": null,
+          "receivers": 89,
+          "surface": 4
+        },
+        {
+          "apparent_boundaries": 17,
+          "constraint": "Conditional",
+          "foot_world": [
+            -96.0,
+            0.0,
+            0.0
+          ],
+          "footprint_axis": [
+            -2.6295800206324467e-17,
+            1.0,
+            0.0
+          ],
+          "id": "61d331d3f2d00e7d09a4cd5f49e6fc6d7caaadbf0c727d2a86892b51ac0dfa7a",
+          "maximum_world": [
+            -96.0,
+            0.0,
+            0.0
+          ],
+          "projection_error_world": 0.0,
+          "receivers": 221,
+          "surface": 7
+        },
+        {
+          "apparent_boundaries": 7,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            0.10019850876759562,
+            -0.994967466222263,
+            0.0
+          ],
+          "id": "85bb3b976f13b5bf4a9e4208365733b1b7b48a47a9d8ea97c5f005804b373203",
+          "maximum_world": [
+            -88.47168473555439,
+            1.7053025658242404e-13,
+            256.0
+          ],
+          "projection_error_world": null,
+          "receivers": 90,
+          "surface": 4
+        },
+        {
+          "apparent_boundaries": 12,
+          "constraint": "Conditional",
+          "foot_world": [
+            -96.0,
+            -128.0,
+            180.12330668150622
+          ],
+          "footprint_axis": [
+            0.021116779808899325,
+            0.0,
+            -0.9997770159443067
+          ],
+          "id": "9794895fd56a90ba46e016920687304076f60289e5ac04eb55ea8e55c361cb8d",
+          "maximum_world": [
+            -96.0,
+            -128.0,
+            179.5139077759921
+          ],
+          "projection_error_world": 0.1233066815062216,
+          "receivers": 201,
+          "surface": 5
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -192.0,
+            0.0,
+            179.94524700067217
+          ],
+          "footprint_axis": [
+            0.0,
+            -1.0,
+            6.123233995736766e-17
+          ],
+          "id": "b96d2d868990afe18afbe98367c58744f55d8d785bbbc093f6f2281c1797e833",
+          "maximum_world": [
+            -192.0,
+            0.0,
+            179.9656441358459
+          ],
+          "projection_error_world": 0.05475299932783173,
+          "receivers": 126,
+          "surface": 6
+        },
+        {
+          "apparent_boundaries": 12,
+          "constraint": "Conditional",
+          "foot_world": [
+            -96.0,
+            128.0,
+            180.12330668150622
+          ],
+          "footprint_axis": [
+            -0.021116779808899325,
+            0.0,
+            0.9997770159443067
+          ],
+          "id": "be43bbff44a6f3800962c809373204176e7bfd065f0d1ac4eb124c61ce57ec69",
+          "maximum_world": [
+            -96.0,
+            128.0,
+            179.5139077759921
+          ],
+          "projection_error_world": 0.1233066815062216,
+          "receivers": 201,
+          "surface": 3
+        }
+      ],
+      "descriptor_sha256": "a67108714f94abebfac88aa3c241e26199017baffccab1bb66c220425f72f126",
+      "emitter_orientation_available": false,
+      "map_sha256": "ed677951d53097665c235686c8f43b623baf995bbdf344c4fe0c43cfe1908527",
+      "name": "wall_leak",
+      "patches": 7,
+      "physical_emitters_published": 0,
+      "receiver_footprint_metrics": {
+        "detections": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 1,
+        "matched": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 32
+      },
+      "repeat_identical": true,
+      "rows_sha256": "28b073c69ad37d4a2c0a8db543f2ce805def7e548f71acc0f22ef0ff39b56509",
+      "source_sha256": "4c08ebffdd010aeb84caabe16b5f68c8dda337035eca95fbb88abc4b02d113d1"
+    },
+    {
+      "answer_sha256": "a82ab0f13e5cba8a1ebfa784d24de0d087b06c65316942dac3ae98a652c66d49",
+      "bounce_iterations": 1,
+      "candidate_metrics": [
+        {
+          "position_error_world": 8.811255863927613,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 18.939684561120345,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 11.37921766151153,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 8.233021516313459,
+          "state": "UnknownGeometry"
+        },
+        {
+          "position_error_world": 5.988252944084356,
+          "state": "UnknownGeometry"
+        }
+      ],
+      "constraints": [
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            103.89226359816189,
+            -7.620456592021952,
+            0.0
+          ],
+          "footprint_axis": [
+            -0.010022756923438007,
+            0.9999497709103461,
+            0.0
+          ],
+          "id": "18ca7381c197de1cf8355a3e73a646c1a113ea10bfb01e9e7b1fb277e1d12b40",
+          "maximum_world": [
+            101.9161766994589,
+            -4.422969270284938,
+            0.0
+          ],
+          "projection_error_world": 8.55693137687027,
+          "receivers": 263,
+          "surface": 5
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            102.92070353693492,
+            128.0,
+            162.8218329030491
+          ],
+          "footprint_axis": [
+            -0.06809687831887229,
+            0.0,
+            0.9976787133958631
+          ],
+          "id": "25951037e7632bd00029b255c223d6275b3a739ae1c7b98fc33b1a6f411624c2",
+          "maximum_world": [
+            101.51245311177843,
+            128.0,
+            162.21912186515698
+          ],
+          "projection_error_world": 4.061188260028677,
+          "receivers": 234,
+          "surface": 1
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            -192.0,
+            -1.3225238861499804,
+            142.0120120525134
+          ],
+          "footprint_axis": null,
+          "id": "27d0f19bc2b4648048fb0bbfd330fca3f4c32c35a600b057a4b25f669ae39dc9",
+          "maximum_world": [
+            -192.0,
+            -3.826086956521735,
+            144.0
+          ],
+          "projection_error_world": 18.036540129092398,
+          "receivers": 186,
+          "surface": 4
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": null,
+          "id": "6a8937b5f5312f86bf32b6c468d047177b48fca43388ffef772d9c2cec79d4be",
+          "maximum_world": [
+            192,
+            0,
+            160
+          ],
+          "projection_error_world": null,
+          "receivers": 142,
+          "surface": 0
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Unavailable",
+          "foot_world": null,
+          "footprint_axis": [
+            0.0371210231189265,
+            -0.9993107773073421,
+            0.0
+          ],
+          "id": "b915d1dac60b6d7d920544d55fa4961ec7addcea31b047728bdcdd35412832ad",
+          "maximum_world": [
+            100.89840577246736,
+            -0.23144418339403217,
+            256.0
+          ],
+          "projection_error_world": null,
+          "receivers": 209,
+          "surface": 2
+        },
+        {
+          "apparent_boundaries": 0,
+          "constraint": "Conditional",
+          "foot_world": [
+            102.81748173243261,
+            -128.0,
+            167.75629198243635
+          ],
+          "footprint_axis": [
+            0.20452323112866586,
+            0.0,
+            -0.9788617103190268
+          ],
+          "id": "e72fd47d830f1931e316d7e6f1ea4fb15304f69e6d96a910b31ac927e8650931",
+          "maximum_world": [
+            101.80152128808817,
+            -128.0,
+            165.7225465113391
+          ],
+          "projection_error_world": 8.252167510987515,
+          "receivers": 229,
+          "surface": 3
+        }
+      ],
+      "descriptor_sha256": "c189029306ada0884b9833132bc3571cf1eaf6ec91c2a0a312ebdfccbfb2b5d2",
+      "emitter_orientation_available": false,
+      "map_sha256": "d0edab94b2a28f2f26542528d281dd7c49d84d2226627490a46da64201959617",
+      "name": "bounce_colour",
+      "patches": 6,
+      "physical_emitters_published": 0,
+      "receiver_footprint_metrics": {
+        "detections": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 1,
+        "matched": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 32
+      },
+      "repeat_identical": true,
+      "rows_sha256": "4625847dc072d0bc5f308a843531fa7f4853826369307df3fc6906f6630dac35",
+      "source_sha256": "43df8ee1c2abb636947485fdff0fd5bf9085f238622aaaab686aea412352c8b7"
+    }
+  ],
+  "compiled_gi": {
+    "answer_sha256": [
+      "a82ab0f13e5cba8a1ebfa784d24de0d087b06c65316942dac3ae98a652c66d49",
+      "7ab0b342d101c8cdbf805a27c94de39c2a39a72fe5a00eb15fb458dfd07eb992"
+    ],
+    "censored_pairs_excluded": 19,
+    "derivation": "Positive code increment of matched compiled bounce=1 minus bounce=0, censored pairs excluded",
+    "descriptor_sha256": "e7e0495824dc3d2da3b8f0b5609da458acbc6cc14831a32a0c76a5a9532796da",
+    "name": "compiled_gi_code_increment",
+    "negative_channel_differences_clamped": 0,
+    "original_rows_sha256": [
+      "4625847dc072d0bc5f308a843531fa7f4853826369307df3fc6906f6630dac35",
+      "9c45e1057c48214255e80301088ea32a1550516eaeeb6d8c20263b75d5496b1e"
+    ],
+    "patches": 2,
+    "physical_emitters_published": 0,
+    "primary_constraint_false_positives": 0,
+    "repeat_identical": true
+  },
+  "compiled_labels": "Floor normal projections; spot central-axis footprint (48 WU tolerance); panel ceiling footprint. Others 32 WU.",
+  "controlled": [
+    {
+      "conditional_radial_constraints": 1,
+      "descriptor_sha256": "da0d69be963fce191ff6e609a401237558122f37ea28c6a1d9749eef84f4f3d9",
+      "footprint_orientation_error_degrees": [],
+      "input_sha256": "37b678e62091e644ba7415fe505b189ea08ce7f609f642da01d7a81f29cbfe2f",
+      "maximum_error_world": [
+        0.0
+      ],
+      "metrics": {
+        "detections": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 1,
+        "matched": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 16
+      },
+      "name": "point",
+      "physical_emitters_published": 0,
+      "primary_constraint_false_positives": null,
+      "repeat_identical": true
+    },
+    {
+      "conditional_radial_constraints": 0,
+      "descriptor_sha256": "5f171d5b257c177c90e0c8526b8ca51b014945e9c57ba3213b6333bacfbd0072",
+      "footprint_orientation_error_degrees": [
+        0.09544569153267304
+      ],
+      "input_sha256": "c88c2295804d40e327e7119118f8c72d20c3766cd526b1105e0799c43d26e4ac",
+      "maximum_error_world": [
+        0.0
+      ],
+      "metrics": {
+        "detections": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 1,
+        "matched": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 16
+      },
+      "name": "spot",
+      "physical_emitters_published": 0,
+      "primary_constraint_false_positives": null,
+      "repeat_identical": true
+    },
+    {
+      "conditional_radial_constraints": 0,
+      "descriptor_sha256": "99703ed00949aa1e5b63f2842e896de0752243510f77241f402e28945910ceb7",
+      "footprint_orientation_error_degrees": [
+        0.2778324492164484
+      ],
+      "input_sha256": "010c780502d85e908961ff91c87ea70a4a923a277ea1c9e064849a24d4c72e30",
+      "maximum_error_world": [
+        0.0
+      ],
+      "metrics": {
+        "detections": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 1,
+        "matched": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 16
+      },
+      "name": "panel",
+      "physical_emitters_published": 0,
+      "primary_constraint_false_positives": null,
+      "repeat_identical": true
+    },
+    {
+      "conditional_radial_constraints": 2,
+      "descriptor_sha256": "fa8c68b373b68b1e5d234ca96eda65710c512187ba49a659bd71adb894e0786f",
+      "footprint_orientation_error_degrees": [],
+      "input_sha256": "8008aefa5915e19026b679119e9cfc9c5b7eaf60a386f52fa9cb48ca2c80a9b2",
+      "maximum_error_world": [
+        0.0,
+        0.0
+      ],
+      "metrics": {
+        "detections": 2,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 2,
+        "matched": 2,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 16
+      },
+      "name": "multi",
+      "physical_emitters_published": 0,
+      "primary_constraint_false_positives": null,
+      "repeat_identical": true
+    },
+    {
+      "conditional_radial_constraints": 0,
+      "descriptor_sha256": "cf9a47bdaa08559a8646a27da6a2aa21121fd9996a6e9339f4ba1ebd21459f0b",
+      "footprint_orientation_error_degrees": [],
+      "input_sha256": "a85cc23dafc0ba16c45c4889bdb1445e7d660370ff2625000a1244bb19d86b66",
+      "maximum_error_world": [],
+      "metrics": {
+        "detections": 0,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 0,
+        "matched": 0,
+        "precision": null,
+        "recall": null,
+        "tolerance_world": 16
+      },
+      "name": "flat",
+      "physical_emitters_published": 0,
+      "primary_constraint_false_positives": 0,
+      "repeat_identical": true
+    },
+    {
+      "conditional_radial_constraints": 0,
+      "descriptor_sha256": "bff162591d28354060bc0f2badbae7ff75eb48e37fee3d65a6d6aa0ffc448375",
+      "footprint_orientation_error_degrees": [],
+      "input_sha256": "5024809ef19235b1612a54679a043ffff2448e64f4a516fa4b33613502277926",
+      "maximum_error_world": [],
+      "metrics": {
+        "detections": 0,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 0,
+        "matched": 0,
+        "precision": null,
+        "recall": null,
+        "tolerance_world": 16
+      },
+      "name": "ramp",
+      "physical_emitters_published": 0,
+      "primary_constraint_false_positives": 0,
+      "repeat_identical": true
+    },
+    {
+      "conditional_radial_constraints": 0,
+      "descriptor_sha256": "99ee1e9ddacb53e4dc748c8d167e1b2121e43c14996bbfc0d2e639ff58060ecc",
+      "footprint_orientation_error_degrees": [],
+      "input_sha256": "8d183c06fe8639bd41e373be2babcf58492f5549c2e1d0a08b7dd64aa6b89a1c",
+      "maximum_error_world": [],
+      "metrics": {
+        "detections": 0,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 0,
+        "matched": 0,
+        "precision": null,
+        "recall": null,
+        "tolerance_world": 16
+      },
+      "name": "material_seam",
+      "physical_emitters_published": 0,
+      "primary_constraint_false_positives": 0,
+      "repeat_identical": true
+    },
+    {
+      "conditional_radial_constraints": 1,
+      "descriptor_sha256": "7d6fab760e3e88bcd74644fdf7c6cda372f368daa41cbefb0070109454080095",
+      "footprint_orientation_error_degrees": [],
+      "input_sha256": "6537b8751df34532ca0acd8a47f3ab4ec2bf0283963447a97745eb5c7fd85c83",
+      "maximum_error_world": [
+        0.0
+      ],
+      "metrics": {
+        "detections": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "labelled_footprints": 1,
+        "matched": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tolerance_world": 16
+      },
+      "name": "gi_only",
+      "physical_emitters_published": 0,
+      "primary_constraint_false_positives": 1,
+      "repeat_identical": true
+    }
+  ],
+  "controlled_labels": "Authored code-field centres and anisotropic axes, 16 WU tolerance",
+  "geometry_tool_sha256": "5fe5a70cfb37df772f942173f1f36c4a2136ce85f7133acf97aa616c8db92eaa",
+  "metric_scope": "Detection precision is one-to-one receiver footprint matching, not primary-source certification",
+  "policy": {
+    "contour_levels": [
+      0.35,
+      0.55,
+      0.75,
+      0.9
+    ],
+    "max_chart_rows": 8192,
+    "max_patches": 256,
+    "max_rows": 262144,
+    "max_work": 12000000,
+    "maximum_circle_rms": 0.06,
+    "minimum_angular_bins": 7,
+    "minimum_colour_cosine": 0.85,
+    "minimum_contour_points": 12,
+    "minimum_contrast_codes": 10,
+    "minimum_gradient_stencils": 12,
+    "minimum_relative_contrast": 0.12,
+    "minimum_samples": 12,
+    "normal_dot": 0.999,
+    "plane_tolerance_world": 0.05,
+    "scales": [
+      1,
+      2,
+      4
+    ]
+  },
+  "schema": "org.openjk.lightmap-patch-evaluation.v1",
+  "source_orientation_precision": "Unavailable: patch axis does not identify lamp orientation",
+  "sources": {
+    "tools\\rend2\\lightmap_patches\\evaluate.py": "cccc7d67cd8c96fd7a6431f08b392e7fd0f7351925ab828d8a652d16a762f4aa",
+    "tools\\rend2\\lightmap_patches\\extract.py": "548c7ea30247eabf3269a128427f7c981aebe20f626c50145252dce7cf1da13d",
+    "tools\\rend2\\lightmap_patches\\fixtures.py": "738fb19e69fd6a0c2177bf3aa1357c6ec253f7d058641fc49a8e8a61902fde31",
+    "tools\\rend2\\lightmap_patches\\inspect.py": "0d7adc95736107d856bbd183d235b298cd8cb51254638f468c95d1d1f5c05c72",
+    "tools\\rend2\\lightmap_patches\\run.py": "cfc254b9129f7c0f771faa3000f587b42ace368bfc5dfdc42f72954e09590fad",
+    "tools\\rend2\\lightmap_patches\\test_patches.py": "f8f5e37e51b17548180cd94c9102669d21bafb21fbd4e4fbfed83aea083f0b39",
+    "tools\\rend2\\lightmap_patches\\verify.py": "3d7acfce5db7ce9f2b8042b2fa8ca531838d1469aeaaf0351d90f8e642192658"
+  }
+}

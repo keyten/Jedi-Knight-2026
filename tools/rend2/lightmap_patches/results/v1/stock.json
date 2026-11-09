@@ -1,0 +1,34 @@
+{
+  "candidates": 0,
+  "charts": 1,
+  "components": 1,
+  "conditional_constraints": 0,
+  "descriptors_sha256": "b4542e6fa81459a3b1c9b8f9b17cf9c54769d84a9fb03a74bbab66a5a07e7a79",
+  "emitter_orientation": null,
+  "input": {
+    "evaluation_split": "Descriptive discovery census, no fitting/evaluation score reuse",
+    "map": "maps/mp/ffa3.bsp",
+    "map_sha256": "2a448530b908761dd797a02f6530bbe2deb6597f1bc58d9c458e6d62619d5b05",
+    "roi_world": null,
+    "rows_sha256": "9e5df543502258207efc48a69bd533ad85e9290e054dd5458e4be59d5486c49b",
+    "sampling": "Original mapped luxel export; full selected chart/ROI census",
+    "source_sha256": "4495f9e4fe717b32514dc4e976e6a51769b5c6edaf2adc46fc57e514d69a204b",
+    "surfaces": [
+      3628
+    ]
+  },
+  "input_rows": 3143,
+  "patches": 24,
+  "physical_emitters_published": 0,
+  "precision": null,
+  "private_artifacts": "Original rows, geometry, descriptor payloads and diagnostic PNG remain in build/asr14",
+  "rejected": {
+    "ambiguous_or_unsupported_receiver": 100,
+    "unmapped_or_missing_geometry": 6
+  },
+  "repeated_identically": true,
+  "saturated_patches": 3,
+  "schema": "org.openjk.lightmap-patch-stock.v1",
+  "selection": "Exploratory chart colour contrast, no held-out source accuracy claim",
+  "source_truth": "Unavailable"
+}

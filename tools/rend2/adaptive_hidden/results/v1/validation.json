@@ -1,0 +1,23 @@
+{
+  "canonical_schema_changes": false,
+  "ctest_passed": 9,
+  "historical_source_certified": false,
+  "native_checks": 83,
+  "native_test_sha256": "2dbc26eefacb88da7c8225020815bdec99cf4103f0acd3664aca44e613e417ea",
+  "proposal_cli_smoke": {
+    "candidates": 12,
+    "code": 0,
+    "report_sha256": "726d57de100e306d05391e68bdedbd192a2679057105102c06b9038116451d0c"
+  },
+  "python_tests": 5,
+  "regression_log_sha256": "67d58c0d9c6fdf4319fef7636424ac4b37c60d9ba4a7d76b3a16bf61ac030a45",
+  "renderer_changes": false,
+  "schema": "org.openjk.adaptive-hidden-validation.v1",
+  "strict_generator_and_scheduler_unchanged": true,
+  "strict_protocol_semantic_equal": true,
+  "tests_source_sha256": {
+    "tools/lightrecon_test/CMakeLists.txt": "461589e6dc6634ac57305dd8b7e144b5b94b90375b6adc956c1365e518c77eec",
+    "tools/lightrecon_test/lightrecon_adaptive_test.cpp": "6bfe72129bd74c9a2a8a6e189bc4bcf39482f1d0146e5676ccb806060c60cccf",
+    "tools/rend2/adaptive_hidden/test_adaptive.py": "889dff6775aff276fcd75aa201a709e72eb0e7ab4426f06a6c7603e8000f9f3c"
+  }
+}

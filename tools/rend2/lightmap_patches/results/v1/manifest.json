@@ -1,0 +1,27 @@
+{
+  "artifacts": {
+    "checks.json": "3fa96a2826d9affbd36d3bed32665dff2f93cfa8f9f511880184845de40175e3",
+    "stock.json": "e63bd09025c128a00a0bd340e2b1a77ed4e58755b44d7c98deea6400d3287f7c",
+    "summary.json": "a4b47c25ec795b236a41ecdcce2d4cb4645093b5fbebde0106a6e62a10051239",
+    "verification.json": "ee4c77f3ad62aa3e4717ac06a1f0a0a40b23721e79dcd387c5b425b323d0b354"
+  },
+  "base_revision": "2b4186ecbd8f264fa611d4f48d01ad418bd35a74",
+  "canonical_assets_changed": false,
+  "historical_solver_changed": false,
+  "renderer_changed": false,
+  "schema": "org.openjk.lightmap-patch-manifest.v1",
+  "sources": {
+    "docs/rend2-lightmap-patches-asr14.md": "b9fbb01b86196e059f7993e345813ea8ffe809cdeac3cb50061226edc5a86c74",
+    "tools/lightrecon_test/CMakeLists.txt": "ff66c1b42af3e6ea1006116a020bd46af0b2d5b2c4df188c926f01fd10d1a7a1",
+    "tools/rend2/grid_triangulation/triangulate.py": "3d7c1b8be5f069e97f4134af2cb5e340a277b05a81a71109e0d5334629ba3f24",
+    "tools/rend2/isophotes/prototype.py": "81467ff0be8ecb0e4071cbc403729fa5d0a636d6380a7927f983419427cbac98",
+    "tools/rend2/lightmap_patches/README.md": "05bbba80c28988fa52e2469f3957cebc2b8675b8e85d1f6580465ff28022d692",
+    "tools/rend2/lightmap_patches/evaluate.py": "cccc7d67cd8c96fd7a6431f08b392e7fd0f7351925ab828d8a652d16a762f4aa",
+    "tools/rend2/lightmap_patches/extract.py": "548c7ea30247eabf3269a128427f7c981aebe20f626c50145252dce7cf1da13d",
+    "tools/rend2/lightmap_patches/fixtures.py": "738fb19e69fd6a0c2177bf3aa1357c6ec253f7d058641fc49a8e8a61902fde31",
+    "tools/rend2/lightmap_patches/inspect.py": "0d7adc95736107d856bbd183d235b298cd8cb51254638f468c95d1d1f5c05c72",
+    "tools/rend2/lightmap_patches/run.py": "cfc254b9129f7c0f771faa3000f587b42ace368bfc5dfdc42f72954e09590fad",
+    "tools/rend2/lightmap_patches/test_patches.py": "f8f5e37e51b17548180cd94c9102669d21bafb21fbd4e4fbfed83aea083f0b39",
+    "tools/rend2/lightmap_patches/verify.py": "3d7acfce5db7ce9f2b8042b2fa8ca531838d1469aeaaf0351d90f8e642192658"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "compiled_cases": 7,
+  "compiled_gi_increment": true,
+  "compiled_point_maximum_projection_error_world": 0.11135483063000226,
+  "controlled_cases": 8,
+  "physical_emitters_published": 0,
+  "repeated_all_json_identical": true,
+  "schema": "org.openjk.lightmap-patches-verification.v1",
+  "summary_sha256": "a4b47c25ec795b236a41ecdcce2d4cb4645093b5fbebde0106a6e62a10051239"
+}

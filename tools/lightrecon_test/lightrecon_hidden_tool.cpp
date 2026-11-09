@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "lightrecon/hidden_candidates.h"
 #include "lightrecon/offline.h"
+#ifdef LIGHTRECON_ADAPTIVE_TOOL
+#include "adaptive_hidden.h"
+#endif
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -63,12 +66,21 @@ int main(int argc, char **argv)
 		f.seekg(0);
 		std::string magic, map;
 		f >> magic >> map;
-		if ((magic != "JKHIDDEN1" && magic != "JKHIDDEN2" && magic != "JKSAMPLE1") ||
+		if ((magic != "JKHIDDEN1" && magic != "JKHIDDEN2" && magic != "JKSAMPLE1"
+#ifdef LIGHTRECON_ADAPTIVE_TOOL
+			 && magic != "JKADAPTIVE1"
+#endif
+			 ) ||
 			map != Disk::Hex(s.metadata.map.sha256))
 			throw std::runtime_error("Training schema/map fingerprint mismatch");
 		if (magic == "JKSAMPLE1")
 			return SamplingProtocol(s, f);
 		H::Request r;
+#ifdef LIGHTRECON_ADAPTIVE_TOOL
+		unsigned strategy = 0;
+		AdaptiveHidden::Options adaptiveOptions;
+		AdaptiveHidden::Audit adaptiveAudit;
+#endif
 		r.map = s.metadata.map;
 		r.units = s.metadata.units;
 		r.analysisBounds.known = true;
@@ -94,6 +106,18 @@ int main(int argc, char **argv)
 			r.options.balanceRefinementKinds = balanced;
 			r.options.refineSeeds = slots;
 		}
+#ifdef LIGHTRECON_ADAPTIVE_TOOL
+		if (magic == "JKADAPTIVE1")
+		{
+			unsigned axes = 0, balanced = 0;
+			f >> strategy >> axes >> balanced >> r.options.refineSeeds >>
+				r.options.maxRays >> r.options.maxForwardCalls >> r.options.maxWork;
+			if (!f || strategy > 1 || axes > 1 || balanced > 1)
+				throw std::runtime_error("Invalid explicit adaptive strategy/budget policy");
+			r.options.geometrySpotSeeds = axes;
+			r.options.balanceRefinementKinds = balanced;
+		}
+#endif
 		r.options.maxSamples = 512;
 		r.options.samplesPerArea = 64;
 		r.options.retainedPerChannelProfile = 4;
@@ -178,6 +202,25 @@ int main(int argc, char **argv)
 			p.applicability = Bake::Applicability::AssumedForDataset;
 			r.profiles.push_back(p);
 		}
+#ifdef LIGHTRECON_ADAPTIVE_TOOL
+		if (magic == "JKADAPTIVE1")
+		{
+			size_t explained = 0; f >> explained;
+			if (explained > 32) throw std::runtime_error("Explained-area limit");
+			for (size_t i = 0; i < explained; ++i)
+			{ Id id = 0; f >> id; adaptiveOptions.explainedAreas.push_back(id); }
+			size_t directions = 0; f >> directions;
+			if (directions > 32) throw std::runtime_error("Direction-seed limit");
+			for (size_t i = 0; i < directions; ++i)
+			{
+				H::DirectionConstraint d;
+				f >> d.id >> d.originWorld.x >> d.originWorld.y >> d.originWorld.z >>
+					d.toSource.x >> d.toSource.y >> d.toSource.z >> d.halfAngleRadians;
+				d.usable = true; d.provenance = "Caller-declared independent incoming-direction mixture hypothesis";
+				r.directions.push_back(d);
+			}
+		}
+#endif
 		std::string extra;
 		if (!f || (f >> extra))
 			throw std::runtime_error("Truncated/trailing request data");
@@ -199,7 +242,12 @@ int main(int argc, char **argv)
 		r.training = VectorChunk<H::Sample>(samples, 0, samples->size());
 		auto prepared = std::chrono::steady_clock::now();
 		H::Result result;
-		Error code = H::Generate(r, read, result);
+		Error code;
+#ifdef LIGHTRECON_ADAPTIVE_TOOL
+		if (strategy) code = AdaptiveHidden::Generate(r, adaptiveOptions, read, result, adaptiveAudit);
+		else
+#endif
+		code = H::Generate(r, read, result);
 		auto end = std::chrono::steady_clock::now();
 		std::cout << std::setprecision(12)
 				  << "{\"schema\":\"org.openjk.hidden-candidate-diagnostic.v1\",\"code\":"
@@ -283,7 +331,32 @@ int main(int argc, char **argv)
 				std::cout << ',';
 			std::cout << Quote(result.report.diagnostics[i]);
 		}
-		std::cout << "],\"resources\":{\"load_build_seconds\":"
+		std::cout << ']';
+#ifdef LIGHTRECON_ADAPTIVE_TOOL
+		if (magic == "JKADAPTIVE1")
+		{
+			std::cout << ",\"strategy\":" << Quote(strategy ? "adaptive_local_v1" : "strict")
+				<< ",\"historical_source_certified\":false,\"adaptive_audit\":{\"feature_work\":" << adaptiveAudit.featureWork
+				<< ",\"explained_skipped\":" << adaptiveAudit.explainedSkipped
+				<< ",\"unsupported_features\":" << adaptiveAudit.unsupportedFeatures
+				<< ",\"budget_limited\":" << (adaptiveAudit.budgetLimited ? "true" : "false") << ",\"batches\":[";
+			for (size_t i = 0; i < adaptiveAudit.batches.size(); ++i)
+			{
+				if (i) std::cout << ',';
+				const auto &b = adaptiveAudit.batches[i];
+				std::cout << "{\"area\":" << b.area << ",\"positions\":[";
+				Vector(std::cout, b.positions.minWorld); std::cout << ','; Vector(std::cout, b.positions.maxWorld);
+				std::cout << "],\"reason\":" << Quote(b.reason) << ",\"nodes\":" << b.nodes
+					<< ",\"retained\":" << b.retained << ",\"dark_receivers\":" << b.darkReceivers
+					<< ",\"blocked_relations\":" << b.blockedBrightRelations << ",\"seed_observations\":[";
+				for (size_t j = 0; j < b.observations.size(); ++j)
+				{ if (j) std::cout << ','; std::cout << b.observations[j]; }
+				std::cout << "]}";
+			}
+			std::cout << "]}";
+		}
+#endif
+		std::cout << ",\"resources\":{\"load_build_seconds\":"
 				  << std::chrono::duration<double>(prepared - start).count()
 				  << ",\"search_seconds\":" << std::chrono::duration<double>(end - prepared).count()
 				  << "}}\n";

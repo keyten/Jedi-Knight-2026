@@ -1,0 +1,29 @@
+{
+  "evaluation_sha256": "0d2fa02a3bbec2e6a957587d0fe6b1679b1e91cce4232696c5527b50b4979c85",
+  "fixed_budget_caps": {
+    "coarse_divisions": 4,
+    "equal_caps_not_equal_spent_work": true,
+    "historical_source_certified": false,
+    "matching_world": 32,
+    "max_forward_calls": 2304,
+    "max_nodes_per_area": 128,
+    "max_rays": 50000,
+    "max_work": 64000000,
+    "refine_seeds": 4,
+    "refinement_rounds": 2,
+    "retained_per_channel_profile": 4,
+    "schema": "org.openjk.adaptive-hidden-policy.v1",
+    "shape_score_gate": 0.12,
+    "source_answers_used_for_search": false,
+    "source_kind_required_for_position_recall": false
+  },
+  "frozen_manifest_sha256": "ae3fd786d72d63f95b82962140264d627e9e7fa51e256f27c3291b3704592514",
+  "gi_only_counterexample_retained": true,
+  "historical_source_certified": false,
+  "mixed_source_miss_retained": true,
+  "numerical_jobs": 60,
+  "oblique_spotlight_miss_retained": true,
+  "repeat_equal": true,
+  "schema": "org.openjk.adaptive-hidden-verification.v1",
+  "v02_recall_improved": true
+}
