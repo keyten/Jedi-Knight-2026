@@ -28,6 +28,11 @@ checks remain available for unchanged callers and frozen before/after controls.
 
 See `docs/rend2-emitter-mounting-x14.md` for contract scope and results.
 
+[ASR18 mounted admission](../../../docs/rend2-mounted-admission-asr18.md) adds
+an exact opaque rear-contact proof and bounded front-clearance checks. Its
+`run_admission.py` compares the unchanged ASR17 candidate cohort, states and
+reasons, with independent rational checks of every newly admitted sheet.
+
 Version 1 preserves the initial exact-support audit. Version 2 adds the explicit
 solid-leaf boundary-contact regression; version 3 also tests colour-sanitized
 geometry leases. None of these changes admitted a stock lamp. The exact X12

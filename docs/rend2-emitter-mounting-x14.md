@@ -1,5 +1,9 @@
 # X14 — occupied source support, emitting geometry and mounting
 
+Follow-up: [ASR18 mounted admission](rend2-mounted-admission-asr18.md) distinguishes
+exact opaque rear-edge contact from intersection with the emitting side and
+repairs bounded front-clearance checks. The original X14 results below are retained.
+
 Follow-up: [ASR17 stock placement diagnosis](rend2-placement-diagnosis-asr17.md)
 reproduces the frozen X14 witnesses and traces the current failures without
 changing admission semantics.

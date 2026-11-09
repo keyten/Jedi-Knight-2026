@@ -272,6 +272,105 @@ int main(int argc, char **argv)
 		auto ce = e;
 		ce.support = cross.Contract();
 		CHECK(!P::Admissible(cross.At(ce).placement));
+		// ASR18: exact opaque fixture edges ending at the luminous plane from
+		// behind are mounting contact, for ideal and finite source supports alike.
+		World skirt;
+		skirt.Floor();
+		skirt.visual.Quad(V(1,-2,-1),V(1,2,-1),V(1,2,0),V(1,-2,0));
+		skirt.Build();
+		for (auto kind : {EmitterKind::Point, EmitterKind::Spot, EmitterKind::Rectangle, EmitterKind::Tube})
+		{
+			auto mounted = Emitter(kind, kind == EmitterKind::Tube ? V(0,0,.25) :
+				kind == EmitterKind::Rectangle ? V() : V(1,0,0));
+			mounted.support = skirt.Contract(kind == EmitterKind::Point ? SS::Kind::MountedPoint :
+				kind == EmitterKind::Spot ? SS::Kind::MountedSpot :
+				kind == EmitterKind::Tube ? SS::Kind::Cylinder : SS::Kind::Rectangle);
+			CHECK(P::Admissible(skirt.At(mounted).placement));
+			mounted.support.frontClearanceWorld = 1;
+			CHECK(P::Admissible(skirt.At(mounted).placement));
+		}
+		World skirtCross;
+		skirtCross.Floor();
+		skirtCross.visual.Quad(V(1,-2,-1),V(1,2,-1),V(1,2,.00001),V(1,-2,.00001));
+		skirtCross.Build();
+		auto skirtPanel = e; skirtPanel.support = skirtCross.Contract();
+		CHECK(skirtCross.At(skirtPanel).placement.state == P::Constraint::Clearance);
+		World skirtAlpha;
+		skirtAlpha.visual.surfaces = skirt.visual.surfaces;
+		skirtAlpha.Brush(V(-16,-16,-4),V(16,16,0));
+		skirtAlpha.visual.surfaces[1].materialFacts.signals = MaterialCutout;
+		skirtAlpha.Build(); skirtPanel.support = skirtAlpha.Contract();
+		CHECK(skirtAlpha.At(skirtPanel).placement.state == P::Constraint::UnknownGeometry);
+		World overlay;
+		overlay.Floor();
+		overlay.visual.Quad(V(-1,-1,0),V(1,-1,0),V(1,1,0),V(-1,1,0));
+		overlay.Build(); skirtPanel.support = overlay.Contract();
+		CHECK(overlay.At(skirtPanel).placement.state == P::Constraint::Clearance);
+		// A tube may be tangent with its declared radius, but a positive body gap
+		// requires explicit stand-off evidence. Candidate creation never pushes it.
+		auto floatingTube = Emitter(EmitterKind::Tube,V(0,0,.5));
+		floatingTube.support = w.Contract(SS::Kind::Cylinder);
+		CHECK(w.At(floatingTube).placement.state == P::Constraint::Mount);
+		floatingTube.support.maximumStandOffWorld = .25;
+		CHECK(P::Admissible(w.At(floatingTube).placement));
+		// Front AABB overlap alone is not an intersection with a triangle.
+		World frontMiss;
+		frontMiss.Floor();
+		frontMiss.visual.Quad(V(.9,1.5,.5),V(1.5,.4,.5),V(1.6,.5,.5),V(1,1.6,.5));
+		frontMiss.Build(); auto frontPanel=e; frontPanel.support=frontMiss.Contract();
+		frontPanel.support.frontClearanceWorld=1;
+		CHECK(P::Admissible(frontMiss.At(frontPanel).placement));
+		World frontHit;
+		frontHit.Floor();
+		frontHit.visual.Quad(V(-2,-2,.75),V(2,-2,.75),V(2,2,.75),V(-2,2,.75));
+		frontHit.Build();
+		for (auto kind : {EmitterKind::Point, EmitterKind::Spot, EmitterKind::Rectangle, EmitterKind::Tube})
+		{
+			auto mounted=Emitter(kind,kind==EmitterKind::Tube?V(0,0,.25):V());
+			mounted.support=frontHit.Contract(kind==EmitterKind::Point?SS::Kind::MountedPoint:
+				kind==EmitterKind::Spot?SS::Kind::MountedSpot:kind==EmitterKind::Tube?SS::Kind::Cylinder:SS::Kind::Rectangle);
+			CHECK(P::Admissible(frontHit.At(mounted).placement));
+			mounted.support.frontClearanceWorld=1;
+			CHECK(frontHit.At(mounted).placement.state==P::Constraint::Clearance);
+		}
+		frontHit.visual.surfaces[1].materialFacts.signals=MaterialTranslucent;
+		frontHit.Build(); frontPanel.support=frontHit.Contract();frontPanel.support.frontClearanceWorld=1;
+		CHECK(frontHit.At(frontPanel).placement.state==P::Constraint::UnknownGeometry);
+		World frontSolid;
+		frontSolid.Floor();frontSolid.Brush(V(-2,-2,.75),V(2,2,2));frontSolid.Build();
+		frontPanel.support=frontSolid.Contract();frontPanel.support.frontClearanceWorld=1;
+		CHECK(!P::Admissible(frontSolid.At(frontPanel).placement));
+		// Separate occupancy is checked over the front too, even when static
+		// geometry is clear. The known swept model does not overlap the sheet.
+		auto occupiedFront=w.scene;
+		DynamicBoundary frontModel;frontModel.id=818;frontModel.model=1;
+		frontModel.bounds=Box(V(-.1,-.1,.8),V(.1,.1,.9));frontModel.sweptExtentKnown=true;
+		occupiedFront.dynamic={frontModel};
+		std::shared_ptr<const P::PlacementProvider> frontPlacement;
+		Must(P::MakePlacement(occupiedFront,Read(),frontPlacement));
+		auto occupancyPanel=e;
+		Must(SS::Check(occupiedFront,*frontPlacement,occupancyPanel.geometry,occupancyPanel.geometry,
+			occupancyPanel.support,Read(),result));
+		CHECK(P::Admissible(result.placement));
+		occupancyPanel.support.frontClearanceWorld=1;
+		Must(SS::Check(occupiedFront,*frontPlacement,occupancyPanel.geometry,occupancyPanel.geometry,
+			occupancyPanel.support,Read(),result));
+		CHECK(result.placement.state==P::Constraint::Dynamic);
+		// A two-sided sheet has no non-emitting rear halfspace. Its explicit
+		// clearance must include both sides, even without a world brush behind it.
+		World bothSides;
+		bothSides.visual.surfaces=skirt.visual.surfaces;bothSides.Build();
+		auto twoSided=e;twoSided.support=bothSides.Contract(SS::Kind::TwoSidedRectangle);
+		twoSided.support.twoSidedAttested=twoSided.geometry.angular.twoSided=true;
+		CHECK(bothSides.At(twoSided).placement.state==P::Constraint::Clearance);
+		World backHit;
+		backHit.visual.surfaces=hanging.visual.surfaces;
+		backHit.visual.Quad(V(-2,-2,-.75),V(2,-2,-.75),V(2,2,-.75),V(-2,2,-.75));
+		backHit.Build();twoSided.support=backHit.Contract(SS::Kind::TwoSidedRectangle);
+		twoSided.support.twoSidedAttested=true;
+		CHECK(P::Admissible(backHit.At(twoSided).placement));
+		twoSided.support.frontClearanceWorld=1;
+		CHECK(backHit.At(twoSided).placement.state==P::Constraint::Clearance);
 		World alpha;
 		alpha.Floor();
 		alpha.visual.surfaces[0].materialFacts.signals = MaterialCutout;

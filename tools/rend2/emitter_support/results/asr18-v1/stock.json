@@ -1,0 +1,561 @@
+{
+  "mp/duel4": {
+    "schema": "org.openjk.mount-diagnosis-classification.v1",
+    "attempts": 108,
+    "states": {
+      "Free": 48,
+      "Solid": 17,
+      "UnknownGeometry": 35,
+      "Mount": 4,
+      "Clearance": 4
+    },
+    "primary": {
+      "admitted-proven": 48,
+      "bsp-other-plane-boundary": 2,
+      "bsp-penetration-witness": 2,
+      "hypothesis-cylinder-through-mount": 15,
+      "hypothesis-stand-off-or-side": 4,
+      "visual-patch-envelope": 33,
+      "visual-support-intersection": 4
+    },
+    "facets": {
+      "admitted-proven": 48,
+      "back-eighth-unit-in-solid": 108,
+      "bsp-contact-plane-disagreement": 20,
+      "bsp-other-plane-boundary": 4,
+      "bsp-penetration-witness": 2,
+      "bsp-unclustered-without-contact": 4,
+      "hypothesis-cylinder-through-mount": 15,
+      "hypothesis-stand-off-or-side": 4,
+      "visual-patch-envelope": 33,
+      "visual-support-intersection": 4
+    },
+    "samples": {
+      "admitted-proven": [
+        "74123568754762823",
+        "1306100435900299506",
+        "1412742224067916672"
+      ],
+      "bsp-other-plane-boundary": [
+        "10724844690418745054",
+        "17585429790162484154"
+      ],
+      "bsp-penetration-witness": [
+        "274065421862313770",
+        "15987253787305943197"
+      ],
+      "hypothesis-cylinder-through-mount": [
+        "140031554626216494",
+        "2227884515296677217",
+        "2911382228373949231"
+      ],
+      "hypothesis-stand-off-or-side": [
+        "4059644175494064381",
+        "8378056910323058493",
+        "14411755025882437862"
+      ],
+      "visual-patch-envelope": [
+        "997137809388226990",
+        "2149232127927315715",
+        "3146190737911675261"
+      ],
+      "visual-support-intersection": [
+        "11205302041106060787",
+        "11989917378146182149",
+        "12381075883496823758"
+      ]
+    },
+    "native_diagnostic_work": 124575,
+    "independent_work": 33424,
+    "visibility": {
+      "spatial_complete": 1,
+      "unbounded": 0,
+      "unsupported_bounds": 0,
+      "excluded_moving": 0,
+      "patch_triangles": 11380
+    },
+    "ray_states": {
+      "1": 108,
+      "0": 106,
+      "2": 2
+    },
+    "ray_state_order": [
+      "Visible",
+      "Blocked",
+      "Unknown"
+    ],
+    "point_probe_states": {
+      "0.125": {
+        "0": 108
+      },
+      "4": {
+        "0": 108
+      },
+      "-0.125": {
+        "1": 108
+      },
+      "-4": {
+        "1": 108
+      }
+    },
+    "point_space_order": [
+      "Free",
+      "Solid",
+      "Outside",
+      "Sky",
+      "Unknown",
+      "Exterior"
+    ],
+    "claims_admission": false,
+    "reads_target_rgb": false,
+    "input": {
+      "map": "mp/duel4",
+      "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+      "dataset_sha256": "8173ddaa017c87dd4b341d240f95f6a99599f894d4164d0ab7902bc70b2ac3c5",
+      "dataset_bytes": 25475232
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr18-asr18-v1\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr18-asr18-v1\\mp_duel4",
+        "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+        "mounting-diagnosis"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 1.562999999994645,
+      "peak_process_rss_bytes": 35807232
+    },
+    "current_admission": {
+      "schema": "org.openjk.emitter-support-stock.v1",
+      "map": "maps/mp/duel4.bsp",
+      "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+      "catalog_models": 3219,
+      "attempts": 108,
+      "accepted": 48,
+      "conditional": 0,
+      "newly_admitted": 48,
+      "old_classes": [
+        0,
+        108,
+        0,
+        0,
+        0
+      ],
+      "new_classes": [
+        48,
+        21,
+        0,
+        35,
+        4
+      ],
+      "class_order": [
+        "Proven",
+        "Collision",
+        "Conditional",
+        "Unknown",
+        "Invalid"
+      ],
+      "reasons": {
+        "Cylinder occupied body penetrates the mounting plane": 15,
+        "Emitting support is behind its mounting side or outside declared fixture stand-off": 4,
+        "Incomplete local visual support": 33,
+        "Named emitting-side contact; world solid penetration remains forbidden": 48,
+        "Occupied source support is not certified outside world solids": 4,
+        "Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 4
+      },
+      "types": {
+        "1": 24,
+        "3": 64,
+        "4": 20
+      },
+      "work": 63998,
+      "catalog_work": 15377,
+      "reads_observed_rgb": false,
+      "joint_fit_attempted": false,
+      "selection": "stable consolidated ID; first 256 named-surface candidates, 16M geometry work cap",
+      "profile": "UnknownProfile",
+      "claims_original_source_recovery": false
+    },
+    "instrumentation_semantic_and_witness_match": true,
+    "private_artifacts": {
+      "classification.json": "598d4b740c104b090691bc7f47eba8f651eda5de6c8e5f6f7df4642c8fef6a96",
+      "diagnosis-world.json": "51e58d0be40d8d22574138e3bfc809824b11ac7d762ad342b021b42c38070271",
+      "diagnosis.jsonl": "caa03aa152197fc946910bbfaab3505ea682234af2fbd51061e16765d0227994",
+      "mounting-witnesses.tsv": "6ff306902a19e44f779b7b45369dd12cb3affbcbd37f22a58df0bd08592cb020",
+      "mounting.json": "6c5942bd4d032f2db3540afd95f542f579e7d09d18fa871fb16700983d83c508",
+      "native-resources.json": "0d4389d5e5f34f547607bb581b67ab915903bb9fb4eeed8a72bcc49a132e989a",
+      "native.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "mp/siege_desert": {
+    "schema": "org.openjk.mount-diagnosis-classification.v1",
+    "attempts": 256,
+    "states": {
+      "UnknownGeometry": 18,
+      "Conditional": 231,
+      "Clearance": 3,
+      "Solid": 2,
+      "Mount": 2
+    },
+    "primary": {
+      "admitted-conditional": 231,
+      "bsp-other-plane-boundary": 18,
+      "bsp-penetration-witness": 2,
+      "hypothesis-stand-off-or-side": 2,
+      "visual-support-intersection": 3
+    },
+    "facets": {
+      "admitted-conditional": 231,
+      "back-eighth-unit-in-solid": 256,
+      "bsp-other-plane-boundary": 18,
+      "bsp-penetration-witness": 4,
+      "bsp-unclustered-without-contact": 3,
+      "front-eighth-unit-in-solid": 2,
+      "hypothesis-stand-off-or-side": 2,
+      "visual-support-intersection": 3
+    },
+    "samples": {
+      "admitted-conditional": [
+        "42167977136442576",
+        "50233168441806202",
+        "53126322549381771"
+      ],
+      "bsp-other-plane-boundary": [
+        "24510116186315163",
+        "37953290245135894",
+        "151500649926244731"
+      ],
+      "bsp-penetration-witness": [
+        "1095946167628495700",
+        "1653792872770727399"
+      ],
+      "hypothesis-stand-off-or-side": [
+        "1148395432400792624",
+        "2950774692354367822"
+      ],
+      "visual-support-intersection": [
+        "725347281988668752",
+        "1581697783813949366",
+        "3167242706037352056"
+      ]
+    },
+    "native_diagnostic_work": 249741,
+    "independent_work": 70836,
+    "visibility": {
+      "spatial_complete": 1,
+      "unbounded": 0,
+      "unsupported_bounds": 0,
+      "excluded_moving": 735,
+      "patch_triangles": 0
+    },
+    "ray_states": {
+      "1": 254,
+      "0": 254,
+      "2": 4
+    },
+    "ray_state_order": [
+      "Visible",
+      "Blocked",
+      "Unknown"
+    ],
+    "point_probe_states": {
+      "0.125": {
+        "0": 254,
+        "1": 2
+      },
+      "4": {
+        "0": 254,
+        "1": 2
+      },
+      "-0.125": {
+        "1": 256
+      },
+      "-4": {
+        "1": 247,
+        "4": 9
+      }
+    },
+    "point_space_order": [
+      "Free",
+      "Solid",
+      "Outside",
+      "Sky",
+      "Unknown",
+      "Exterior"
+    ],
+    "claims_admission": false,
+    "reads_target_rgb": false,
+    "input": {
+      "map": "mp/siege_desert",
+      "bsp_sha256": "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+      "dataset_sha256": "868eb79f14c7bcfda2b973d42871e9f0e32c458acb39cc2e7ffbda2075fe3881",
+      "dataset_bytes": 263183008
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr18-asr18-v1\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_siege_desert\\home\\rend2\\lightrecon\\v1\\observations\\mp_siege_desert_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr18-asr18-v1\\mp_siege_desert",
+        "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+        "mounting-diagnosis"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 5.187000000005355,
+      "peak_process_rss_bytes": 54276096
+    },
+    "current_admission": {
+      "schema": "org.openjk.emitter-support-stock.v1",
+      "map": "maps/mp/siege_desert.bsp",
+      "bsp_sha256": "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+      "catalog_models": 1410,
+      "attempts": 256,
+      "accepted": 231,
+      "conditional": 231,
+      "newly_admitted": 231,
+      "old_classes": [
+        0,
+        256,
+        0,
+        0,
+        0
+      ],
+      "new_classes": [
+        0,
+        5,
+        231,
+        18,
+        2
+      ],
+      "class_order": [
+        "Proven",
+        "Collision",
+        "Conditional",
+        "Unknown",
+        "Invalid"
+      ],
+      "reasons": {
+        "Emitting support is behind its mounting side or outside declared fixture stand-off": 2,
+        "Named emitting-side contact; world solid penetration remains forbidden": 231,
+        "Occupied source support is not certified outside world solids": 20,
+        "Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 3
+      },
+      "types": {
+        "1": 11,
+        "3": 245
+      },
+      "work": 196624,
+      "catalog_work": 945,
+      "reads_observed_rgb": false,
+      "joint_fit_attempted": false,
+      "selection": "stable consolidated ID; first 256 named-surface candidates, 16M geometry work cap",
+      "profile": "UnknownProfile",
+      "claims_original_source_recovery": false
+    },
+    "instrumentation_semantic_and_witness_match": true,
+    "private_artifacts": {
+      "classification.json": "7671719886976f2f2151fc4d44374bf708f6fd9780ccb304d91835955bb6d39d",
+      "diagnosis-world.json": "69d4155b848cd7cf456a3665f6c8c275f773db9c01a18020f478a116cecbb5a6",
+      "diagnosis.jsonl": "244e1450ba37d1685c38a2aeae771f11fdc58493039dbc6ab1026b73be73c6ae",
+      "mounting-witnesses.tsv": "9a6c6b7843a9c03bb9d7c1664ad422e92e15b36bce21cb6e4a00913e21d46a16",
+      "mounting.json": "418ec13380d955473d37a616658ada4aad571cb130b6651f73db8945aa8d574a",
+      "native-resources.json": "1d704ed1e6e51da991a1bf545231fa16cb89665c963c00de624f0a7cdea9d931",
+      "native.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "hoth3": {
+    "schema": "org.openjk.mount-diagnosis-classification.v1",
+    "attempts": 256,
+    "states": {
+      "Conditional": 89,
+      "Mount": 11,
+      "UnknownGeometry": 115,
+      "Solid": 40,
+      "Clearance": 1
+    },
+    "primary": {
+      "admitted-conditional": 89,
+      "bsp-other-plane-boundary": 87,
+      "bsp-penetration-witness": 29,
+      "hypothesis-cylinder-through-mount": 11,
+      "hypothesis-stand-off-or-side": 11,
+      "visual-patch-envelope": 28,
+      "visual-support-intersection": 1
+    },
+    "facets": {
+      "admitted-conditional": 89,
+      "all-local-patch-envelopes-plane-separated": 7,
+      "back-eighth-unit-in-solid": 256,
+      "bsp-contact-plane-disagreement": 11,
+      "bsp-other-plane-boundary": 115,
+      "bsp-penetration-witness": 34,
+      "bsp-unclustered-without-contact": 11,
+      "bsp-unresolved-intersection": 2,
+      "hypothesis-cylinder-through-mount": 11,
+      "hypothesis-stand-off-or-side": 11,
+      "visual-patch-envelope": 28,
+      "visual-support-intersection": 1
+    },
+    "samples": {
+      "admitted-conditional": [
+        "1112405535599037",
+        "46225339477345958",
+        "163115236429012859"
+      ],
+      "bsp-other-plane-boundary": [
+        "23281379946429403",
+        "101793717327405676",
+        "329912328343592237"
+      ],
+      "bsp-penetration-witness": [
+        "36067496964072720",
+        "88881378097975556",
+        "391847717526272072"
+      ],
+      "hypothesis-cylinder-through-mount": [
+        "235650363108347130",
+        "554209152441339337",
+        "660041248357158576"
+      ],
+      "hypothesis-stand-off-or-side": [
+        "12443661901486234",
+        "979362429835380727",
+        "1231138753799154975"
+      ],
+      "visual-patch-envelope": [
+        "350102557838430753",
+        "462604263052335638",
+        "927397177828681644"
+      ],
+      "visual-support-intersection": [
+        "6580165745963956644"
+      ]
+    },
+    "native_diagnostic_work": 393340,
+    "independent_work": 172392,
+    "visibility": {
+      "spatial_complete": 1,
+      "unbounded": 0,
+      "unsupported_bounds": 0,
+      "excluded_moving": 94,
+      "patch_triangles": 100472
+    },
+    "ray_states": {
+      "1": 256,
+      "0": 230,
+      "2": 26
+    },
+    "ray_state_order": [
+      "Visible",
+      "Blocked",
+      "Unknown"
+    ],
+    "point_probe_states": {
+      "0.125": {
+        "0": 256
+      },
+      "4": {
+        "0": 256
+      },
+      "-0.125": {
+        "1": 256
+      },
+      "-4": {
+        "4": 51,
+        "1": 205
+      }
+    },
+    "point_space_order": [
+      "Free",
+      "Solid",
+      "Outside",
+      "Sky",
+      "Unknown",
+      "Exterior"
+    ],
+    "claims_admission": false,
+    "reads_target_rgb": false,
+    "input": {
+      "map": "hoth3",
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "dataset_sha256": "fdbf5351babdaf6a1b0e9d776a77d01f5396e82c5f3945ec46079e171385d613",
+      "dataset_bytes": 383228400
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr18-asr18-v1\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr18-asr18-v1\\hoth3",
+        "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "mounting-diagnosis"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 7.078000000008615,
+      "peak_process_rss_bytes": 89661440
+    },
+    "current_admission": {
+      "schema": "org.openjk.emitter-support-stock.v1",
+      "map": "maps/hoth3.bsp",
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "catalog_models": 746,
+      "attempts": 256,
+      "accepted": 89,
+      "conditional": 89,
+      "newly_admitted": 89,
+      "old_classes": [
+        0,
+        235,
+        0,
+        21,
+        0
+      ],
+      "new_classes": [
+        0,
+        41,
+        89,
+        115,
+        11
+      ],
+      "class_order": [
+        "Proven",
+        "Collision",
+        "Conditional",
+        "Unknown",
+        "Invalid"
+      ],
+      "reasons": {
+        "Cylinder occupied body penetrates the mounting plane": 11,
+        "Emitting support is behind its mounting side or outside declared fixture stand-off": 11,
+        "Incomplete local visual support": 28,
+        "Named emitting-side contact; world solid penetration remains forbidden": 89,
+        "Occupied source support is not certified outside world solids": 116,
+        "Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 1
+      },
+      "types": {
+        "1": 23,
+        "3": 222,
+        "4": 11
+      },
+      "work": 275074,
+      "catalog_work": 1713,
+      "reads_observed_rgb": false,
+      "joint_fit_attempted": false,
+      "selection": "stable consolidated ID; first 256 named-surface candidates, 16M geometry work cap",
+      "profile": "UnknownProfile",
+      "claims_original_source_recovery": false
+    },
+    "instrumentation_semantic_and_witness_match": true,
+    "private_artifacts": {
+      "classification.json": "31f4f945bfcc2df3de9395444df1786b891a88fd14f62dd45a1aef49ebab29de",
+      "diagnosis-world.json": "3c953f29fd6fd0acdf32d019e1ca82335cbbb184bd67adfe7a4fbfcade4bc768",
+      "diagnosis.jsonl": "db3d3d5cd937569115d2ca518e354e4f9f66ebc930785cab350990d5ca9bd487",
+      "mounting-witnesses.tsv": "2e1d97e3ac6e88ab04cfe759b6f843db853c0761a965a40eba8916e06efb7ac2",
+      "mounting.json": "8645e5c24a63b65539bb5b00c2bee8d34337a91b6ffb5c248af01d9a9af81d08",
+      "native-resources.json": "ec3f8b3d279427d9616430242cf16448f668dba9c29d28c56c7a5ab4f1be7118",
+      "native.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr18-final-support-test.exe",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\emitter_support\\results\\asr18-v1\\controls-first.json"
+  ],
+  "state": "Completed",
+  "exit_code": 0,
+  "wall_seconds": 0.5320000000065193,
+  "peak_process_rss_bytes": 6807552
+}

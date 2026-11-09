@@ -32,8 +32,8 @@ struct Contract
 	std::vector<Id> surfaces; // original BSP ordinal+1; no proximity-based fixture identity
 	Vec3 anchorWorld, outward;
 	bool mountKnown = false, twoSidedAttested = false;
-	double maximumStandOffWorld = 0; // fixture-evidenced distance, default exact contact
-	double frontClearanceWorld = 0;	 // declared empty front prism, not an emitter offset
+	double maximumStandOffWorld = 0; // fixture-evidenced face distance (tube: body gap); default contact
+	double frontClearanceWorld = 0;	 // empty outward extrusion (tube: conservative body enclosure), not an offset
 	std::string provenance;
 	Chunk<Bake::FootprintTriangle> original; // immutable, disjoint source triangles
 	std::vector<Id> triangleSurfaces;

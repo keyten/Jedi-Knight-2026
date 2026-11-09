@@ -1,0 +1,501 @@
+[
+  {
+    "source": "1112405535599037",
+    "fixture": "10765271701596099023",
+    "category": "admitted-conditional",
+    "state": "Conditional",
+    "mount_signed_range": [
+      0.0,
+      0.0
+    ],
+    "winding_vertex_normal_dot_range": [
+      1.0,
+      1.0
+    ],
+    "support_index": 0,
+    "brush": null,
+    "patch_error_range": null,
+    "probes": [
+      {
+        "offset": 0.125,
+        "space": 0,
+        "leaf": 831,
+        "boundary": 0
+      },
+      {
+        "offset": 4,
+        "space": 0,
+        "leaf": 831,
+        "boundary": 0
+      },
+      {
+        "offset": -0.125,
+        "space": 1,
+        "leaf": 831,
+        "boundary": 0
+      },
+      {
+        "offset": -4,
+        "space": 4,
+        "leaf": 831,
+        "boundary": 1
+      }
+    ],
+    "rays": [
+      {
+        "name": "cross-mount",
+        "state": 1,
+        "issues": 0,
+        "surface": 11209,
+        "triangle": "48142288420865",
+        "optical": 1
+      },
+      {
+        "name": "front-segment",
+        "state": 0,
+        "issues": 0,
+        "surface": 0,
+        "triangle": "0",
+        "optical": 0
+      }
+    ]
+  },
+  {
+    "source": "23281379946429403",
+    "fixture": "4828558860074850745",
+    "category": "bsp-other-plane-boundary",
+    "state": "UnknownGeometry",
+    "mount_signed_range": [
+      0.0,
+      0.0
+    ],
+    "winding_vertex_normal_dot_range": [
+      0.9999999828857289,
+      0.9999999828857289
+    ],
+    "support_index": 0,
+    "brush": {
+      "leaf": 375,
+      "brush": 4018,
+      "category": "bsp-other-plane-boundary",
+      "planes": [
+        {
+          "id": 5265,
+          "signed_range": [
+            0.0,
+            34.0
+          ],
+          "normal_dot": 0.0
+        }
+      ],
+      "penetration_max_signed_distance": null
+    },
+    "patch_error_range": null,
+    "probes": [
+      {
+        "offset": 0.125,
+        "space": 0,
+        "leaf": 377,
+        "boundary": 0
+      },
+      {
+        "offset": 4,
+        "space": 0,
+        "leaf": 377,
+        "boundary": 0
+      },
+      {
+        "offset": -0.125,
+        "space": 1,
+        "leaf": 378,
+        "boundary": 0
+      },
+      {
+        "offset": -4,
+        "space": 1,
+        "leaf": 378,
+        "boundary": 0
+      }
+    ],
+    "rays": [
+      {
+        "name": "cross-mount",
+        "state": 1,
+        "issues": 8,
+        "surface": 10386,
+        "triangle": "44607530336257",
+        "optical": 1
+      },
+      {
+        "name": "front-segment",
+        "state": 0,
+        "issues": 0,
+        "surface": 0,
+        "triangle": "0",
+        "optical": 0
+      }
+    ]
+  },
+  {
+    "source": "36067496964072720",
+    "fixture": "14813111005131298577",
+    "category": "bsp-penetration-witness",
+    "state": "Solid",
+    "mount_signed_range": [
+      0.0,
+      0.0
+    ],
+    "winding_vertex_normal_dot_range": [
+      0.9999999828857289,
+      0.9999999828857289
+    ],
+    "support_index": 0,
+    "brush": {
+      "leaf": 975,
+      "brush": 5924,
+      "category": "bsp-penetration-witness",
+      "planes": [
+        {
+          "id": 528,
+          "signed_range": [
+            -3.135204315185547e-05,
+            -3.135204315185547e-05
+          ],
+          "normal_dot": 0.9999999657714582
+        }
+      ],
+      "penetration_max_signed_distance": -3.135204315185547e-05
+    },
+    "patch_error_range": null,
+    "probes": [
+      {
+        "offset": 0.125,
+        "space": 0,
+        "leaf": 975,
+        "boundary": 0
+      },
+      {
+        "offset": 4,
+        "space": 0,
+        "leaf": 975,
+        "boundary": 0
+      },
+      {
+        "offset": -0.125,
+        "space": 1,
+        "leaf": 975,
+        "boundary": 0
+      },
+      {
+        "offset": -4,
+        "space": 1,
+        "leaf": 975,
+        "boundary": 0
+      }
+    ],
+    "rays": [
+      {
+        "name": "cross-mount",
+        "state": 1,
+        "issues": 8,
+        "surface": 11182,
+        "triangle": "48026324303873",
+        "optical": 1
+      },
+      {
+        "name": "front-segment",
+        "state": 0,
+        "issues": 0,
+        "surface": 0,
+        "triangle": "0",
+        "optical": 0
+      }
+    ]
+  },
+  {
+    "source": "235650363108347130",
+    "fixture": "4828558860074850745",
+    "category": "hypothesis-cylinder-through-mount",
+    "state": "Solid",
+    "mount_signed_range": [
+      -0.5509748364566976,
+      0.5509748364566976
+    ],
+    "winding_vertex_normal_dot_range": [
+      0.9999999828857289,
+      0.9999999828857289
+    ],
+    "support_index": 0,
+    "brush": {
+      "leaf": 378,
+      "brush": 1627,
+      "category": "bsp-contact-plane-disagreement",
+      "planes": [
+        {
+          "id": 26258,
+          "signed_range": [
+            -0.5509591008304769,
+            0.5509905720829184
+          ],
+          "normal_dot": 0.9999999657714582
+        }
+      ],
+      "penetration_max_signed_distance": null
+    },
+    "patch_error_range": null,
+    "probes": [
+      {
+        "offset": 0.125,
+        "space": 0,
+        "leaf": 377,
+        "boundary": 0
+      },
+      {
+        "offset": 4,
+        "space": 0,
+        "leaf": 377,
+        "boundary": 0
+      },
+      {
+        "offset": -0.125,
+        "space": 1,
+        "leaf": 378,
+        "boundary": 0
+      },
+      {
+        "offset": -4,
+        "space": 1,
+        "leaf": 378,
+        "boundary": 0
+      }
+    ],
+    "rays": [
+      {
+        "name": "cross-mount",
+        "state": 1,
+        "issues": 8,
+        "surface": 10386,
+        "triangle": "44607530336258",
+        "optical": 1
+      },
+      {
+        "name": "front-segment",
+        "state": 0,
+        "issues": 0,
+        "surface": 0,
+        "triangle": "0",
+        "optical": 0
+      }
+    ]
+  },
+  {
+    "source": "12443661901486234",
+    "fixture": "11521188463780236493",
+    "category": "hypothesis-stand-off-or-side",
+    "state": "Mount",
+    "mount_signed_range": [
+      0.0,
+      6.258487701416016e-07
+    ],
+    "winding_vertex_normal_dot_range": [
+      0.9999999740989013,
+      0.9999999740989013
+    ],
+    "support_index": 0,
+    "brush": {
+      "leaf": 114,
+      "brush": 2101,
+      "category": "bsp-unresolved-intersection",
+      "planes": [],
+      "penetration_max_signed_distance": null
+    },
+    "patch_error_range": [
+      2.168223732176682,
+      2.168519371214768
+    ],
+    "probes": [
+      {
+        "offset": 0.125,
+        "space": 0,
+        "leaf": 114,
+        "boundary": 0
+      },
+      {
+        "offset": 4,
+        "space": 0,
+        "leaf": 114,
+        "boundary": 0
+      },
+      {
+        "offset": -0.125,
+        "space": 1,
+        "leaf": 114,
+        "boundary": 0
+      },
+      {
+        "offset": -4,
+        "space": 1,
+        "leaf": 114,
+        "boundary": 0
+      }
+    ],
+    "rays": [
+      {
+        "name": "cross-mount",
+        "state": 1,
+        "issues": 8,
+        "surface": 11168,
+        "triangle": "47966194761729",
+        "optical": 1
+      },
+      {
+        "name": "front-segment",
+        "state": 0,
+        "issues": 0,
+        "surface": 0,
+        "triangle": "0",
+        "optical": 0
+      }
+    ]
+  },
+  {
+    "source": "350102557838430753",
+    "fixture": "8567627809541986620",
+    "category": "visual-patch-envelope",
+    "state": "UnknownGeometry",
+    "mount_signed_range": [
+      0.0,
+      0.0
+    ],
+    "winding_vertex_normal_dot_range": [
+      1.0,
+      1.0
+    ],
+    "support_index": 0,
+    "brush": {
+      "leaf": 396,
+      "brush": 2061,
+      "category": "bsp-penetration-witness",
+      "planes": [
+        {
+          "id": 697,
+          "signed_range": [
+            -20.0,
+            -20.0
+          ],
+          "normal_dot": 1.0
+        }
+      ],
+      "penetration_max_signed_distance": -0.23424689496361079
+    },
+    "patch_error_range": [
+      4.498373584648969,
+      4.498373584648969
+    ],
+    "probes": [
+      {
+        "offset": 0.125,
+        "space": 0,
+        "leaf": 396,
+        "boundary": 0
+      },
+      {
+        "offset": 4,
+        "space": 0,
+        "leaf": 396,
+        "boundary": 0
+      },
+      {
+        "offset": -0.125,
+        "space": 1,
+        "leaf": 396,
+        "boundary": 0
+      },
+      {
+        "offset": -4,
+        "space": 4,
+        "leaf": 396,
+        "boundary": 1
+      }
+    ],
+    "rays": [
+      {
+        "name": "cross-mount",
+        "state": 1,
+        "issues": 64,
+        "surface": 304,
+        "triangle": "1305670058291",
+        "optical": 1
+      },
+      {
+        "name": "front-segment",
+        "state": 2,
+        "issues": 64,
+        "surface": 304,
+        "triangle": "1305670058291",
+        "optical": 1
+      }
+    ]
+  },
+  {
+    "source": "6580165745963956644",
+    "fixture": "9139799119193319467",
+    "category": "visual-support-intersection",
+    "state": "Clearance",
+    "mount_signed_range": [
+      0.0,
+      0.0
+    ],
+    "winding_vertex_normal_dot_range": [
+      1.0,
+      1.0
+    ],
+    "support_index": 0,
+    "brush": null,
+    "patch_error_range": null,
+    "probes": [
+      {
+        "offset": 0.125,
+        "space": 0,
+        "leaf": 1123,
+        "boundary": 0
+      },
+      {
+        "offset": 4,
+        "space": 0,
+        "leaf": 1123,
+        "boundary": 0
+      },
+      {
+        "offset": -0.125,
+        "space": 1,
+        "leaf": 1123,
+        "boundary": 0
+      },
+      {
+        "offset": -4,
+        "space": 1,
+        "leaf": 1123,
+        "boundary": 0
+      }
+    ],
+    "rays": [
+      {
+        "name": "cross-mount",
+        "state": 1,
+        "issues": 8,
+        "surface": 11193,
+        "triangle": "48073568944129",
+        "optical": 1
+      },
+      {
+        "name": "front-segment",
+        "state": 0,
+        "issues": 0,
+        "surface": 0,
+        "triangle": "0",
+        "optical": 0
+      }
+    ]
+  }
+]

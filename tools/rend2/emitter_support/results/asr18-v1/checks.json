@@ -1,0 +1,51 @@
+{
+  "schema": "org.openjk.mounted-admission-checks.v1",
+  "build": {
+    "command": "cmake --build build/s06-gcc -j 2",
+    "passed": true
+  },
+  "native": {
+    "checks": 115,
+    "failures": 0,
+    "repeat_identical": true,
+    "before_checks": 86
+  },
+  "ctest": {
+    "tests": 54,
+    "passed": 54,
+    "failed": 0,
+    "wall_seconds": 1636.96,
+    "log_sha256": "e05a5646929f734b6639a32a7fcee4d9ce3296dae36f98cced1f47e85bcf9a33"
+  },
+  "python": {
+    "command": "python -X utf8 -m unittest tools.rend2.emitter_support.test_diagnosis -v",
+    "tests": 5,
+    "passed": 5
+  },
+  "stock": {
+    "candidates": 620,
+    "admitted_before": 40,
+    "admitted_after": 368,
+    "new_original_sheets": 328,
+    "after_conditional": 320,
+    "known_solid_rejections_preserved": 59,
+    "mount_rejections_preserved": 17,
+    "unknown_rejections_preserved": 168,
+    "remaining_visual_clearance_rejections": 8,
+    "all_preserved_reasons_identical": true,
+    "exact_rear_contact_triangles": 3374,
+    "newly_admitted_with_independent_penetration": 0,
+    "source_geometry_and_ids_unchanged": true,
+    "instrumentation_matches": true,
+    "small_map_repeat_and_frozen_before_replay_match": true
+  },
+  "core_files_differing_from_frozen_asr17": [
+    "shared/rd-rend2/lightrecon/emitter_support.cpp",
+    "shared/rd-rend2/lightrecon/emitter_support.h"
+  ],
+  "canonical_storage_changed": false,
+  "historical_solver_changed": false,
+  "runtime_changed": false,
+  "original_lamp_truth": "Unavailable",
+  "external_blockers": []
+}

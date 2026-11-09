@@ -86,7 +86,8 @@ Bounds BoundsOf(const SpatialSupport &s)
 }
 bool Intersects(const std::vector<Vec3> &p, const Vec3 triangle[3])
 {
-	// Separating axes for convex planar polygons, including coplanar edge axes.
+	// Separating axes for convex supports, including coplanar edge axes.
+	// Any separating projection is a proof; missing hull axes only overreject.
 	bool separated = false;
 	std::vector<V> edges;
 	for (size_t i = 0; i < p.size(); ++i)
@@ -125,16 +126,91 @@ bool Intersects(const std::vector<Vec3> &p, const Vec3 triangle[3])
 	}
 	for (auto t : te)
 		axis(Cross(tn, t));
-	if (p.size() == 1)
+	for (unsigned k = 0; k < 3; ++k)
 	{
-		for (unsigned k = 0; k < 3; ++k)
-		{
-			V a;
-			a[k] = 1;
-			axis(a);
-		}
+		V a;
+		a[k] = 1;
+		axis(a);
 	}
 	return !separated;
+}
+bool BackContact(const SpatialSupport &s, const VisibilityTriangle &t, V normal, double plane)
+{
+	// Independent opaque fixture edges may end exactly on the emitting plane
+	// from behind. This is closed-set contact, not an intersection with the open
+	// emitting side. Never exempt coplanar overlays, unknown optics or even a
+	// tiny positive/negative penetration. BSP brushes are still checked in full.
+	if (t.optical != ObstacleKind::Opaque || t.errorWorld != 0)
+		return false;
+	// Restrict the new equality proof to exact axial planes. Quantized oblique
+	// normals need a separate numerical plane contract, not a distance epsilon.
+	unsigned axial = 0;
+	for (unsigned k = 0; k < 3; ++k)
+	{
+		if (normal[k] != 0 && std::abs(normal[k]) != 1)
+			return false;
+		axial += normal[k] != 0;
+	}
+	if (axial != 1)
+		return false;
+	double lo = std::numeric_limits<double>::infinity(), hi = -lo;
+	for (auto p : t.geometry.verticesWorld)
+	{
+		double d = Dot(normal, V(p)) - plane;
+		lo = std::min(lo, d);
+		hi = std::max(hi, d);
+	}
+	if (hi != 0 || lo >= 0)
+		return false;
+	if (s.kind == SpatialSupport::Kind::Hull)
+	{
+		for (auto p : s.vertices)
+			if (Dot(normal, V(p)) - plane < 0)
+				return false;
+		return true;
+	}
+	double a = Dot(normal, V(s.axis));
+	return Dot(normal, V(s.centre)) - plane - s.halfLengthWorld * std::abs(a) -
+			   s.radiusWorld * std::sqrt(std::max(0., Dot(normal, normal) - a * a)) >= 0;
+}
+SpatialSupport FrontSupport(const SpatialSupport &s, V offset)
+{
+	SpatialSupport prism;
+	if (s.kind == SpatialSupport::Kind::Hull)
+		prism.vertices = s.vertices;
+	else
+	{
+		// Conservative enclosure of the closed tube body. No lateral/end-cap
+		// emission nodes or radius-based source relocation are introduced.
+		auto b = BoundsOf(s);
+		for (unsigned bits = 0; bits < 8; ++bits)
+			prism.vertices.push_back(Vec3(bits & 1 ? b.maxWorld.x : b.minWorld.x,
+				bits & 2 ? b.maxWorld.y : b.minWorld.y, bits & 4 ? b.maxWorld.z : b.minWorld.z));
+	}
+	auto base = prism.vertices;
+	for (auto p : base)
+	{
+		V exact = V(p) + offset;
+		Vec3 rounded = exact.Float();
+		V low(rounded), high(rounded);
+		for (unsigned k = 0; k < 3; ++k)
+		{
+			if (low[k] > exact[k])
+				low[k] = std::nextafter(float(low[k]), -std::numeric_limits<float>::infinity());
+			if (high[k] < exact[k])
+				high[k] = std::nextafter(float(high[k]), std::numeric_limits<float>::infinity());
+		}
+		// Enclose the translated vertex instead of rounding a clearance inward.
+		for (unsigned bits = 0; bits < 8; ++bits)
+		{
+			Vec3 v(bits & 1 ? float(high.x) : float(low.x),
+				bits & 2 ? float(high.y) : float(low.y), bits & 4 ? float(high.z) : float(low.z));
+			if (std::none_of(prism.vertices.begin(), prism.vertices.end(),
+							 [&](Vec3 old) { return Length(V(old) - V(v)) == 0; }))
+				prism.vertices.push_back(v);
+		}
+	}
+	return prism;
 }
 std::vector<SpatialSupport> Supports(const PhysicalEmitter &e, const Contract &c)
 {
@@ -174,7 +250,7 @@ Disk::Digest Key(const Contract &c)
 {
 	GeometryKey k;
 	k.U(kVersion);
-	k.U(3); // ASR17: captured source orientation; invalidate older support certificates
+	k.U(4); // ASR18: one-sided contact and bounded front clearance
 	k.U(c.version);
 	k.U(unsigned(c.kind));
 	k.U(c.fixture);
@@ -499,6 +575,12 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 						   "Cylinder occupied body penetrates the mounting plane");
 					return {};
 				}
+				if (low > c.maximumStandOffWorld + error)
+				{
+					reject(PointRefine::Constraint::Mount,
+						   "Cylinder gap exceeds declared fixture stand-off");
+					return {};
+				}
 				// Tangent mounting line must lie on the named support. Whole cylinder is still
 				// checked against world solids.
 				V tangent = centre - normal * (Dot(normal, centre) - plane),
@@ -619,6 +701,8 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 			bool hit = false;
 			for (auto s : supports)
 			{
+				if (Mounted(c) && !e.angular.twoSided && BackContact(s, t, normal, plane))
+					continue;
 				if (s.kind == SpatialSupport::Kind::Hull)
 					hit |= Intersects(s.vertices, t.geometry.verticesWorld);
 				else
@@ -650,17 +734,16 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 		}
 		if (Mounted(c) && c.frontClearanceWorld > 0)
 		{
-			for (auto polygon : emission)
+			for (const auto &s : supports)
+			for (unsigned side = 0; side < (e.angular.twoSided ? 2u : 1u); ++side)
 			{
-				SpatialSupport prism;
-				prism.vertices = polygon;
-				for (auto p : polygon)
-					prism.vertices.push_back((V(p) + normal * c.frontClearanceWorld).Float());
+				auto prism = FrontSupport(s, normal * (side ? -c.frontClearanceWorld : c.frontClearanceWorld));
 				if (!inspect(prism))
 					return {};
+				auto frontBounds = BoundsOf(prism);
 				LocalGeometry front;
 				Must(scene.geometry->ExtractBox(
-					BoundsOf(prism), read, 4096,
+					frontBounds, read, 4096,
 					std::max<uint64_t>(1, scene.maxWorkPerCheck - out.work), front));
 				out.work += front.work;
 				if (!front.coverageComplete)
@@ -671,17 +754,27 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 				}
 				for (const auto &t : front.triangles)
 				{
+					Need(!Cancelled(read), Code::Cancelled, "Source front clearance cancelled");
+					Need(++out.work <= scene.maxWorkPerCheck, Code::WorkLimit,
+						 "Source front visual support budget");
 					bool contact = std::find(c.surfaces.begin(), c.surfaces.end(), t.surface) !=
 								   c.surfaces.end();
 					for (auto v : t.geometry.verticesWorld)
 						contact &= std::abs(Dot(normal, V(v)) - plane) <= error;
-					if (!contact)
+					if (!contact && (e.angular.twoSided || !BackContact(prism, t, normal, plane)) &&
+						Intersects(prism.vertices, t.geometry.verticesWorld))
 					{
-						reject(PointRefine::Constraint::UnknownGeometry,
+						reject(t.optical == ObstacleKind::Opaque ? PointRefine::Constraint::Clearance
+															  : PointRefine::Constraint::UnknownGeometry,
 							   "Source front clearance has unresolved independent visual geometry");
 						return {};
 					}
 				}
+				// Independent bake occupancy also constrains the requested front.
+				bounds.minWorld = Vec3(std::min(bounds.minWorld.x, frontBounds.minWorld.x),
+					std::min(bounds.minWorld.y, frontBounds.minWorld.y), std::min(bounds.minWorld.z, frontBounds.minWorld.z));
+				bounds.maxWorld = Vec3(std::max(bounds.maxWorld.x, frontBounds.maxWorld.x),
+					std::max(bounds.maxWorld.y, frontBounds.maxWorld.y), std::max(bounds.maxWorld.z, frontBounds.maxWorld.z));
 			}
 		}
 		Must(placement.CheckOccupancy(bounds, read, out.placement));

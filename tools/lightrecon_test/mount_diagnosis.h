@@ -107,6 +107,7 @@ class Writer
 		{
 			const auto &v=s.geometry->Surfaces()[i];if(i)o<<',';
 			o<<"{\"id\":"<<v.ordinal+1<<",\"model\":"<<v.model<<",\"kind\":"<<unsigned(v.kind)
+			 <<",\"material\":"<<Q(v.material)
 			 <<",\"motion\":"<<unsigned(v.motion)<<",\"signals\":"<<v.materialFacts.signals
 			 <<",\"cull\":"<<unsigned(v.materialFacts.cull)<<",\"vertices\":"<<v.vertices.size()<<'}';
 		}
