@@ -40,6 +40,10 @@ All executables link the one `rend2_lightrecon_core` static target:
   failures, factors/invalidation and the separate SI footprint integral.
 - `lightrecon_bake_forward_tool`: geometry-only CPU protocol for external
   fixed-geometry tests; see [S01 support and reproduction](../../docs/rend2-bake-forward-evaluator.md).
+- `lightrecon_local_evidence_test [report.json]`: ASR08 tool-only encoded-space
+  local-source evidence under explicit sun/sky alternatives, with saturation,
+  color/geometry uncertainty and controlled isolation fixtures. See the
+  [API and limits](../../docs/rend2-local-light-evidence-asr08.md).
 
 `lightrecon_regions_inspect` is an optional offline JA RBSP v1 inspector and OBJ/TSV exporter.
 See [lighting-region semantics, stock inspection and commands](../../docs/rend2-lighting-regions.md).

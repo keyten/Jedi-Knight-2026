@@ -9,6 +9,7 @@ sky17 payloads. No renderer sun, cvars, GPU state or map-load hook is changed.
 See [method, scope and measured results](../../../docs/rend2-sun-sky-reconstruction-s02.md).
 The repeated S03 task uses this same estimator; see its
 [requirement audit and added captured-input tests](../../../docs/rend2-sun-sky-reconstruction-s03.md).
+ASR07 reuses it for [conservative discovery and distant-lamp ambiguity controls](../solar_discovery/README.md).
 No Python light predictor is used for optimization. The harness reuses the
 original BSP parser/UV mapping, existing spatial partitions, original RGB8
 bytes and production C++ forward kernels. Python dependencies: standard library

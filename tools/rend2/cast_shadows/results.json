@@ -1,0 +1,639 @@
+{
+  "beam_bounds_m": [
+    [
+      -0.3,
+      1.9,
+      1.2
+    ],
+    [
+      0.3,
+      2.1,
+      1.6
+    ]
+  ],
+  "diagnostics": {
+    "cases": {
+      "actual_beam": {
+        "hard_veto": false,
+        "projected_residuals_m": [
+          0.009868421052631637,
+          0.009868421052631637,
+          0.009868421052631637
+        ],
+        "rays": [
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Blocked",
+              "beam"
+            ]
+          },
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Blocked",
+              "beam"
+            ]
+          },
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Blocked",
+              "beam"
+            ]
+          }
+        ],
+        "reason": "ConditionalPattern",
+        "state": "Compatible",
+        "verified_cast_shadow": false
+      },
+      "indirect_unresolved": {
+        "reason": "Alternative:IndirectTransition",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "material": {
+        "reason": "MaterialChartStyleSeam",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "missing_geometry": {
+        "rays": [
+          {
+            "bright": [
+              "Unknown",
+              null
+            ],
+            "dark": [
+              "Unknown",
+              null
+            ]
+          },
+          {
+            "bright": [
+              "Unknown",
+              null
+            ],
+            "dark": [
+              "Unknown",
+              null
+            ]
+          },
+          {
+            "bright": [
+              "Unknown",
+              null
+            ],
+            "dark": [
+              "Unknown",
+              null
+            ]
+          }
+        ],
+        "reason": "UnknownGeometryOrOptics",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "moving_caster": {
+        "reason": "Alternative:MovingCaster",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "no_caster_angular_mask": {
+        "hard_veto": true,
+        "projected_residuals_m": [
+          0.009868421052631637,
+          0.009868421052631637,
+          0.009868421052631637
+        ],
+        "rays": [
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Visible",
+              null
+            ]
+          },
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Visible",
+              null
+            ]
+          },
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Visible",
+              null
+            ]
+          }
+        ],
+        "reason": "WrongPatternOrCaster",
+        "state": "Incompatible",
+        "verified_cast_shadow": false
+      },
+      "no_correspondence_no_caster": {
+        "hard_veto": false,
+        "projected_residuals_m": [
+          0.009868421052631637,
+          0.009868421052631637,
+          0.009868421052631637
+        ],
+        "rays": [
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Visible",
+              null
+            ]
+          },
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Visible",
+              null
+            ]
+          },
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Visible",
+              null
+            ]
+          }
+        ],
+        "reason": "WrongPatternOrCaster",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "normal": {
+        "reason": "NormalEdge",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "quantization_only": {
+        "reason": "NoUniqueSharpTransition",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "ray_budget": {
+        "reason": "WorkLimit",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "sample_budget": {
+        "reason": "WorkLimit",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "saturation": {
+        "reason": "ClippingOrInvalidCode",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "seam": {
+        "reason": "MaterialChartStyleSeam",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "smooth_falloff": {
+        "reason": "NoUniqueSharpTransition",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "unknown_filter": {
+        "reason": "UnknownFilter",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "unknown_optics": {
+        "rays": [
+          {
+            "bright": [
+              "Unknown",
+              null
+            ],
+            "dark": [
+              "Unknown",
+              null
+            ]
+          },
+          {
+            "bright": [
+              "Unknown",
+              null
+            ],
+            "dark": [
+              "Unknown",
+              null
+            ]
+          },
+          {
+            "bright": [
+              "Unknown",
+              null
+            ],
+            "dark": [
+              "Unknown",
+              null
+            ]
+          }
+        ],
+        "reason": "UnknownGeometryOrOptics",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "unknown_transfer": {
+        "reason": "UnknownTransfer",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "wide_filter": {
+        "reason": "UnresolvedFootprint",
+        "state": "Unknown",
+        "verified_cast_shadow": false
+      },
+      "wrong_source": {
+        "hard_veto": true,
+        "projected_residuals_m": [
+          0.06182432432432439,
+          0.06182432432432439,
+          0.06182432432432439
+        ],
+        "rays": [
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Blocked",
+              "beam"
+            ]
+          },
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Blocked",
+              "beam"
+            ]
+          },
+          {
+            "bright": [
+              "Visible",
+              null
+            ],
+            "dark": [
+              "Blocked",
+              "beam"
+            ]
+          }
+        ],
+        "reason": "WrongPatternOrCaster",
+        "state": "Incompatible",
+        "verified_cast_shadow": false
+      }
+    },
+    "caveat": "Compatible means conditional geometry agreement, never a verified historical shadow",
+    "counterexample_byte_identical": true,
+    "detection": {
+      "alternatives": [
+        "SpotCone",
+        "IndirectTransition",
+        "OverlappingSources",
+        "AuthoredGain"
+      ],
+      "state": "PossibleContrast",
+      "strips": [
+        {
+          "band_m": 0.014499999999999956,
+          "bright_m": [
+            -0.925,
+            0.0,
+            0.05
+          ],
+          "dark_m": [
+            -0.8,
+            0.0,
+            0.05
+          ],
+          "jump_codes": -100,
+          "world_m": [
+            -0.8625,
+            0.0,
+            0.05
+          ]
+        },
+        {
+          "band_m": 0.014499999999999956,
+          "bright_m": [
+            -0.925,
+            0.0,
+            0.1
+          ],
+          "dark_m": [
+            -0.8,
+            0.0,
+            0.1
+          ],
+          "jump_codes": -102,
+          "world_m": [
+            -0.8625,
+            0.0,
+            0.1
+          ]
+        },
+        {
+          "band_m": 0.014499999999999956,
+          "bright_m": [
+            -0.925,
+            0.0,
+            0.15
+          ],
+          "dark_m": [
+            -0.8,
+            0.0,
+            0.15
+          ],
+          "jump_codes": -103,
+          "world_m": [
+            -0.8625,
+            0.0,
+            0.15
+          ]
+        }
+      ],
+      "verified_cast_shadow": false
+    },
+    "sample_count": 135
+  },
+  "schema": "org.openjk.asr05-cast-shadow-study/1",
+  "scope": "owned analytical fixture; no BSP/compiler or historical lamp certification",
+  "single_source": {
+    "band_m": 0.025,
+    "baseline_error_m": 1.624807680927192,
+    "baseline_heldout": {
+      "rgb8_mse": 5176.942857142857,
+      "visibility_mismatches": 18
+    },
+    "baseline_tie_m": [
+      -0.8,
+      3.0,
+      2.0
+    ],
+    "grid_count": 8959,
+    "heldout_count": 35,
+    "local_fine_grid": {
+      "bounds_m": [
+        [
+          0.18,
+          0.22
+        ],
+        [
+          3.9,
+          4.12
+        ],
+        [
+          2.72,
+          2.9
+        ]
+      ],
+      "count": 52,
+      "max_truth_distance_m": 0.15652475842498542
+    },
+    "local_grid_spacing_m": [
+      0.01,
+      0.02,
+      0.02
+    ],
+    "observed_training_codes": [
+      138,
+      138,
+      138
+    ],
+    "one_endpoint": {
+      "bounds_m": [
+        [
+          0.2,
+          0.4
+        ],
+        [
+          4.0,
+          4.8
+        ],
+        [
+          2.8,
+          3.5
+        ]
+      ],
+      "count": 3,
+      "max_truth_distance_m": 1.0816653826391966
+    },
+    "oracle": [
+      [
+        [
+          -0.3,
+          2.1,
+          1.2
+        ],
+        [
+          -0.8526315789473684,
+          4.440892098500626e-16,
+          -0.5684210526315785
+        ]
+      ],
+      [
+        [
+          0.3,
+          2.1,
+          1.2
+        ],
+        [
+          0.41052631578947363,
+          4.440892098500626e-16,
+          -0.5684210526315785
+        ]
+      ]
+    ],
+    "perturbed_endpoints": {
+      "bounds_m": [
+        [
+          0.2,
+          0.2
+        ],
+        [
+          4.0,
+          4.1
+        ],
+        [
+          2.8,
+          2.9
+        ]
+      ],
+      "count": 2,
+      "max_truth_distance_m": 0.1414213562373093
+    },
+    "photometry": {
+      "bounds_m": [
+        [
+          -0.8,
+          0.8
+        ],
+        [
+          3.0,
+          6.0
+        ],
+        [
+          2.0,
+          3.6
+        ]
+      ],
+      "count": 8924,
+      "max_truth_distance_m": 2.3748684174075834
+    },
+    "selected_error_m": 0.0,
+    "selected_heldout": {
+      "rgb8_mse": 0.0,
+      "visibility_mismatches": 0
+    },
+    "selected_m": [
+      0.2,
+      4.0,
+      2.8
+    ],
+    "truth_retained_after_perturbation": true,
+    "two_endpoints": {
+      "bounds_m": [
+        [
+          0.2,
+          0.2
+        ],
+        [
+          4.0,
+          4.0
+        ],
+        [
+          2.8,
+          2.8
+        ]
+      ],
+      "count": 1,
+      "max_truth_distance_m": 0.0
+    }
+  },
+  "truth_m": [
+    0.2,
+    4.0,
+    2.8
+  ],
+  "two_sources": {
+    "fill": 0.08,
+    "mixed_receiver_m": [
+      -0.5,
+      0.0,
+      0.1
+    ],
+    "mixed_signal": 0.25182147742459865,
+    "oracle_source_labels_supplied": true,
+    "sources": [
+      {
+        "error_m": 2.280150522108624e-14,
+        "grid": {
+          "bounds_m": [
+            [
+              0.2,
+              0.2
+            ],
+            [
+              4.0,
+              4.0
+            ],
+            [
+              2.8,
+              2.8
+            ]
+          ],
+          "count": 1,
+          "max_truth_distance_m": 0.0
+        },
+        "intersection_m": [
+          0.20000000000000157,
+          4.000000000000018,
+          2.800000000000014
+        ],
+        "truth_m": [
+          0.2,
+          4.0,
+          2.8
+        ]
+      },
+      {
+        "error_m": 1.93610704301812e-13,
+        "grid": {
+          "bounds_m": [
+            [
+              -0.6,
+              -0.6
+            ],
+            [
+              5.0,
+              5.0
+            ],
+            [
+              3.2,
+              3.2
+            ]
+          ],
+          "count": 1,
+          "max_truth_distance_m": 0.0
+        },
+        "intersection_m": [
+          -0.5999999999999679,
+          4.999999999999843,
+          3.199999999999892
+        ],
+        "truth_m": [
+          -0.6,
+          5.0,
+          3.2
+        ]
+      }
+    ],
+    "visibility": [
+      "Blocked",
+      "Visible"
+    ]
+  },
+  "units": "metres, relative synthetic signal"
+}

@@ -1,0 +1,71 @@
+{
+  "branch": "rend2-unified-wip",
+  "checkout_origin": "git@github.com:keyten/BetterJK.git",
+  "hash_convention": "SHA256 of UTF-8 text normalized to LF",
+  "inspected_baseline": "8f8875008878a0d1dc6a0572862bf13546771f0a",
+  "papers": [
+    {
+      "access": "Complete primary-author HTML with web tool; no local PDF archived or neural training performed",
+      "authors": "Jinseo Jeong, Junseo Koo, Qimeng Zhang, Gunhee Kim",
+      "reviewed": "Sections 3-4 (equations 1-16), 5.1, 6; appendix 8.2, 8.4, 8.10; posed on/off supervision vs evaluation masks/EXR, learned response, reflection suppression and single-state/path limitations",
+      "title": "ESR-NeRF: Emissive Source Reconstruction Using LDR Multi-view Images",
+      "url": "https://arxiv.org/html/2404.15707v2",
+      "venue": "CVPR 2024",
+      "version": "arXiv v2, 2024-06-07, including appendix"
+    }
+  ],
+  "repository_inputs": [
+    {
+      "lf_sha256": "bdaaa303448fc1be0c9119b14a9935b9c2a2d1104e569171fd084b5484a75e01",
+      "path": "docs/rend2-inverse-gi-research.md"
+    },
+    {
+      "lf_sha256": "bcdf8433f4c8d44c2676259f42ff605611036393b194c376a1aeffd6fdf5309e",
+      "path": "docs/rend2-light-localization-research.md"
+    },
+    {
+      "lf_sha256": "fa3ce5dca97b514847482a5214e6c1b69e3ce285ba53f47c118632a094700e45",
+      "path": "docs/rend2-indirect-fitting-s10.md"
+    },
+    {
+      "lf_sha256": "22685e3203dce6def6ac9e96d5f725d7e9170cc46c20d5a46211383545e5bc9b",
+      "path": "shared/rd-rend2/lightrecon/evidence.cpp"
+    },
+    {
+      "lf_sha256": "514037f9c12e03cd55cd0aee5606ffe066efef99d8421d1f7e2b8274f88bcb5a",
+      "path": "shared/rd-rend2/lightrecon/candidate_pool.h"
+    },
+    {
+      "lf_sha256": "076204b618b11df444800f8419abd5320b9a2df698bca8553775c52777dcb53f",
+      "path": "shared/rd-rend2/lightrecon/candidate_pool.cpp"
+    },
+    {
+      "lf_sha256": "b7bd3cbff50a38172085cd7fec2823e9504996a32555986c08fdfe7d6b429227",
+      "path": "shared/rd-rend2/lightrecon/emitter_support.h"
+    },
+    {
+      "lf_sha256": "dc4bb26aac3cff43386bc001915f7b3f262e97c1aa51520f47bda8119334e4a2",
+      "path": "shared/rd-rend2/lightrecon/indirect.h"
+    },
+    {
+      "lf_sha256": "8ab621ad1b97a76b59aef4c1f496d217b3feac6cfcc5dfec6d021409027597a5",
+      "path": "shared/rd-rend2/lightrecon/indirect.cpp"
+    },
+    {
+      "lf_sha256": "0d735fe0f47870f096ca78dfdc17c21235d940847c2f568aee85b69dfc095d5f",
+      "path": "shared/rd-rend2/lightrecon/surfaces.h"
+    },
+    {
+      "lf_sha256": "e5e427702d032c21968b90d3ccd8b1ab94f7d5ca0a82dc0e9e2cbc455654c44c",
+      "path": "shared/rd-rend2/tr_lightrecon_types.h"
+    },
+    {
+      "lf_sha256": "53cfa37b02c263da951b4b1c2270915be87572bfb6771db7629f1de5d688e666",
+      "path": "tools/rend2/inverse_gi/transport.py"
+    }
+  ],
+  "requested_repository": "keyten/Jedi-Knight-2026",
+  "review_date": "2026-11-09",
+  "schema": "org.openjk.asr06-research-inputs/1",
+  "snapshot_note": "Localization document includes pre-existing ASR05 edits; no prior working-tree changes overwritten."
+}

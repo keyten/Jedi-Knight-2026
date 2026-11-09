@@ -1,0 +1,50 @@
+{
+  "branch": "rend2-unified-wip",
+  "checkout_origin": "git@github.com:keyten/BetterJK.git",
+  "hash_convention": "SHA256 of UTF-8 text normalized to LF",
+  "inspected_baseline": "8f8875008",
+  "papers": [
+    {
+      "local_pdf_sha256": "82883de051e54b01ae395ce12e0157abef326e52b36881605901948c6dc6a5c7",
+      "reviewed": "Sections I-V, equations 2-12; known geometry/distant illumination, response calibration, uniform vs textured reflectance and object-off dependence",
+      "url": "https://research.nii.ac.jp/~imarik/resources/papers/TPAMI-IlluminationFromShadows.pdf",
+      "version": "author preprint of TPAMI 2003 article; header dated 2002"
+    },
+    {
+      "doi": "10.1007/s11263-020-01312-3",
+      "local_copy": "not archived; accessed with web tool",
+      "reviewed": "Sections 3-5; equations 1-4,17; moving target, target poses, correspondence search, multiple lights and experimental limitations",
+      "url": "https://link.springer.com/article/10.1007/s11263-020-01312-3",
+      "version": "IJCV 2020 full publisher HTML, not ECCV 2018 predecessor"
+    }
+  ],
+  "repository_inputs": [
+    {
+      "lf_sha256": "1a6cb2d64b3d37a412fc0e7c7c7004eb1ff960ff84c984a06a820c09aa516dc7",
+      "path": "shared/rd-rend2/lightrecon/shadow_evidence.h"
+    },
+    {
+      "lf_sha256": "aa59372a2d2fa309200fdec83303b7e034df539bf5d3bd76447aa0d05c7920b7",
+      "path": "shared/rd-rend2/lightrecon/shadow_evidence.cpp"
+    },
+    {
+      "lf_sha256": "79da1345796a4b2f8903e2f392305fc8a82d13dfe0ebd2e22936dcfe97b41847",
+      "path": "shared/rd-rend2/lightrecon/visibility.h"
+    },
+    {
+      "lf_sha256": "0d735fe0f47870f096ca78dfdc17c21235d940847c2f568aee85b69dfc095d5f",
+      "path": "shared/rd-rend2/lightrecon/surfaces.h"
+    },
+    {
+      "lf_sha256": "e5e427702d032c21968b90d3ccd8b1ab94f7d5ca0a82dc0e9e2cbc455654c44c",
+      "path": "shared/rd-rend2/tr_lightrecon_types.h"
+    },
+    {
+      "lf_sha256": "cc65193a557f0e3084add29b2f5217ca18c8eede6662cd336d4e2971d7d06628",
+      "path": "tools/rend2/light_localization_research/shadow_localization.py"
+    }
+  ],
+  "requested_repository": "keyten/Jedi-Knight-2026",
+  "review_date": "2026-11-09",
+  "schema": "org.openjk.asr05-research-inputs/1"
+}

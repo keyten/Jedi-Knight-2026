@@ -10,6 +10,11 @@ The later [ASR04 numerical study](rend2-isophote-cues-asr04.md) tests planar
 gradient/isophote cues on owned JA compiler receivers, including gamma,
 quantization, material, bounce and shadow failures.
 
+The [ASR05 cast-shadow study](rend2-cast-shadow-constraints-asr05.md) adds a
+finite beam/receiver-wall fixture, supplied-correspondence candidate rejection,
+a byte-identical no-caster counterexample and a bounded diagnostic with Unknown
+outcomes. It does not promote arbitrary baked contrast to a historical shadow.
+
 **A low RGB error is evidence of predictive agreement, not of a uniquely
 localized physical lamp.** Geometry, transfer/attenuation profile, materials,
 component separation and observation coverage determine what can be identified.

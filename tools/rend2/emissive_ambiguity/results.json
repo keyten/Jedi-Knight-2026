@@ -1,0 +1,974 @@
+{
+  "abstention_controls": {
+    "bake_emission_hint": {
+      "appearance_peak_rgb8": 237,
+      "bake_emission_hint": false,
+      "decision": "AmbiguousSourceOrTransport",
+      "evidence_provenance": [
+        "fixture.shader:glow",
+        "fixture.shader:q3map_surfacelight 100",
+        "fixture.reflectance:declared hypothesis; not inferred from current texture"
+      ],
+      "exact_historical_source": false,
+      "fitted_additional_emission": [
+        11.669348803400712,
+        6.858134139903491,
+        3.4943720895119137
+      ],
+      "glow_stage": true,
+      "metrics": {
+        "candidate_nonzero_response_receivers": 6,
+        "direct_plus_emitter_amplitude": [
+          12.461067750540447,
+          7.654118250299739,
+          4.275037817311633
+        ],
+        "direct_plus_emitter_rmse_bytes": 2.175583928816829e-15,
+        "direct_rmse_bytes": 4.213651275614384,
+        "independent_support_receivers": 6,
+        "passive_plus_emitter_rmse_bytes": 2.175583928816829e-15,
+        "passive_rmse_bytes": 3.8650942927382177
+      },
+      "reasons": [
+        "InsufficientEmissionOrTransportEvidence"
+      ],
+      "surface_supported": true
+    },
+    "encoding_known": {
+      "appearance_peak_rgb8": 237,
+      "bake_emission_hint": true,
+      "decision": "AmbiguousSourceOrTransport",
+      "evidence_provenance": [
+        "fixture.shader:glow",
+        "fixture.shader:q3map_surfacelight 100",
+        "fixture.reflectance:declared hypothesis; not inferred from current texture"
+      ],
+      "exact_historical_source": false,
+      "fitted_additional_emission": null,
+      "glow_stage": true,
+      "metrics": null,
+      "reasons": [
+        "UnknownObservationOperator"
+      ],
+      "surface_supported": true
+    },
+    "geometry_known": {
+      "appearance_peak_rgb8": 237,
+      "bake_emission_hint": true,
+      "decision": "AmbiguousSourceOrTransport",
+      "evidence_provenance": [
+        "fixture.shader:glow",
+        "fixture.shader:q3map_surfacelight 100",
+        "fixture.reflectance:declared hypothesis; not inferred from current texture"
+      ],
+      "exact_historical_source": false,
+      "fitted_additional_emission": null,
+      "glow_stage": true,
+      "metrics": null,
+      "reasons": [
+        "UnknownGeometry"
+      ],
+      "surface_supported": true
+    },
+    "material_known": {
+      "appearance_peak_rgb8": 237,
+      "bake_emission_hint": true,
+      "decision": "AmbiguousSourceOrTransport",
+      "evidence_provenance": [
+        "fixture.shader:glow",
+        "fixture.shader:q3map_surfacelight 100",
+        "fixture.reflectance:declared hypothesis; not inferred from current texture"
+      ],
+      "exact_historical_source": false,
+      "fitted_additional_emission": null,
+      "glow_stage": true,
+      "metrics": null,
+      "reasons": [
+        "UnknownBakeReflectance"
+      ],
+      "surface_supported": true
+    },
+    "root_known": {
+      "appearance_peak_rgb8": 237,
+      "bake_emission_hint": true,
+      "decision": "AmbiguousSourceOrTransport",
+      "evidence_provenance": [
+        "fixture.shader:glow",
+        "fixture.shader:q3map_surfacelight 100",
+        "fixture.reflectance:declared hypothesis; not inferred from current texture"
+      ],
+      "exact_historical_source": false,
+      "fitted_additional_emission": null,
+      "glow_stage": true,
+      "metrics": null,
+      "reasons": [
+        "MissingPrimary"
+      ],
+      "surface_supported": true
+    }
+  },
+  "equivalent_secondary": {
+    "encoded_equal": true,
+    "equivalent_Le": [
+      5.092958178940651,
+      0.5092958178940651,
+      0.25464790894703254
+    ],
+    "incident": [
+      20.0,
+      20.0,
+      20.0
+    ],
+    "maximum_direction_difference": 0.0,
+    "maximum_receiver_difference": 0.0,
+    "new_origin_information_from_direction": false,
+    "reflector_rho": [
+      0.8,
+      0.08,
+      0.04
+    ]
+  },
+  "implementation_lf_sha256": "57b7bf317a5d1bbe5c630ca853c35d289c57f65c521f6aa979bf9154f6a8b29d",
+  "metrics": {
+    "brightness": {
+      "emitting_proposals": 3,
+      "false_source_rate": 1.0,
+      "false_sources": 9,
+      "nonemitting_proposals": 9,
+      "recall": 1.0,
+      "true_sources_retained": 3
+    },
+    "conservative": {
+      "emitting_proposals": 3,
+      "false_source_rate": 0.0,
+      "false_sources": 0,
+      "nonemitting_proposals": 9,
+      "recall": 0.6666666666666666,
+      "true_sources_retained": 2
+    },
+    "geometry_and_brightness": {
+      "emitting_proposals": 3,
+      "false_source_rate": 0.6666666666666666,
+      "false_sources": 6,
+      "nonemitting_proposals": 9,
+      "recall": 1.0,
+      "true_sources_retained": 3
+    },
+    "glow_stage": {
+      "emitting_proposals": 3,
+      "false_source_rate": 0.3333333333333333,
+      "false_sources": 3,
+      "nonemitting_proposals": 9,
+      "recall": 1.0,
+      "true_sources_retained": 3
+    }
+  },
+  "policy": {
+    "brightness_threshold_rgb8": 180,
+    "encoded_gain": 12.0,
+    "maximum_emission": 64.0,
+    "maximum_interval_rmse_bytes": 0.75,
+    "minimum_improvement_bytes": 2.0,
+    "quadrature_order": 8,
+    "reference_order": 24
+  },
+  "rows": [
+    {
+      "result": {
+        "appearance_peak_rgb8": 221,
+        "bake_emission_hint": true,
+        "decision": "AmbiguousSourceOrTransport",
+        "evidence_provenance": [
+          "fixture.shader:glow",
+          "fixture.shader:q3map_surfacelight 100",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          5.3941461026820505,
+          3.945230166611534,
+          1.8699197105356
+        ],
+        "glow_stage": true,
+        "heldout_channel_range_rgb8": [
+          [
+            11,
+            19
+          ],
+          [
+            11,
+            19
+          ],
+          [
+            10,
+            18
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 0.9427792632239848,
+        "heldout_peak_rgb8": 19,
+        "heldout_selected_rmse_bytes": 0.9427792632239848,
+        "ideal_direction_candidate_cosine_range": [
+          0.8059210394219635,
+          0.8493398096329423
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            5.790005576251918,
+            4.339034200084912,
+            2.265779184105467
+          ],
+          "direct_plus_emitter_rmse_bytes": 6.280369834735101e-16,
+          "direct_rmse_bytes": 1.887643437849227,
+          "independent_support_receivers": 4,
+          "passive_plus_emitter_rmse_bytes": 0.0,
+          "passive_rmse_bytes": 1.7102083696434975
+        },
+        "reasons": [
+          "InsufficientEmissionOrTransportEvidence"
+        ],
+        "surface_supported": true,
+        "training_tangent_gradient_rgb8_per_m": [
+          3.3333333333333335,
+          3.3333333333333335,
+          3.3333333333333335
+        ]
+      },
+      "scale": 0.5,
+      "scene": "emissive_panel",
+      "truth_candidate_emits": true
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 237,
+        "bake_emission_hint": true,
+        "decision": "ConditionalEmitterCandidate",
+        "evidence_provenance": [
+          "fixture.shader:glow",
+          "fixture.shader:q3map_surfacelight 100",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          11.669348803400712,
+          6.858134139903491,
+          3.4943720895119137
+        ],
+        "glow_stage": true,
+        "heldout_channel_range_rgb8": [
+          [
+            23,
+            38
+          ],
+          [
+            21,
+            37
+          ],
+          [
+            20,
+            36
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 2.1165810746061364,
+        "heldout_peak_rgb8": 38,
+        "heldout_selected_rmse_bytes": 0.05397881438156629,
+        "ideal_direction_candidate_cosine_range": [
+          0.8059210394219635,
+          0.8493398096329423
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            12.461067750540447,
+            7.654118250299739,
+            4.275037817311633
+          ],
+          "direct_plus_emitter_rmse_bytes": 2.175583928816829e-15,
+          "direct_rmse_bytes": 4.213651275614384,
+          "independent_support_receivers": 6,
+          "passive_plus_emitter_rmse_bytes": 2.175583928816829e-15,
+          "passive_rmse_bytes": 3.8650942927382177
+        },
+        "reasons": [
+          "BakeEmissionHint",
+          "OriginalSurfaceSupport",
+          "IndependentReceiverResponse",
+          "AlternativesNotExhausted"
+        ],
+        "surface_supported": true,
+        "training_tangent_gradient_rgb8_per_m": [
+          5.0,
+          5.0,
+          5.0
+        ]
+      },
+      "scale": 1.0,
+      "scene": "emissive_panel",
+      "truth_candidate_emits": true
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 245,
+        "bake_emission_hint": true,
+        "decision": "ConditionalEmitterCandidate",
+        "evidence_provenance": [
+          "fixture.shader:glow",
+          "fixture.shader:q3map_surfacelight 100",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          23.839788778845836,
+          15.803472083612593,
+          7.89825240986031
+        ],
+        "glow_stage": true,
+        "heldout_channel_range_rgb8": [
+          [
+            45,
+            77
+          ],
+          [
+            42,
+            74
+          ],
+          [
+            40,
+            72
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 4.5759781434155675,
+        "heldout_peak_rgb8": 77,
+        "heldout_selected_rmse_bytes": 0.0031829319213509595,
+        "ideal_direction_candidate_cosine_range": [
+          0.8059210394219635,
+          0.8493398096329423
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            25.41500491273935,
+            17.364803539212033,
+            9.490220630652807
+          ],
+          "direct_plus_emitter_rmse_bytes": 2.5121479338940403e-15,
+          "direct_rmse_bytes": 8.86566447639289,
+          "independent_support_receivers": 6,
+          "passive_plus_emitter_rmse_bytes": 4.351167857633658e-15,
+          "passive_rmse_bytes": 8.142967780268707
+        },
+        "reasons": [
+          "BakeEmissionHint",
+          "OriginalSurfaceSupport",
+          "IndependentReceiverResponse",
+          "AlternativesNotExhausted"
+        ],
+        "surface_supported": true,
+        "training_tangent_gradient_rgb8_per_m": [
+          8.333333333333334,
+          10.0,
+          10.0
+        ]
+      },
+      "scale": 2.0,
+      "scene": "emissive_panel",
+      "truth_candidate_emits": true
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 184,
+        "bake_emission_hint": false,
+        "decision": "PassiveTransportPlausible",
+        "evidence_provenance": [
+          "fixture.shader:diffuse",
+          "fixture.shader:no surfacelight",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glow_stage": false,
+        "heldout_channel_range_rgb8": [
+          [
+            38,
+            70
+          ],
+          [
+            37,
+            70
+          ],
+          [
+            37,
+            70
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 0.0,
+        "heldout_peak_rgb8": 70,
+        "heldout_selected_rmse_bytes": 0.0,
+        "ideal_direction_candidate_cosine_range": [
+          0.7646858510339626,
+          0.8240098694727782
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            2.508601586716787,
+            0.1813952387380967,
+            0.08713370234029474
+          ],
+          "direct_plus_emitter_rmse_bytes": 3.552713678800501e-15,
+          "direct_rmse_bytes": 0.55811768040083,
+          "independent_support_receivers": 0,
+          "passive_plus_emitter_rmse_bytes": 0.0,
+          "passive_rmse_bytes": 0.0
+        },
+        "reasons": [
+          "NoAdditionalEmitterRequired",
+          "ConditionalOnFixedRootAndMaterial"
+        ],
+        "surface_supported": true,
+        "training_tangent_gradient_rgb8_per_m": [
+          11.666666666666668,
+          11.666666666666668,
+          11.666666666666668
+        ]
+      },
+      "scale": 0.5,
+      "scene": "red_reflected_wall",
+      "truth_candidate_emits": false
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 214,
+        "bake_emission_hint": false,
+        "decision": "PassiveTransportPlausible",
+        "evidence_provenance": [
+          "fixture.shader:diffuse",
+          "fixture.shader:no surfacelight",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glow_stage": false,
+        "heldout_channel_range_rgb8": [
+          [
+            75,
+            141
+          ],
+          [
+            73,
+            139
+          ],
+          [
+            73,
+            139
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 0.0,
+        "heldout_peak_rgb8": 141,
+        "heldout_selected_rmse_bytes": 0.0,
+        "ideal_direction_candidate_cosine_range": [
+          0.7646858510339626,
+          0.8240098694727782
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            4.910384502294546,
+            0.27203436048615637,
+            0.0
+          ],
+          "direct_plus_emitter_rmse_bytes": 5.0242958677880805e-15,
+          "direct_rmse_bytes": 1.1291953877522152,
+          "independent_support_receivers": 0,
+          "passive_plus_emitter_rmse_bytes": 0.0,
+          "passive_rmse_bytes": 0.0
+        },
+        "reasons": [
+          "NoAdditionalEmitterRequired",
+          "ConditionalOnFixedRootAndMaterial"
+        ],
+        "surface_supported": true,
+        "training_tangent_gradient_rgb8_per_m": [
+          25.0,
+          23.333333333333336,
+          25.0
+        ]
+      },
+      "scale": 1.0,
+      "scene": "red_reflected_wall",
+      "truth_candidate_emits": false
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 233,
+        "bake_emission_hint": false,
+        "decision": "PassiveTransportPlausible",
+        "evidence_provenance": [
+          "fixture.shader:diffuse",
+          "fixture.shader:no surfacelight",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glow_stage": false,
+        "heldout_channel_range_rgb8": [
+          [
+            150,
+            255
+          ],
+          [
+            147,
+            255
+          ],
+          [
+            147,
+            255
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 0.0,
+        "heldout_peak_rgb8": 255,
+        "heldout_selected_rmse_bytes": 0.0,
+        "ideal_direction_candidate_cosine_range": [
+          0.7646858510339626,
+          0.8240098694727782
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            8.407402921760909,
+            0.0,
+            0.0
+          ],
+          "direct_plus_emitter_rmse_bytes": 0.0,
+          "direct_rmse_bytes": 1.2171233733137399,
+          "independent_support_receivers": 0,
+          "passive_plus_emitter_rmse_bytes": 0.0,
+          "passive_rmse_bytes": 0.0
+        },
+        "reasons": [
+          "NoAdditionalEmitterRequired",
+          "ConditionalOnFixedRootAndMaterial"
+        ],
+        "surface_supported": true,
+        "training_tangent_gradient_rgb8_per_m": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "scale": 2.0,
+      "scene": "red_reflected_wall",
+      "truth_candidate_emits": false
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 198,
+        "bake_emission_hint": false,
+        "decision": "ApertureOrUnsupportedSurface",
+        "evidence_provenance": [
+          "fixture.shader:diffuse",
+          "fixture.shader:no surfacelight",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glow_stage": false,
+        "heldout_channel_range_rgb8": [
+          [
+            1,
+            23
+          ],
+          [
+            1,
+            23
+          ],
+          [
+            1,
+            23
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 0.0,
+        "heldout_peak_rgb8": 23,
+        "heldout_selected_rmse_bytes": 0.0,
+        "ideal_direction_candidate_cosine_range": [
+          0.9720889261106093,
+          0.9999073522119521
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            0.21199422849052846,
+            0.21199422849052846,
+            0.21199422849052846
+          ],
+          "direct_plus_emitter_rmse_bytes": 4.351167857633658e-15,
+          "direct_rmse_bytes": 0.08445296872821083,
+          "independent_support_receivers": 0,
+          "passive_plus_emitter_rmse_bytes": 0.0,
+          "passive_rmse_bytes": 0.0
+        },
+        "reasons": [
+          "NoActualEmittingSurface",
+          "PreserveExternalTransportHypothesis"
+        ],
+        "surface_supported": false,
+        "training_tangent_gradient_rgb8_per_m": [
+          -18.333333333333336,
+          -18.333333333333336,
+          -18.333333333333336
+        ]
+      },
+      "scale": 0.5,
+      "scene": "lit_doorway",
+      "truth_candidate_emits": false
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 223,
+        "bake_emission_hint": false,
+        "decision": "ApertureOrUnsupportedSurface",
+        "evidence_provenance": [
+          "fixture.shader:diffuse",
+          "fixture.shader:no surfacelight",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glow_stage": false,
+        "heldout_channel_range_rgb8": [
+          [
+            1,
+            45
+          ],
+          [
+            1,
+            45
+          ],
+          [
+            1,
+            45
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 0.0,
+        "heldout_peak_rgb8": 45,
+        "heldout_selected_rmse_bytes": 0.0,
+        "ideal_direction_candidate_cosine_range": [
+          0.9720889261106093,
+          0.9999073522119521
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            1.1718780763664838,
+            1.1718780763664838,
+            1.1718780763664838
+          ],
+          "direct_plus_emitter_rmse_bytes": 0.0,
+          "direct_rmse_bytes": 0.6278010743992589,
+          "independent_support_receivers": 0,
+          "passive_plus_emitter_rmse_bytes": 0.0,
+          "passive_rmse_bytes": 0.0
+        },
+        "reasons": [
+          "NoActualEmittingSurface",
+          "PreserveExternalTransportHypothesis"
+        ],
+        "surface_supported": false,
+        "training_tangent_gradient_rgb8_per_m": [
+          -36.66666666666667,
+          -36.66666666666667,
+          -36.66666666666667
+        ]
+      },
+      "scale": 1.0,
+      "scene": "lit_doorway",
+      "truth_candidate_emits": false
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 238,
+        "bake_emission_hint": false,
+        "decision": "ApertureOrUnsupportedSurface",
+        "evidence_provenance": [
+          "fixture.shader:diffuse",
+          "fixture.shader:no surfacelight",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glow_stage": false,
+        "heldout_channel_range_rgb8": [
+          [
+            3,
+            91
+          ],
+          [
+            3,
+            91
+          ],
+          [
+            3,
+            91
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 0.0,
+        "heldout_peak_rgb8": 91,
+        "heldout_selected_rmse_bytes": 0.0,
+        "ideal_direction_candidate_cosine_range": [
+          0.9720889261106093,
+          0.9999073522119521
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            3.309286563481951,
+            3.309286563481951,
+            3.309286563481951
+          ],
+          "direct_plus_emitter_rmse_bytes": 0.061081133589468636,
+          "direct_rmse_bytes": 1.9089364142726994,
+          "independent_support_receivers": 0,
+          "passive_plus_emitter_rmse_bytes": 0.0,
+          "passive_rmse_bytes": 0.0
+        },
+        "reasons": [
+          "NoActualEmittingSurface",
+          "PreserveExternalTransportHypothesis"
+        ],
+        "surface_supported": false,
+        "training_tangent_gradient_rgb8_per_m": [
+          -73.33333333333334,
+          -73.33333333333334,
+          -73.33333333333334
+        ]
+      },
+      "scale": 2.0,
+      "scene": "lit_doorway",
+      "truth_candidate_emits": false
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 232,
+        "bake_emission_hint": false,
+        "decision": "PassiveTransportPlausible",
+        "evidence_provenance": [
+          "fixture.shader:glow",
+          "fixture.shader:no surfacelight",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glow_stage": true,
+        "heldout_channel_range_rgb8": [
+          [
+            9,
+            18
+          ],
+          [
+            9,
+            18
+          ],
+          [
+            9,
+            18
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 0.0,
+        "heldout_peak_rgb8": 18,
+        "heldout_selected_rmse_bytes": 0.0,
+        "ideal_direction_candidate_cosine_range": [
+          0.7663961874051916,
+          0.8250481653805166
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            0.13417165761291322,
+            0.13417165761291322,
+            0.13417165761291322
+          ],
+          "direct_plus_emitter_rmse_bytes": 1.0877919644084146e-15,
+          "direct_rmse_bytes": 0.0341773934977202,
+          "independent_support_receivers": 0,
+          "passive_plus_emitter_rmse_bytes": 0.0,
+          "passive_rmse_bytes": 0.0
+        },
+        "reasons": [
+          "NoAdditionalEmitterRequired",
+          "ConditionalOnFixedRootAndMaterial"
+        ],
+        "surface_supported": true,
+        "training_tangent_gradient_rgb8_per_m": [
+          1.6666666666666667,
+          1.6666666666666667,
+          1.6666666666666667
+        ]
+      },
+      "scale": 0.5,
+      "scene": "decorative_glow",
+      "truth_candidate_emits": false
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 243,
+        "bake_emission_hint": false,
+        "decision": "PassiveTransportPlausible",
+        "evidence_provenance": [
+          "fixture.shader:glow",
+          "fixture.shader:no surfacelight",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glow_stage": true,
+        "heldout_channel_range_rgb8": [
+          [
+            19,
+            35
+          ],
+          [
+            19,
+            35
+          ],
+          [
+            19,
+            35
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 0.0,
+        "heldout_peak_rgb8": 35,
+        "heldout_selected_rmse_bytes": 0.0,
+        "ideal_direction_candidate_cosine_range": [
+          0.7663961874051916,
+          0.8250481653805166
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            0.6724992063637207,
+            0.6724992063637207,
+            0.6724992063637207
+          ],
+          "direct_plus_emitter_rmse_bytes": 0.0,
+          "direct_rmse_bytes": 0.22977638933837685,
+          "independent_support_receivers": 0,
+          "passive_plus_emitter_rmse_bytes": 0.0,
+          "passive_rmse_bytes": 0.0
+        },
+        "reasons": [
+          "NoAdditionalEmitterRequired",
+          "ConditionalOnFixedRootAndMaterial"
+        ],
+        "surface_supported": true,
+        "training_tangent_gradient_rgb8_per_m": [
+          6.666666666666667,
+          6.666666666666667,
+          6.666666666666667
+        ]
+      },
+      "scale": 1.0,
+      "scene": "decorative_glow",
+      "truth_candidate_emits": false
+    },
+    {
+      "result": {
+        "appearance_peak_rgb8": 249,
+        "bake_emission_hint": false,
+        "decision": "PassiveTransportPlausible",
+        "evidence_provenance": [
+          "fixture.shader:glow",
+          "fixture.shader:no surfacelight",
+          "fixture.reflectance:declared hypothesis; not inferred from current texture"
+        ],
+        "exact_historical_source": false,
+        "fitted_additional_emission": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "glow_stage": true,
+        "heldout_channel_range_rgb8": [
+          [
+            37,
+            70
+          ],
+          [
+            37,
+            70
+          ],
+          [
+            37,
+            70
+          ]
+        ],
+        "heldout_passive_rmse_bytes": 0.0,
+        "heldout_peak_rgb8": 70,
+        "heldout_selected_rmse_bytes": 0.0,
+        "ideal_direction_candidate_cosine_range": [
+          0.7663961874051916,
+          0.8250481653805166
+        ],
+        "metrics": {
+          "candidate_nonzero_response_receivers": 6,
+          "direct_plus_emitter_amplitude": [
+            1.3380255308688196,
+            1.3380255308688196,
+            1.3380255308688196
+          ],
+          "direct_plus_emitter_rmse_bytes": 0.0,
+          "direct_rmse_bytes": 0.4331829688128125,
+          "independent_support_receivers": 0,
+          "passive_plus_emitter_rmse_bytes": 0.0,
+          "passive_rmse_bytes": 0.0
+        },
+        "reasons": [
+          "NoAdditionalEmitterRequired",
+          "ConditionalOnFixedRootAndMaterial"
+        ],
+        "surface_supported": true,
+        "training_tangent_gradient_rgb8_per_m": [
+          11.666666666666668,
+          11.666666666666668,
+          11.666666666666668
+        ]
+      },
+      "scale": 2.0,
+      "scene": "decorative_glow",
+      "truth_candidate_emits": false
+    }
+  ],
+  "schema": "org.openjk.asr06-emissive-ambiguity/1",
+  "scope": "Analytical fixtures only; no stock JA discovery-rate or historical-source claim"
+}
