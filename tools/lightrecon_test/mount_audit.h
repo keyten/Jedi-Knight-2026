@@ -3,7 +3,7 @@
 #pragma once
 static void MountAudit(const O::Sources &s, const std::shared_ptr<const SurfaceGeometry> &geometry,
 					   const std::shared_ptr<const StaticVisibility> &rays, const ReadContext &read,
-					   const std::string &output)
+					   const std::string &output, bool diagnose = false)
 {
 	auto start = std::chrono::steady_clock::now();
 	Candidates::Provider provider;
@@ -50,6 +50,8 @@ static void MountAudit(const O::Sources &s, const std::shared_ptr<const SurfaceG
 	std::map<std::string, uint64_t> reasons;
 	std::map<unsigned, uint64_t> kinds;
 	std::ofstream detail(output + "/mounting-witnesses.tsv");
+	std::unique_ptr<MountDiagnosis::Writer> diagnostic;
+	if (diagnose) diagnostic.reset(new MountDiagnosis::Writer(output, s, *rays));
 	detail << "source\tfixture\tkind\tsupport\tx\ty\tz\twidth\theight\tlength\tradius\tnamed_"
 			  "surfaces\told\tnew\treason\twork\n";
 	for (const auto *model : ordered)
@@ -98,6 +100,7 @@ static void MountAudit(const O::Sources &s, const std::shared_ptr<const SurfaceG
 			next.reason = "Operational: " + error.message;
 		}
 		work += next.work;
+		if (diagnostic) diagnostic->Add(model->id, after.shape.initial, next, s, *rays, read);
 		accepted += PointRefine::Admissible(next.placement);
 		conditional += next.placement.state == PointRefine::Constraint::Conditional;
 		newlyAdmitted += !PointRefine::Admissible(prior) && PointRefine::Admissible(next.placement);

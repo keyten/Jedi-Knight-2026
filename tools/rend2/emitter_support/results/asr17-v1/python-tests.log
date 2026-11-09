@@ -1,0 +1,10 @@
+test_binary_rational_keeps_negative_distance (tools.rend2.emitter_support.test_diagnosis.Diagnosis) ... ok
+test_cylinder_low_is_actual_radius_not_vacuum_cube (tools.rend2.emitter_support.test_diagnosis.Diagnosis) ... ok
+test_edge_gap_and_real_overlap (tools.rend2.emitter_support.test_diagnosis.Diagnosis) ... ok
+test_exact_clipped_point_stays_on_oblique_source (tools.rend2.emitter_support.test_diagnosis.Diagnosis) ... ok
+test_named_contact_and_opposite_brush_are_independent (tools.rend2.emitter_support.test_diagnosis.Diagnosis) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.008s
+
+OK

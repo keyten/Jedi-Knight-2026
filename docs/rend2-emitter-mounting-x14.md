@@ -1,5 +1,9 @@
 # X14 — occupied source support, emitting geometry and mounting
 
+Follow-up: [ASR17 stock placement diagnosis](rend2-placement-diagnosis-asr17.md)
+reproduces the frozen X14 witnesses and traces the current failures without
+changing admission semantics.
+
 The CPU source checker now distinguishes an emitting support from its enclosing
 vacuum cube. `SourceSupport` is reused by production `Shape::Fit` and `Joint`
 placement. Existing `PointRefine::Check` world-solid and displacement predicates

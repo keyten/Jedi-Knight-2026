@@ -1,0 +1,11 @@
+Test project C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s06-gcc
+    Start 33: lightrecon_visibility
+1/3 Test #33: lightrecon_visibility ............   Passed    1.77 sec
+    Start 34: lightrecon_regions
+2/3 Test #34: lightrecon_regions ...............   Passed    0.59 sec
+    Start 50: lightrecon_emitter_support
+3/3 Test #50: lightrecon_emitter_support .......   Passed    0.17 sec
+
+100% tests passed out of 3
+
+Total Test time (real) =   2.56 sec

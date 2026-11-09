@@ -278,6 +278,72 @@ int main(int argc, char **argv)
 		auto ae = e;
 		ae.support = alpha.Contract();
 		CHECK(alpha.At(ae).placement.state == P::Constraint::UnknownGeometry);
+		// ASR17: a panel on its own mount can also touch an unnamed brush edge.
+		// This is unresolved boundary support, not numerical proof of penetration.
+		World edge;
+		edge.Floor();
+		edge.Brush(V(1, -16, -1), V(4, 16, 4));
+		edge.Build();
+		auto edgePanel = e; edgePanel.support = edge.Contract();
+		CHECK(edge.At(edgePanel).placement.state == P::Constraint::UnknownGeometry);
+		World gap;
+		gap.Floor(); gap.Brush(V(1.001, -16, -1), V(4, 16, 4)); gap.Build();
+		edgePanel.support = gap.Contract();
+		CHECK(P::Admissible(gap.At(edgePanel).placement));
+		World overlap;
+		overlap.Floor(); overlap.Brush(V(.5, -16, -1), V(4, 16, 4)); overlap.Build();
+		edgePanel.support = overlap.Contract();
+		CHECK(overlap.At(edgePanel).placement.state == P::Constraint::Solid);
+		// Opposite emitted side on exactly the same zero-thickness polygon needs
+		// separate side evidence: its declared normal cannot match the floor brush.
+		auto reversed = e;
+		reversed.geometry.frame.up = Vec3(0,-1,0);
+		reversed.geometry.frame.forward = reversed.support.outward = Vec3(0,0,-1);
+		CHECK(w.At(reversed).placement.state == P::Constraint::UnknownGeometry);
+		World sandwich;
+		sandwich.Floor(); sandwich.Brush(V(-4,-4,0),V(4,4,4)); sandwich.Build();
+		auto shared=e;shared.support=sandwich.Contract();
+		CHECK(sandwich.At(shared).placement.state == P::Constraint::UnknownGeometry);
+		SpatialLocation outwardPoint;
+		Must(sandwich.scene.domain->Locate(Vec3(0,0,.125),outwardPoint,0));
+		CHECK(outwardPoint.space == SpaceClass::Solid);
+		// RBSP-style raw winding can oppose the captured surface normals. The
+		// receiver mapper has an orientation correction; FromSurfaces currently
+		// uses the raw cross product. Record the discrepancy without fixing it.
+		World winding;
+		winding.Floor();
+		for(auto &v:winding.visual.surfaces[0].vertices)v.shadingNormal=Vec3(0,0,1);
+		for(size_t i=0;i<winding.visual.surfaces[0].indices.size();i+=3)
+			std::swap(winding.visual.surfaces[0].indices[i+1],winding.visual.surfaces[0].indices[i+2]);
+		winding.Build();auto wound=e;
+		Must(SS::FromSurfaces(winding.geometry,*winding.scene.geometry,{0},71,Read(),wound.support));
+		CHECK(wound.support.outward.z == -1 && winding.visual.surfaces[0].vertices[0].shadingNormal.z == 1);
+		wound.geometry.frame.up=Vec3(0,-1,0);wound.geometry.frame.forward=Vec3(0,0,-1);
+		CHECK(winding.At(wound).placement.state == P::Constraint::UnknownGeometry);
+		// Visual scope controls: a local approximation is not missing everywhere.
+		World curved;
+		curved.Floor();
+		BakedSurface patch;
+		patch.ordinal = 1; patch.kind = BakedSurfaceKind::Patch;
+		patch.motion = SurfaceMotion::StaticWorld; patch.patchWidth = patch.patchHeight = 3;
+		patch.materialFacts.available = true; patch.materialFacts.cull = SurfaceCull::None;
+		for (unsigned y=0;y<3;++y) for (unsigned x=0;x<3;++x)
+		{
+			BakedVertex v; v.position=Vec3(float(x)-1,float(y)-1,x==1&&y==1?.01f:0);
+			patch.vertices.push_back(v);
+		}
+		curved.visual.surfaces.push_back(patch); curved.Build();
+		auto curvedPanel=e;curvedPanel.support=curved.Contract();
+		CHECK(curved.At(curvedPanel).reason == "Incomplete local visual support");
+		LocalGeometry nearPatch, farPatch;
+		Must(curved.scene.geometry->ExtractBox(Box(V(-1,-.5,0),V(1,.5,0)),Read(),4096,1048576,nearPatch));
+		Must(curved.scene.geometry->ExtractBox(Box(V(5,5,1),V(6,6,2)),Read(),4096,1048576,farPatch));
+		CHECK(!nearPatch.coverageComplete && (nearPatch.issues & PatchApproximation));
+		CHECK(farPatch.coverageComplete);
+		World translucent;
+		translucent.Floor(); translucent.visual.surfaces[0].materialFacts.signals=MaterialTranslucent;
+		translucent.Build(); auto transPanel=e;transPanel.support=translucent.Contract();
+		CHECK(translucent.At(transPanel).reason == "Mount optics/curved geometry are not exact opaque support");
 		// A ceiling point very close to its support is geometrically valid without a vacuum ball.
 		World ceiling;
 		ceiling.visual.Quad(V(-8, -8, 6), V(-8, 8, 6), V(8, 8, 6), V(8, -8, 6));

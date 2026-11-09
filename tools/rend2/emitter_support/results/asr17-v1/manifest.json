@@ -1,0 +1,22 @@
+{
+  "sources_unchanged": true,
+  "canonical_storage_changed": false,
+  "admission_semantics_changed": false,
+  "runtime_changed": false,
+  "licensed_geometry_committed": false,
+  "artifacts": {
+    "checks.json": "762acf4d4f60abdbe07e67f9c0fc47f12b550855e7d8325e2838be9b5ff4c411",
+    "controls-first-resources.json": "47a1910e763d7c0e15d6811a6657e91ae445eeba8b306bb646576be219d0af24",
+    "controls-first.json": "6e86d120e08c0896e59a220e07a24243ecb917b3c578dcc189603b5df7eeb777",
+    "controls-first.log": "373e1eecaafa3a7a5968eaf83e2736b48517e28575079d2d4f21205c86b9ec29",
+    "controls-repeat-resources.json": "cc21d97a5e407a3ded06eb494ecc00f6b7ee9f7c1461aefab61e478407550596",
+    "controls-repeat.json": "6e86d120e08c0896e59a220e07a24243ecb917b3c578dcc189603b5df7eeb777",
+    "controls-repeat.log": "373e1eecaafa3a7a5968eaf83e2736b48517e28575079d2d4f21205c86b9ec29",
+    "ctest.log": "e9deba59cefb42c9cf7329de071a097ade17539a0107e84e1ce429d763591c54",
+    "protocol.json": "e98aa98e53a4370282390583d8adbcdd69e8fdb1c383122b1a2ba320a8943896",
+    "python-tests.log": "688d9ae095d1ca0e6ff0dc07475d73910162799f81c84bc7410f12bf4c25e90f",
+    "repeat.json": "a5f0b6b107774e684285fc7f462580fcec4121183edb39897020fed3710ecee7",
+    "stock.json": "32d6e5c1602f0f66c780abb65dbfade6d3245ef16f6fda8fddb04e0493568159",
+    "witnesses.json": "564c015349f03ac8e8f2505c5ac27d90c804641359f438a270234793eab85de4"
+  }
+}

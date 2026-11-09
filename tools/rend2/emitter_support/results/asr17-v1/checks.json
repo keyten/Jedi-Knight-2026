@@ -1,0 +1,38 @@
+{
+  "schema": "org.openjk.mount-diagnosis-checks.v1",
+  "checks": [
+    {
+      "command": [
+        "C:\\Python38\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "unittest",
+        "tools.rend2.emitter_support.test_diagnosis",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log": "python-tests.log",
+      "sha256": "688d9ae095d1ca0e6ff0dc07475d73910162799f81c84bc7410f12bf4c25e90f"
+    },
+    {
+      "command": [
+        "ctest",
+        "--test-dir",
+        "build/s06-gcc",
+        "-R",
+        "^(lightrecon_emitter_support|lightrecon_regions|lightrecon_visibility)$",
+        "--output-on-failure"
+      ],
+      "exit_code": 0,
+      "log": "ctest.log",
+      "sha256": "e9deba59cefb42c9cf7329de071a097ade17539a0107e84e1ce429d763591c54"
+    }
+  ],
+  "source_hashes_match_protocol": true,
+  "report_sha256": "1b788d12991bb037604b7dd4dd2aa30c9b8eb8c3874b8f5c77d872e7f0e738d9",
+  "classified": 620,
+  "native_assertions": 64,
+  "python_tests": 5,
+  "ctests": 3
+}
