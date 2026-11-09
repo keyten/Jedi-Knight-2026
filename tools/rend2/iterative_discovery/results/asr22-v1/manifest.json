@@ -1,0 +1,19 @@
+{
+  "added_negative_lights": 0,
+  "artifacts": {
+    "owned-repeat.json": "4e203b1a856471c09309d5713a8d93e45faeb3ca60ddaba155f2bdedd01430b7",
+    "owned-repeat.log": "b5181b2eae9aaf13a0a20c1b33826f354c3fd1e0183f0dd794a4c524ebded569",
+    "owned.json": "4e203b1a856471c09309d5713a8d93e45faeb3ca60ddaba155f2bdedd01430b7",
+    "owned.log": "b5181b2eae9aaf13a0a20c1b33826f354c3fd1e0183f0dd794a4c524ebded569",
+    "protocol.json": "66a85408d1cb349753a56947cb44684b5bfe9b7f964771254fa4c1911d683e52"
+  },
+  "historical_core_matches_asr21": true,
+  "negative_controls": 10,
+  "repeat_identical": true,
+  "sources_unchanged": true,
+  "supported_source_count": 4,
+  "supported_source_recall": [
+    0,
+    4
+  ]
+}
