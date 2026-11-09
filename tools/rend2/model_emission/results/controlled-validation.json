@@ -1,0 +1,41 @@
+{
+  "bsp_sha256": "e5565e9a596a254845d01b96f9d2e53da19e77d59507cbfc0f6d9abebc32db79",
+  "checks": 37,
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\toolchain\\netradiant-20220628\\portable\\netradiant_1.5.0-20220628-windows-amd64\\q3map2.exe",
+    "-game",
+    "ja",
+    "-fs_basepath",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr11\\controlled\\authoring",
+    "-fs_game",
+    "base",
+    "-threads",
+    "1",
+    "-meta",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr11\\controlled\\authoring\\base\\maps\\asr11.map"
+  ],
+  "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+  "counts": {
+    "cached_local_extractions": 1,
+    "eligible_instances": 3,
+    "fixtures": 3,
+    "instances": 3,
+    "layer_status": {
+      "supported_RGB_mask_geometry": 3
+    },
+    "no_region_instances": 0,
+    "regions": 3,
+    "surface_status": {
+      "no_declared_emission_in_selected_shader": 3,
+      "supported_RGB_mask_geometry": 3
+    }
+  },
+  "output_sha256": {
+    "emission.json": "53e559939d123b7a418988e765c76e640bb6433aef7be83536d1deb34f72ad7b",
+    "emitting-footprints.obj": "32c4514976cb1201b73733843599b1660ff63b5f9cb8bb3d4bc15ec22bb55048",
+    "regions.tsv": "37f108ff69b1712b377873aaf525bc6d46c25536f0e08b819cad9ce6a1deeee7"
+  },
+  "repeated_export_byte_equal": true,
+  "scope": "Owned fresh compiled static MD3 geometry and conditional emissive masks; no light phase or runtime consumer",
+  "source_map_sha256": "3ce868a6fa930370f98112d0222e2679e7a4e982035d1737deb4965afce1b8a3"
+}

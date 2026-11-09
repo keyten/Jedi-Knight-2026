@@ -1,0 +1,212 @@
+{
+  "maps": {
+    "hoth3": {
+      "counts": {
+        "cached_local_extractions": 27,
+        "eligible_instances": 379,
+        "fixtures": 623,
+        "instances": 469,
+        "layer_status": {
+          "no_supported_luminous_mask_samples": 14,
+          "supported_RGB_mask_geometry": 181
+        },
+        "no_region_instances": 223,
+        "regions": 1161,
+        "surface_status": {
+          "emission_declared_unresolved": 14,
+          "no_declared_emission_in_selected_shader": 140,
+          "supported_RGB_mask_geometry": 172,
+          "unresolved_material": 635
+        }
+      },
+      "examples": [
+        {
+          "instance_count": 96,
+          "instance_id": "79ac5b89954878ed23ad071c9662894923698f2b24c3a84e8446ec11aae78b23",
+          "mask_provenance": {
+            "models/map_objects/hoth/light_wall_bulb_glow": {
+              "alpha_unknown": false,
+              "mask_size": [
+                32,
+                32
+              ],
+              "original_size": [
+                128,
+                128
+              ],
+              "path": "models/map_objects/hoth/light_wall_bulb_glow.jpg",
+              "sha256": "4362d4bfbbc858511c95a4dfa3b81bed3cb4a69baa6008f1a3e42d14c98e9d6a",
+              "source": "assets1.pk3:models/map_objects/hoth/light_wall_bulb_glow.jpg",
+              "status": "decoded",
+              "transfer": "assumed_sRGB_to_relative_linear_RGB"
+            }
+          },
+          "material": "models/map_objects/hoth/light_wall_bulb",
+          "md3_surface_ordinals": [
+            2
+          ],
+          "model": "models/map_objects/hoth/light_wall.md3",
+          "model_asset": "def8fccdedc3e45f5c9a298649854457613650f6c36901725f4f0fc43a8f2b08",
+          "model_sha256": "288323c2a018ce0daf30785438887ec7711621133c661133c66f6ec443082ce3",
+          "region_count": 384,
+          "representative_region": {
+            "centroid": [
+              7219.937542164104,
+              -2178.154477304068,
+              365.8055295893168
+            ],
+            "colour_prior": [
+              0.7716160347372213,
+              0.7716160347372213,
+              0.7716160347372213
+            ],
+            "emitting_area": 16.068162527828736,
+            "id": "0006ca57ce36a666191d0e0987a555f32d9f01c2c7285dd9b2b4b4b559f56041",
+            "issues": [],
+            "outward": [
+              6.27235110923457e-17,
+              0.5121763363609512,
+              -0.858880317897595
+            ],
+            "source_id": "85892deb138d5ad365e421a2408aa95681e39923dad0459771133906da950b93"
+          },
+          "resolved_instance_RGB_fraction": 0.15693608968695552,
+          "shader_provenance": {
+            "declaration_sha256": "fc63e1d1ea28f7db0fdc2cbf056fc3bac1d97515ba6602b62f312117c28e6fe6",
+            "file_sha256": "eed6045624dc778d79ceb4ce27e8853b374e23afb5d49997790a78b9edc3155f",
+            "source": "assets1.pk3:shaders/hoth.shader"
+          }
+        },
+        {
+          "instance_count": 7,
+          "instance_id": "054ecf5ecaf3304650063ac8f5b0dbe341ac1a6a409f4f9fab84588e2483926b",
+          "mask_provenance": {
+            "models/map_objects/hoth/bed_lamp_glass_glw": {
+              "alpha_unknown": false,
+              "mask_size": [
+                32,
+                32
+              ],
+              "original_size": [
+                512,
+                512
+              ],
+              "path": "models/map_objects/hoth/bed_lamp_glass_glw.jpg",
+              "sha256": "dd106fbadb9d4f3df3028d6c7233eb7ea8e7fc04b0624d65e15b6980b6e5c9e7",
+              "source": "assets8_pbr1.pk3:models/map_objects/hoth/bed_lamp_glass_glw.jpg",
+              "status": "decoded",
+              "transfer": "assumed_sRGB_to_relative_linear_RGB"
+            }
+          },
+          "material": "models/map_objects/hoth/bed_lamp_glass",
+          "md3_surface_ordinals": [
+            1
+          ],
+          "model": "models/map_objects/hoth/bed_lamp.md3",
+          "model_asset": "376f27261b87c3703b64f2a42aa0e1297fbdd82345927029da135e1d0715350d",
+          "model_sha256": "54566ae166b3a30a3798b17ca7a634086839fd6ef981d5655be01e8171a7dda3",
+          "region_count": 175,
+          "representative_region": {
+            "centroid": [
+              3245.8748134296084,
+              239.9712586430481,
+              68.47189031709374
+            ],
+            "colour_prior": [
+              0.22348651624070667,
+              0.28223996494659553,
+              0.36285836024292295
+            ],
+            "emitting_area": 47.78004028958398,
+            "id": "026c69383d4375d5d7f7c10ef076bc65e0403084e055e59d6f59af45059b25e7",
+            "issues": [],
+            "outward": [
+              -0.5030687855502549,
+              0.0,
+              -0.864246375176079
+            ],
+            "source_id": "bc245c9f645e9ea8e0495fcfa7aa36cde49dc3db7b195eed275f011144a57ca0"
+          },
+          "resolved_instance_RGB_fraction": 0.04852019787853395,
+          "shader_provenance": {
+            "declaration_sha256": "b8b3e9375fca4629f5a9bab368761cdab041a4b3db63cc04a8bfc5005723bab5",
+            "file_sha256": "eed6045624dc778d79ceb4ce27e8853b374e23afb5d49997790a78b9edc3155f",
+            "source": "assets1.pk3:shaders/hoth.shader"
+          }
+        }
+      ],
+      "excluded_factory_instances": [],
+      "issues": {
+        "animated_or_dependent_colour": 338
+      },
+      "map_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "output_sha256": {
+        "emission.json": "41826e3d05cd9b3f73dd548e27b68d1c0318e77558e2b6bb8ae2926069394ee8",
+        "emitting-footprints.obj": "f9e2b30f54ab40f3647e458c8ceb47500533e2405cc5197e0ec0da8d1871779f",
+        "regions.tsv": "f8b02fca7cc2cba19fbcbd6e8b1e121e18145c051d015585ac31e937827fe6df"
+      },
+      "repeated_export_byte_equal": true,
+      "source": "assets0.pk3:maps/hoth3.bsp",
+      "total_resolved_RGB_area": 58012.39544315235
+    },
+    "t2_wedge": {
+      "counts": {
+        "cached_local_extractions": 10,
+        "eligible_instances": 40,
+        "fixtures": 178,
+        "instances": 305,
+        "layer_status": {
+          "no_supported_luminous_mask_samples": 3,
+          "supported_RGB_mask_geometry": 33
+        },
+        "no_region_instances": 13,
+        "regions": 266,
+        "surface_status": {
+          "emission_declared_unresolved": 2,
+          "no_declared_emission_in_selected_shader": 18,
+          "supported_RGB_mask_geometry": 33,
+          "unresolved_material": 49
+        }
+      },
+      "examples": [],
+      "excluded_factory_instances": [
+        {
+          "asset_status": "available",
+          "classname": "misc_model_breakable",
+          "entity_ordinal": 764,
+          "id": "0bcbb941b29f0a8c14039a121cbeea2adbdae58794b2548bfa4fea393afb3b33",
+          "issues": [
+            "dynamic_or_unsupported_entity_class"
+          ],
+          "model": "models/map_objects/factory/ceiling_light.md3",
+          "role": "dynamic_or_effect_model"
+        },
+        {
+          "asset_status": "available",
+          "classname": "misc_model_breakable",
+          "entity_ordinal": 763,
+          "id": "988133437dec78be35583b36be39c970bb7100e52ed88cb00f6f8a420fff7251",
+          "issues": [
+            "dynamic_or_unsupported_entity_class"
+          ],
+          "model": "models/map_objects/factory/ceiling_light.md3",
+          "role": "dynamic_or_effect_model"
+        }
+      ],
+      "issues": {},
+      "map_sha256": "9288e95c18d9fa8517041632e8c932be138eebe8e31b698252c86515a567c5a9",
+      "output_sha256": {
+        "emission.json": "431a200945c7fe93d2537bbd80ca54b5d7eeadf44f6ca8ff2314c14af5683c2c",
+        "emitting-footprints.obj": "fe984fac7a9c315ed3b83fcacff6927ffd7fcd72e9fa3ce5c8e39b1a3f1071ca",
+        "regions.tsv": "d374a729d208e27748f8fc3ae8311f74262ea63e609a2e36be29b81749e4f693"
+      },
+      "repeated_export_byte_equal": true,
+      "source": "assets0.pk3:maps/t2_wedge.bsp",
+      "total_resolved_RGB_area": 20167.783749084552
+    }
+  },
+  "mask_axis": 32,
+  "schema": "org.openjk.research.model-emission-inventory/1",
+  "scope": "Conditional emissive RGB support from actual stock static placements; no historical or radiometric certification",
+  "threshold": 0.1
+}

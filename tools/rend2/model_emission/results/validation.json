@@ -1,0 +1,34 @@
+{
+  "asr09_asr10_regression_tests": 28,
+  "base_revision": "93bf03e4f",
+  "compiled_geometry_checks": 37,
+  "date": "2026-11-09",
+  "dependency_sha256": {
+    "tools/rend2/bsp_fixtures/catalogue.py": "a46c4d228f05e845f858f87a3e7f5c461df9c2926d4cd02d7cb9e25e13f545a5",
+    "tools/rend2/model_instances/instances.py": "068e46c62e6e4bc2fce12af8d030548b71675d771b77a0593420695c96853419"
+  },
+  "existing_cpp_regression_tests": 4,
+  "pillow": "10.4.0",
+  "python": "3.8.5",
+  "result_sha256": {
+    "controlled-validation.json": "bc264c3949a7e4194edc93c447d84b138c39430351a3f8874c0933e58e3b81ba",
+    "stock-inventory.json": "e340ebdf92e42bdee5a2473a1f2fdd7ae80984f5ed0cb1c952a1702b91955194"
+  },
+  "scope": "Offline ASR11 only; canonical assets/storage, historical solver and runtime unchanged",
+  "source_sha256": {
+    "controlled.py": "71582d5ee4e3322901569cc8f79cf70cf9ed43e8dbcc9b5f8e326578613eae32",
+    "emission.py": "f1934527a2589f7a698e49076c263dd8bb71c821422a66f60cde10dfa5d6ace9",
+    "inventory.py": "3bec2e7f770022ecb1766a2afee414ca5b18f8441addc43206d8e679f3e9799c",
+    "test_emission.py": "fd12adee3a5b318bf08ec2bf1df462f20b93e25f12b7fa588d7ad9330767d601"
+  },
+  "stock_exports_repeated_byte_equal": true,
+  "stock_maps": [
+    "hoth3",
+    "t2_wedge"
+  ],
+  "stock_submesh_proofs": [
+    "models/map_objects/hoth/light_wall.md3",
+    "models/map_objects/hoth/bed_lamp.md3"
+  ],
+  "unit_tests": 13
+}
