@@ -1,0 +1,11 @@
+{
+  "artifacts": {
+    "checks.json": "ad62bba4fbb83b7f8cd164216cc487046438da8fa8aae8e1346dbdac92742833",
+    "protocol.json": "06249b28eb04af91f2953806c7c0c4e3460d316304dcc8904cf10d7b91695aa9",
+    "results.json": "4fa7fcce95481d40044a347f02b82f9a81440559dc450da4a90df0285219f84d",
+    "stock.json": "8484634f85f7f5a8737028c135caabd184b29bcc37d4de6d7fed8044d61a1b12"
+  },
+  "licensed_payloads": false,
+  "production_modified": false,
+  "exact_json_bytes_preserved_by": "tools/rend2/aesthetic_baseline/.gitattributes"
+}

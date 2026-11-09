@@ -1,0 +1,4 @@
+# Frozen JSON hashes refer to exact file bytes, including their original newlines.
+*.json -text whitespace=cr-at-eol
+*.py text eol=lf
+*.md text eol=lf

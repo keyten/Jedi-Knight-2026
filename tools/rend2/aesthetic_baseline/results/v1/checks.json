@@ -1,0 +1,58 @@
+{
+  "checks": {
+    "artifact_hashes": true,
+    "protocol_hash": true,
+    "source_hashes": true,
+    "reference_hashes": true,
+    "tool_hashes": true,
+    "process_completed": true,
+    "four_exact_replays": true,
+    "three_roots_at_32": true,
+    "compiled_negative_evaluated": true,
+    "nonvacuous_failure": true,
+    "native_assertions": true,
+    "stock_executed": true,
+    "stock_confirmation": true,
+    "acceptance_counterexamples": true
+  },
+  "all_passed": true,
+  "test_command": [
+    "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "tools.rend2.aesthetic_baseline.test_acceptance",
+    "-v"
+  ],
+  "test_exit_code": 0,
+  "test_output": "test_black_predictor_cannot_pass_positive_scene (tools.rend2.aesthetic_baseline.test_acceptance.Acceptance.test_black_predictor_cannot_pass_positive_scene) ... ok\ntest_complete_positive_witness_is_aesthetic_only (tools.rend2.aesthetic_baseline.test_acceptance.Acceptance.test_complete_positive_witness_is_aesthetic_only) ... ok\ntest_empty_model_cannot_pass_perfect_rgb_and_controls (tools.rend2.aesthetic_baseline.test_acceptance.Acceptance.test_empty_model_cannot_pass_perfect_rgb_and_controls) ... ok\ntest_missing_stock_is_blocked (tools.rend2.aesthetic_baseline.test_acceptance.Acceptance.test_missing_stock_is_blocked) ... ok\ntest_unknown_geometry_or_missing_prediction_cannot_be_black (tools.rend2.aesthetic_baseline.test_acceptance.Acceptance.test_unknown_geometry_or_missing_prediction_cannot_be_black) ... ok\ntest_wall_leak_and_false_emitter_fail_even_with_good_rgb (tools.rend2.aesthetic_baseline.test_acceptance.Acceptance.test_wall_leak_and_false_emitter_fail_even_with_good_rgb) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.002s\n\nOK\n",
+  "stock_confirmation_protocol_sha256": "af9915d6a40117cc0919c0b1331d036f8cba5e5f022f20e4c489a273c1573252",
+  "stock_confirmation_stock_sha256": "f007bfabc80bfdd628d74cf7718fcfb1ae1f296d107f6691bf9483c67af89a8c",
+  "build": {
+    "command": [
+      "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK\\build\\toolchain\\w64devkit\\bin\\cmake.exe",
+      "--build",
+      "build/s06-gcc",
+      "--parallel",
+      "2",
+      "--target",
+      "lightrecon_hidden_tool",
+      "lightrecon_joint_tool",
+      "lightrecon_map_solver",
+      "lightrecon_hidden_test",
+      "lightrecon_sun_test",
+      "lightrecon_joint_test",
+      "lightrecon_producer_test"
+    ],
+    "exit_code": 0,
+    "compiler": "g++.exe (GCC) 16.2.0",
+    "cmake": "cmake version 4.4.2",
+    "configuration": "Release",
+    "language": "C++11",
+    "release_flags": "-O3 -DNDEBUG",
+    "compiler_sha256": "4f40f17d8a5a1052b83de568fe2e951fa37a3a21c38676e5b1da5707029cce61",
+    "cmake_sha256": "6a5c6a83b2bea4b4b65e2e730e59082b1c6252780e6bc972d2bdc7f38aa6ed2f",
+    "evidence": "Successful selected-target build executed before freeze; tool bytes are pinned in protocol.json"
+  }
+}

@@ -1,0 +1,1148 @@
+{
+  "receivers": {
+    "schema": "org.openjk.receiver-support-stock.v1",
+    "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+    "full_census_key": "7d7cf50366d912c6cf68560b381e43dcdc9ba2d22db104e9fd550e04592e3e30",
+    "training_positive_original": 103,
+    "training_positive_common": 94,
+    "signal_checked_after_support_freeze": true,
+    "raw_texels": 32768,
+    "mapped": 19842,
+    "mapped_area": 11146704.8938735,
+    "unknown_position_area_records": 12926,
+    "origin_probes": 12702,
+    "operator_checks": 4,
+    "receiver_class_cache_hits": 19838,
+    "categories": {
+      "Supported": {
+        "rows": 9477,
+        "area": 6993722.73691748
+      },
+      "NonPlanar": {
+        "rows": 6524,
+        "area": 1717869.81039543
+      },
+      "GeometryUnavailable": {
+        "rows": 616,
+        "area": 508650.2901541
+      },
+      "ReceiverOriginSolid": {
+        "rows": 863,
+        "area": 754376.736295551
+      },
+      "ReceiverOriginBoundary": {
+        "rows": 2362,
+        "area": 1172085.32011117
+      }
+    },
+    "mapping_issue_bits": {
+      "1": {
+        "rows": 12219,
+        "area": 5482364.24023313
+      },
+      "4": {
+        "rows": 2,
+        "area": 1024.00037284634
+      },
+      "32": {
+        "rows": 7240,
+        "area": 5102442.28013835
+      },
+      "64": {
+        "rows": 13318,
+        "area": 9428835.08347818
+      },
+      "128": {
+        "rows": 6524,
+        "area": 1717869.81039543
+      },
+      "256": {
+        "rows": 614,
+        "area": 507626.289781253
+      }
+    },
+    "styles": {
+      "0": {
+        "rows": 19842,
+        "area": 11146704.8938735
+      }
+    },
+    "selected_requested": 278,
+    "selected_common": 232,
+    "selected_area": 158350.525276815,
+    "selected_common_area": 134017.445585524,
+    "selected_manifest_key": "fe9f2f01620f3b70331b8ef5da5219cd95b5a2fe4990cf4ee67b1e1e8915e6ea",
+    "selected_roles": [
+      {
+        "requested": 113,
+        "common": 95,
+        "area": 68644.9717400486,
+        "common_area": 58472.5383378087
+      },
+      {
+        "requested": 93,
+        "common": 78,
+        "area": 50843.4685213756,
+        "common_area": 42946.212595242
+      },
+      {
+        "requested": 72,
+        "common": 59,
+        "area": 38862.0850153903,
+        "common_area": 32598.6946524737
+      }
+    ],
+    "academy_witness": null,
+    "seconds": 0.16875,
+    "census_uses_target_rgb": false,
+    "candidate_xyz_used": false,
+    "stock_profile": "UnknownProfile",
+    "conditional_profiles": [
+      "NetRadiant inverse square",
+      "NetRadiant linear"
+    ],
+    "scope": "Full captured mapped area is observation-chart area, not a disjoint transport mesh or full-map free-space certificate; no source-dependent paths certified"
+  },
+  "transport": {
+    "schema": "org.openjk.transport-topology-x09.v1",
+    "map_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+    "mesh_key": "db7bef685b253304531dd2f59de628a962c958e7ada4bceb400e670261964f8b",
+    "observations": 278,
+    "legacy_coincident_node_pairs": 0,
+    "legacy_same_side_overlap_pairs": 0,
+    "legacy_opposite_side_pairs": 0,
+    "legacy_crossing_pairs": 5,
+    "legacy_cross_fold_overlap_pairs": 0,
+    "legacy_same_surface_overlap_pairs": 0,
+    "legacy_same_material_overlap_pairs": 0,
+    "legacy_duplicate_original_triangle_pairs": 0,
+    "legacy_pairwise_shared_area": 0,
+    "topology_version": 1,
+    "transfer_version": 2,
+    "scope": "geometry-selected 512-WU ROI, independent of folds and RGB; outside GI unavailable",
+    "input_triangles": 3176,
+    "scoped_triangles": 611,
+    "transport_patches": 1616,
+    "scoped_area": 1125314.5430359878,
+    "output_area": 998060.3417324007,
+    "deduplicated_area": 2.398791862552777,
+    "unsupported_area": 127251.82817718839,
+    "unsupported_records": 212,
+    "duplicate_overlaps": 13,
+    "conflicting_overlaps": 0,
+    "crossing_pairs": 149,
+    "topology_work": 335831,
+    "topology_accounted_peak_bytes": 7560896,
+    "mapped_observations": 11,
+    "partial_observations": 9,
+    "unavailable_observations": 258,
+    "observation_area": 158350.5252768145,
+    "mapped_observation_area": 10727.895748438319,
+    "transfer_code": 0,
+    "transfer_reason": "",
+    "links": 159,
+    "rays": 789137,
+    "known_positive_links": 22,
+    "uncertain_links": 140,
+    "unknown_rays": 270126,
+    "blocked_rays": 6632,
+    "complete_patch_set": false,
+    "all_pairs_represented": false,
+    "transfer_work": 127999897,
+    "transfer_accounted_bytes": 3630976,
+    "maximum_outgoing_fraction": 0.21390422311936624,
+    "maximum_rule_difference": 5.117423933613073,
+    "refined_pairs": 13,
+    "unresolved_pairs": 3,
+    "energy_limited_pairs": 0,
+    "precision_excluded_pieces": 8,
+    "area_accounting_residual": -0.025665463879704475,
+    "pair_search_complete": false,
+    "local_budget_exceeded": true,
+    "mesh_seconds": 0.230934,
+    "transfer_seconds": 2.297473,
+    "build_seconds": 2.612367
+  },
+  "profiles": {
+    "isq": {
+      "schema": "org.openjk.scene-schedule.v1",
+      "status": "NoSupportedEvidence",
+      "reason": "No independently supported combined model; unsearched/unavailable light is not zero",
+      "graph_key": "9ef4127f86c56082694e338a907b2b9ac2b3dfe5db9bd5a872fdd4c72171fa95",
+      "equivalent_branches": [],
+      "local_calls": 20,
+      "cache_hits": 0,
+      "joint_calls": 4,
+      "rays": 272,
+      "work": 43356,
+      "forward_calls": 82,
+      "candidate_inputs_deferred": 1849,
+      "accounted_bytes": 2004662,
+      "influence_links": 0,
+      "influence_complete": true,
+      "candidates_unsupported": 85,
+      "fitting_evaluations": 18,
+      "fitting_models": 12,
+      "fitting_forward_calls": 2,
+      "fitting_rays": 90,
+      "placement_checks": 8,
+      "conditional_placements": 0,
+      "proven_placements": 2,
+      "unknown_placements": 0,
+      "collision_placements": 6,
+      "local_coverage_complete": false,
+      "candidate_coverage_complete": false,
+      "final_evaluated": false,
+      "stock_source_truth": null,
+      "jobs": 20,
+      "job_statuses": {
+        "NoSupportedEvidence": 16,
+        "Partial": 4
+      },
+      "proposal_jobs": 4,
+      "branches": [
+        {
+          "profile": "NetRadiant-d9338309e-subsets-v2/isq/f860c7bca0df8f0d",
+          "status": "NoSupportedEvidence",
+          "catalog_models": 103,
+          "deferred": 1863,
+          "waves": 4,
+          "joint_state": "InsufficientSignal",
+          "preferred": -1,
+          "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+          "receiver_requested": 278,
+          "receiver_common": 232,
+          "receiver_area": 158350.525277,
+          "receiver_common_area": 134017.445586,
+          "diagnostics": [
+            "Model 195816460193115446: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 537884255889592039: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 714963385648758228: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 808273297398279680: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1227532855901209922: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1297088658919146521: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1613717541419129078: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1629526661846595716: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2107332910134413060: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2118264507632271232: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2165663201245274126: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2292829833834009209: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2414283464675816566: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2688297498391300149: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2727190082214740272: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2739773530261492902: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 3033462906106852947: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 3114562250941268987: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 3215054103815449131: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 3662022441050176336: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 4010325533965148416: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 4032912884163094057: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 4038139671671742821: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 4180811889182629256: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 4651755787749719938: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 5026034156722723413: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 5785427563108262629: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6263251680682463001: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6392498417079842666: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6447756852362549142: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6498735303098596227: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6534374139600037585: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6811875937908177991: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7166382137784731564: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7574336210538658295: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7773390382526677861: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8243212788218224031: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8358624532477570014: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8434569459254027011: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8629384885056793984: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9048220952640860010: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9283883786540857475: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9371285384490771118: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9850698278140725204: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9891645520715287915: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9929872950071142412: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10122517491289656908: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10233070386945188482: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10281451277677627329: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10335314931542825208: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10721248716505415141: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10940267241473635565: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11068625867868264927: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11079982601485204625: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11080059678268182147: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11428663370182283297: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11777868245473506172: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12525984991242412516: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12617838767945911586: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12655185650033806830: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12761701539194072656: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12766344861048390597: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 13564840334136687195: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 13819255552383242672: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 14268246812741067853: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 15111716767921841898: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 15414637481507496156: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 15627620741673473493: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 15850803560399474133: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 15992560061792632817: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16010540042105327811: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16351249876163385961: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16400567546135603975: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16527585215053163693: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16793182190369632072: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16859045904151594958: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16898533023035135951: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17107131228079518371: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17438237756851608543: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17451293620185863063: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17831983056984554859: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17904389238996035264: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17955940477356746616: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 18057249650174565519: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 18115271062476330318: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Progressive S05 cursor deferred by wave budget; no absence certified"
+          ],
+          "attempts": [
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0,
+              "failure_code": 0,
+              "supported_positive_training_rows": 94,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 95,
+              "coverage_used": 95,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:8734946737344204972",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8734946737344204972 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:11205302041106060787",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=11205302041106060787 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0,
+              "failure_code": 0,
+              "supported_positive_training_rows": 94,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 95,
+              "coverage_used": 95,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:8734946737344204972",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8734946737344204972 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:11205302041106060787",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=11205302041106060787 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0,
+              "failure_code": 0,
+              "supported_positive_training_rows": 94,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 95,
+              "coverage_used": 95,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:7941998026508134891",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=55 unavailable=9 incomparable=0 disabled=0",
+              "sources": 1,
+              "failure_code": 1,
+              "supported_positive_training_rows": 54,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 64,
+              "coverage_used": 55,
+              "unknown_visibility": 9,
+              "missing_predictions": 0,
+              "unavailable_receivers": [
+                {
+                  "id": "857051020131649625",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "2253166592086043428",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "2458222179321820067",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "2744460084028289589",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "2840506890838157669",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "4878672607420412571",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "5526223644241356667",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "7198986998359522145",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "17287990545487362810",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                }
+              ]
+            },
+            {
+              "proposal": "activate:10724844690418745054",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=10724844690418745054 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0,
+              "failure_code": 0,
+              "supported_positive_training_rows": 94,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 95,
+              "coverage_used": 95,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:7941998026508134891",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=55 unavailable=9 incomparable=0 disabled=0",
+              "sources": 1,
+              "failure_code": 1,
+              "supported_positive_training_rows": 54,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 64,
+              "coverage_used": 55,
+              "unknown_visibility": 9,
+              "missing_predictions": 0,
+              "unavailable_receivers": [
+                {
+                  "id": "857051020131649625",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "2253166592086043428",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "2458222179321820067",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "2744460084028289589",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "2840506890838157669",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "4878672607420412571",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "5526223644241356667",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "7198986998359522145",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "17287990545487362810",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                }
+              ]
+            },
+            {
+              "proposal": "activate:10724844690418745054",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=10724844690418745054 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            }
+          ],
+          "omitted_attempts": 0
+        }
+      ],
+      "missing_path_issue_counts": {
+        "PatchApproximation": 18
+      },
+      "controller": {
+        "validation_calls": 4,
+        "final_calls": 0,
+        "occupancy_policy": "ConditionalBake",
+        "sample_counts": [
+          113,
+          93,
+          72
+        ],
+        "direct_only_conditional": true,
+        "geometry_refinement_enabled": false,
+        "source_count_proposals_enabled": true,
+        "shadow_weight": 0.1,
+        "coarse_rows": 64,
+        "training_evidence_blocks": 28,
+        "canonical_asset_available": false,
+        "uncertainty_attempts": 0
+      },
+      "diagnostic_classes": {
+        "sources/rejected": 27,
+        "placement/rejected": 42,
+        "sources/conditional": 4,
+        "placement/accepted": 14,
+        "visibility/visible": 30,
+        "visibility/unknown": 17,
+        "visibility/blocked": 14,
+        "direct/conditional": 81,
+        "direct/unavailable": 28,
+        "sources/deferred": 13,
+        "receivers/accepted": 95,
+        "receivers/unavailable": 18,
+        "transport/conditional": 3232,
+        "residual/conditional": 13,
+        "residual/unavailable": 28
+      },
+      "diagnostic_omitted": 0,
+      "actual_joint_factor_receipts": {
+        "recorded": 73,
+        "available": 55,
+        "positive": 10,
+        "explicit_zero": 45,
+        "unavailable": 18,
+        "sources": 1,
+        "samples": 64,
+        "scope": "Bounded first-amplitude factor receipts; not accepted fitted-source values or independent coverage"
+      }
+    },
+    "linear": {
+      "schema": "org.openjk.scene-schedule.v1",
+      "status": "NoSupportedEvidence",
+      "reason": "No independently supported combined model; unsearched/unavailable light is not zero",
+      "graph_key": "ba1e58204c33049af93c07e24122b3218b985fdb10fcb5ec8a1d5f2d7210b6e0",
+      "equivalent_branches": [],
+      "local_calls": 20,
+      "cache_hits": 0,
+      "joint_calls": 4,
+      "rays": 272,
+      "work": 47896,
+      "forward_calls": 82,
+      "candidate_inputs_deferred": 1849,
+      "accounted_bytes": 2042968,
+      "influence_links": 0,
+      "influence_complete": true,
+      "candidates_unsupported": 85,
+      "fitting_evaluations": 18,
+      "fitting_models": 12,
+      "fitting_forward_calls": 2,
+      "fitting_rays": 90,
+      "placement_checks": 8,
+      "conditional_placements": 0,
+      "proven_placements": 2,
+      "unknown_placements": 0,
+      "collision_placements": 6,
+      "local_coverage_complete": false,
+      "candidate_coverage_complete": false,
+      "final_evaluated": false,
+      "stock_source_truth": null,
+      "jobs": 20,
+      "job_statuses": {
+        "NoSupportedEvidence": 16,
+        "Partial": 4
+      },
+      "proposal_jobs": 4,
+      "branches": [
+        {
+          "profile": "NetRadiant-d9338309e-subsets-v2/linear/6b4991ec25375a50",
+          "status": "NoSupportedEvidence",
+          "catalog_models": 105,
+          "deferred": 1865,
+          "waves": 4,
+          "joint_state": "InsufficientSignal",
+          "preferred": -1,
+          "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+          "receiver_requested": 278,
+          "receiver_common": 232,
+          "receiver_area": 158350.525277,
+          "receiver_common_area": 134017.445586,
+          "diagnostics": [
+            "Model 195816460193115446: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 537884255889592039: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 714963385648758228: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 808273297398279680: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1227532855901209922: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1297088658919146521: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1613717541419129078: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 1629526661846595716: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2107332910134413060: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2118264507632271232: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2165663201245274126: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2292829833834009209: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2414283464675816566: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2688297498391300149: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2727190082214740272: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 2739773530261492902: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 3033462906106852947: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 3114562250941268987: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 3215054103815449131: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 3662022441050176336: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 4010325533965148416: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 4032912884163094057: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 4038139671671742821: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 4180811889182629256: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 4651755787749719938: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 5026034156722723413: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 5785427563108262629: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6263251680682463001: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6392498417079842666: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6447756852362549142: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6498735303098596227: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6534374139600037585: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 6811875937908177991: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7166382137784731564: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7574336210538658295: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 7773390382526677861: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8243212788218224031: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8358624532477570014: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8434569459254027011: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 8629384885056793984: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9048220952640860010: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9283883786540857475: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9371285384490771118: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9850698278140725204: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9891645520715287915: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 9929872950071142412: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10122517491289656908: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10233070386945188482: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10281451277677627329: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10335314931542825208: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10721248716505415141: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 10940267241473635565: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11068625867868264927: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11079982601485204625: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11080059678268182147: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11428663370182283297: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 11777868245473506172: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12525984991242412516: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12617838767945911586: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12655185650033806830: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12761701539194072656: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 12766344861048390597: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 13564840334136687195: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 13819255552383242672: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 14268246812741067853: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 15111716767921841898: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 15414637481507496156: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 15627620741673473493: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 15850803560399474133: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 15992560061792632817: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16010540042105327811: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16351249876163385961: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16400567546135603975: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16527585215053163693: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16793182190369632072: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16859045904151594958: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 16898533023035135951: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17107131228079518371: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17438237756851608543: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17451293620185863063: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17831983056984554859: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17904389238996035264: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 17955940477356746616: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 18057249650174565519: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Model 18115271062476330318: unsupported Joint shape/transport/fragment union; evidence retained in canonical input receipts",
+            "Progressive S05 cursor deferred by wave budget; no absence certified"
+          ],
+          "attempts": [
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0,
+              "failure_code": 0,
+              "supported_positive_training_rows": 94,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 95,
+              "coverage_used": 95,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:8734946737344204972",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8734946737344204972 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:11205302041106060787",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=11205302041106060787 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0,
+              "failure_code": 0,
+              "supported_positive_training_rows": 94,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 95,
+              "coverage_used": 95,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:8734946737344204972",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=8734946737344204972 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:11205302041106060787",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=11205302041106060787 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0,
+              "failure_code": 0,
+              "supported_positive_training_rows": 94,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 95,
+              "coverage_used": 95,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:7136462720241547721",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=60 unavailable=4 incomparable=0 disabled=0",
+              "sources": 1,
+              "failure_code": 1,
+              "supported_positive_training_rows": 59,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 64,
+              "coverage_used": 60,
+              "unknown_visibility": 4,
+              "missing_predictions": 0,
+              "unavailable_receivers": [
+                {
+                  "id": "284927766749884426",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "1142275139289200641",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "1572355151099114951",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "2744460084028289589",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                }
+              ]
+            },
+            {
+              "proposal": "activate:10724844690418745054",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=10724844690418745054 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "no-source/boundary-only",
+              "status": "Converged",
+              "reason": "",
+              "sources": 0,
+              "failure_code": 0,
+              "supported_positive_training_rows": 94,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 95,
+              "coverage_used": 95,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            },
+            {
+              "proposal": "activate:7136462720241547721",
+              "status": "Unavailable",
+              "reason": "Joint comparable training coverage missing: requested=64 used=60 unavailable=4 incomparable=0 disabled=0",
+              "sources": 1,
+              "failure_code": 1,
+              "supported_positive_training_rows": 59,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 64,
+              "coverage_used": 60,
+              "unknown_visibility": 4,
+              "missing_predictions": 0,
+              "unavailable_receivers": [
+                {
+                  "id": "284927766749884426",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "1142275139289200641",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "1572355151099114951",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                },
+                {
+                  "id": "2744460084028289589",
+                  "issues": 8464,
+                  "visibility_issues": 64,
+                  "typed_visibility_causes": [
+                    "PatchApproximation"
+                  ]
+                }
+              ]
+            },
+            {
+              "proposal": "activate:10724844690418745054",
+              "status": "PhysicallyInvalid",
+              "reason": "Physically invalid source support/path/bounds: source=10724844690418745054 centre/path:Clearance",
+              "sources": 1,
+              "failure_code": 4,
+              "supported_positive_training_rows": 0,
+              "receiver_support_key": "a21d667f9fa0692ce5eccb908cd9cc4708738b4aa80fee6af6044b995740f89b",
+              "coverage_admitted": 0,
+              "coverage_used": 0,
+              "unknown_visibility": 0,
+              "missing_predictions": 0,
+              "unavailable_receivers": []
+            }
+          ],
+          "omitted_attempts": 0
+        }
+      ],
+      "missing_path_issue_counts": {
+        "PatchApproximation": 8
+      },
+      "controller": {
+        "validation_calls": 4,
+        "final_calls": 0,
+        "occupancy_policy": "ConditionalBake",
+        "sample_counts": [
+          113,
+          93,
+          72
+        ],
+        "direct_only_conditional": true,
+        "geometry_refinement_enabled": false,
+        "source_count_proposals_enabled": true,
+        "shadow_weight": 0.1,
+        "coarse_rows": 64,
+        "training_evidence_blocks": 28,
+        "canonical_asset_available": false,
+        "uncertainty_attempts": 0
+      },
+      "diagnostic_classes": {
+        "sources/rejected": 27,
+        "placement/rejected": 42,
+        "sources/conditional": 4,
+        "placement/accepted": 14,
+        "visibility/blocked": 32,
+        "visibility/visible": 20,
+        "visibility/unknown": 9,
+        "direct/conditional": 84,
+        "direct/unavailable": 24,
+        "sources/deferred": 13,
+        "receivers/accepted": 95,
+        "receivers/unavailable": 18,
+        "transport/conditional": 3232,
+        "residual/conditional": 12,
+        "residual/unavailable": 24
+      },
+      "diagnostic_omitted": 0,
+      "actual_joint_factor_receipts": {
+        "recorded": 68,
+        "available": 60,
+        "positive": 0,
+        "explicit_zero": 60,
+        "unavailable": 8,
+        "sources": 1,
+        "samples": 64,
+        "scope": "Bounded first-amplitude factor receipts; not accepted fitted-source values or independent coverage"
+      }
+    }
+  },
+  "raw_artifact_hashes": {
+    "census.json": "ef212b165ed01a873fcd6027af100622f9c9abc39d0d9eed5d48247d5ccd1eb6",
+    "fixture-rays.tsv": "56c310ecd6244b904c11ee96396163dbcca6f83c7810728c7c1c1859bb2703e7",
+    "folds.json": "7dc8ca475af722aaf4a14269f0e04341e3302d1f8f4da75cafdcd297a6ae2576",
+    "geometry.json": "172da2b88414981ccc297b87023426b2b8ee7e11854e2ab869c03c96398a9bfd",
+    "hierarchical-geometry.tsv": "8c09e1c7a05b4bdf2b754b084e59ae49718b113c886021479ed0ecf77b052f81",
+    "isq-candidate-placement.tsv": "7f0027157b47e6a0600d52ed68a0e87c1df76b5c695b42de8b3021030b1408d0",
+    "isq-debug-report.json": "89ae651052fc5ae6ea39b4ff30a19f2e06148257eab48fd300d37cabbfdc02ae",
+    "isq-debug.jkdbg": "5d3100aa714fb02b0b6e3f8a2b9c547cc6aa728cfb11ec5d1745dba1156a826a",
+    "isq-debug.json": "cd68ed7e0d0522d0a7e6f69c8ca223dea8c2e2a0037c6152f73e03f13428dd16",
+    "isq-hidden-areas.tsv": "64cd891e830e3fa4ad7ec71366c55348eb627e1239c56a72bb30b6c21579fe54",
+    "isq.json": "cc00995b4b19242d7d07397928ab42c72d2b46f2e309f7e230ee872185653635",
+    "joint-isq-receiver-manifest.json": "6c5f0392f923899e01bd08c8323f58e4963da49106eba997e3fd56b65ad6a671",
+    "joint-linear-receiver-manifest.json": "6c5f0392f923899e01bd08c8323f58e4963da49106eba997e3fd56b65ad6a671",
+    "linear-candidate-placement.tsv": "d555f4f334755a0e5b1be583820e44359fe806e25abfa9a0e3a18a883f1caec0",
+    "linear-debug-report.json": "91391829930123177e3843972a237ad9bade40ce999714b84b19f98bc3cd2843",
+    "linear-debug.jkdbg": "eb7c1549a2d4a37ac3abc460dd9b78ae78336ef4896dcf063f83a0727742ab2c",
+    "linear-debug.json": "cf750e99d39980a49cc043ed530958944f53458681aa91d4b143a56c398429b9",
+    "linear-hidden-areas.tsv": "64cd891e830e3fa4ad7ec71366c55348eb627e1239c56a72bb30b6c21579fe54",
+    "linear.json": "429f7541183bc96afb738d0298cfa29abf885328c439d561a40b433cf0d41a0c",
+    "native-resources.json": "526e3efb3f9310715c13c158d8b73d74687a279dbbfacff919e9616ab1e284e6",
+    "observation-transport.tsv": "2010c39be2e5d05e7d0f456f1d9b4377b28acc4c09e05100649b21ff9ff077b4",
+    "ray-summary.json": "b63a9525c1530a9b3886766f3fcd60e6d2aeac9ffbfabe44e568212a34e392c2",
+    "receiver-support-manifest.json": "a190a9bc5881bb8294cc3a551b94959e7f0513f64739ca3a35a10547bd7e0466",
+    "receiver-support.json": "9f498cc58f879cb4e68c02189f30fb21c062eb4cb7c21750eeb1e10a259f34c6",
+    "sampling.json": "8d805257385d64d3e0a9fec87f41d50e0672e679fc114afbaab95b96a3508353",
+    "scheduler-isq-controller.json": "9ef625be8b8932bc748066df723b0f6cb4b632c86874d295f29854db9a4d6ae6",
+    "scheduler-isq-occupancy.json": "42f9b4addc8422c2225532a74f5457f2481ee006dec92f1c083952c3d6ff68bc",
+    "scheduler-isq-placement.tsv": "f953ff531045ef96935e89609261bafa349af8335aa37a9bfd569b00c203e5cb",
+    "scheduler-isq-progress.json": "8604262a9a030659770a3c08310e79b01212559cde73b66bbcdafdfb06439db8",
+    "scheduler-isq-units.tsv": "b6887477d1abf20ad88298755d895a8343f93da3eb954692195b4ee9bb88741d",
+    "scheduler-isq.json": "8604262a9a030659770a3c08310e79b01212559cde73b66bbcdafdfb06439db8",
+    "scheduler-linear-controller.json": "9ef625be8b8932bc748066df723b0f6cb4b632c86874d295f29854db9a4d6ae6",
+    "scheduler-linear-occupancy.json": "42f9b4addc8422c2225532a74f5457f2481ee006dec92f1c083952c3d6ff68bc",
+    "scheduler-linear-placement.tsv": "e2638bb0d3a98d209d15ba5797e555004ab7e1dc60de6b8e8e7be24ac8d1cb70",
+    "scheduler-linear-progress.json": "7c4eb8bbf069b21c6598e7c3da802ba4ced06ee37f9cd965409903257082dc33",
+    "scheduler-linear-units.tsv": "a4ad9437dec5bba56ec03feeefc7034359b69ae20be7f55daa80ddc7d43254ea",
+    "scheduler-linear.json": "7c4eb8bbf069b21c6598e7c3da802ba4ced06ee37f9cd965409903257082dc33",
+    "selected-geometry.tsv": "57604913183d2aaed3532057ed2ce910251ffa60ace2092c4afd91628d576ec4",
+    "selection-scope.json": "92c4163781a6c99c053104c6e61f82a0558ae6f5f027c4b92ce33dc82fa3daa2",
+    "transport-contact-regressions.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "transport-overlap-witnesses.tsv": "11e3a7b7507e4805fc9cc6f90b196a586042f49e1ef0a24468d2b159465e2803",
+    "transport-patches.tsv": "24dc161cd27b4e70a85ade9041a0f8ded9fe7c4fdc0513cab8cdf3316d33f850",
+    "transport-singular-geometry.tsv": "368a0118d28a0641c0c9e9d1b384ffffbde118c004f84d9a21a7f185ccbc8f59",
+    "transport.json": "57800f4989ca5ffdd16a82de9bc762e3330289ccd61ca13607f46627aafe5fd7"
+  }
+}
