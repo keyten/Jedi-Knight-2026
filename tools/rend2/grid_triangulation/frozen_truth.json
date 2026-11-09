@@ -1,0 +1,19 @@
+{
+  "schema": "org.openjk.asr13-blind-truth.v1",
+  "position_tolerance_world": 24,
+  "scope": "Analytic controlled fixtures; evaluator-only truth. Not calibrated compiler photometry.",
+  "cases": [
+    {"name":"point_a","kind":"point","lights":[[-41,23,229]]},
+    {"name":"point_b","kind":"point","lights":[[63,-37,218]]},
+    {"name":"point_c","kind":"point","lights":[[-87,-61,205]]},
+    {"name":"point_d","kind":"point","lights":[[17,71,242]]},
+    {"name":"spot_a","kind":"spot","lights":[[-41,23,229]],"axis":[0,0,-1],"half_angle_degrees":48},
+    {"name":"spot_b","kind":"spot","lights":[[63,-37,218]],"axis":[-0.15,0.2,-1],"half_angle_degrees":52},
+    {"name":"multiple_white","kind":"multiple","lights":[[-110,35,220],[110,-35,210]]},
+    {"name":"multiple_colour","kind":"coloured","lights":[[-110,35,220],[110,-35,210]]},
+    {"name":"reflected_wall","kind":"reflected","lights":[],"virtual_position":[0,0,340],"solid_above":280},
+    {"name":"reflected_indistinguishable","kind":"reflected","lights":[],"virtual_position":[-41,23,229]},
+    {"name":"direct_sun","kind":"sun","lights":[],"sun_incoming":[0.25,-0.1,1]},
+    {"name":"sun_local","kind":"sun_local","lights":[[-41,23,229]],"sun_incoming":[0.25,-0.1,1]}
+  ]
+}

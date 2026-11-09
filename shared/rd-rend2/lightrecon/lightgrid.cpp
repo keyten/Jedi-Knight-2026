@@ -33,6 +33,8 @@ bool validComponent(Decode::Component c)
 GridDirection DecodeGridDirection(uint8_t polar, uint8_t azimuth)
 {
 	GridDirection d;
+	// Canonical consumer interpretation. Inspected q3map2 writers truncate with /255;
+	// tool-only ASR12 exposes that separate hypothesis without identifying a stock compiler.
 	const double p = polar * (2 * pi / 256), a = azimuth * (2 * pi / 256);
 	d.toSource.x = static_cast<float>(std::cos(a) * std::sin(p));
 	d.toSource.y = static_cast<float>(std::sin(a) * std::sin(p));

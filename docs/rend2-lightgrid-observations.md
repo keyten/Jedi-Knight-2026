@@ -1,5 +1,10 @@
 # Original BSP lightgrid observations
 
+The tool-only [ASR12 evidence diagnostic](rend2-original-grid-evidence.md) adds
+geometry classification, conditional `/255` writer interpretation, style-aware
+local gradients, compression uncertainty and repeatable original-grid exports.
+It leaves this raw snapshot and its canonical consumer convention unchanged.
+
 The [historical forward-model investigation](rend2-bake-model.md) distinguishes
 compiler grid reduction, direction encoding and approximate RBSP record merging
 from this decoder's canonical representation. In the inspected q3map2 writers,

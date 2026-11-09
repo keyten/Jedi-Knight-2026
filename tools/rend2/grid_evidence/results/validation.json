@@ -1,0 +1,897 @@
+{
+  "schema": "org.openjk.asr12-validation.v1",
+  "date": "2026-11-09",
+  "scope": "Offline original lightgrid diagnostics; reused previously verified own-content bakes; no fresh compiler/runtime invocation or all-stock census",
+  "source_audit": [
+    {
+      "path": "tools/quake3/q3map2/light.c",
+      "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/light.c",
+      "lf_sha256": "3e29c6eea3aa65170050326216618acf2600720c0f17644806143d209a59b4f4"
+    },
+    {
+      "path": "tools/quake3/q3map2/bspfile_rbsp.c",
+      "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/tools/quake3/q3map2/bspfile_rbsp.c",
+      "lf_sha256": "7bd5672a08c36617fab9eec704db003a9aea2104e90d127cf639b646ca9b6d96"
+    },
+    {
+      "path": "libs/mathlib/mathlib.c",
+      "url": "https://raw.githubusercontent.com/xonotic/netradiant/d9338309ea8fab75027b7382efaabe034302b862/libs/mathlib/mathlib.c",
+      "lf_sha256": "a59f65e68ad78bb214a190875d2d282e83c901936a86ac86fde6a44b2d6c1f77"
+    },
+    {
+      "path": "tools/quake3/q3map2/light.c",
+      "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/light.c",
+      "lf_sha256": "3f064d05230486363d3411b27a81c5ab59406e8d5359755d4dd7a32198dc2a72"
+    },
+    {
+      "path": "tools/quake3/q3map2/bspfile_rbsp.c",
+      "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/tools/quake3/q3map2/bspfile_rbsp.c",
+      "lf_sha256": "7b64816673f0741d17d19c73d2123993fdd36725c5940446536eef96e979f547"
+    },
+    {
+      "path": "libs/mathlib/mathlib.c",
+      "url": "https://raw.githubusercontent.com/id-Software/GtkRadiant/0991a5ce8b8ccb86a5b0d54c089369d84f53dc10/libs/mathlib/mathlib.c",
+      "lf_sha256": "bc6571693068aacba5172d0b28bc99b7d61c3d4ac2c3f93ebbfa77c1ea0990f3"
+    },
+    {
+      "path": "q3map/light.c",
+      "url": "https://raw.githubusercontent.com/id-Software/Quake-III-Arena/dbe4ddb10315479fc00086f08e25d968b4b43c49/q3map/light.c",
+      "lf_sha256": "ddb23fca6707adbbf37e66cc58afea3cae6bdf974aafe6344cd01e2f8a5deeee"
+    }
+  ],
+  "tests": {
+    "msvc_focused_executables": 6,
+    "asr12_checks": 32584,
+    "raw_grid_checks": 459733,
+    "decode_checks": 64028,
+    "visibility_checks": 20982,
+    "regions_checks": 90275,
+    "offline_checks": 18653,
+    "python_contract_checks": 15,
+    "strict_gcc_cpp11_syntax_passed": true,
+    "sampled_max_writer255_error_radians": 0.0337611943,
+    "sampled_max_consumer256_error_radians": 0.0446189981
+  },
+  "compiled": {
+    "schema": "org.openjk.original-grid-evidence-validation.v1",
+    "tool_sha256": "b6f080626f47e8e39a745a1a6ba070dd770e7e557d83e314103e51d9154397d9",
+    "results": [
+      {
+        "input_name": "point_room.jkobs",
+        "input_sha256": "a416eb4801e3c4f0a8a88e7c4d80036511ee2974a6b14bba78531356c7db6f8f",
+        "repeat_identical": true,
+        "report": {
+          "schema": "org.openjk.original-grid-evidence.v1",
+          "map": "maps/lrq3_point_room.bsp",
+          "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+          "records_sha256": "f2ac5cfb74eb3aa200b10b26b8aef43ccc37c139a15404d6abd97078fc56d1e6",
+          "indices_sha256": "2e8d883cf02f4061a0341bcc4ef3676fb6fb5839d1dd437e878e220997d63424",
+          "compiler_known": true,
+          "profile": "q3map2-controlled-benchmark-v1",
+          "synthetic": true,
+          "compiler": "q3map2 controlled JA fixture",
+          "compiler_version": "2.5.17n-git-d9338309e",
+          "colour_space": "explicit_profile_source_relative",
+          "absolute_calibration_known": false,
+          "aggregate_is_individual_emitter": false,
+          "generated_probes": 0,
+          "direction_reliability_known": false,
+          "source_transfer": 1,
+          "source_assumed_transfer": 0,
+          "geometry_key": "0c3d2d6f8990644b5a709d44b86bbe2f5771174a0c3a1cbef4c42155d4354659",
+          "compression": "q3map2_merge4_hypothesis",
+          "compression_bound_known": true,
+          "interpolation_error_known": false,
+          "compiler_sample_nudge_known": false,
+          "direction_shared_across_styles": true,
+          "consumer_encoding_bound_radians": 0.06908738613128662,
+          "writer255_encoding_bound_radians": 0.04927988476219283,
+          "merge_angular_bound_radians": 0.24639942381096416,
+          "origin": [
+            -192,
+            -128,
+            0
+          ],
+          "spacing": [
+            64,
+            64,
+            128
+          ],
+          "bounds": [
+            7,
+            5,
+            3
+          ],
+          "cells": 105,
+          "records": 105,
+          "referenced_records": 105,
+          "shared_records": 0,
+          "reused_cell_references": 0,
+          "byte_identical_extra_records": 0,
+          "missing_cells": 0,
+          "invalid_indices": 0,
+          "style_gaps": 0,
+          "no_style": 0,
+          "hdr_cells": 0,
+          "hdr_nonfinite": 0,
+          "hdr_negative": 0,
+          "hdr_state": 1,
+          "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "issues": 0,
+          "boundary_cells": 57,
+          "dynamic_possible_cells": 0,
+          "writer255_impossible_code_cells": 0,
+          "active_style_observations": 105,
+          "weak_directed_style_observations": 0,
+          "unavailable_colour_observations": 0,
+          "directed_gradient_axes": 14,
+          "code_bounded_directed_gradient_axes": 8,
+          "space_counts": {
+            "free": 48,
+            "solid": 0,
+            "outside": 0,
+            "sky": 0,
+            "exterior": 0,
+            "unknown": 57
+          },
+          "presence_counts": {
+            "absent": 0,
+            "present": 105,
+            "missing_index": 0,
+            "invalid_index": 0
+          },
+          "edge_counts": {
+            "unsupported": 386,
+            "clear": 44,
+            "blocked": 0,
+            "unknown": 200,
+            "dynamic": 0
+          },
+          "style_counts": {
+            "0": 105
+          }
+        },
+        "cells_sha256": "a232b4153bce04e5ef4345da1a74e0ee6b00ea7e56008ff726f82ae7ec032646"
+      },
+      {
+        "input_name": "two_colour.jkobs",
+        "input_sha256": "d9c37be2dae7d57818dbce2130b1ee871f7567a8c9d8958cf0ac96283f1b17dc",
+        "repeat_identical": true,
+        "report": {
+          "schema": "org.openjk.original-grid-evidence.v1",
+          "map": "maps/lrq3_two_colour.bsp",
+          "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+          "records_sha256": "3065b9ab9b42f217fbf2ce6aeee5b6043dc4bca84e88951d8a4cf9f48bf8403c",
+          "indices_sha256": "2e8d883cf02f4061a0341bcc4ef3676fb6fb5839d1dd437e878e220997d63424",
+          "compiler_known": true,
+          "profile": "q3map2-controlled-benchmark-v1",
+          "synthetic": true,
+          "compiler": "q3map2 controlled JA fixture",
+          "compiler_version": "2.5.17n-git-d9338309e",
+          "colour_space": "explicit_profile_source_relative",
+          "absolute_calibration_known": false,
+          "aggregate_is_individual_emitter": false,
+          "generated_probes": 0,
+          "direction_reliability_known": false,
+          "source_transfer": 1,
+          "source_assumed_transfer": 0,
+          "geometry_key": "f90d8ca14b6ff07e9f88529ecace26c0a9fb34174a12c755d1e5283054fbfba9",
+          "compression": "q3map2_merge4_hypothesis",
+          "compression_bound_known": true,
+          "interpolation_error_known": false,
+          "compiler_sample_nudge_known": false,
+          "direction_shared_across_styles": true,
+          "consumer_encoding_bound_radians": 0.06908738613128662,
+          "writer255_encoding_bound_radians": 0.04927988476219283,
+          "merge_angular_bound_radians": 0.24639942381096416,
+          "origin": [
+            -192,
+            -128,
+            0
+          ],
+          "spacing": [
+            64,
+            64,
+            128
+          ],
+          "bounds": [
+            7,
+            5,
+            3
+          ],
+          "cells": 105,
+          "records": 105,
+          "referenced_records": 105,
+          "shared_records": 0,
+          "reused_cell_references": 0,
+          "byte_identical_extra_records": 0,
+          "missing_cells": 0,
+          "invalid_indices": 0,
+          "style_gaps": 0,
+          "no_style": 0,
+          "hdr_cells": 0,
+          "hdr_nonfinite": 0,
+          "hdr_negative": 0,
+          "hdr_state": 1,
+          "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "issues": 0,
+          "boundary_cells": 57,
+          "dynamic_possible_cells": 0,
+          "writer255_impossible_code_cells": 0,
+          "active_style_observations": 105,
+          "weak_directed_style_observations": 0,
+          "unavailable_colour_observations": 0,
+          "directed_gradient_axes": 14,
+          "code_bounded_directed_gradient_axes": 3,
+          "space_counts": {
+            "free": 48,
+            "solid": 0,
+            "outside": 0,
+            "sky": 0,
+            "exterior": 0,
+            "unknown": 57
+          },
+          "presence_counts": {
+            "absent": 0,
+            "present": 105,
+            "missing_index": 0,
+            "invalid_index": 0
+          },
+          "edge_counts": {
+            "unsupported": 386,
+            "clear": 44,
+            "blocked": 0,
+            "unknown": 200,
+            "dynamic": 0
+          },
+          "style_counts": {
+            "0": 105
+          }
+        },
+        "cells_sha256": "a91e6f4b3c8dc58369bab28eb7c684f1732d323c2229bf0c1b83c1253f9a2692"
+      },
+      {
+        "input_name": "overlap_whites.jkobs",
+        "input_sha256": "f997bf0aa44c2f12221b96edbe09f8119e628ba7a9db3d4683dc5dfa8e82e0e7",
+        "repeat_identical": true,
+        "report": {
+          "schema": "org.openjk.original-grid-evidence.v1",
+          "map": "maps/lrq3_overlap_whites.bsp",
+          "bsp_sha256": "32be2d8dddfe1fdae782795fcd39a96095311f802030153a7672f439a703078f",
+          "records_sha256": "9fc00af888eca0f12a14a55eac1018fd8568e56eb3bcb2abc51c1d8ba454d013",
+          "indices_sha256": "2e8d883cf02f4061a0341bcc4ef3676fb6fb5839d1dd437e878e220997d63424",
+          "compiler_known": true,
+          "profile": "q3map2-controlled-benchmark-v1",
+          "synthetic": true,
+          "compiler": "q3map2 controlled JA fixture",
+          "compiler_version": "2.5.17n-git-d9338309e",
+          "colour_space": "explicit_profile_source_relative",
+          "absolute_calibration_known": false,
+          "aggregate_is_individual_emitter": false,
+          "generated_probes": 0,
+          "direction_reliability_known": false,
+          "source_transfer": 1,
+          "source_assumed_transfer": 0,
+          "geometry_key": "6c10a5c119b02be39fc16616b349a43f480fe4f62b3e4a120bfd964df4fa0819",
+          "compression": "q3map2_merge4_hypothesis",
+          "compression_bound_known": true,
+          "interpolation_error_known": false,
+          "compiler_sample_nudge_known": false,
+          "direction_shared_across_styles": true,
+          "consumer_encoding_bound_radians": 0.06908738613128662,
+          "writer255_encoding_bound_radians": 0.04927988476219283,
+          "merge_angular_bound_radians": 0.24639942381096416,
+          "origin": [
+            -192,
+            -128,
+            0
+          ],
+          "spacing": [
+            64,
+            64,
+            128
+          ],
+          "bounds": [
+            7,
+            5,
+            3
+          ],
+          "cells": 105,
+          "records": 105,
+          "referenced_records": 105,
+          "shared_records": 0,
+          "reused_cell_references": 0,
+          "byte_identical_extra_records": 0,
+          "missing_cells": 0,
+          "invalid_indices": 0,
+          "style_gaps": 0,
+          "no_style": 0,
+          "hdr_cells": 0,
+          "hdr_nonfinite": 0,
+          "hdr_negative": 0,
+          "hdr_state": 1,
+          "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "issues": 0,
+          "boundary_cells": 57,
+          "dynamic_possible_cells": 0,
+          "writer255_impossible_code_cells": 0,
+          "active_style_observations": 105,
+          "weak_directed_style_observations": 0,
+          "unavailable_colour_observations": 0,
+          "directed_gradient_axes": 14,
+          "code_bounded_directed_gradient_axes": 3,
+          "space_counts": {
+            "free": 48,
+            "solid": 0,
+            "outside": 0,
+            "sky": 0,
+            "exterior": 0,
+            "unknown": 57
+          },
+          "presence_counts": {
+            "absent": 0,
+            "present": 105,
+            "missing_index": 0,
+            "invalid_index": 0
+          },
+          "edge_counts": {
+            "unsupported": 386,
+            "clear": 44,
+            "blocked": 0,
+            "unknown": 200,
+            "dynamic": 0
+          },
+          "style_counts": {
+            "0": 105
+          }
+        },
+        "cells_sha256": "279a6b9e895636d6e8303a0a710500e022ecf6cb1ee847378aa2e1f64ea945f3"
+      },
+      {
+        "input_name": "sun_sky.jkobs",
+        "input_sha256": "c2bd54623b66a6288be8869635773e9b8a476e865771608fd8099f5366fc371b",
+        "repeat_identical": true,
+        "report": {
+          "schema": "org.openjk.original-grid-evidence.v1",
+          "map": "maps/lrq3_sun_sky.bsp",
+          "bsp_sha256": "5fff9822a8d3f290d29eaf6f49e5df2f8c14368e6e5a0568c5e82c2f24f41c8e",
+          "records_sha256": "3c9470fa22fd3968822afc4b5fc739bd12b85037beaf10d54d51b9c14a80fa94",
+          "indices_sha256": "f4f76d9648977af3b972ead7aa2f70c59072d8da3c6192c4eefa4276a8982cc1",
+          "compiler_known": true,
+          "profile": "q3map2-controlled-benchmark-v1",
+          "synthetic": true,
+          "compiler": "q3map2 controlled JA fixture",
+          "compiler_version": "2.5.17n-git-d9338309e",
+          "colour_space": "explicit_profile_source_relative",
+          "absolute_calibration_known": false,
+          "aggregate_is_individual_emitter": false,
+          "generated_probes": 0,
+          "direction_reliability_known": false,
+          "source_transfer": 1,
+          "source_assumed_transfer": 0,
+          "geometry_key": "f2244c8aa7eb0fb9907cd28411489c9c76d3c97e08ad83d2b7e3602a539c3560",
+          "compression": "q3map2_merge4_hypothesis",
+          "compression_bound_known": true,
+          "interpolation_error_known": false,
+          "compiler_sample_nudge_known": false,
+          "direction_shared_across_styles": true,
+          "consumer_encoding_bound_radians": 0.06908738613128662,
+          "writer255_encoding_bound_radians": 0.04927988476219283,
+          "merge_angular_bound_radians": 0.24639942381096416,
+          "origin": [
+            -192,
+            -128,
+            0
+          ],
+          "spacing": [
+            64,
+            64,
+            128
+          ],
+          "bounds": [
+            7,
+            5,
+            3
+          ],
+          "cells": 105,
+          "records": 17,
+          "referenced_records": 17,
+          "shared_records": 12,
+          "reused_cell_references": 88,
+          "byte_identical_extra_records": 0,
+          "missing_cells": 0,
+          "invalid_indices": 0,
+          "style_gaps": 0,
+          "no_style": 0,
+          "hdr_cells": 0,
+          "hdr_nonfinite": 0,
+          "hdr_negative": 0,
+          "hdr_state": 1,
+          "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "issues": 0,
+          "boundary_cells": 57,
+          "dynamic_possible_cells": 0,
+          "writer255_impossible_code_cells": 0,
+          "active_style_observations": 105,
+          "weak_directed_style_observations": 51,
+          "unavailable_colour_observations": 0,
+          "directed_gradient_axes": 14,
+          "code_bounded_directed_gradient_axes": 14,
+          "space_counts": {
+            "free": 48,
+            "solid": 0,
+            "outside": 0,
+            "sky": 0,
+            "exterior": 0,
+            "unknown": 57
+          },
+          "presence_counts": {
+            "absent": 0,
+            "present": 105,
+            "missing_index": 0,
+            "invalid_index": 0
+          },
+          "edge_counts": {
+            "unsupported": 386,
+            "clear": 44,
+            "blocked": 0,
+            "unknown": 200,
+            "dynamic": 0
+          },
+          "style_counts": {
+            "0": 105
+          }
+        },
+        "cells_sha256": "4fa0e7ef069b8c0b5199c773d2df72de3c839d16d8b6ead2811e0fb519beb4da"
+      },
+      {
+        "input_name": "door_occlusion.jkobs",
+        "input_sha256": "e69241c38d2086ff5433751cb1dcafece28d128c37baf927cb38a52ddcc19157",
+        "repeat_identical": true,
+        "report": {
+          "schema": "org.openjk.original-grid-evidence.v1",
+          "map": "maps/lrq3_door_occlusion.bsp",
+          "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+          "records_sha256": "b06873e3001c6c3266c7c019df3efa2143e1867265e30b29d451eb4c9760e14a",
+          "indices_sha256": "042b40c7717c0e8b5258fe2b2f91796b26005458d94512490026069da7a251b9",
+          "compiler_known": true,
+          "profile": "q3map2-controlled-benchmark-v1",
+          "synthetic": true,
+          "compiler": "q3map2 controlled JA fixture",
+          "compiler_version": "2.5.17n-git-d9338309e",
+          "colour_space": "explicit_profile_source_relative",
+          "absolute_calibration_known": false,
+          "aggregate_is_individual_emitter": false,
+          "generated_probes": 0,
+          "direction_reliability_known": false,
+          "source_transfer": 1,
+          "source_assumed_transfer": 0,
+          "geometry_key": "819db720be2b0b140521c7139cb56c04dff20256af164fc87bb8991076d64701",
+          "compression": "q3map2_merge4_hypothesis",
+          "compression_bound_known": true,
+          "interpolation_error_known": false,
+          "compiler_sample_nudge_known": false,
+          "direction_shared_across_styles": true,
+          "consumer_encoding_bound_radians": 0.06908738613128662,
+          "writer255_encoding_bound_radians": 0.04927988476219283,
+          "merge_angular_bound_radians": 0.24639942381096416,
+          "origin": [
+            -192,
+            -128,
+            0
+          ],
+          "spacing": [
+            64,
+            64,
+            128
+          ],
+          "bounds": [
+            7,
+            5,
+            3
+          ],
+          "cells": 105,
+          "records": 72,
+          "referenced_records": 72,
+          "shared_records": 1,
+          "reused_cell_references": 33,
+          "byte_identical_extra_records": 0,
+          "missing_cells": 0,
+          "invalid_indices": 0,
+          "style_gaps": 0,
+          "no_style": 0,
+          "hdr_cells": 0,
+          "hdr_nonfinite": 0,
+          "hdr_negative": 0,
+          "hdr_state": 1,
+          "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "issues": 0,
+          "boundary_cells": 61,
+          "dynamic_possible_cells": 0,
+          "writer255_impossible_code_cells": 0,
+          "active_style_observations": 105,
+          "weak_directed_style_observations": 34,
+          "unavailable_colour_observations": 0,
+          "directed_gradient_axes": 7,
+          "code_bounded_directed_gradient_axes": 3,
+          "space_counts": {
+            "free": 42,
+            "solid": 2,
+            "outside": 0,
+            "sky": 0,
+            "exterior": 0,
+            "unknown": 61
+          },
+          "presence_counts": {
+            "absent": 0,
+            "present": 105,
+            "missing_index": 0,
+            "invalid_index": 0
+          },
+          "edge_counts": {
+            "unsupported": 417,
+            "clear": 32,
+            "blocked": 0,
+            "unknown": 181,
+            "dynamic": 0
+          },
+          "style_counts": {
+            "0": 105
+          }
+        },
+        "cells_sha256": "ff4a7f42601eb741f07784993cae16d30587829b4abe6d82df12ff0cf0135847"
+      },
+      {
+        "input_name": "wall_leak.jkobs",
+        "input_sha256": "bca4e88c5d1888ba873b177df8449b823eccdbda0a79f817791c7fae5e24322f",
+        "repeat_identical": true,
+        "report": {
+          "schema": "org.openjk.original-grid-evidence.v1",
+          "map": "maps/lrq3_wall_leak.bsp",
+          "bsp_sha256": "ed677951d53097665c235686c8f43b623baf995bbdf344c4fe0c43cfe1908527",
+          "records_sha256": "e0d50c721d25675ade553bb07bd7799821c980556b52a254ee42546ab2548b24",
+          "indices_sha256": "070b2834fcb00905f70efbfbe3bc39b04f78407d87386060a501b04b9bace316",
+          "compiler_known": true,
+          "profile": "q3map2-controlled-benchmark-v1",
+          "synthetic": true,
+          "compiler": "q3map2 controlled JA fixture",
+          "compiler_version": "2.5.17n-git-d9338309e",
+          "colour_space": "explicit_profile_source_relative",
+          "absolute_calibration_known": false,
+          "aggregate_is_individual_emitter": false,
+          "generated_probes": 0,
+          "direction_reliability_known": false,
+          "source_transfer": 1,
+          "source_assumed_transfer": 0,
+          "geometry_key": "c061ca0618893b6ddc55f8258d5f3d3ff13a31e4a8c1e199173424f118c2cfad",
+          "compression": "q3map2_merge4_hypothesis",
+          "compression_bound_known": true,
+          "interpolation_error_known": false,
+          "compiler_sample_nudge_known": false,
+          "direction_shared_across_styles": true,
+          "consumer_encoding_bound_radians": 0.06908738613128662,
+          "writer255_encoding_bound_radians": 0.04927988476219283,
+          "merge_angular_bound_radians": 0.24639942381096416,
+          "origin": [
+            -192,
+            -128,
+            0
+          ],
+          "spacing": [
+            64,
+            64,
+            128
+          ],
+          "bounds": [
+            7,
+            5,
+            3
+          ],
+          "cells": 105,
+          "records": 54,
+          "referenced_records": 54,
+          "shared_records": 1,
+          "reused_cell_references": 51,
+          "byte_identical_extra_records": 0,
+          "missing_cells": 0,
+          "invalid_indices": 0,
+          "style_gaps": 0,
+          "no_style": 0,
+          "hdr_cells": 0,
+          "hdr_nonfinite": 0,
+          "hdr_negative": 0,
+          "hdr_state": 1,
+          "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "issues": 0,
+          "boundary_cells": 62,
+          "dynamic_possible_cells": 0,
+          "writer255_impossible_code_cells": 0,
+          "active_style_observations": 105,
+          "weak_directed_style_observations": 52,
+          "unavailable_colour_observations": 0,
+          "directed_gradient_axes": 4,
+          "code_bounded_directed_gradient_axes": 2,
+          "space_counts": {
+            "free": 40,
+            "solid": 3,
+            "outside": 0,
+            "sky": 0,
+            "exterior": 0,
+            "unknown": 62
+          },
+          "presence_counts": {
+            "absent": 0,
+            "present": 105,
+            "missing_index": 0,
+            "invalid_index": 0
+          },
+          "edge_counts": {
+            "unsupported": 428,
+            "clear": 28,
+            "blocked": 0,
+            "unknown": 174,
+            "dynamic": 0
+          },
+          "style_counts": {
+            "0": 105
+          }
+        },
+        "cells_sha256": "e99506707c1afaf3832a36b75d2d875ea6c4680644b0415e9374b663cdc5f7d1"
+      }
+    ]
+  },
+  "compiled_independent_checks": {
+    "schema": "org.openjk.original-grid-compiled-checks.v1",
+    "results": [
+      {
+        "scene": "point_room",
+        "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+        "exact_original_cells": 105,
+        "known_single_light_directions": 48,
+        "maximum_writer255_error_radians": 0.029984723014661065,
+        "independently_checked_gradient_axes": 28
+      },
+      {
+        "scene": "two_colour",
+        "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+        "exact_original_cells": 105,
+        "known_single_light_directions": 0,
+        "maximum_writer255_error_radians": null,
+        "independently_checked_gradient_axes": 28
+      },
+      {
+        "scene": "overlap_whites",
+        "bsp_sha256": "32be2d8dddfe1fdae782795fcd39a96095311f802030153a7672f439a703078f",
+        "exact_original_cells": 105,
+        "known_single_light_directions": 0,
+        "maximum_writer255_error_radians": null,
+        "independently_checked_gradient_axes": 28
+      },
+      {
+        "scene": "sun_sky",
+        "bsp_sha256": "5fff9822a8d3f290d29eaf6f49e5df2f8c14368e6e5a0568c5e82c2f24f41c8e",
+        "exact_original_cells": 105,
+        "known_single_light_directions": 0,
+        "maximum_writer255_error_radians": null,
+        "independently_checked_gradient_axes": 28
+      },
+      {
+        "scene": "door_occlusion",
+        "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+        "exact_original_cells": 105,
+        "known_single_light_directions": 0,
+        "maximum_writer255_error_radians": null,
+        "independently_checked_gradient_axes": 14
+      },
+      {
+        "scene": "wall_leak",
+        "bsp_sha256": "ed677951d53097665c235686c8f43b623baf995bbdf344c4fe0c43cfe1908527",
+        "exact_original_cells": 105,
+        "known_single_light_directions": 0,
+        "maximum_writer255_error_radians": null,
+        "independently_checked_gradient_axes": 8
+      }
+    ],
+    "passed": true
+  },
+  "stock": {
+    "schema": "org.openjk.original-grid-evidence-validation.v1",
+    "tool_sha256": "b6f080626f47e8e39a745a1a6ba070dd770e7e557d83e314103e51d9154397d9",
+    "results": [
+      {
+        "input_name": "all-pages.jkobs",
+        "input_sha256": "39ee537e003f7aaac802b48e847f9e35afa0f37eb8379aa7baaca57df05fbbb0",
+        "repeat_identical": true,
+        "report": {
+          "schema": "org.openjk.original-grid-evidence.v1",
+          "map": "maps/hoth2.bsp",
+          "bsp_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+          "records_sha256": "b2c052994f7d1cb129f91bb95cfa47af530d6cccccd959ab0679d8454e0992f4",
+          "indices_sha256": "401601aafd5721d11ccee4ba737f52d8f32b685cb05b052759eb87d0ef7995df",
+          "compiler_known": false,
+          "profile": "renderer-export-source-relative-v1",
+          "synthetic": false,
+          "compiler": "Unknown historical BSP compiler",
+          "compiler_version": "",
+          "colour_space": "encoded_rgb8_relative",
+          "absolute_calibration_known": false,
+          "aggregate_is_individual_emitter": false,
+          "generated_probes": 0,
+          "direction_reliability_known": false,
+          "source_transfer": 0,
+          "source_assumed_transfer": 0,
+          "geometry_key": "860a32dc0f521cd518355650535f17a4e33d61070566b6e63605f812bbbcafea",
+          "compression": "unknown",
+          "compression_bound_known": false,
+          "interpolation_error_known": false,
+          "compiler_sample_nudge_known": false,
+          "direction_shared_across_styles": true,
+          "consumer_encoding_bound_radians": 0.06908738613128662,
+          "writer255_encoding_bound_radians": 0.04927988476219283,
+          "merge_angular_bound_radians": null,
+          "origin": [
+            -11136,
+            -11232,
+            288
+          ],
+          "spacing": [
+            96,
+            96,
+            144
+          ],
+          "bounds": [
+            213,
+            258,
+            19
+          ],
+          "cells": 1044126,
+          "records": 4001,
+          "referenced_records": 4001,
+          "shared_records": 1281,
+          "reused_cell_references": 1040125,
+          "byte_identical_extra_records": 0,
+          "missing_cells": 0,
+          "invalid_indices": 0,
+          "style_gaps": 0,
+          "no_style": 0,
+          "hdr_cells": 0,
+          "hdr_nonfinite": 0,
+          "hdr_negative": 0,
+          "hdr_state": 1,
+          "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "issues": 0,
+          "boundary_cells": 50131,
+          "dynamic_possible_cells": 1044126,
+          "writer255_impossible_code_cells": 0,
+          "active_style_observations": 1044126,
+          "weak_directed_style_observations": 708090,
+          "unavailable_colour_observations": 0,
+          "directed_gradient_axes": 0,
+          "code_bounded_directed_gradient_axes": 0,
+          "space_counts": {
+            "free": 590876,
+            "solid": 255483,
+            "outside": 0,
+            "sky": 20211,
+            "exterior": 0,
+            "unknown": 177556
+          },
+          "presence_counts": {
+            "absent": 0,
+            "present": 1044126,
+            "missing_index": 0,
+            "invalid_index": 0
+          },
+          "edge_counts": {
+            "unsupported": 6264756,
+            "clear": 0,
+            "blocked": 0,
+            "unknown": 0,
+            "dynamic": 0
+          },
+          "style_counts": {
+            "0": 1044126
+          }
+        },
+        "cells_sha256": null
+      },
+      {
+        "input_name": "all-pages.jkobs",
+        "input_sha256": "fdbf5351babdaf6a1b0e9d776a77d01f5396e82c5f3945ec46079e171385d613",
+        "repeat_identical": true,
+        "report": {
+          "schema": "org.openjk.original-grid-evidence.v1",
+          "map": "maps/hoth3.bsp",
+          "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+          "records_sha256": "70563a189b5c9b920b714682b35b87636c2a67371fbd530f0641da6ff77fde72",
+          "indices_sha256": "eae5587db0f3e55076cbf62d896417cabcefcf71a27fe5c9a2f0d5e01c5b7970",
+          "compiler_known": false,
+          "profile": "renderer-export-source-relative-v1",
+          "synthetic": false,
+          "compiler": "Unknown historical BSP compiler",
+          "compiler_version": "",
+          "colour_space": "encoded_rgb8_relative",
+          "absolute_calibration_known": false,
+          "aggregate_is_individual_emitter": false,
+          "generated_probes": 0,
+          "direction_reliability_known": false,
+          "source_transfer": 0,
+          "source_assumed_transfer": 0,
+          "geometry_key": "04b9605b99d9a70a05701dac1bffec025da648c207b1917c51661eea6179c7ed",
+          "compression": "unknown",
+          "compression_bound_known": false,
+          "interpolation_error_known": false,
+          "compiler_sample_nudge_known": false,
+          "direction_shared_across_styles": true,
+          "consumer_encoding_bound_radians": 0.06908738613128662,
+          "writer255_encoding_bound_radians": 0.04927988476219283,
+          "merge_angular_bound_radians": null,
+          "origin": [
+            -2112,
+            -3456,
+            -128
+          ],
+          "spacing": [
+            64,
+            64,
+            128
+          ],
+          "bounds": [
+            202,
+            81,
+            14
+          ],
+          "cells": 229068,
+          "records": 11553,
+          "referenced_records": 11553,
+          "shared_records": 1678,
+          "reused_cell_references": 217515,
+          "byte_identical_extra_records": 0,
+          "missing_cells": 0,
+          "invalid_indices": 0,
+          "style_gaps": 0,
+          "no_style": 0,
+          "hdr_cells": 0,
+          "hdr_nonfinite": 0,
+          "hdr_negative": 0,
+          "hdr_state": 1,
+          "hdr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "issues": 0,
+          "boundary_cells": 5773,
+          "dynamic_possible_cells": 229068,
+          "writer255_impossible_code_cells": 0,
+          "active_style_observations": 229068,
+          "weak_directed_style_observations": 215156,
+          "unavailable_colour_observations": 0,
+          "directed_gradient_axes": 0,
+          "code_bounded_directed_gradient_axes": 0,
+          "space_counts": {
+            "free": 138519,
+            "solid": 2501,
+            "outside": 0,
+            "sky": 0,
+            "exterior": 0,
+            "unknown": 88048
+          },
+          "presence_counts": {
+            "absent": 0,
+            "present": 229068,
+            "missing_index": 0,
+            "invalid_index": 0
+          },
+          "edge_counts": {
+            "unsupported": 1374408,
+            "clear": 0,
+            "blocked": 0,
+            "unknown": 0,
+            "dynamic": 0
+          },
+          "style_counts": {
+            "0": 229068
+          }
+        },
+        "cells_sha256": null
+      }
+    ]
+  }
+}

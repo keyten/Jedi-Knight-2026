@@ -56,7 +56,7 @@ struct GridLayout
 };
 struct GridDirection
 {
-	Vec3 toSource; // exact 256-step mathematical convention; receiver -> emitter, NOT propagation
+	Vec3 toSource; // ideal /256 consumer convention; receiver -> aggregate incoming light, NOT propagation
 	Vec3 entityToSource; // normalized legacy 1024-entry /1023 sin-table approximation
 	float stepRadians = 0, errorBoundRadians = 0; // conservative encoding bound, not covariance
 	GridDirectionQuality quality = GridDirectionQuality::Unavailable;
