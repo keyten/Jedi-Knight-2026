@@ -1,0 +1,10 @@
+{
+  "artifacts": {
+    "checks.json": "61f85d0d51aaaba757e5be86a557ac202c819c47c41ec6927870106f2f2c44cb",
+    "protocol.json": "2d29c6c7741ef2d2123636ca7a6303c1d4e0778f3c7cb8b57012c6f600d7be33",
+    "results.json": "9841a7131410db79be8be3ab7ea8a889800b55ba38885be6eac483300fcb27cd",
+    "tables.md": "08f12f3a47c5eb5c7c032e0fc67bd3d80e4ed0d5a731764ecd6e9ad2f56c324a"
+  },
+  "licensed_payloads": false,
+  "production_modified": false
+}

@@ -1,0 +1,908 @@
+{
+  "cases": {
+    "door_occlusion": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\door_occlusion.q3map-recipe.json",
+        "sha256": "8ab4cd1047ab76cd1211aaad0b51c9bd49946b84f4c69076aeb555e9b6782c7e"
+      },
+      "bounds": [
+        -192,
+        -128,
+        48,
+        192,
+        -48,
+        208
+      ],
+      "geometry": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\door_occlusion-views\\inputs\\geometry.jkobs",
+        "sha256": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f"
+      },
+      "hidden_request": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\door_occlusion\\hidden.request",
+        "sha256": "6bf139c670bc22bbac2996255e33ebe99d80b717fc22532a54c31069601b0fe0"
+      },
+      "input_manifest": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\door_occlusion-views\\inputs\\manifest.json",
+        "sha256": "bd1225b7ef6d216ccac6896b74ce76dad573b85fef5baae1057b9395fdfdb944"
+      },
+      "map_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+      "partition_counts": {
+        "heldout": 176,
+        "train": 352,
+        "validation": 176
+      },
+      "receivers": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\door_occlusion\\receivers.txt",
+        "sha256": "42bc6c836cca18140be3e4e21c78a62b96df92bbbac0d8d56920cc670944c69d"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\door_occlusion\\rows.json",
+        "sha256": "de56c79f49554b57a58553960e860fc24f3d843d5f9b19e6dcad9feee449e110"
+      },
+      "sealed_evaluation_hashes": {
+        "heldout": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\door_occlusion-views\\evaluator\\heldout.jsonl",
+          "sha256": "76bb8c193a5ef81089fef902d0192455306ccad3c18afb3fbc159b56f1e0c99d"
+        },
+        "validation": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\door_occlusion-views\\evaluator\\validation.jsonl",
+          "sha256": "3c3029a0e15727eaf708263e5ff6d36d9f0ca1d8641312230ca387250a707b41"
+        }
+      },
+      "selected_ids": [
+        "02b0406277dc173dea8844778c6eb651681c6897e6015cc5d1545d5f68358fc3",
+        "033de02bf9db229c1b67ddacad574cf57f12b4cbac80b6d904ce93c30684dbe8",
+        "0038cb3e6b85349ccbdc15a529de438d1426b550a63dd47b5c188e45e7aeb1ef",
+        "0394c612d9040d4d73b6c532f5bdb2072cfea9e861fa1bb801fed9a7fab56481",
+        "056f2c3868fa0ac3fcb118a07a81c595bdc92b906ec2568e8eb15870d1f924b8",
+        "043b5ee8b75e40dc0b97a2dc77587a3258b11943b8dfcb03a93882c82f6de420",
+        "046e740895e0be293199a46ef5fda6b21dd9256648473b3d14d6673e68c730f7",
+        "06da25bc3918c9a75d67d3dde248b34fc43d99368cc80a6504a9fb21c2fb7c2f",
+        "0bb95d120c1643a874af646b534051048c3fee5a4670674476ee02e561fe26b9",
+        "067624f921233cdcb672f3512a70d26675ae4f98cd5b3f63a3abead5b606080f",
+        "07bcc9251ee0944acbe37cee05a27cbf862b3f69313429c9fd2cf72b97becff0",
+        "0bf169e35939659f34985c8b65f8376833ca98fb8b3b2cba50080b5638f5fdf2",
+        "0e85384efa83116dcb27d4010c874e0beeef2920edd6fdca52ef667bf41f0f0e",
+        "086b1488703d265250af724828ab7b0f01e77edc0de7f4213e88b4840696a26f",
+        "0dac2bb6b718eb67257e4dfa76f3ddd07c20e1d56c0e90c73a2f7149a1126168",
+        "15309af0ab2ba2bf311fafdd0610bbf79a64efdabb712ac100f42edf43b22c75",
+        "0cb83cf41af624247494d5eb95086b7c043bfb0ee86abe96cb0cdec3a0af70d1",
+        "0fddd8da04b71e3b9a6d358ba92f2ac1922b5c55a433a8cf1349e9d11f677c33",
+        "172c6cb6d532dbf12578db4fc32e9d2d1bb0a0699f21c63c952e66532f1db845",
+        "0e0610c86d2fa73f5df0abbf0e05d59597bdbdffeaa7a6e4a70a3b56306e9d33",
+        "10bdcfae59b6082b806e58a7e653ce30112d2d53b327a3bfd0941943c7d24af0",
+        "1a30abbbd822ffba4310115cafd7f93349d9d2e51cc887f635ebeb7354973871",
+        "0eaaa13e67a42b78e9451053bbaf68e56b6cac6ba9ad3720c7d7888dad44477b",
+        "1623f3169bf29c2f2155899c3704033d856a3a2d151ab8b306352f3b5f9c8929",
+        "1b3f3783867bd468633944a0c57de3aae7a162b458796be2970d8f1771d5bef6",
+        "144220c562aa471901168e4f75307732a1351abdcf10e2a3142590f0f350b18c",
+        "17ac59718e39384eef770d5da41ef0a88b99c77b63b6aa85030741cb85cbbfe8",
+        "1c68b220d63812e77c9b95699cb2e67810d531060637ef29c5e855470e004253",
+        "147f6df646fc72f8f8f8fde5849330fbeacaf6bd54a17b6b1934fd99264f42de",
+        "1da6b486db01db5dad4039970c81595fa31828879b9333e34952adf319cfdca3",
+        "1ce4c2e3b21f266a2a0d801cdfafe0319317716fe0871e3db4f5c14dfe2ad889",
+        "149b377f733842926e416d61961c8a357e91f606c5de70996b30137313b1c838",
+        "1ec1b25c931a65af68191ae52e7c9f9efed5ee37e49f250ae09e59f2f9f0b9c8",
+        "225cab5e8b960e0f4d68da0218125f207373c40f44812ac20df35a967464af97",
+        "1527dae62025bc0ab1a273ccde6d053b1f5e829d4bfde5787597c2d7924cff2e",
+        "292205154c6825377c07646eca0ffa24c04259507016bc7ff5a1aaa31c1bc30d",
+        "297a9ec3faf902067bab804173797721c1f75b289359c8d139c4d555fc738b1d",
+        "162bd30529ad3c5e8bac86d326f9760334705c6acebea4c2aa2897183d9f3d73",
+        "29f06671f93fe7bc7edca28a75233f006a44416c831d31727a1d8a1c8033c771",
+        "2bb61343a7bd796b2f6e6b77c0f2bbd1548bb451aa9aa4259948bb96ced01e0f",
+        "1851886ce27de25b10da6319d3ef2ff483b5073ee789cc78caafdab2001e0fc9",
+        "2b30ef25fae7dd95bcf277061f6bc02c714cb9de342385182cc3bc9c1cf45533",
+        "300acbb68c3f3d8fe8d5066240dff1f56580c44689ff7f78bd0ff64cf14daa09",
+        "18b3ee9011d7b14d952745c4c049822a0020e35f3b2c991ff3f702a8ef1650db",
+        "30dfb9d9854fad9ff3bea6bbec8f1b058d92b7035f5c94f0bc625172c07220bb",
+        "3972137a1c253d0fa00e46e870e078d7ca36ac3832c42e2f0640aaa764a98fb0",
+        "19745c0c1184e9b978d726ef8db46810d495e4ded56fa447018fca236ad27c2d",
+        "323746c07e76287360f6da49df407098fe80e05624cf5349c431500c5fc42982",
+        "40aca26a11f684653ba5409d7bd827880830d2c86b7c2e4fd80719e894ce7c46",
+        "19b39dbc6063b4ef8f9cd371c2b2d9d1e6a6a8665e7f4c4202fb0346fc99dfd1",
+        "3270be3866757aff93171065436fb9977dd3181da468f5f602ed9f699499cd0f",
+        "4fc849e5064675840109357be68232591acea7f2a92c0e9bea6f6059d9c1fa03",
+        "1a877a43a60b0150d8abacf79c85c7e46a288d4b0e2fd30eee81ed434db0ec5c",
+        "3c9de6a581e2ed338c44b17542c39931295c70acfc66b18d93d254b319b790b7",
+        "62214338e16921631deb6789b914bf79fc92ed8051addc1a30cfab00c7e2e873",
+        "1ab83a36605ffe90077992e93a8657ffc5748f6c389c6610f8bb3b9e67dfbfa1",
+        "3ea4153ab94032a54b6b918d055c8718f3fa060cd282ba5de12b5b259c7f274e",
+        "6963d32f93776b0f302853d92019a869457f28bb8204ebd8744e1647b911cb7f",
+        "1c0aff100f61e80c7e3eb94e7ff5cf897904fc53208ad5016fccc0faf28fc19b",
+        "4011b6b9a63b407f339e459dd48cbd51f889ea827e58e5113ada031134ad3ce8",
+        "6abdb2a6800ebcce930107ee5b543b24184916f65aef593e423701f94809cc85",
+        "1c0dc30ab2490b934eb40ff199497e55867c61cd1dc24a76ba2e1efcf66031a6",
+        "426be3bcb07bb7ecc1e3a68c8454ca6968f99580f890a59f5654fa10899cc8db",
+        "6afe7ca3c00163f81ba0914934781711b588e3851a548c4e60c3f2b66633fd28"
+      ],
+      "state": "Frozen",
+      "stock": false,
+      "train": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\door_occlusion-views\\inputs\\train.jsonl",
+        "sha256": "f2230b445cbdd1e4849642a25f17fa6c67ceaf67efe9384416509bd1166d2875"
+      }
+    },
+    "hoth3_roi": {
+      "bounds": [
+        2808,
+        188,
+        -389,
+        3832,
+        1212,
+        635
+      ],
+      "geometry": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\hoth3-views\\inputs\\geometry.jkobs",
+        "sha256": "7155d4dcaaf244fd3db1fb47a3f6af6109ef8313871dbae4a2de0b56eebf42fd"
+      },
+      "hidden_request": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\hoth3_roi\\hidden.request",
+        "sha256": "b46b9f7e24d8a1b4239edfbe45eb27b4a8c5b95c6a4fd6903294b4ba207038e7"
+      },
+      "input_manifest": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\hoth3-views\\inputs\\manifest.json",
+        "sha256": "655b1bd3ec89109ba796c7089e47cbeb07b20072e5ead58c453a89c743fbb619"
+      },
+      "map_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "partition_counts": {
+        "heldout": 37896,
+        "train": 125944,
+        "validation": 11364
+      },
+      "receivers": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\hoth3_roi\\receivers.txt",
+        "sha256": "00c27c8e6fb263ee5f27b8e9f433a5e257839acb6e2ad6ba67ccda38c279fe2b"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\hoth3_roi\\rows.json",
+        "sha256": "d37583ffd5bd01252f3a32823ca244fc44a81cbaf2904cfebd75836ede2856ab"
+      },
+      "sealed_evaluation_hashes": {
+        "heldout": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\hoth3-views\\evaluator\\heldout.jsonl",
+          "sha256": "6319aa591139ee02c0c0440db96f57d3f27737c3c6bf642a3c26d01bf05b7522"
+        },
+        "validation": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\hoth3-views\\evaluator\\validation.jsonl",
+          "sha256": "035a52540356c4ad295205886353bd4c292017192a9dae13421967cc6d51f52c"
+        }
+      },
+      "selected_ids": [
+        "3cb1f0b6386a759a8aa067c4bf89472c0fab313b45a71dd9519c7791e6aa5523",
+        "aa882928a1a9d35116f289997231a0c0010e18db50057d7e35a66fc8b991e0df",
+        "33ac0d2c214065d036b984f09ce99777a2864aa60c98050623296e792a90cbd5",
+        "0fb8ce8a15b96bfbe05c388368160f213c35b748b558d5cdb9d262b6cdd073e2",
+        "1447695f45d02e15985943bfdb653141e596bdf0c6aec3e133031066b7d29468",
+        "2e0be16f155ba8e04b9eb5164369037d2b2e3b6343b9f0cdd82c79d4502fc321",
+        "28b099ae9232a3ced828a7c64c60b3178c70c33ef3b99765a8d799f5c69dd509",
+        "3af83522b8e7b8bb117ef9f5e7bc67fc83a0d89ba23669df5952158afc40f39d",
+        "85e5a87b1ea0674fb1f019aba53c78ccf6e265e5106439a630a8c559b7c6a088",
+        "0fd1b9006212b7b799b70266a053cdcc22cce7df8498069ea600f138d0d277e6",
+        "229bfb01596a22399bd4c74eb694f1df5daf7ea64c7d0401e4f1a058bc2bb4af",
+        "076b484df66cf724fcbe4850f7eee4236fe5120ad37e866cb4693c6da1baf8b2",
+        "01fbfd43c2addab8d89537df9e6982f1ce812baf4bce63ad54bb076266fb34a4",
+        "64939a4199f035a24c7cabacd60b1fd51c295922915445a79d85b46e8eaaeb2d",
+        "004d6206217872cba8cc0fd34ce442cbfc20889ce54cf8252b7ca582eeeceee2",
+        "6769a07cedec10f12d811b7a1c808733186f8363a1ceb60631b32c981f70d31f",
+        "06fe8dd6ac68179d50eb2e2aad7144271fa4060b484bcead9eb40228e0dd1779",
+        "15ebcdb8b3bc57c2f794a58fe6c6d03bfc49122c5b623ca7a15e20ed9f59d327",
+        "394d790cb306d229fe66ae3d67911ca874ea065a35cced216d0f8b6166d20180",
+        "732b5d6dc4ed6dd727d1cf832bdb74ce1349d4a20a5f357a2bffe711d1500991",
+        "4d2673528c74a33e55b15ad2162c8cba9ed47f2847d79eff53a0c78f4fcc822e",
+        "04eb45105fc9aa8daf527bc6e90965823b86bc0915bb03493e2697a531130123",
+        "5f2fad1890dff6cfa892f02f658093adff946e98075ab29c83bbb40a5bbb6556",
+        "55e177ce17a28f90593a16922fe06917d130efefcc7b41cb0b33faf2b59cc714",
+        "333ceb05fbeefe5dd4227fcf7b20b599a35124e4576819cdf2a93c659777ac42",
+        "3b38588a7a586d2d9da886eb76cea01ae4c47146f19350e104482d32d3f75302",
+        "5a3865daad57d4c3288e385966b1a5fcff5cb0e9e86897c9cbb00ae2c3f02509",
+        "8ddce36250dd4dfc7f4456ba8010c8277f49007a5c39c7b1143900fce6a438e5",
+        "033728fe21db664831ce853b8ac2bc5cbe95a36d95a659d31a8d22258e7d1b54",
+        "4b4b7e766fd3b7329bf0d03a320dca2f941b5577c2184d040848d656063374a0",
+        "0e703029855af33e822e593d3aff63f27ca9f6a22a511b701dea6d7a7deb708d",
+        "1663738879004b46f53029f7c6e90f9954a9983d12789ff5819e6981ec0a9ff3",
+        "ce2a310e298bc5502e6fa589f72d51ae88cfd68038ca994b583ba5d156c53edc",
+        "13c45aa67228bc81b19b776a480725bead83d25cce4f1145e0457e708685698e",
+        "1df0d38319e359aed463bbede70aa2c2cfb199fa6bd42fe5408b0cd2938dd5a6",
+        "05a8a629438a40e054e2bbdc15e20d684fd943cd7e1d84ddda88d1b935c0f98a",
+        "773b81e5c49e043da7a82408107dc228b052edeb2d9db1193a056c0a49389923",
+        "871dbd3c0ea1f1c9c6d792d509aa4e08779499f93e939d8354581e69df9c3ba2",
+        "6500fafddfa50b585ed69b8d5544acd3f5346d5da5d5c1da257e5791bbff76c2",
+        "07e26bd0fdfb7c5371b541bca7be58b842b7ef80a93907031d4bf4571950b8ca",
+        "554460d9deeb135e983945cf38b5789d1f02aace358211bc650c6a85414b8ed7",
+        "029027cf704a08e258384adf58aa8e2f5a51f6a7772585026da7c2b95dc8b480",
+        "3866797a2d2d07f451c4fa6f3ec6878363bf82ad0531866a59114a5046d7191a",
+        "07fb94a03bc68eb812aed46cdd65c323af9521023813bde5b5a593f673106138",
+        "07c0fe4bc641a20fd35d0c7d15e109791bdcdb95a393774bf0f35ce00e48d3f2",
+        "1142e38dad9663936768e2d3b40487f7fd6fe87206d7a62cfc976cc49858338f",
+        "5994d9117dbcf21e6a1d0a460a19ec04888cb565e10983cdc3721a70c902707f",
+        "410c05cb6deb24d2524ba9da4f3bd364fb3a5fd6f69262b1449225ef4e08cc35",
+        "66266a3753fd41b82384dfb71c57a527c691e79f3ad2a8393a51451e1c5cc936",
+        "1a287add85bc94192900e5336e97e196126975c7eddf15448ff97abecc8ffcba",
+        "0d1ab83eea33b4a58a9e753082d2dc4effedf80e78127e7db0708941347b1ec6",
+        "04433657de7a6a614b092b78aa4de8cf450f7a8dc10de3cfdad3a97ceb94b12f",
+        "04ee14969e5a33e5304c6b8bb0f3e2b73dbdef0a1c6b95a8e05aa18c9ff6620f",
+        "3ea72951cae54e98345166cea4cd87ca9363d561e2f8a08c40e8b4a4828115ff",
+        "d51628ee96e04b8a436241b3aee8298c65dbf46ac5e16d03539e6b753df1c1f1",
+        "296fbea46b8cbf5875561af756788a65d17bff40c686facc4530d42ab587f7e8",
+        "66739ad5bc62c2e9f644828402c26c494290ff11067793f2246498b85d405068",
+        "74f9a8b204c320e8d98a4cc97e1ab7f47143e09f78fc9f50197e430771171f83",
+        "634f309c405eb6b3b410e9d039e23b42cab581a3ec68ea1c6d5126abde2281c7",
+        "0226ae54b196b0327f00d1dd5349ca97c9ea9421c790b4e974d63df7a3cdc544",
+        "0396d1d846453887aeff551844a6d0a95729153a7d170aaf34284b7fd897ca63",
+        "00838107eb81a813eb082721ac5e608459699f59ddfa1029cabbf1e57a1bc9e8",
+        "0ec1d62e5de76f7b4305178d04d4dd6cdcd9b5960ff128187874c171e679a377",
+        "2671a5a83c68f25cac2ef54907aaff239a333334024199b4a66f86403e13f5d9"
+      ],
+      "state": "Frozen",
+      "stock": true,
+      "train": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\hoth3-views\\inputs\\train.jsonl",
+        "sha256": "d0c37eb64b82f10fbe7d49efb399d421b2da7645c3645e2af9977989d90be496"
+      }
+    },
+    "point_room": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\point_room.q3map-recipe.json",
+        "sha256": "ab9cbf34cea31daf2393b8aec024a495bacaac2511fd78aa2d6a2644f2a49294"
+      },
+      "bounds": [
+        -192,
+        -128,
+        48,
+        192,
+        -48,
+        208
+      ],
+      "geometry": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room-views\\inputs\\geometry.jkobs",
+        "sha256": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0"
+      },
+      "hidden_request": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\point_room\\hidden.request",
+        "sha256": "570dd15e1f3fcb22178429f3548db799d1686db21e506ff395184e0c5c4b2482"
+      },
+      "input_manifest": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room-views\\inputs\\manifest.json",
+        "sha256": "79c86a5ae1b38065b9d3b9c3ce0e037e306d3c4975ef4cf758b57c40c007816f"
+      },
+      "map_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "partition_counts": {
+        "heldout": 176,
+        "train": 352,
+        "validation": 176
+      },
+      "receivers": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\point_room\\receivers.txt",
+        "sha256": "0c4c1cc70b6dceb0d718faa5b2ac4acb1c43e9111fa5441ce2e518d0072a9d89"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\point_room\\rows.json",
+        "sha256": "800aaf64292fec2675898451147e7964ab1bbc795b023319c5ebd7c25930678e"
+      },
+      "sealed_evaluation_hashes": {
+        "heldout": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room-views\\evaluator\\heldout.jsonl",
+          "sha256": "d71fd551df5016767ffa627f3c7ad495e526abec5d17fea77fa3c97079ab320d"
+        },
+        "validation": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room-views\\evaluator\\validation.jsonl",
+          "sha256": "fbb772c1db3d2333459b0d0dc90ec993c234c06214e19d2eb88c9f4d596a7062"
+        }
+      },
+      "selected_ids": [
+        "01ce5bd307815882d0fa09b1676ede012658666f93e2178d1e9a2157caefbd8a",
+        "0093b1b17500bb9c129059ef3c81f6ac3ddd2891aaf23398f0eafbc866ee4d44",
+        "014bd2750f68faa06a2fe9d3c7e1c19fe573d4975239988cd8a85cff004a1556",
+        "083c624acddd331037ddd9135f4f749f02e60330552b21716acd3f642b35ea33",
+        "00d747ee1bbde5b6af92518d77e3a0b93dc87d4fba67e2d7b9813432f53b9a81",
+        "04222367d4e71137a9e23c524ad157ae9b2c993cd7a1ec10af68a568de596432",
+        "1114cdf4db8671d52efec9f3a3f0200db4bc6a15500caf809893b3ff2edff212",
+        "025704dc0a2a4f0f18a95f18da11fc8b9565065f90a5d85bdca75686fecfac1a",
+        "072effab31db3e1f4788c13c641930c6a00cf6d37ee014ffef723a0a40da860a",
+        "122783fcd435f9bc6112e6b70cee4cabeb682a1c1f95699ba5c1042a2522cd4f",
+        "034660b0aeecf2c0301ca4798bafe331fee486e785db205e0696a9ed55a665a0",
+        "11bb8eff8269c74e1d720976b2d4811cf4c49797d7cab00c388df4608f204545",
+        "1610c055c56f2985ec3eaee4ec2b1b875339a09d65bacf144ec6508e85a10f22",
+        "03813d3c8b16a804400d3c4177807c1369757e479e8f5025f88e5f247bd850e4",
+        "121732bd069bd12a2ff5f32a9d661c4b824cc0a7e1f376a58bff0d0f8b2e73fc",
+        "176ae4a0c3442c6ad675bfc8d6fa74411e9dcc792cd19a97abff4e3d1041ff98",
+        "042fbb3ffa1f02ba0b908b23efccbfb9712ed063323f71e4679cf579f3a214fa",
+        "1875766c7186e295f543c91fa4491f9e1d412c400448cd96c8999a8a0c0a0cea",
+        "19dd328cfdd1add7db2d514f2c8c5aeb2615deb640cc48ac36ddc2a425db319d",
+        "05b507845da7cc878225ca1bb5b6d4e1cb2c826cdeb2bb47ac6dcfa9485e877e",
+        "19326d6084c6f162c68e906b1cbf22f14ce9aa2ee17e72b78dad9620052f8644",
+        "1c2e6379f4a514d0f255d72009d27d1af558e033272aa83b75b0e59614f4a9ba",
+        "068bc21edff7a21ffbac4f71132e36f4ef0f998a37cd063afe88f42b31b39414",
+        "1d8bd32db24e3dc691379881f240ec986f1d44d701680d945fae05bd6d9805ed",
+        "1f8e017228eb29904b8266f5d0a7c399dac4e0e05f03ad53fb3b024df16f47f9",
+        "06ed02a6f7dd1bcd4c2bde8382ecbaaca9195d12d4d4af9f9bbb8518e7f219a9",
+        "1f1ecbc4b18e76522b3b5e3e49cf795f2f66ec92a6e0d498f244518c7288e90d",
+        "2003b30ea2e274e3060e885e1a01de500d0adcb1dfdbbd9a108c9c785d5c2903",
+        "0760601269d5ce44d3cf23ae6c923c0456cba10dee67e7bd0cf45af250a7585e",
+        "24dbcfef460dcb07dfffdfa456e8d2ef21312b68bb7779a027412e7955cc5c66",
+        "203fddb0ad2d2083e86e26a372ee5ed62ed574c8e376445d5cc6e5a4598d398e",
+        "0872632abfe9e170ba59fd7a4a938425eee8f1da9e4bc68418b4d53f844d26b9",
+        "2aee6578466c1be35f6a5d24057dc2b630643e0d92a23f57ffe1dfa22d96ff5a",
+        "20aa747ba9b648dbf8867c5163abdcb5e554c222ed0b4def2faa90bccc57e466",
+        "09275b6b8fd60520d0a1732e1739cf3cea1bacfd1f80bb861356193f2e200582",
+        "2c0652d16229f2e46903f360ebdb32c7320f5450109f02087b6643a457d76b48",
+        "212d810a42d30e3def61bdc39c51ec4be766f0be9d35b53eec93ac9cfde1bedf",
+        "09b5a830a0dcae800a2ca8b753f69b8089faa1238fd618c1c76409cb7e00770f",
+        "306617146a23c3f7bf239193a9dfa3d1ac4f09e00a8d93883b7bcd5b3e29a018",
+        "28c7de34e25f984f7d5fc67d92fc6dfb39800ab2be95496febfe20d58c1a2b2e",
+        "0cc5e0611cd37c96a03a9d04c0f2c3da31c74d785b110ec7b85795c33ba3d82b",
+        "31e309e3f6bc6fceb621c21312e9db30c4acc1526ea363ed79b7cd048afc6e66",
+        "2ce8581e4a5f86a838df939fc48cd113e38beeebbf00faaad0be8e3a6dd14030",
+        "0d8289d0f0afe528f6401b8b5286468d1cc1ccd310b2801e6ca60da9d8f29751",
+        "3e4891f404a3b8e838eb0ed25deeef2aad207c553ae29434f48885268ee32e85",
+        "3ba6410dbb2debd320619b793d34224306b31b96fffcb7e522d3fecc228f25f2",
+        "0f4a3f80149ca6f8817f87fd52daf14527565183fcd62c3b87764c55fb62b4f4",
+        "3f697197f2f0d579a0ad35a39b4bab8966e53716d6ebd2978575f99b8844b7c1",
+        "40d72f66642d5292ea0e75819cb091e0e8784456c88167b4fdd273f3f9fbe216",
+        "0fa0de2b957cfb4f45ad636025badca51e19e4613db88dbcd9c9b28628eaa30e",
+        "3fab4ff53e6ea5acc458abc725b5d54d89881677d33a6e2b52a74ba9beb88154",
+        "416cfbd70a84398a6c94f42178de8c553b746bab97b4685db4e52739f9b84977",
+        "0fd2df24abbea3cd84a8dd8e715625cebe33bce00f6ca419da892518b6dac4eb",
+        "41d8a140f39d560668e56bd782cd65e0c173f917c2a4561d3b8c65b00a863354",
+        "41c4c95f24d5b16548f25a3f7c2cf76e53409cf415ece03a080e5f27e983ab29",
+        "11831032a9ab95b14637d6ebb010577098a0389c91433a9da48fd836a1058ccd",
+        "477a79d8755dbadf475ca193c96653aa84c161f679d53369cf9433da04fa0c50",
+        "515a806a3606e647fc0ec622f68c2555ab5ceef91cc2090cbd6a94a87383b135",
+        "119019b9f6bc44def63c7b66db25f4c2268567e402c9b123c520c8d995233591",
+        "47c3deb32948507adf2b2a38799f53f07963d917ffa680fbef0d86075235141e",
+        "5355e0be5cdb40da636e5c657b8f42cd3d388af378ee28686f97dba8d008d9cb",
+        "122a54a79c940d8df027af859d1dadc254f39024a73f26f37ca3ba895fec4ea1",
+        "4a377846ff248efbc3193fe8f50b7d8ab10708413230957d59a9baef7a160681",
+        "53b78f470e40e93b048bcbef86a998ba5b19ba513a4cc483117007c65a8aea7b"
+      ],
+      "state": "Frozen",
+      "stock": false,
+      "train": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room-views\\inputs\\train.jsonl",
+        "sha256": "12cbf9362fbda42d4ecc885316841526f0ad88eafee220347e9096ceb41f9574"
+      }
+    },
+    "reflected_patch": {
+      "bounds": [
+        -192,
+        -128,
+        48,
+        192,
+        -48,
+        208
+      ],
+      "geometry": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room-views\\inputs\\geometry.jkobs",
+        "sha256": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0"
+      },
+      "hidden_request": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\reflected_patch\\hidden.request",
+        "sha256": "c3593a587b24015a6c01a2b38d06d3d5446c2b63a4de36d6e52b735f9cfd89b4"
+      },
+      "input_manifest": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room-views\\inputs\\manifest.json",
+        "sha256": "79c86a5ae1b38065b9d3b9c3ce0e037e306d3c4975ef4cf758b57c40c007816f"
+      },
+      "map_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+      "partition_counts": {
+        "heldout": 176,
+        "train": 352,
+        "validation": 176
+      },
+      "receivers": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\reflected_patch\\receivers.txt",
+        "sha256": "0c4c1cc70b6dceb0d718faa5b2ac4acb1c43e9111fa5441ce2e518d0072a9d89"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\reflected_patch\\rows.json",
+        "sha256": "33fa56d6d99025239f7a3543895f068621a674f1226461821ca5034d1347e501"
+      },
+      "sealed_evaluation_hashes": {
+        "heldout": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room-views\\evaluator\\heldout.jsonl",
+          "sha256": "d71fd551df5016767ffa627f3c7ad495e526abec5d17fea77fa3c97079ab320d"
+        },
+        "validation": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room-views\\evaluator\\validation.jsonl",
+          "sha256": "fbb772c1db3d2333459b0d0dc90ec993c234c06214e19d2eb88c9f4d596a7062"
+        }
+      },
+      "selected_ids": [
+        "01ce5bd307815882d0fa09b1676ede012658666f93e2178d1e9a2157caefbd8a",
+        "0093b1b17500bb9c129059ef3c81f6ac3ddd2891aaf23398f0eafbc866ee4d44",
+        "014bd2750f68faa06a2fe9d3c7e1c19fe573d4975239988cd8a85cff004a1556",
+        "083c624acddd331037ddd9135f4f749f02e60330552b21716acd3f642b35ea33",
+        "00d747ee1bbde5b6af92518d77e3a0b93dc87d4fba67e2d7b9813432f53b9a81",
+        "04222367d4e71137a9e23c524ad157ae9b2c993cd7a1ec10af68a568de596432",
+        "1114cdf4db8671d52efec9f3a3f0200db4bc6a15500caf809893b3ff2edff212",
+        "025704dc0a2a4f0f18a95f18da11fc8b9565065f90a5d85bdca75686fecfac1a",
+        "072effab31db3e1f4788c13c641930c6a00cf6d37ee014ffef723a0a40da860a",
+        "122783fcd435f9bc6112e6b70cee4cabeb682a1c1f95699ba5c1042a2522cd4f",
+        "034660b0aeecf2c0301ca4798bafe331fee486e785db205e0696a9ed55a665a0",
+        "11bb8eff8269c74e1d720976b2d4811cf4c49797d7cab00c388df4608f204545",
+        "1610c055c56f2985ec3eaee4ec2b1b875339a09d65bacf144ec6508e85a10f22",
+        "03813d3c8b16a804400d3c4177807c1369757e479e8f5025f88e5f247bd850e4",
+        "121732bd069bd12a2ff5f32a9d661c4b824cc0a7e1f376a58bff0d0f8b2e73fc",
+        "176ae4a0c3442c6ad675bfc8d6fa74411e9dcc792cd19a97abff4e3d1041ff98",
+        "042fbb3ffa1f02ba0b908b23efccbfb9712ed063323f71e4679cf579f3a214fa",
+        "1875766c7186e295f543c91fa4491f9e1d412c400448cd96c8999a8a0c0a0cea",
+        "19dd328cfdd1add7db2d514f2c8c5aeb2615deb640cc48ac36ddc2a425db319d",
+        "05b507845da7cc878225ca1bb5b6d4e1cb2c826cdeb2bb47ac6dcfa9485e877e",
+        "19326d6084c6f162c68e906b1cbf22f14ce9aa2ee17e72b78dad9620052f8644",
+        "1c2e6379f4a514d0f255d72009d27d1af558e033272aa83b75b0e59614f4a9ba",
+        "068bc21edff7a21ffbac4f71132e36f4ef0f998a37cd063afe88f42b31b39414",
+        "1d8bd32db24e3dc691379881f240ec986f1d44d701680d945fae05bd6d9805ed",
+        "1f8e017228eb29904b8266f5d0a7c399dac4e0e05f03ad53fb3b024df16f47f9",
+        "06ed02a6f7dd1bcd4c2bde8382ecbaaca9195d12d4d4af9f9bbb8518e7f219a9",
+        "1f1ecbc4b18e76522b3b5e3e49cf795f2f66ec92a6e0d498f244518c7288e90d",
+        "2003b30ea2e274e3060e885e1a01de500d0adcb1dfdbbd9a108c9c785d5c2903",
+        "0760601269d5ce44d3cf23ae6c923c0456cba10dee67e7bd0cf45af250a7585e",
+        "24dbcfef460dcb07dfffdfa456e8d2ef21312b68bb7779a027412e7955cc5c66",
+        "203fddb0ad2d2083e86e26a372ee5ed62ed574c8e376445d5cc6e5a4598d398e",
+        "0872632abfe9e170ba59fd7a4a938425eee8f1da9e4bc68418b4d53f844d26b9",
+        "2aee6578466c1be35f6a5d24057dc2b630643e0d92a23f57ffe1dfa22d96ff5a",
+        "20aa747ba9b648dbf8867c5163abdcb5e554c222ed0b4def2faa90bccc57e466",
+        "09275b6b8fd60520d0a1732e1739cf3cea1bacfd1f80bb861356193f2e200582",
+        "2c0652d16229f2e46903f360ebdb32c7320f5450109f02087b6643a457d76b48",
+        "212d810a42d30e3def61bdc39c51ec4be766f0be9d35b53eec93ac9cfde1bedf",
+        "09b5a830a0dcae800a2ca8b753f69b8089faa1238fd618c1c76409cb7e00770f",
+        "306617146a23c3f7bf239193a9dfa3d1ac4f09e00a8d93883b7bcd5b3e29a018",
+        "28c7de34e25f984f7d5fc67d92fc6dfb39800ab2be95496febfe20d58c1a2b2e",
+        "0cc5e0611cd37c96a03a9d04c0f2c3da31c74d785b110ec7b85795c33ba3d82b",
+        "31e309e3f6bc6fceb621c21312e9db30c4acc1526ea363ed79b7cd048afc6e66",
+        "2ce8581e4a5f86a838df939fc48cd113e38beeebbf00faaad0be8e3a6dd14030",
+        "0d8289d0f0afe528f6401b8b5286468d1cc1ccd310b2801e6ca60da9d8f29751",
+        "3e4891f404a3b8e838eb0ed25deeef2aad207c553ae29434f48885268ee32e85",
+        "3ba6410dbb2debd320619b793d34224306b31b96fffcb7e522d3fecc228f25f2",
+        "0f4a3f80149ca6f8817f87fd52daf14527565183fcd62c3b87764c55fb62b4f4",
+        "3f697197f2f0d579a0ad35a39b4bab8966e53716d6ebd2978575f99b8844b7c1",
+        "40d72f66642d5292ea0e75819cb091e0e8784456c88167b4fdd273f3f9fbe216",
+        "0fa0de2b957cfb4f45ad636025badca51e19e4613db88dbcd9c9b28628eaa30e",
+        "3fab4ff53e6ea5acc458abc725b5d54d89881677d33a6e2b52a74ba9beb88154",
+        "416cfbd70a84398a6c94f42178de8c553b746bab97b4685db4e52739f9b84977",
+        "0fd2df24abbea3cd84a8dd8e715625cebe33bce00f6ca419da892518b6dac4eb",
+        "41d8a140f39d560668e56bd782cd65e0c173f917c2a4561d3b8c65b00a863354",
+        "41c4c95f24d5b16548f25a3f7c2cf76e53409cf415ece03a080e5f27e983ab29",
+        "11831032a9ab95b14637d6ebb010577098a0389c91433a9da48fd836a1058ccd",
+        "477a79d8755dbadf475ca193c96653aa84c161f679d53369cf9433da04fa0c50",
+        "515a806a3606e647fc0ec622f68c2555ab5ceef91cc2090cbd6a94a87383b135",
+        "119019b9f6bc44def63c7b66db25f4c2268567e402c9b123c520c8d995233591",
+        "47c3deb32948507adf2b2a38799f53f07963d917ffa680fbef0d86075235141e",
+        "5355e0be5cdb40da636e5c657b8f42cd3d388af378ee28686f97dba8d008d9cb",
+        "122a54a79c940d8df027af859d1dadc254f39024a73f26f37ca3ba895fec4ea1",
+        "4a377846ff248efbc3193fe8f50b7d8ab10708413230957d59a9baef7a160681",
+        "53b78f470e40e93b048bcbef86a998ba5b19ba513a4cc483117007c65a8aea7b"
+      ],
+      "state": "Frozen",
+      "stock": false,
+      "train": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\point_room-views\\inputs\\train.jsonl",
+        "sha256": "12cbf9362fbda42d4ecc885316841526f0ad88eafee220347e9096ceb41f9574"
+      }
+    },
+    "skylight": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\skylight.q3map-recipe.json",
+        "sha256": "e9ccfa1266c40debc8ea4cef7e4ebd2dcd975ec60bf429d586df63786950a5b3"
+      },
+      "bounds": [
+        -192,
+        -128,
+        48,
+        192,
+        -48,
+        208
+      ],
+      "geometry": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\skylight-views\\inputs\\geometry.jkobs",
+        "sha256": "96296beeb346516f2cd8b64ce5f22283e43ef08a6600e7c60f1b3c962378252f"
+      },
+      "hidden_request": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\skylight\\hidden.request",
+        "sha256": "e70657a07f9131160d9ebfd897d5f6558972d0759d3747ef020a0f6fa245d07d"
+      },
+      "input_manifest": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\skylight-views\\inputs\\manifest.json",
+        "sha256": "5c7b208b526ce174dbd8061fbd9d74e3c0656e0d53db42b882d981de48ad79fb"
+      },
+      "map_sha256": "b6bdb70e3f5de43f13bab50774a36aff9b024fc0731e71f1bf9235446981c15e",
+      "partition_counts": {
+        "heldout": 176,
+        "train": 352,
+        "validation": 176
+      },
+      "receivers": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\skylight\\receivers.txt",
+        "sha256": "9a79e7453d13d4340260ddbd7b33280b16de74592a154c99ec76c868f1fda28f"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\skylight\\rows.json",
+        "sha256": "2591b14580f7d2982aa1bf3b3408d1b8af1c70c0dcc19465fcc3cf9b82bb9054"
+      },
+      "sealed_evaluation_hashes": {
+        "heldout": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\skylight-views\\evaluator\\heldout.jsonl",
+          "sha256": "22843eb47ddd9158702b87e4b0b25d0f79d919077ade90f6e885e604bd0bd163"
+        },
+        "validation": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\skylight-views\\evaluator\\validation.jsonl",
+          "sha256": "f6221c659f93ce96f14ff7e5e0e62fab9b2f957171264e3bef46f2a1d0ec1229"
+        }
+      },
+      "selected_ids": [
+        "01c8855a3c7a0db409726c84bf6cabc3664f3b1b5b7048ba7b8489c8713dd0a3",
+        "00938690fa88dedffb4a84969a9ffb7e46c4629e34b6f3f243e6a9aafa81d840",
+        "069083e6975e0b4a5e83886d6820c1ac2384730e889281f043af4551a83fe6e4",
+        "0258008dc0c8413d607f7bce60133a68ff6f71638edeb72047fc4af03dc19dda",
+        "00e5792a12b9f2737ed73e131f1a0de578921fed7bda457d10d4ed875b1a9899",
+        "093b7ed6251f5936f7dd583137bd4f3fc42fc74163ab8e097f5c1a96ac7f3eed",
+        "06a73e2996045f110e2dbd7afb51a2299a5464f45d549e09a06f8a2e66145797",
+        "01cd4b6535e511736fb3b09d63337bc8782d663268ba25e544e72375ebd51fd4",
+        "09a346ec18f9b9db7d342883bb86bb6aea55edd5db1ae66d58e5545729101c17",
+        "0c66b20de3140cde063fcdae3d06ff6ff54ed082049f3f03b9a690f0fef6c3d2",
+        "049276e0d3840ad9efbd61319b00f53e61628dcd5950bbf9d996667b25f24138",
+        "0c617c2ba301f89c827787d1452a6e411fc3d1b4fb5f0aa2e8bd92cc31659c0b",
+        "12eaa846a11be930362bfc236bafd77c527bc398b1ed13302299e5617ba6a54c",
+        "04f66890568f9fda909394a6f336f4b8e066b0efd76c1889763d9956fe0b3545",
+        "1177e4bffc0928b1690b12808757971e260b48bba9cba97e920ba7596e688ced",
+        "147045e3c4cf8dd0c42d9813bbf1e61b961aa46e43986542282603bd19247eb8",
+        "0532e80e9354428b1cfdd11cfa289bdec6115ccfca44b6f46677a5b5c9aa16f4",
+        "1b4df191c62cc9c53053cc153e264d8e39f220cc4c234e37aac86f38514178bf",
+        "2211db5ec32f2160716910caead41cbb3014c8a3c776cf4a3769a3c8cc465573",
+        "057c66ec9c4a6efd61f306ffd964230a9efd0dd912d2e3c35410d726dc4a8edf",
+        "1bd8ce73cb580788ff9243a0ccca9772a9144531b54be66f2b3385df3f298a20",
+        "26417b296e369b9cbc36619b55af26b4ee400255c2c122f70f41db0fcf56b529",
+        "061dabb8c04e7d3264e2487ee2e27d42bea3a18276edd03b5342329df3bb188b",
+        "20783a8a4bf95fe127b469b6a81717b3c295ca98ca7ce2e1f931d9eaf3c6a1c5",
+        "29cbcbee4af650542a216299a1c086241fdde0c65d3b4bd6e129f5ee1f63cd1d",
+        "06ae1fbad496a0c198b8ad742dec94c3093218c6db736518bd87778d8d1b6649",
+        "20ab34a64e4df565e7342433ecb031cc28d7baab888ac16419f57ad1e353346e",
+        "2f2c96bbd2d99bbcc21eb16ce53843819e95fe388dcdabecaec7b6753cdeb04b",
+        "0a4aa76aeaf0619aa5b8c9ad5bb14e4b004465e53d26f806604d29a66fe07558",
+        "23dc61bb542226ef02774bf3adc51fec6b74563d3e7e42aece9ec2616b859522",
+        "2f33ceed6c64d774ea8a354aea02a1c220d6a89743e9e20beef05bdf05b214e7",
+        "0c093c24d5782f347d5e05830baf89b267a3c1577bb31550f0602604e5bfa8d4",
+        "24aeb92c76b51b432041f8acfd1ec712e938b955907b3a3b8896843f7ab35230",
+        "2f56d11ec3b64c756dab7ba49c5f47cb32686d5c1ff07814b625532d38664d8b",
+        "0eefadf6340bfaf1a1990cb46c7715cad87ed74d6e6d9829e790745dae1bf879",
+        "26c8510bc1b9fb686bf63b30272f44161f8f9238043fce396ecd51bc8b2d57f0",
+        "376cd1e9d317e67bbbe066b1f5d63e4253d298ca6e5be579e8ea1c843e95ff42",
+        "104e50464aa5756c68cbf185165cf3feaea20285aa3f894d36fdcfa3083c79ce",
+        "2ddd57c8d1d4fb317d29d4512c93cec694ea602d36d6b911dda2ee3ee931b180",
+        "3f2902045467dfaa1a575d2f793be3a7ba3e145339834a236409f41c463b89c3",
+        "132942750754eef8692d62f3c98c3e9aae558e6377f05b3a53d920e47ff0c591",
+        "2f09f0d0bc31283e91f45861bd3aaae1337b3fb4b187780d3b8f46442f5a8701",
+        "41f28d9f647284c5841ea9e7a1e6b6e6ec994c4d951f5681e06c4478b8c7d203",
+        "1447d8bced8bb4b1505f09524bd5bd22f80ed6d1197a0472ea470b8488d6bac7",
+        "2fccb12723597d2619badf40e30feb2479cb258cccbd91eee78e1de19f91f504",
+        "4be395ff89f23616eca836fcf0bfd1c842cc50c74e7f809c159d2c725d05e17f",
+        "14e520df60fa304656fb5cd38a2a2c1bc51bf89c63a6d772f3b769508bb8f5c1",
+        "309464442e535364aad0939ddad8946ff9d722540a5ff9368f5d1052bd73b4b0",
+        "4c8558b31b429540ee761a8ae2fe9cbf640908a9145e97ceaff51b98618a153d",
+        "1549ae1044020e81d6245da874388ddac12ac819fd88bf4eca2a7cd431ad6051",
+        "372c532bad9c055090e8ae81ed71ba08cba87f35424ef8433c487e49e85df13d",
+        "540dfeaaf1235d78995f60ec326203b44f675a03c89d14de24ca8bf878e0259b",
+        "16c78d79d79bf949f3f87585bb964bd739201afb81c6226482445201cc69dc76",
+        "3c850e35b7c4aeee661c2fd2409cecd591dc5fd2a9b8db0011507b62e033a54a",
+        "543125c4493f141379080ad67537bd8385110c0eb1e79624fc3347798a961662",
+        "176225a365176e087ac65cbf271ff704857f1cd5164e086d2101a750519ae277",
+        "4058db49d837de98125429e0b8fe0e8c1c041fd071d730539b187b450b2a993b",
+        "5e3db53fe848aa60be20bcd2ffa7a5a09ab37bd6f636e9339d968182fddba069",
+        "1766487066853db5ab8c127a5c58dd9879c99f2c2b07ef4a596820f26adcd5fe",
+        "407b4b55df622e6b7d1aca5d375a28f17994856eb5f016bafdc36326eae14c6d",
+        "5f27c823acb966c9998d1ae7c6979d867d25cc082a62254efd442aa109d04054",
+        "17aa16ac3ac13ce36efb941d2c37010db5d1a671bc7ab06ba8c6cf42421dce45",
+        "43597b7723c6cd2552bf523ea15a15ebd502c0fc3d8ef2d8755ef57d4deae8e2",
+        "62355171a3bafbf594659ef271f27decfbb551f1daa12bfbc44edacf612ea271"
+      ],
+      "state": "Frozen",
+      "stock": false,
+      "train": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\skylight-views\\inputs\\train.jsonl",
+        "sha256": "eef1fb297b6b507ad6e138669a1a60968388829e179867cd066d5061920c396a"
+      }
+    },
+    "spot": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\spot.q3map-recipe.json",
+        "sha256": "8889893942ac2f957bbd62794748bb0af4701dac2112e4c7212f1cdad4fe07fc"
+      },
+      "bounds": [
+        -192,
+        -128,
+        48,
+        -192,
+        -48,
+        208
+      ],
+      "geometry": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\spot-views\\inputs\\geometry.jkobs",
+        "sha256": "ec7071ee8fb5e47ec05e289105d4992157c6f8215be3b72112d8eb7bf383ef89"
+      },
+      "hidden_request": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\spot\\hidden.request",
+        "sha256": "8fe0306e73f27e8df98ed23558ad3cbf5fdfe8f6aeeb2ee0acdbb3fd16a03037"
+      },
+      "input_manifest": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\spot-views\\inputs\\manifest.json",
+        "sha256": "4987ea87a48897af4e9c3d79031235a65e3e415d0ddbd71d623851fc03e2320c"
+      },
+      "map_sha256": "3670bbca350eae4e67b058f709900f3937ea79daac2e7b1f0f30f50f5ce3b7ee",
+      "partition_counts": {
+        "heldout": 110,
+        "train": 66,
+        "validation": 176
+      },
+      "receivers": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\spot\\receivers.txt",
+        "sha256": "0ea319f67e7105cea5d65fffc352c1e05b7ed6791bc048b76f952ec3971b7049"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\spot\\rows.json",
+        "sha256": "9013c3b0fe1a501058e8662cf4c68c8d232ea884b1447d13de9558847bf17dcd"
+      },
+      "sealed_evaluation_hashes": {
+        "heldout": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\spot-views\\evaluator\\heldout.jsonl",
+          "sha256": "e00ba81dfa0689f6532e318f4393c065c240cf1114595d2148d950b661b94717"
+        },
+        "validation": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\spot-views\\evaluator\\validation.jsonl",
+          "sha256": "205f04848f39467945a1f30dd5ec842f314d16d0e6b188f93e951b437920f6d3"
+        }
+      },
+      "selected_ids": [
+        "007b44af81b4252d50942014086bdc3db39487434d364b0cdd368779936a735a",
+        "0612cae9c02c8d62ece5404d013bb83209fe9a29592952c3936cd48f181eec77",
+        "0c268db72681f26ca5d4e0b2e180fe7a83adeae6bb8ca638afc12ee5afca7d71",
+        "0cef8842f7f752b360c4b6444322e5fdfb5b9bc2354e4da079c1113f96aa19d8",
+        "10196620b3c3a7340a265fbd4e719b1c8d9b71b84f8ca6eba253571651af79e1",
+        "11a856fcb5df82e54def4a81abfa9f6712d4f2cf52aff2e5a2d5823fc4d10d3d",
+        "1b90344815a2ac5e7196803011792c1b410c2618522bdb746825ec0428c38226",
+        "1f0d0e01e226c560611b63cad9f3e8f75ad1a2762a80c82a699424322920b921",
+        "1febad6fbdb1cdd6b6423a35dac23a8d8ad9aac31b6afaab5c204f6475c1bcad",
+        "22092ef10c9f36b70a987e361d620639fc324ebeb4ef39c10ef1fd96565c6ef9",
+        "2a11f843a4c49d32ec637c784c29b5f41c865489d9e9ef054b49456905336790",
+        "2b1e565ccf12b665a86f2102d3c679d3240971a65afbbd81d9daffe2678a27f9",
+        "360b9af38acd1b45a8359622463902a6873e753b0e8417817decf32eb65d231f",
+        "3a5ed749933d00e362f0d14a9ca9cdbf34a1571db0d825eb25559ecabe623d13",
+        "3a8a6d5afb8c534437434a3d8417661fcc064ca0d12a9797f79fccb831393068",
+        "3c2ccfd432400e24090cb574caabfd9247f6827f15bf69e1c0e8e167b23fc4de",
+        "3f776d238574e9700c44f18da5ecef780ab1f9a92be875a8ff230ad6158d4f11",
+        "446b55e7051517ebca42cefeeb493b5fbcb504e18a2cc97d71f7873f85303bce",
+        "482ad91614c50180d9feb975d446d032aadeecb3f5b2049d4de3ca303c98818d",
+        "48f5b04a0939c64a6c775605b5f881bf68798b44606421bd3df26a70eecc4de6",
+        "4ed815b14010cb07293dcc2e8fd2de4767e4d7c6d7aa15e8c17e8d88dbbf4383",
+        "504117b8e572debfe86af45e36ae78f0556ff017f4a865bd6e5b4e1f5726664c",
+        "52a56212051a8b341eac54424cec23893bac6bd8cb684a848515984df0f208cc",
+        "52efd7b6fa0618412ee2d2c4ac942f933fae3532066a5deb737e616f1225376f",
+        "5508c2744ed9856bb4bd29da52bfe0675f251f4e9b46335eb5f7e512cd6ac034",
+        "55d68986dbadda8e29eb25ae2646752dc59723b88162e944d8adfd1a94e39992",
+        "5a2b25e6fb6b7121e070cf616ee85b60f98b68c59fceb3c09a8600a235a5420e",
+        "5f05a94616df438756ab450449ecea2ce4f7599ddd3648ca58123bba6949c658",
+        "625d4ca7a4dc08ed2aa6b504735f8cb6759d83fc8f00f31aa3a26efbea4482ce",
+        "66a4ea41eab4f8d7ace977c65bd69d4d127c4e3a0d36efd3510f8fbdccea0864",
+        "68e24dd77e7e12511df42aa74d7ac2710938d01d4a3192a2ea537877e1810945",
+        "6fe58ef50e64735a7875a65a66d0cad08805ce00c7ea59f2a52ff1cf922fb4aa",
+        "7192bc8950e9f85e7914bcaa35a56488f7dff3856c64d7c68553861c3a2f170c",
+        "7bb1a7f52065841c4ed29e9aadd59ed0afce451b1827f7d3ab2df06da698f273",
+        "7bf6599ccaa2ac5a39a546a8bba38e95a66b03f7ace574bede6ff4d1bb1a9348",
+        "7c616d67db14b95821bf3833bac60047abcd82318a312890c35b5287aecf8836",
+        "7cb9173c35d3e7268a97c724b863b7e1eed5af16e09c742aa7a13403f778ee4d",
+        "7f15ca834a263fc2b24ca204df12ca5f81e695cf0f4f76f3e4dafbbc932b4e06",
+        "915869e44d43f1e34cdbb57228c0f6e05505a1274d009e6a9ba5169cc3fbc6ca",
+        "94c4a960195826f8c9b6cb6eaaff5473ad2a2b553791b41ea01d12e2e05ccf9f",
+        "98bef5434261d59b118517175584255965d310a72970dee96fafa66572710270",
+        "9b56a2efa1ed66d294dd7c1eefc72ee57d25e211a500a60abe82826f31ef6f09",
+        "9e6cf853c96a290058f92bae579efeba0bc1753a4cccb5bf612a17403a495e2d",
+        "a15c56e2a7f073adee9f54e6150dbe5bf0ac760957a82ca95182c72be1bce743",
+        "a737027617e833f88c7ec66872fb100bbd52ec7f1b82c9b1ffe049b8ef4d1ee4",
+        "b133ba94bb93848083023dd47bdc5d9a01730acbc373e7585b3d4953e9cd7c45",
+        "b43b35644147d04f817473f61865aaf348035760e6d040d22c97b859a7f1d69f",
+        "b98a3599c40533f9118a8d7b58570f7ded8b4618bbc987ff1560acf55937a975",
+        "bf3f5f2670fb3771a8d2686b774e2ebcde5f836cf8c7f7deb6bec6cee3de82a1",
+        "c380a7ae54e20297e917e40301c36e940e928bc4ae3a24c3255e9fb273035b89",
+        "c5fd4a53e9de2b908298bbec10a1a7a993c065fe65f78418a8c6a1b8a482dd95",
+        "cfc974406d3433224480a4b6fcedbf680656ef17f5520a6034ab0e939bec5558",
+        "d0ff2eafa350457972f7aef15a09606da599793a463e5b304f635393d364a239",
+        "d25b787c6001327a308a772b8a9643912e664cb71bc61d1ed2491d9970cce19a",
+        "d4bb647539ce685a49fa3eb161783235e859f2051af8e9fa3b7cbeb220a45fd7",
+        "d8569fc3895b060fcd7c6d97eb66c0eaceb30ae30f171e4a01af77cfe4dd18f0",
+        "d8febc906319d0807d0875c83be118f3e5017ece9a4569716e0e7df04570dc8d",
+        "e227fbe2eca9ca34bc6d7407d53ad54cbaa14e1b8ebb7011086a9577cf718692",
+        "e7081cbaa937db5fcb9a4732d804fddbfb8be9657a7225b21333d17e20ec4f80",
+        "ebda2cb2c4e2fb9f14b516f1fc105994d85afa14e0716e6560e1923bd33e77d5",
+        "f20de445ed7a53a8183ce0282f527152b2a6eb6000eabd2c1031f13ca8a0be07",
+        "f6bd269708feaf3923dc36c6d72b062eaa91ab818ebfffc219b7de6164dc0bd2",
+        "f80731e7e2d33cc20b946a9a05bfbaa5f3216755987a53041301b1ed7b36c6c3",
+        "fa7a93e2a81120f79e6b397649c2177e6caa491ccb598ac42221dcc7097b47ce"
+      ],
+      "state": "Frozen",
+      "stock": false,
+      "train": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\spot-views\\inputs\\train.jsonl",
+        "sha256": "618e1efecd5d00f00bfe5a2694ee4203eeb42d19bada092eaff9e75cc5e12ea1"
+      }
+    },
+    "two_colour": {
+      "answer": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\q3map2-bake-verified\\answers\\two_colour.q3map-recipe.json",
+        "sha256": "b70590e1ba2c70d1e3406be3a654c276cb5fb9b9c2438310c6b27e24e618ca21"
+      },
+      "bounds": [
+        -192,
+        -128,
+        48,
+        192,
+        -48,
+        208
+      ],
+      "geometry": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\two_colour-views\\inputs\\geometry.jkobs",
+        "sha256": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9"
+      },
+      "hidden_request": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\two_colour\\hidden.request",
+        "sha256": "ffdd8c05fdf05f0119e4799d34857f905329286ab3e737bf632f7a081abc633f"
+      },
+      "input_manifest": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\two_colour-views\\inputs\\manifest.json",
+        "sha256": "5876b6c4b7403a92beb659cee7da5cbd3606edfc87a8804cbebb58e91d25980c"
+      },
+      "map_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+      "partition_counts": {
+        "heldout": 176,
+        "train": 352,
+        "validation": 176
+      },
+      "receivers": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\two_colour\\receivers.txt",
+        "sha256": "3b7220d6ddd4c46c788c1bd7c38c7d47be8ca84af3612b0841c94475dc1cb47d"
+      },
+      "rows": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\two_colour\\rows.json",
+        "sha256": "2e4b3f7d466578ba892fb3405f810226cea20e2729b6003ff8bf99bd91722506"
+      },
+      "sealed_evaluation_hashes": {
+        "heldout": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\two_colour-views\\evaluator\\heldout.jsonl",
+          "sha256": "8666ced463995693ca01e5b5725d4f6058b53ef88290078dad0a0a1393822085"
+        },
+        "validation": {
+          "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\two_colour-views\\evaluator\\validation.jsonl",
+          "sha256": "dc78e02603e6981f2da8553b453cca78c92d107f759ac273560141bae1ea3839"
+        }
+      },
+      "selected_ids": [
+        "021b2ec649c7e3d687f40842b87554ef437bad7c99f2ccfd0f33faa88de0d6f3",
+        "0474e5cba4bf7d0b8cc9c53b2041926f8c24da31a9bc5028337a2580417fa8eb",
+        "00849d432867dae98ba6063f72ee1a550c93f528c27ed91640354a11b7347f6c",
+        "069b9ee6a1c4e443087a6bd8152f003edbd5a035ae2e07a973b8ffbd2af7df70",
+        "06530e0e37fad402c6c5a801c0ecebeac05bef80d076cafe7f87ff9235c1c35f",
+        "044287ddecccc9cfbe4786ec7733a818d984cca18c740af5d6f8dddc100a68d7",
+        "0a4eed1410546eafab4e4a13184c81ed20d05f9bb4d614586131f6748bbc4056",
+        "065def6e576abf0e3bc42d41d39b8f6dd98b01b764fc0e067aed4eff2c419cc7",
+        "06592a38c35165c265e95ddd7d0a3dcba23d443eb489e3a0373ebd75598bf562",
+        "0b3873e89e4a7450386cdcc5f3cb30ba16e7ee0f81a21bd11e65d0d7bcb17265",
+        "0665c67e4255c2260dac9c3501a3fc7393c9880897deafed32a08d95b9a86145",
+        "0a5e25baaecce9e9b5802d1b690ec32dd80d52e804bfcec3683e8933b0b5d26d",
+        "0f1ee5debf1d0763ff0ca6401b519860cfe2a0d6e86977bab2a04c83d7247b59",
+        "07bf9a37930c44618463e226358bf59ceb7b291c5c578dc4b901cae3cb83600f",
+        "0e5cedc7b43b0c8824e8f0fb1e8c501b0604e31b726ad58fa3e3dfffe780e42a",
+        "14ec91e6c36ac160ba5ad7e2dbfc27604746af1d1c4547526985290251c460bb",
+        "0817b2585f8ced8f86b0c3480b9c9521223c0013d570bd994b1258f1df23b731",
+        "0f5a5b31b71eb4882d2ba5fd9b4cd4e75361272fc7dd25b48274954bba397639",
+        "1da0cfcd44ab939ee6c4369d133c324bb886dfa3cdb87b32dd85a91ef6989ce3",
+        "085c98998fbac9bddcc354de2bf8dc7764433ce7d1b09ff330ea9f5519460425",
+        "10c1663082421fc8317a44dbc2b0bbe0b6edffe425ae8ef9c30e4be5a2923971",
+        "27c2dccc371ae0ec02e846cd9e12b4a061fe3c940595b9f0f74dec8f3bc943f1",
+        "09b98002d5ab26d9f21d3ecd22655039faf1ce31d6a2dccfdb569a603502f63f",
+        "11d837f598772e2b1bd07aca32c86075ce77d343a52b02eb7218ed827bd69989",
+        "285b4e56a424777e618d1cd85ff5f31f2994a0acd957d99f52260c4f9eec3cd3",
+        "0b1419849c02deda309efb50170a4220b096c5009fac3f40544db4050b9f2c81",
+        "18e2be186e6ea006f2a299ab7206175d61a3c0463bc57104c94a2875c72366ea",
+        "28956c7e7b8813a3f3ad48e659c932a7d59872d4f42aad6fa3b4984197d3946b",
+        "0c00773329d5121a8a7d18145492800876fe8f71253dae808b4dbea29f6fec25",
+        "1eab6b13c56562b3e3a38aa8d8e40e2278110ec8c873cdeed849ebbc1db7999d",
+        "2b6a0b8052f14a2a10e0e5f83616223e41782236b7ff563616404cc7c94a838e",
+        "0d44385a6b1471a1fbd2fe9937553b308b04bec3deffb0bbd3be61586733964e",
+        "1f64a8f67de1bb67c47c5245bd2cf5259c65e381089d84c99ca6264710d19b3e",
+        "362bab6c9a930df01368186962eea3246dde8e92ed2ef0a2532d1b9dde742695",
+        "0d63b056a859ad2f7b4093761e02ee50af183da7a1e1a040bd9f9a7620b6ad9a",
+        "200d8e0384d7b122979de4d74e8141198afa4f1e39c3af8c55054098c06d09cb",
+        "37ab2d7c1449ea59f5788a0560a85990d3b02b2c703253448819f2388734a9c1",
+        "0defd1df955ea08cf8dea0398e8300ca926ab3d13cec9cc70598bf9118931dad",
+        "275cdf9671bdb94151c5031549b971bff169b1ba4fb687443ca18422b025b2c9",
+        "3997ac55dc2c0f3dcf4a0d9457fb9ee42302bd9e76bb75ffaf421f44a319605b",
+        "0e438037e8d451d09a4f57ad92e8a70b9d820816fbd05048a7655d66575cd80b",
+        "293957e925b3ec954aabed507f96d5c7e2b480914c96f1453f51fcc983577eae",
+        "40c3c6b45be3657136095e43b29dd4d0109143483ab38a8c2cb3aca620f60e32",
+        "0e93fbf50dab8fa5ef27e6541fc052d4fd8eb18b6e629efff4eb76d5e79e0da9",
+        "2fcace290e179982f2b36ea465e02cf064aa45fe779cc65017025853f49086b9",
+        "4520898b38c1a7f51f5808dda5d0ac1bd70d3ced01f46f7c4aa5bfe6c0d4a395",
+        "0f635597105cee95f67054ae53bf644465e69af8117208646267e283c23bed37",
+        "30a452fe8b08c479fa3d512983c4e0bee3a956931f51120e41e08e2282eb44a8",
+        "48cbf2c59c4cf7ffa959715df15da1f0c5eabb26b5b8d40620140fe5256601b7",
+        "0fc56104504b0d79ea69fc24f5c675d80594effb10caf7e2c8d12b196b365512",
+        "30f7d91c6059d61c6baa4a7344ceb7ce4d8cbcb3e9cd1d51dc48a8dea41294ba",
+        "50e8f90c93e8fb017da79483fde56451658a4a2830415073f39fa371bd0fcfa8",
+        "11666e92d7f2abfe1f958ef88d6ae7fd531804eacf6b6f9c4f599b02418d7d12",
+        "32f2b95164ba376c54f94772b062cbfbf0c967c5576e3de8aa4d406f75974e1c",
+        "5848d14c3e44d9fc946a5680766e6c08fd2462d1ae55dc847568f334c952b623",
+        "118bd4752c47bcdfd990611d307cfea8de8f0c192b4763d21919bd2ddd19090d",
+        "339a3a23f62faaea7ddcb876fa9b971daf9ca58e89f1082697c6a18f23e658c4",
+        "612f4e339ef185aa0dfe9facdc37a0d79c6edac5c2a7b3f677aac251db71100d",
+        "12b24822851e0fdc1f69f99a3c1eb10856ae9cf37ee387cbfe3bb8ad6b9149fe",
+        "36600f8f8ebec2f6f9553b9ae85bce872af54ca074c0b80f9b78765e235346c2",
+        "62a28c0ba50b2ab0238453522a4985b19a36722b56ddd2a0e2f800226eeb075c",
+        "15d89a2e039d44a877c25d74ac4b664229f72564d5963397c827afd7d313c481",
+        "38e1f3cf3c224c773663cb5e8f7dfb50fac29c26e7f01811a99c2660f0b84007",
+        "62fbc2fe1bef37b194be3c871451d59d31e5d8902105c575aec3be8c0c2f0f4c"
+      ],
+      "state": "Frozen",
+      "stock": false,
+      "train": {
+        "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\x02\\compiled-fixtures-frozen\\two_colour-views\\inputs\\train.jsonl",
+        "sha256": "2b32063f85f6655f996161d8457d41d94e5c409cca29ec6b31a21fa86c282111"
+      }
+    }
+  },
+  "dependencies": {
+    "build/s06-gcc/core/librend2_lightrecon_core.a": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\core\\librend2_lightrecon_core.a",
+      "sha256": "6ffa6224fa3790c49d7597176595e684d358d99941195165aaf389b313dfa413"
+    },
+    "docs/rend2-light-localization-research.md": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\docs\\rend2-light-localization-research.md",
+      "sha256": "5f94f35f893487c9f4e048ccad8706b9609867e64bda95376bd9630b8217edfb"
+    },
+    "tools/rend2/aesthetic_baseline/results/v1/protocol.json": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_baseline\\results\\v1\\protocol.json",
+      "sha256": "06249b28eb04af91f2953806c7c0c4e3460d316304dcc8904cf10d7b91695aa9"
+    },
+    "tools/rend2/datasets/solver_view.py": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\datasets\\solver_view.py",
+      "sha256": "6b837e437d0633f2fb0bc60855ae7c8b01d72d2c825e5f0a9dd8122f0513390c"
+    },
+    "tools/rend2/evaluation/metrics.py": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\evaluation\\metrics.py",
+      "sha256": "ce05b69b07506e87b2823cd395037b3a1b35560e6a2a8f44eda5b6051746cffb"
+    },
+    "tools/rend2/hidden_candidates/run.py": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\hidden_candidates\\run.py",
+      "sha256": "ead871851965dd7b979637cc03c8c850cc7ed15f8f088819157e68c17aa479c1"
+    }
+  },
+  "papers": {
+    "zhang2018-supplement.pdf": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\light-localization-research\\zhang2018-supplement.pdf",
+      "sha256": "0b0457861501033c9ffa92d78813a6db3a0b0c9e13e046f572707b73b5c1cfda"
+    },
+    "zhang2018.pdf": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\light-localization-research\\zhang2018.pdf",
+      "sha256": "bb03ad005cffde3edceb7a51f928afbd4b4631d7137efea4237b8789412bdbc2"
+    }
+  },
+  "policy": {
+    "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\idf\\policy-v1.json",
+    "sha256": "f3958976665b367899cc65a2f4eab23a81e7338bb1cb538c0c9099d77d29f49b"
+  },
+  "revision": "a93a84526b901e1339488eafb8aa6a37c9cbedd9",
+  "schema": "org.openjk.idf-protocol/1",
+  "sources": {
+    "tools/rend2/idf/geometry.cpp": "bdf7e9de92c66b2c963494d63a95043642ab1d37135f9e5d2f17de69a9c27c18",
+    "tools/rend2/idf/prototype.py": "5636232f3d621a72333f25b9a764e800510ccb7fc9904b10c5853351e2ad77ea",
+    "tools/rend2/idf/run.py": "c1ec044867c430bd79963c33a8e24b78357979d4e262f7f0336402cfd12a0777",
+    "tools/rend2/idf/test_idf.py": "fe667d0fca40df5958c8c520eb60bec5e320c31847fd8f933883b1542956112b"
+  },
+  "tools": {
+    "geometry": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\native\\idf_geometry.exe",
+      "sha256": "fd135bb2747140e66f88eafa1e96daaa62a721e8fc57b7240b76321cad8f231d"
+    },
+    "hidden": {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr02-v1\\native\\lightrecon_hidden_tool.exe",
+      "sha256": "2ca4b39a34a80efabb86f52f719c7c0dfc8b7682d60e677616acd139c48b0bcf"
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "schema": "org.openjk.idf-experiment/1",
+  "date": "2026-11-09",
+  "cases": [
+    "point_room",
+    "two_colour",
+    "spot",
+    "door_occlusion",
+    "reflected_patch",
+    "skylight",
+    "hoth3_roi",
+    "sky_aperture"
+  ],
+  "modes": [
+    "raw",
+    "geometry",
+    "censored"
+  ],
+  "samples": 64,
+  "spatial_query_cap": 384,
+  "coarse_divisions": 3,
+  "stencil": "Centre plus six axis offsets at quarter cell width; all seven positions charged",
+  "refinement": "Octree children of highest vote unrefined cell, ties by XYZ; no answer or validation access",
+  "vote": "Eq8 distinct active receiver limiters in stencil; censored variant uses max inverse ambiguity cardinality per label",
+  "proposal_cap": 8,
+  "proposal_separation_world": 24,
+  "minimum_vote": 2,
+  "clearance_world": 0.5,
+  "tolerances_world": [
+    16,
+    32,
+    64
+  ],
+  "primary_tolerance_world": 32,
+  "noise_codes": 2,
+  "reflection_control": {
+    "definition": "Analytical externally illuminated passive ceiling patch on compiled point_room geometry, not compiler bounce replay",
+    "bounds": [
+      -64,
+      -32,
+      256,
+      64,
+      32,
+      256
+    ],
+    "quadrature": [
+      4,
+      4
+    ],
+    "outgoing_radiance_codes": 400,
+    "reflectance": 0.5,
+    "local_direct_roots": 0
+  },
+  "hoth3_roi": [
+    2808,
+    188,
+    -389,
+    3832,
+    1212,
+    635
+  ],
+  "hidden": {
+    "schema": "JKHIDDEN1",
+    "max_nodes": 384,
+    "coarse_divisions": 4,
+    "refinement_rounds": 2,
+    "profile": 0,
+    "spots": true,
+    "refine_seeds": 4
+  },
+  "budgets": "Same 384 spatial-node cap and 64 rows/ROI; IDF charges stencil positions. Hidden additionally probes three types and two amplitudes; equal caps are not equal actual work. Export rays and response-pair counts.",
+  "integration_gate": {
+    "minimum_positive_recall_32": 0.8,
+    "minimum_additional_point_roots_32": 1,
+    "maximum_control_proposals": 0,
+    "repeat_identical": true
+  },
+  "truth": "Controller-only source answers opened after all candidates freeze; held-out and validation RGB never opened",
+  "observation_domain": "RGB8 code proxy only; no calibrated IDF bound on compiled or stock observations",
+  "canonical_or_runtime_output": false,
+  "source_volume": "Full sanitized geometry vertex bounds, candidates require native known-free centre and clearance; not receiver AABB",
+  "split": {
+    "block_world": 128,
+    "gap_world": 1,
+    "seed": 20261109,
+    "origin": [
+      17,
+      31,
+      47
+    ],
+    "rule": "One new geometry-only split; old frozen ASR01 and v1 folds unchanged. No RGB-driven seed retries."
+  },
+  "supersedes": "v1 receiver-crop adapter and v2 raw unknown-ray treatment; full geometry volumes/folds/tolerances remain v2",
+  "extra_sky_control": "Existing X05 x05_sky_aperture_v1 public-only planar floor subset and original immutable folds; no local lights by public authoring definition, partial observation capture explicitly retained",
+  "sample_policy": "At most 64 geometry-selected training rows; retain all if fewer, minimum 6; identical actual rows for all methods on a case",
+  "unknown_geometry": "Unknown ray coefficients omitted in EVERY mode, including raw; inadmissible stencil samples never vote. Raw only ignores KNOWN blocked paths as an explicitly nonphysical ablation."
+}

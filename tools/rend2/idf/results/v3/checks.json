@@ -1,0 +1,28 @@
+{
+  "all_passed": true,
+  "checks": {
+    "artifacts": true,
+    "binaries": true,
+    "bounded_search": true,
+    "dependencies": true,
+    "known_free_centres": true,
+    "mathematical_counterexamples": true,
+    "production_unchanged": true,
+    "protocol": true,
+    "repeats": true,
+    "source_answers_after_proposals": true,
+    "sources": true
+  },
+  "report_source_sha256": "ca95eae2364c65b86ab5ab7c7edbf2093b446696820e23ba10a64c9ad653a039",
+  "test_command": [
+    "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "tools.rend2.idf.test_idf",
+    "-v"
+  ],
+  "test_exit_code": 0,
+  "test_output": "test_noise_interval_contains_exact_single_source_intensity (tools.rend2.idf.test_idf.IDF.test_noise_interval_contains_exact_single_source_intensity) ... ok\ntest_positive_additivity_gives_bound_at_true_source (tools.rend2.idf.test_idf.IDF.test_positive_additivity_gives_bound_at_true_source) ... ok\ntest_raw_ablation_does_not_assume_unknown_geometry_is_clear (tools.rend2.idf.test_idf.IDF.test_raw_ablation_does_not_assume_unknown_geometry_is_clear) ... ok\ntest_saturation_has_no_upper_bound_even_for_other_channels (tools.rend2.idf.test_idf.IDF.test_saturation_has_no_upper_bound_even_for_other_channels) ... ok\ntest_unknown_transfer_breaks_physical_bound (tools.rend2.idf.test_idf.IDF.test_unknown_transfer_breaks_physical_bound) ... ok\ntest_votes_follow_limiter_changes_not_brightness_maximum (tools.rend2.idf.test_idf.IDF.test_votes_follow_limiter_changes_not_brightness_maximum) ... ok\ntest_zero_coefficient_and_unknown_ray_supply_no_cap (tools.rend2.idf.test_idf.IDF.test_zero_coefficient_and_unknown_ray_supply_no_cap) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.001s\n\nOK\n"
+}

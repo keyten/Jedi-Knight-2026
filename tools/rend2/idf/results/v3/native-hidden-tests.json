@@ -1,0 +1,240 @@
+{
+  "checks": 1992,
+  "failures": 0,
+  "scenes": [
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 0,
+      "candidates": 5,
+      "known_solid_rejected": 0,
+      "name": "hidden_point",
+      "nearest_truth_world": [
+        9.02773504263
+      ],
+      "physical_candidates": 5,
+      "rays": 5760,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 0,
+      "candidates": 15,
+      "known_solid_rejected": 0,
+      "name": "two_colours",
+      "nearest_truth_world": [
+        7.1763500472,
+        7.1763500472
+      ],
+      "physical_candidates": 15,
+      "rays": 10752,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 0,
+      "candidates": 5,
+      "known_solid_rejected": 0,
+      "name": "nearby_white_ambiguous_count",
+      "nearest_truth_world": [
+        9.02773504263,
+        9.02773504263
+      ],
+      "physical_candidates": 5,
+      "rays": 6144,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 6316032,
+      "ambiguous_candidates": 0,
+      "candidates": 6,
+      "known_solid_rejected": 0,
+      "name": "hidden_spot",
+      "nearest_truth_world": [
+        19.0131533418
+      ],
+      "physical_candidates": 6,
+      "rays": 18432,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 0,
+      "candidates": 5,
+      "known_solid_rejected": 9,
+      "name": "known_wall",
+      "nearest_truth_world": [
+        9.38083151965
+      ],
+      "physical_candidates": 5,
+      "rays": 3936,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2829824,
+      "ambiguous_candidates": 0,
+      "candidates": 6,
+      "known_solid_rejected": 0,
+      "name": "bright_doorway_transport",
+      "nearest_truth_world": [],
+      "physical_candidates": 0,
+      "rays": 5888,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2829824,
+      "ambiguous_candidates": 6,
+      "candidates": 6,
+      "known_solid_rejected": 0,
+      "name": "unlabelled_bright_transport_ambiguous",
+      "nearest_truth_world": [],
+      "physical_candidates": 0,
+      "rays": 5888,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 0,
+      "candidates": 0,
+      "known_solid_rejected": 0,
+      "name": "material_boundary_only",
+      "nearest_truth_world": [],
+      "physical_candidates": 0,
+      "rays": 0,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 0,
+      "candidates": 0,
+      "known_solid_rejected": 0,
+      "name": "saturated_plateau",
+      "nearest_truth_world": [],
+      "physical_candidates": 0,
+      "rays": 0,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 1,
+      "candidates": 1,
+      "known_solid_rejected": 0,
+      "name": "unknown_optics_missing_regions",
+      "nearest_truth_world": [],
+      "physical_candidates": 0,
+      "rays": 3072,
+      "unknown_rays": 48
+    },
+    {
+      "accounted_bytes": 2781184,
+      "ambiguous_candidates": 7,
+      "candidates": 7,
+      "known_solid_rejected": 0,
+      "name": "one_plane_underconstrained",
+      "nearest_truth_world": [
+        9.02773504263
+      ],
+      "physical_candidates": 0,
+      "rays": 1024,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 0,
+      "candidates": 5,
+      "known_solid_rejected": 0,
+      "name": "noisy_sparse_grid_seed",
+      "nearest_truth_world": [
+        9.02773504263
+      ],
+      "physical_candidates": 5,
+      "rays": 5760,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 5603328,
+      "ambiguous_candidates": 0,
+      "candidates": 12,
+      "known_solid_rejected": 0,
+      "name": "competing_bake_profiles",
+      "nearest_truth_world": [
+        9.02773504263
+      ],
+      "physical_candidates": 12,
+      "rays": 13824,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 3245312,
+      "ambiguous_candidates": 0,
+      "candidates": 5,
+      "known_solid_rejected": 0,
+      "name": "unsupported_receiver_does_not_poison_faces",
+      "nearest_truth_world": [
+        9.02773504263
+      ],
+      "physical_candidates": 5,
+      "rays": 5760,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 0,
+      "candidates": 5,
+      "known_solid_rejected": 0,
+      "name": "certified_region_optional_context",
+      "nearest_truth_world": [
+        9.02773504263
+      ],
+      "physical_candidates": 5,
+      "rays": 5760,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2883584,
+      "ambiguous_candidates": 0,
+      "candidates": 18,
+      "known_solid_rejected": 0,
+      "name": "dark_room_plus_bright_courtyard",
+      "nearest_truth_world": [
+        9.02773504263,
+        18.547236991
+      ],
+      "physical_candidates": 18,
+      "rays": 13184,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 0,
+      "candidates": 0,
+      "known_solid_rejected": 0,
+      "name": "opaque_wall_survives_uncertain_foreground",
+      "nearest_truth_world": [],
+      "physical_candidates": 0,
+      "rays": 3072,
+      "unknown_rays": 0
+    },
+    {
+      "accounted_bytes": 2832384,
+      "ambiguous_candidates": 1,
+      "candidates": 1,
+      "known_solid_rejected": 0,
+      "name": "assumed_alpha_block_is_unknown",
+      "nearest_truth_world": [],
+      "physical_candidates": 0,
+      "rays": 3072,
+      "unknown_rays": 48
+    },
+    {
+      "accounted_bytes": 6316032,
+      "ambiguous_candidates": 0,
+      "candidates": 10,
+      "known_solid_rejected": 0,
+      "name": "geometry_spot_kind_quotas",
+      "nearest_truth_world": [],
+      "physical_candidates": 10,
+      "rays": 26496,
+      "unknown_rays": 0
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "build_exit_code": 0,
+  "compile_command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK\\build\\toolchain\\w64devkit\\bin\\g++.exe",
+    "-std=c++11",
+    "-O2",
+    "-I",
+    "shared/rd-rend2",
+    "tools/rend2/idf/geometry.cpp",
+    "build/s06-gcc/core/librend2_lightrecon_core.a",
+    "-o",
+    "build/asr02-tools/idf_geometry.exe"
+  ],
+  "compiler": "g++.exe (GCC) 16.2.0",
+  "compiler_sha256": "4f40f17d8a5a1052b83de568fe2e951fa37a3a21c38676e5b1da5707029cce61",
+  "control_scope": "Analytical passive patch on existing compiled geometry; sky-aperture is compiled and has positive training observations; no compiler bounce replay claim",
+  "flags": [
+    "-std=c++11",
+    "-O2",
+    "-I",
+    "shared/rd-rend2"
+  ],
+  "initial_build_attempt": "First compiler invocation could not find assembler because toolchain PATH was absent; corrected PATH build succeeded before freeze",
+  "language": "C++11",
+  "native_test_command": [
+    "build/s06-gcc/lightrecon_hidden_test.exe",
+    "build/asr02-hidden-tests.json"
+  ],
+  "native_test_exit_code": 0,
+  "primary_sources": [
+    {
+      "review": "Main sections 3-5, equations 1-8; visual equation-page check",
+      "sha256": "bb03ad005cffde3edceb7a51f928afbd4b4631d7137efea4237b8789412bdbc2",
+      "url": "https://grail.cs.washington.edu/projects/lightlocalization/lightlocalization.pdf"
+    },
+    {
+      "review": "Sections 2-3: occlusion false votes and real-scene assumptions",
+      "sha256": "0b0457861501033c9ffa92d78813a6db3a0b0c9e13e046f572707b73b5c1cfda",
+      "url": "https://grail.cs.washington.edu/projects/lightlocalization/lightlocalization_supplementary.pdf"
+    }
+  ]
+}

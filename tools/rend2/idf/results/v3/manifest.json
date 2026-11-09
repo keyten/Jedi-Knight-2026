@@ -1,0 +1,12 @@
+{
+  "artifacts": {
+    "checks.json": "a12880ef23e94adb1466a216847ea6206e7ed154ed63b09f606fd459e50f6a36",
+    "native-hidden-tests.json": "f40fbaa911e5b853b4461c6f83e9357b2b06449c59ae8428256e7b3d321eda61",
+    "protocol.json": "5eaba73472fbd221532069b0768cc0896781b3e9422f51aec8fab8752cc95746",
+    "provenance.json": "122f60a90c6a8cb7a715ce163ab36cc4c033633d69cdc2b5dd2aecdaa0f9230e",
+    "results.json": "68545dcd1b6cba36dede9b96d72f2891dd07bc1894dad5ba66db8b4230c2b3b9",
+    "tables.md": "76e9a33e9a459a6871d9c310f70da8d0ca4e9859464d0f50b10b2e43cdbcd7d9"
+  },
+  "licensed_payloads": false,
+  "production_modified": false
+}
