@@ -54,6 +54,7 @@ BakedSurface Panel(unsigned ordinal = 0, float x = 0, float width = 16, float he
 		{
 			BakedVertex v;
 			v.position = Vec3(x + i * width, y * height, 0);
+			v.shadingNormal = Vec3(0, 0, 1);
 			v.textureUv = LightmapUv(i, y);
 			s.vertices.push_back(v);
 		}
@@ -550,6 +551,30 @@ void GeometryNumerics()
 		CHECK(Near(r.halfHeight, 2, 2e-5f));
 	}
 }
+void CapturedSourceSide()
+{
+	EmitterEvidenceInput in;in.map=Map();
+	auto panel=Panel();panel.materialFacts.cull=SurfaceCull::Front;
+	for(size_t i=0;i<panel.indices.size();i+=3)std::swap(panel.indices[i+1],panel.indices[i+2]);
+	in.geometry=Geometry({panel});auto correct=Run(in);
+	CHECK(correct->Evidence().size()==1);
+	CHECK(correct->Evidence()[0].orientationKnown && correct->Evidence()[0].outward.z==1);
+	CHECK(Near(correct->Evidence()[0].right.x*correct->Evidence()[0].up.y-
+		correct->Evidence()[0].right.y*correct->Evidence()[0].up.x,1));
+	CHECK(Near(correct->Evidence()[0].position.z,0));
+	// A face basis can replace absent vertex normals, but cannot overrule a
+	// contradictory normal or a cull convention that removes that side.
+	for(auto &v:panel.vertices)v.shadingNormal=Vec3();
+	panel.lightmapBasis[2]=Vec3(0,0,1);in.geometry=Geometry({panel});
+	CHECK(Run(in)->Evidence()[0].outward.z==1);
+	panel.lightmapBasis[2]=Vec3();in.geometry=Geometry({panel});auto missing=Run(in);
+	CHECK(!missing->Evidence()[0].orientationKnown && (missing->Evidence()[0].issues & EvidenceUnsupportedGeometry));
+	for(auto &v:panel.vertices)v.shadingNormal=Vec3(0,0,1);
+	panel.vertices[0].shadingNormal=Vec3(0,0,-1);in.geometry=Geometry({panel});
+	CHECK(!Run(in)->Evidence()[0].orientationKnown);
+	panel.vertices[0].shadingNormal=Vec3(0,0,1);panel.materialFacts.cull=SurfaceCull::Back;
+	in.geometry=Geometry({panel});CHECK(!Run(in)->Evidence()[0].orientationKnown);
+}
 } // namespace
 int main()
 {
@@ -563,6 +588,7 @@ int main()
 	ErrorsAndIds();
 	ProviderLifetime();
 	GeometryNumerics();
+	CapturedSourceSide();
 	std::printf("emitter evidence: %d checks, %d failures\n", checks, failures);
 	return failures ? 1 : 0;
 }

@@ -11,7 +11,7 @@ namespace Core
 {
 namespace Shape
 {
-constexpr uint32_t kVersion = 3; // X14 occupied/emitting support
+constexpr uint32_t kVersion = 4; // ASR17: physical mesh nodes use the declared captured source side
 enum class Law
 {
 	HistoricalBake,

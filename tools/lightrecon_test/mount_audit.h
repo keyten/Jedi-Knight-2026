@@ -91,7 +91,8 @@ static void MountAudit(const O::Sources &s, const std::shared_ptr<const SurfaceG
 			work += prior.work;
 		}
 		SourceSupport::Result next;
-		auto error = SourceSupport::Check(withSupport.placement, *supportPlacement, e,
+		// These are two independently constructed hypotheses, not source motion.
+		auto error = SourceSupport::Check(withSupport.placement, *supportPlacement, after.shape.initial.geometry,
 										  after.shape.initial.geometry, after.shape.initial.support,
 										  read, next);
 		if (!error)

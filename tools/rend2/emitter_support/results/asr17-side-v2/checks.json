@@ -1,0 +1,40 @@
+{
+  "schema": "org.openjk.source-orientation-checks.v1",
+  "full_cpu_tests": 54,
+  "full_cpu_failures": 0,
+  "ctest_command": [
+    "ctest",
+    "--test-dir",
+    "build/s06-gcc",
+    "--output-on-failure",
+    "-j",
+    "2"
+  ],
+  "ctest_log_sha256": "c5920d988a9bb00759d607c755eb0d06303c8562932c31dc10396824347624af",
+  "python_command": [
+    "C:\\Python38\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "unittest",
+    "tools.rend2.emitter_support.test_diagnosis",
+    "-v"
+  ],
+  "python_tests": 5,
+  "python_exit_code": 0,
+  "native_support_assertions": 86,
+  "native_support_failures": 0,
+  "evidence_assertions": 2585,
+  "source_hashes_match_frozen_protocol": true,
+  "same_candidate_cohort": 620,
+  "same_full_precision_occupied_geometry": 620,
+  "admitted": 40,
+  "admitted_with_independent_exact_penetration": 0,
+  "auxiliary_test_sources": {
+    "tools/lightrecon_test/joint_fixture.h": "984c9c4bc1044043a3d9562a4c6cbd5e90445c77d852732f34ec3593323450a3",
+    "tools/lightrecon_test/joint_test_scene.h": "296c5fac63df0556033467631871eebc643e5bac4b9a29c50cdc380e7578ed57",
+    "tools/lightrecon_test/lightrecon_fixture_tool.cpp": "619a2ef115d5ce3b741c1656cd505011922b5a58daaf5190dd94be5f9eca6bc7",
+    "tools/lightrecon_test/lightrecon_evidence_test.cpp": "fdcdc29eec38b19a67b2bace584f19ca02e589cab19a7be258574603534112f3"
+  },
+  "report_sha256": "d17b0a9ef6aa8bf0ff4083b805a77e1a0f2ab9833504bcb1e2d264266b99c6da"
+}

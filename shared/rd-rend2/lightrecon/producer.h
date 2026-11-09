@@ -11,7 +11,7 @@ namespace Core
 {
 namespace Producer
 {
-constexpr uint32_t kVersion = 8; // X16: preserved spot law and receiver-vs-fixture provenance
+constexpr uint32_t kVersion = 9; // ASR17: rederive archived source side from exact named geometry
 struct PreparedProviders; // opaque immutable provider leases, created only by PrepareModelRequests
 struct ProviderPolicy
 {

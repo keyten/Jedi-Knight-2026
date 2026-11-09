@@ -1,6 +1,7 @@
 // X14 owned brush/surface geometry. No commercial geometry or renderer.
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "joint_test_scene.h"
+#include "lightrecon/producer.h"
 #include <cstdio>
 #include <fstream>
 using namespace JointTest;
@@ -307,9 +308,8 @@ int main(int argc, char **argv)
 		SpatialLocation outwardPoint;
 		Must(sandwich.scene.domain->Locate(Vec3(0,0,.125),outwardPoint,0));
 		CHECK(outwardPoint.space == SpaceClass::Solid);
-		// RBSP-style raw winding can oppose the captured surface normals. The
-		// receiver mapper has an orientation correction; FromSurfaces currently
-		// uses the raw cross product. Record the discrepancy without fixing it.
+		// RBSP-style raw winding opposes captured normals. The same actual
+		// polygon now gets its supported side from captured orientation evidence.
 		World winding;
 		winding.Floor();
 		for(auto &v:winding.visual.surfaces[0].vertices)v.shadingNormal=Vec3(0,0,1);
@@ -317,9 +317,57 @@ int main(int argc, char **argv)
 			std::swap(winding.visual.surfaces[0].indices[i+1],winding.visual.surfaces[0].indices[i+2]);
 		winding.Build();auto wound=e;
 		Must(SS::FromSurfaces(winding.geometry,*winding.scene.geometry,{0},71,Read(),wound.support));
-		CHECK(wound.support.outward.z == -1 && winding.visual.surfaces[0].vertices[0].shadingNormal.z == 1);
-		wound.geometry.frame.up=Vec3(0,-1,0);wound.geometry.frame.forward=Vec3(0,0,-1);
-		CHECK(winding.At(wound).placement.state == P::Constraint::UnknownGeometry);
+		CHECK(wound.support.outward.z == 1);
+		CHECK(P::Admissible(winding.At(wound).placement));
+		// A reversed source interpretation never removes an independent solid.
+		auto blockedWound = shared; blockedWound.support.outward = Vec3(0,0,1);
+		CHECK(sandwich.At(blockedWound).placement.state == P::Constraint::UnknownGeometry);
+		World noSide;
+		noSide.Floor();for(auto &v:noSide.visual.surfaces[0].vertices)v.shadingNormal=Vec3();
+		noSide.Build();SS::Contract unknownSide;
+		CHECK(SS::FromSurfaces(noSide.geometry,*noSide.scene.geometry,{0},71,Read(),unknownSide).code == Code::Unavailable);
+		World contradictory;
+		contradictory.Floor();contradictory.visual.surfaces[0].vertices[0].shadingNormal=Vec3(0,0,-1);
+		contradictory.Build();
+		CHECK(SS::FromSurfaces(contradictory.geometry,*contradictory.scene.geometry,{0},71,Read(),unknownSide).code == Code::Unavailable);
+		// Emulate pre-fix archived priors, using production consolidation and
+		// conversion against their exact original geometry lease.
+		auto evidence=std::make_shared<std::vector<EmitterEvidence>>(1);
+		auto &priorEvidence=(*evidence)[0];
+		priorEvidence.id=991;priorEvidence.source="owned archived winding";
+		priorEvidence.origin=EvidenceOrigin::GlowSurface;
+		priorEvidence.positionKnown=priorEvidence.orientationKnown=priorEvidence.staticEligible=true;
+		priorEvidence.shapes=CandidatePoint|CandidateRectangle|CandidateTube;
+		priorEvidence.surfaces={0};priorEvidence.right=Vec3(1,0,0);
+		priorEvidence.up=Vec3(0,-1,0);priorEvidence.outward=Vec3(0,0,-1);
+		priorEvidence.halfWidth=1;priorEvidence.halfHeight=.5f;priorEvidence.radius=.25f;
+		auto candidates=std::make_shared<std::vector<EmitterCandidate>>(1);
+		(*candidates)[0].id=991;(*candidates)[0].shapes=priorEvidence.shapes;
+		(*candidates)[0].staticEligible=true;(*candidates)[0].evidence={0};
+		auto annotations=std::make_shared<std::vector<Candidates::Annotation>>(1);
+		(*annotations)[0].candidate=991;
+		Candidates::Provider archived;
+		archived.name="owned archived";archived.map=winding.scene.map.sha256;
+		archived.geometryKey=winding.scene.geometry->CertificationKey();archived.generation=Key("archived side/1");
+		archived.evidence=Lease(evidence);archived.candidates=Lease(candidates);archived.annotations=Lease(annotations);
+		Candidates::Request pool;pool.map=archived.map;pool.geometryKey=archived.geometryKey;pool.providers={archived};
+		Candidates::Catalog catalog;Must(Candidates::Consolidate(pool,Read(),catalog));
+		CHECK(catalog.models.size()==3);
+		J::Request conversion;conversion.mapKey=archived.map;conversion.geometry.geometryKey=archived.geometryKey;
+		conversion.geometry.visibility=winding.scene.geometry;conversion.placement=winding.scene;
+		conversion.sourceSearchBounds=winding.input.worldBounds;
+		for(const auto &model:catalog.models)
+		{
+			J::Candidate converted;CHECK(Producer::MakeCandidate(catalog,model,conversion,converted));
+			auto &initial=converted.shape.initial;
+			CHECK(initial.geometry.position.world.x==0 && initial.geometry.position.world.y==0 && initial.geometry.position.world.z==0);
+			CHECK(initial.support.outward.z==1 && initial.support.fixture==model.bundle);
+			if(initial.geometry.kind!=EmitterKind::Point)CHECK(initial.geometry.frame.forward.z==1 && initial.geometry.frame.right.x==1);
+			SS::Result admission;Must(SS::Check(winding.scene,*winding.placement,initial.geometry,initial.geometry,initial.support,Read(),admission));
+			if(initial.geometry.kind==EmitterKind::Tube)
+				CHECK(admission.placement.state==P::Constraint::Solid && initial.geometry.geometry.radiusWorld==.25);
+			else CHECK(P::Admissible(admission.placement));
+		}
 		// Visual scope controls: a local approximation is not missing everywhere.
 		World curved;
 		curved.Floor();
@@ -431,6 +479,15 @@ int main(int argc, char **argv)
 		auto me = pe;
 		Must(SS::FromSurfaces(panel.geometry, *panel.scene.geometry, {0}, 71, Read(), me.support));
 		double exact = evaluate(panel, me);
+		World reversedPanel;
+		reversedPanel.visual.surfaces=panel.visual.surfaces;
+		for(size_t i=0;i<reversedPanel.visual.surfaces[0].indices.size();i+=3)
+			std::swap(reversedPanel.visual.surfaces[0].indices[i+1],reversedPanel.visual.surfaces[0].indices[i+2]);
+		reversedPanel.Brush(V(-16,-16,-4),V(16,16,0));reversedPanel.Build();
+		auto reversedMesh=me;
+		Must(SS::FromSurfaces(reversedPanel.geometry,*reversedPanel.scene.geometry,{0},71,Read(),reversedMesh.support));
+		CHECK(P::Admissible(reversedPanel.At(reversedMesh).placement));
+		CHECK(std::abs(evaluate(reversedPanel,reversedMesh)-exact)<1e-8);
 		meshDifference = std::abs(exact - positive) / positive;
 		CHECK(meshDifference < .002);
 		World blockedWorld;
@@ -530,6 +587,12 @@ int main(int argc, char **argv)
 		CHECK(Shape::Prepare(historical, {mountedPoint}, Lease(receivers), contactContext, {},
 							 Read(), unverified)
 				  .code == Code::Unavailable);
+		historical.allowFacetExpansion=true;
+		contactContext.visibility=reversedPanel.scene.geometry;
+		contactContext.geometryKey=reversedPanel.scene.geometry->CertificationKey();
+		auto reverseHistorical=Shape::Prepare(historical,{reversedMesh},Lease(receivers),contactContext,{},Read(),unverified);
+		CHECK(reverseHistorical.code==Code::Unavailable &&
+			reverseHistorical.message.find("reversed captured source winding")!=std::string::npos);
 		SS::Contract canonicalOrderA, canonicalOrderB;
 		Must(SS::FromSurfaces(unionWorld.geometry, *unionWorld.scene.geometry, {0, 1, 2}, 71,
 							  Read(), canonicalOrderA));

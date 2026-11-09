@@ -1,5 +1,6 @@
 // Initial emitter evidence, deliberately separate from ReconstructedLightingAsset.
 #include "evidence.h"
+#include "source_orientation.h"
 #include "../tr_pbr_contract.h"
 #include <algorithm>
 #include <cmath>
@@ -750,6 +751,21 @@ void SurfaceEvidence(const EmitterEvidenceInput &in, const EvidenceOptions &o,
 		bool supported =
 			(s.kind == BakedSurfaceKind::Face || s.kind == BakedSurfaceKind::Triangles) &&
 			!s.vertices.empty() && !s.indices.empty();
+		if (supported && s.indices.size() % 3)
+			Bad("Incomplete emissive triangles");
+		if (supported)
+			for (size_t i = 0; i < s.indices.size(); i += 3)
+			{
+				for (unsigned k = 0; k < 3; ++k)
+					if (s.indices[i + k] >= s.vertices.size())
+						Bad("Invalid emissive vertex reference");
+				Bake::Detail::V oriented;
+				if (!SourceOrientation::Resolve(s, &s.indices[i], oriented))
+				{
+					supported = false;
+					break;
+				}
+			}
 		if (!supported)
 		{
 			EmitterEvidence e;
@@ -766,8 +782,6 @@ void SurfaceEvidence(const EmitterEvidenceInput &in, const EvidenceOptions &o,
 		std::string materialKey = s.material + ":" + std::to_string(uint32_t(s.motion)) + ":" +
 								  std::to_string(f.signals) + ":" + f.emissionTexture;
 		auto inserted = materials.emplace(materialKey, uint32_t(materials.size()));
-		if (s.indices.size() % 3)
-			Bad("Incomplete emissive triangles");
 		for (size_t n = 0; n < s.indices.size(); n += 3)
 		{
 			if (tris.size() >= o.maxTriangles ||
@@ -800,6 +814,10 @@ void SurfaceEvidence(const EmitterEvidenceInput &in, const EvidenceOptions &o,
 				++report.unsupported;
 				continue;
 			}
+			Bake::Detail::V oriented;
+			if (!SourceOrientation::Resolve(s, &s.indices[n], oriented))
+				Bad("Source orientation changed during extraction");
+			normal = oriented.Float();
 			t.normal[0] = normal.x;
 			t.normal[1] = normal.y;
 			t.normal[2] = normal.z;
@@ -942,7 +960,8 @@ void SurfaceEvidence(const EmitterEvidenceInput &in, const EvidenceOptions &o,
 				e.colour = f.emissionColour;
 			e.staticEligible = !(issues & (AnimatedEvidence | MovingEvidence));
 			e.id = Identity(in.map, "surface:" + std::to_string(*refs.begin()) + ":" +
-										std::to_string(g[0]) + ":" + std::to_string(blobOrdinal++));
+										std::to_string(g[0]) + ":" + std::to_string(blobOrdinal++) +
+										":side" + std::to_string(SourceOrientation::kVersion));
 			if (f.emissionProvenance == EmissionProvenance::AuthoredLuminance)
 			{
 				e.intensityKnown = true;

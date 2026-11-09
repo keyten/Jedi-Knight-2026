@@ -140,7 +140,11 @@ def classify(row, world):
     if orientation and max(orientation) < -.999:
         facets.add('named-winding-opposes-all-vertex-normals')
     category = 'evaluator-other'
-    if reason.startswith('Occupied source support'):
+    if row['state'] in ('Free', 'Clear', 'Conditional'):
+        category = 'admitted-conditional' if row['state']=='Conditional' else 'admitted-proven'
+    elif row['contract'] == 10:
+        category = 'unsupported-source-side-or-assembly'
+    elif reason.startswith('Occupied source support'):
         failed = next((a for s, a in zip(row['supports'], analyses) if s['native_space'] not in (0, 5)), None)
         if failed:
             categories = {b['category'] for b in failed['unresolved']}
@@ -156,6 +160,8 @@ def classify(row, world):
         category = 'hypothesis-cylinder-through-mount'
     elif reason.startswith('Emitting support is behind'):
         category = 'hypothesis-stand-off-or-side'
+    elif reason.startswith('Unrelated visual geometry intersects'):
+        category = 'visual-support-intersection'
     elif 'optics' in reason:
         category = 'visual-unknown-optics'
     elif reason.startswith('Operational:'):
@@ -227,7 +233,7 @@ def numerical_witnesses(folder):
     for d in selected:
         row=rows[d['source']]
         failed=next((i for i,s in enumerate(row['supports']) if s['native_space'] not in (0,5)),0)
-        a=d['supports'][failed]
+        a=d['supports'][failed] if d['supports'] else dict(unresolved=[])
         brush=next((b for b in a['unresolved'] if b['category']==d['category']),
                    a['unresolved'][0] if a['unresolved'] else None)
         witness=None

@@ -4,6 +4,7 @@
 #include "bake_math.h"
 #include "emission_geometry.h"
 #include "geometry_key.h"
+#include "source_orientation.h"
 #include <algorithm>
 #include <set>
 namespace Rend2LightRecon
@@ -173,7 +174,7 @@ Disk::Digest Key(const Contract &c)
 {
 	GeometryKey k;
 	k.U(kVersion);
-	k.U(2); // X14 numerical interpretation: declared brush-boundary leaf contact
+	k.U(3); // ASR17: captured source orientation; invalidate older support certificates
 	k.U(c.version);
 	k.U(unsigned(c.kind));
 	k.U(c.fixture);
@@ -733,7 +734,7 @@ Error FromSurfaces(std::shared_ptr<const SurfaceGeometry> g, const StaticVisibil
 		c.mountKnown = true;
 		c.twoSidedAttested = true;
 		c.provenance = "Exact named original BSP planar triangle union; amplitude/profile and bake "
-					   "participation remain unknown";
+					   "participation remain unknown; captured source orientation/2";
 		auto triangles = std::make_shared<std::vector<Bake::FootprintTriangle>>();
 		V normal;
 		bool first = true;
@@ -766,8 +767,9 @@ Error FromSurfaces(std::shared_ptr<const SurfaceGeometry> g, const StaticVisibil
 						 "Original source triangle index");
 					t.world[k] = s.vertices[s.indices[i + k]].position;
 				}
-				V n = Unit(Cross(V(t.world[1]) - V(t.world[0]), V(t.world[2]) - V(t.world[0])));
-				Need(Normal(n), Code::Unavailable, "Degenerate source triangle");
+				V n;
+				Need(SourceOrientation::Resolve(s, &s.indices[i], n), Code::Unavailable,
+					 "Source side evidence is missing or contradictory");
 				if (first)
 				{
 					normal = n;

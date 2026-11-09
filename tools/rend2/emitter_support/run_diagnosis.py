@@ -69,7 +69,9 @@ def main(a):
                     ray_policy='Unmodified default conservative optics/origin policy; no bias or endpoint exclusions',
                     process_seconds=300, process_bytes=1024**3,
                     observations_consumed=False, source_truth='Unavailable', profile='UnknownProfile',
-                    purpose='Diagnosis only; neither rays nor independent arithmetic can grant admission')
+                    source_side_fix=a.source_side_fix,
+                    purpose='Source-side correction audit; no predicate relaxation' if a.source_side_fix else
+                            'Diagnosis only; neither rays nor independent arithmetic can grant admission')
     write(a.out/'protocol.json', protocol)
     x14_protocol = json.loads((prior/'protocol.json').read_text())
     if protocol['historical_native_sha256'] != x14_protocol['native_sha256']:
@@ -143,6 +145,7 @@ def main(a):
         raise ValueError('Sources/executable changed during experiment')
     write(a.out/'manifest.json', dict(sources_unchanged=True, canonical_storage_changed=False,
           admission_semantics_changed=False, runtime_changed=False, licensed_geometry_committed=False,
+          source_hypothesis_orientation_changed=a.source_side_fix, admission_predicates_relaxed=False,
           artifacts={p.name:sha(p) for p in a.out.iterdir() if p.is_file() and p.name != 'manifest.json'}))
 
 
@@ -152,4 +155,5 @@ if __name__ == '__main__':
     p.add_argument('--out', type=Path, required=True)
     p.add_argument('--tool', type=Path, default=ROOT/'build/s06-gcc/lightrecon_map_solver.exe')
     p.add_argument('--test', type=Path, default=ROOT/'build/s06-gcc/lightrecon_emitter_support_test.exe')
+    p.add_argument('--source-side-fix', action='store_true', help='Label a correction to source hypotheses; admission predicates remain strict')
     main(p.parse_args())

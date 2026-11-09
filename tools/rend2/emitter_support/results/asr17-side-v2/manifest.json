@@ -1,0 +1,25 @@
+{
+  "sources_unchanged": true,
+  "canonical_storage_changed": false,
+  "admission_semantics_changed": false,
+  "runtime_changed": false,
+  "licensed_geometry_committed": false,
+  "source_hypothesis_orientation_changed": true,
+  "admission_predicates_relaxed": false,
+  "artifacts": {
+    "checks.json": "ca96ffba64a1f1ade81e1d6e511ea6ecb30009b6316a63f9b0ed02a2af5f5609",
+    "comparison.json": "fc3f5194de8ee1d4eccf184aaf7fd1c8360e0d4b54f6b4291b3080f96faf3338",
+    "controls-first-resources.json": "33cd3baac9c7baf9e7f10884c7ffd3a5fb67486ce618bca28337ba1a5554ab58",
+    "controls-first.json": "920263cdae2c086caa1079c8826265a3a902d674af49afdfc5da7ed02acc63d6",
+    "controls-first.log": "01fbf8afc25aeacc7562fe0b30f3685964e43c0fe0aa674bc183698b02f7e6f3",
+    "controls-repeat-resources.json": "a641e7887fff84e2117086befbad7e64a250caa1dfcbe4494d2d62a883cd7113",
+    "controls-repeat.json": "920263cdae2c086caa1079c8826265a3a902d674af49afdfc5da7ed02acc63d6",
+    "controls-repeat.log": "01fbf8afc25aeacc7562fe0b30f3685964e43c0fe0aa674bc183698b02f7e6f3",
+    "ctest.log": "c5920d988a9bb00759d607c755eb0d06303c8562932c31dc10396824347624af",
+    "protocol.json": "5336b1b33903ac05c3bfa07099e83013b29d0305da326184f3cfa87f223b354b",
+    "python-tests.log": "688d9ae095d1ca0e6ff0dc07475d73910162799f81c84bc7410f12bf4c25e90f",
+    "repeat.json": "5a64aefcc090a6f9b877a24f2dc18ad6ccfac008c5503cc66c9b25d9fce6240e",
+    "stock.json": "05f54b2cefde0f8af63763158f00b17d91060c7672a7bfb7f4200dd91475b032",
+    "witnesses.json": "eca97edcf4f2352593ddb5f34a84acb136988f861f769403e704956b562f099e"
+  }
+}

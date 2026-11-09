@@ -1,0 +1,693 @@
+{
+  "mp/duel4": {
+    "schema": "org.openjk.mount-diagnosis-classification.v1",
+    "attempts": 108,
+    "states": {
+      "Free": 20,
+      "Solid": 17,
+      "UnknownGeometry": 35,
+      "Clearance": 32,
+      "Mount": 4
+    },
+    "primary": {
+      "admitted-proven": 20,
+      "bsp-other-plane-boundary": 2,
+      "bsp-penetration-witness": 2,
+      "hypothesis-cylinder-through-mount": 15,
+      "hypothesis-stand-off-or-side": 4,
+      "visual-patch-envelope": 33,
+      "visual-support-intersection": 32
+    },
+    "facets": {
+      "admitted-proven": 20,
+      "back-eighth-unit-in-solid": 108,
+      "bsp-contact-plane-disagreement": 20,
+      "bsp-other-plane-boundary": 4,
+      "bsp-penetration-witness": 2,
+      "bsp-unclustered-without-contact": 4,
+      "hypothesis-cylinder-through-mount": 15,
+      "hypothesis-stand-off-or-side": 4,
+      "visual-patch-envelope": 33,
+      "visual-support-intersection": 32
+    },
+    "samples": {
+      "admitted-proven": [
+        "74123568754762823",
+        "1306100435900299506",
+        "2458272224296654200"
+      ],
+      "bsp-other-plane-boundary": [
+        "10724844690418745054",
+        "17585429790162484154"
+      ],
+      "bsp-penetration-witness": [
+        "274065421862313770",
+        "15987253787305943197"
+      ],
+      "hypothesis-cylinder-through-mount": [
+        "140031554626216494",
+        "2227884515296677217",
+        "2911382228373949231"
+      ],
+      "hypothesis-stand-off-or-side": [
+        "4059644175494064381",
+        "8378056910323058493",
+        "14411755025882437862"
+      ],
+      "visual-patch-envelope": [
+        "997137809388226990",
+        "2149232127927315715",
+        "3146190737911675261"
+      ],
+      "visual-support-intersection": [
+        "1412742224067916672",
+        "1683168541431483770",
+        "1807638516598776167"
+      ]
+    },
+    "native_diagnostic_work": 124575,
+    "independent_work": 33424,
+    "visibility": {
+      "spatial_complete": 1,
+      "unbounded": 0,
+      "unsupported_bounds": 0,
+      "excluded_moving": 0,
+      "patch_triangles": 11380
+    },
+    "ray_states": {
+      "1": 108,
+      "0": 106,
+      "2": 2
+    },
+    "ray_state_order": [
+      "Visible",
+      "Blocked",
+      "Unknown"
+    ],
+    "point_probe_states": {
+      "0.125": {
+        "0": 108
+      },
+      "4": {
+        "0": 108
+      },
+      "-0.125": {
+        "1": 108
+      },
+      "-4": {
+        "1": 108
+      }
+    },
+    "point_space_order": [
+      "Free",
+      "Solid",
+      "Outside",
+      "Sky",
+      "Unknown",
+      "Exterior"
+    ],
+    "claims_admission": false,
+    "reads_target_rgb": false,
+    "crosswalk": {
+      "scope": "X14 six-significant-digit serialized geometry signature; not a full precision pose identity",
+      "x14_count": 108,
+      "current_count": 108,
+      "unique_matches": 108,
+      "state_reason_matches": 56,
+      "historical_witnesses": [
+        {
+          "x14_source": "378495349532519697",
+          "current_source": "8734946737344204972",
+          "same_state": false,
+          "same_reason": false
+        },
+        {
+          "x14_source": "17291380550458404209",
+          "current_source": "140031554626216494",
+          "same_state": true,
+          "same_reason": true
+        }
+      ]
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\mp_duel4",
+        "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+        "mounting-diagnosis"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 1.437000000005355,
+      "peak_process_rss_bytes": 35864576
+    },
+    "x14_frozen_semantic_match": true,
+    "x14_frozen_witness_byte_match": true,
+    "instrumentation_semantic_match": true,
+    "instrumentation_witness_byte_match": true,
+    "current_admission": {
+      "schema": "org.openjk.emitter-support-stock.v1",
+      "map": "maps/mp/duel4.bsp",
+      "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+      "catalog_models": 3219,
+      "attempts": 108,
+      "accepted": 20,
+      "conditional": 0,
+      "newly_admitted": 20,
+      "old_classes": [
+        0,
+        108,
+        0,
+        0,
+        0
+      ],
+      "new_classes": [
+        20,
+        49,
+        0,
+        35,
+        4
+      ],
+      "class_order": [
+        "Proven",
+        "Collision",
+        "Conditional",
+        "Unknown",
+        "Invalid"
+      ],
+      "reasons": {
+        "Cylinder occupied body penetrates the mounting plane": 15,
+        "Emitting support is behind its mounting side or outside declared fixture stand-off": 4,
+        "Incomplete local visual support": 33,
+        "Named emitting-side contact; world solid penetration remains forbidden": 20,
+        "Occupied source support is not certified outside world solids": 4,
+        "Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 32
+      },
+      "types": {
+        "1": 24,
+        "3": 64,
+        "4": 20
+      },
+      "work": 63690,
+      "catalog_work": 15377,
+      "reads_observed_rgb": false,
+      "joint_fit_attempted": false,
+      "selection": "stable consolidated ID; first 256 named-surface candidates, 16M geometry work cap",
+      "profile": "UnknownProfile",
+      "claims_original_source_recovery": false
+    },
+    "current_matches_x14_summary": false,
+    "current_matches_x14_ids": false,
+    "control_resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\mp_duel4-control",
+        "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.7810000000026776,
+      "peak_process_rss_bytes": 27635712
+    },
+    "historical_resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v3-native.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel4\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel4_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\mp_duel4-x14",
+        "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 0.875,
+      "peak_process_rss_bytes": 27598848
+    },
+    "input": {
+      "map": "mp/duel4",
+      "bsp_sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0",
+      "dataset_sha256": "8173ddaa017c87dd4b341d240f95f6a99599f894d4164d0ab7902bc70b2ac3c5",
+      "dataset_bytes": 25475232
+    },
+    "private_artifacts": {
+      "classification.json": "9681e3b001bce08dafe8fa6a2dfa1c081feb5ea052eb25cab00b585a205a722e",
+      "diagnosis-world.json": "cb82d16d7bbf99eaaecbe3ced229f845e3d92d489602ed99b44f2047223da508",
+      "diagnosis.jsonl": "493d05cd85bdb18312575ca449ceea6859cd1569fe116da096fd3292fbbec4c2",
+      "mounting-witnesses.tsv": "1bb9ed04d9e61176e5d15fe75fd15b855015d411d7bd0b49deb1c72b5eda6f66",
+      "mounting.json": "2ab679211a260f84a722ab7e76803fd50502f8134bf334c7e9b30679803e483e",
+      "native-resources.json": "ff9fa6b789cc89bcff09e9428ca49e82c44ad78537d50453d9ada711fcf3ecaf",
+      "native.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "mp/siege_desert": {
+    "schema": "org.openjk.mount-diagnosis-classification.v1",
+    "attempts": 256,
+    "states": {
+      "UnknownGeometry": 18,
+      "Clearance": 225,
+      "Conditional": 9,
+      "Solid": 2,
+      "Mount": 2
+    },
+    "primary": {
+      "admitted-conditional": 9,
+      "bsp-other-plane-boundary": 18,
+      "bsp-penetration-witness": 2,
+      "hypothesis-stand-off-or-side": 2,
+      "visual-support-intersection": 225
+    },
+    "facets": {
+      "admitted-conditional": 9,
+      "back-eighth-unit-in-solid": 256,
+      "bsp-other-plane-boundary": 18,
+      "bsp-penetration-witness": 4,
+      "bsp-unclustered-without-contact": 3,
+      "front-eighth-unit-in-solid": 2,
+      "hypothesis-stand-off-or-side": 2,
+      "visual-support-intersection": 225
+    },
+    "samples": {
+      "admitted-conditional": [
+        "207281828424223196",
+        "415901233883250972",
+        "605652325365153833"
+      ],
+      "bsp-other-plane-boundary": [
+        "24510116186315163",
+        "37953290245135894",
+        "151500649926244731"
+      ],
+      "bsp-penetration-witness": [
+        "1095946167628495700",
+        "1653792872770727399"
+      ],
+      "hypothesis-stand-off-or-side": [
+        "1148395432400792624",
+        "2950774692354367822"
+      ],
+      "visual-support-intersection": [
+        "42167977136442576",
+        "50233168441806202",
+        "53126322549381771"
+      ]
+    },
+    "native_diagnostic_work": 249741,
+    "independent_work": 70836,
+    "visibility": {
+      "spatial_complete": 1,
+      "unbounded": 0,
+      "unsupported_bounds": 0,
+      "excluded_moving": 735,
+      "patch_triangles": 0
+    },
+    "ray_states": {
+      "1": 254,
+      "0": 254,
+      "2": 4
+    },
+    "ray_state_order": [
+      "Visible",
+      "Blocked",
+      "Unknown"
+    ],
+    "point_probe_states": {
+      "0.125": {
+        "0": 254,
+        "1": 2
+      },
+      "4": {
+        "0": 254,
+        "1": 2
+      },
+      "-0.125": {
+        "1": 256
+      },
+      "-4": {
+        "1": 247,
+        "4": 9
+      }
+    },
+    "point_space_order": [
+      "Free",
+      "Solid",
+      "Outside",
+      "Sky",
+      "Unknown",
+      "Exterior"
+    ],
+    "claims_admission": false,
+    "reads_target_rgb": false,
+    "crosswalk": {
+      "scope": "X14 six-significant-digit serialized geometry signature; not a full precision pose identity",
+      "x14_count": 256,
+      "current_count": 256,
+      "unique_matches": 54,
+      "state_reason_matches": 6,
+      "historical_witnesses": []
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_siege_desert\\home\\rend2\\lightrecon\\v1\\observations\\mp_siege_desert_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\mp_siege_desert",
+        "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+        "mounting-diagnosis"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 4.4210000000020955,
+      "peak_process_rss_bytes": 54218752
+    },
+    "x14_frozen_semantic_match": true,
+    "x14_frozen_witness_byte_match": true,
+    "instrumentation_semantic_match": true,
+    "instrumentation_witness_byte_match": true,
+    "current_admission": {
+      "schema": "org.openjk.emitter-support-stock.v1",
+      "map": "maps/mp/siege_desert.bsp",
+      "bsp_sha256": "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+      "catalog_models": 1410,
+      "attempts": 256,
+      "accepted": 9,
+      "conditional": 9,
+      "newly_admitted": 9,
+      "old_classes": [
+        0,
+        256,
+        0,
+        0,
+        0
+      ],
+      "new_classes": [
+        0,
+        227,
+        9,
+        18,
+        2
+      ],
+      "class_order": [
+        "Proven",
+        "Collision",
+        "Conditional",
+        "Unknown",
+        "Invalid"
+      ],
+      "reasons": {
+        "Emitting support is behind its mounting side or outside declared fixture stand-off": 2,
+        "Named emitting-side contact; world solid penetration remains forbidden": 9,
+        "Occupied source support is not certified outside world solids": 20,
+        "Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 225
+      },
+      "types": {
+        "1": 11,
+        "3": 245
+      },
+      "work": 173727,
+      "catalog_work": 945,
+      "reads_observed_rgb": false,
+      "joint_fit_attempted": false,
+      "selection": "stable consolidated ID; first 256 named-surface candidates, 16M geometry work cap",
+      "profile": "UnknownProfile",
+      "claims_original_source_recovery": false
+    },
+    "current_matches_x14_summary": false,
+    "current_matches_x14_ids": false,
+    "control_resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_siege_desert\\home\\rend2\\lightrecon\\v1\\observations\\mp_siege_desert_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\mp_siege_desert-control",
+        "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 3.985000000000582,
+      "peak_process_rss_bytes": 54136832
+    },
+    "historical_resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v3-native.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_siege_desert\\home\\rend2\\lightrecon\\v1\\observations\\mp_siege_desert_all.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\mp_siege_desert-x14",
+        "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 3.7810000000026776,
+      "peak_process_rss_bytes": 54087680
+    },
+    "input": {
+      "map": "mp/siege_desert",
+      "bsp_sha256": "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1",
+      "dataset_sha256": "868eb79f14c7bcfda2b973d42871e9f0e32c458acb39cc2e7ffbda2075fe3881",
+      "dataset_bytes": 263183008
+    },
+    "private_artifacts": {
+      "classification.json": "f50f1efb3955187d713d3fde9249b3b7d1ddf498524800fee2334fe83db68400",
+      "diagnosis-world.json": "96afd4bdaf73d68bfd421337e5f34bb83e119c26f922d031d4a8311991466157",
+      "diagnosis.jsonl": "738d92f254395b39e8bdfeaccc78fb5dd03a962499953cbb988db2dece86df1e",
+      "mounting-witnesses.tsv": "a494e6267ff2d457217438237cd3981413d5716b01a0942f3ba10c2559331432",
+      "mounting.json": "f3b4449d6d0b4f8dc01ac724668671ef4a40040df7b28f32ca6eb3141625a46c",
+      "native-resources.json": "2fd552dd38786ddbb3d49cea2135a7d4551ac058021d4768371f3bcdbf2fcbb5",
+      "native.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "hoth3": {
+    "schema": "org.openjk.mount-diagnosis-classification.v1",
+    "attempts": 256,
+    "states": {
+      "Clearance": 79,
+      "Mount": 11,
+      "UnknownGeometry": 115,
+      "Solid": 40,
+      "Conditional": 11
+    },
+    "primary": {
+      "admitted-conditional": 11,
+      "bsp-other-plane-boundary": 87,
+      "bsp-penetration-witness": 29,
+      "hypothesis-cylinder-through-mount": 11,
+      "hypothesis-stand-off-or-side": 11,
+      "visual-patch-envelope": 28,
+      "visual-support-intersection": 79
+    },
+    "facets": {
+      "admitted-conditional": 11,
+      "all-local-patch-envelopes-plane-separated": 7,
+      "back-eighth-unit-in-solid": 256,
+      "bsp-contact-plane-disagreement": 11,
+      "bsp-other-plane-boundary": 115,
+      "bsp-penetration-witness": 34,
+      "bsp-unclustered-without-contact": 11,
+      "bsp-unresolved-intersection": 2,
+      "hypothesis-cylinder-through-mount": 11,
+      "hypothesis-stand-off-or-side": 11,
+      "visual-patch-envelope": 28,
+      "visual-support-intersection": 79
+    },
+    "samples": {
+      "admitted-conditional": [
+        "620274267278898667",
+        "726643922567887850",
+        "835263239471497799"
+      ],
+      "bsp-other-plane-boundary": [
+        "23281379946429403",
+        "101793717327405676",
+        "329912328343592237"
+      ],
+      "bsp-penetration-witness": [
+        "36067496964072720",
+        "88881378097975556",
+        "391847717526272072"
+      ],
+      "hypothesis-cylinder-through-mount": [
+        "235650363108347130",
+        "554209152441339337",
+        "660041248357158576"
+      ],
+      "hypothesis-stand-off-or-side": [
+        "12443661901486234",
+        "979362429835380727",
+        "1231138753799154975"
+      ],
+      "visual-patch-envelope": [
+        "350102557838430753",
+        "462604263052335638",
+        "927397177828681644"
+      ],
+      "visual-support-intersection": [
+        "1112405535599037",
+        "46225339477345958",
+        "163115236429012859"
+      ]
+    },
+    "native_diagnostic_work": 393340,
+    "independent_work": 172392,
+    "visibility": {
+      "spatial_complete": 1,
+      "unbounded": 0,
+      "unsupported_bounds": 0,
+      "excluded_moving": 94,
+      "patch_triangles": 100472
+    },
+    "ray_states": {
+      "1": 256,
+      "0": 230,
+      "2": 26
+    },
+    "ray_state_order": [
+      "Visible",
+      "Blocked",
+      "Unknown"
+    ],
+    "point_probe_states": {
+      "0.125": {
+        "0": 256
+      },
+      "4": {
+        "0": 256
+      },
+      "-0.125": {
+        "1": 256
+      },
+      "-4": {
+        "4": 51,
+        "1": 205
+      }
+    },
+    "point_space_order": [
+      "Free",
+      "Solid",
+      "Outside",
+      "Sky",
+      "Unknown",
+      "Exterior"
+    ],
+    "claims_admission": false,
+    "reads_target_rgb": false,
+    "crosswalk": {
+      "scope": "X14 six-significant-digit serialized geometry signature; not a full precision pose identity",
+      "x14_count": 256,
+      "current_count": 256,
+      "unique_matches": 129,
+      "state_reason_matches": 86,
+      "historical_witnesses": []
+    },
+    "resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\hoth3",
+        "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "mounting-diagnosis"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 5.9689999999973224,
+      "peak_process_rss_bytes": 89800704
+    },
+    "x14_frozen_semantic_match": true,
+    "x14_frozen_witness_byte_match": true,
+    "instrumentation_semantic_match": true,
+    "instrumentation_witness_byte_match": true,
+    "current_admission": {
+      "schema": "org.openjk.emitter-support-stock.v1",
+      "map": "maps/hoth3.bsp",
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "catalog_models": 746,
+      "attempts": 256,
+      "accepted": 11,
+      "conditional": 11,
+      "newly_admitted": 11,
+      "old_classes": [
+        0,
+        235,
+        0,
+        21,
+        0
+      ],
+      "new_classes": [
+        0,
+        119,
+        11,
+        115,
+        11
+      ],
+      "class_order": [
+        "Proven",
+        "Collision",
+        "Conditional",
+        "Unknown",
+        "Invalid"
+      ],
+      "reasons": {
+        "Cylinder occupied body penetrates the mounting plane": 11,
+        "Emitting support is behind its mounting side or outside declared fixture stand-off": 11,
+        "Incomplete local visual support": 28,
+        "Named emitting-side contact; world solid penetration remains forbidden": 11,
+        "Occupied source support is not certified outside world solids": 116,
+        "Unrelated visual geometry intersects source support (cylinder AABB is conservative)": 79
+      },
+      "types": {
+        "1": 23,
+        "3": 222,
+        "4": 11
+      },
+      "work": 266413,
+      "catalog_work": 1713,
+      "reads_observed_rgb": false,
+      "joint_fit_attempted": false,
+      "selection": "stable consolidated ID; first 256 named-surface candidates, 16M geometry work cap",
+      "profile": "UnknownProfile",
+      "claims_original_source_recovery": false
+    },
+    "current_matches_x14_summary": false,
+    "current_matches_x14_ids": false,
+    "control_resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\map-solver.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\hoth3-control",
+        "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 5.0939999999973224,
+      "peak_process_rss_bytes": 89743360
+    },
+    "historical_resources": {
+      "command": [
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-x14-v3-native.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs\\hoth3\\all-pages.jkobs",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\runs-asr17-asr17-side-v2\\hoth3-x14",
+        "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+        "mounting-only"
+      ],
+      "state": "Completed",
+      "exit_code": 0,
+      "wall_seconds": 5.202999999994063,
+      "peak_process_rss_bytes": 89571328
+    },
+    "input": {
+      "map": "hoth3",
+      "bsp_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "dataset_sha256": "fdbf5351babdaf6a1b0e9d776a77d01f5396e82c5f3945ec46079e171385d613",
+      "dataset_bytes": 383228400
+    },
+    "private_artifacts": {
+      "classification.json": "5e00e4364338b2fb8453342ddb60c112f3285c40d5a4a3bf653785eff52c6467",
+      "diagnosis-world.json": "71857a6774be568b655c9aa31da5f9829d83b29b1bdcaef1ed10a516d80bc915",
+      "diagnosis.jsonl": "935e32b04fbac12e930f6ecae03ecef8db427e3593abe2af574296c332fd3a8f",
+      "mounting-witnesses.tsv": "31fbe362a172b59d2627de51a59e16047634fbc050261f0303d9b4e7ee4862e4",
+      "mounting.json": "d6618d9f698f33dd97b23af905089ffe3637352eafd2674c4019f0af7ec6a333",
+      "native-resources.json": "fe439cf73025a3c0081061e395b89c42c76932a5ee395a37a6f23bed99bcbae9",
+      "native.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

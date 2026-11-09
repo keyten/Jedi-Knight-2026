@@ -212,7 +212,7 @@ std::vector<Node> Nodes(const Emitter &e, const Sampling &s, bool refined)
 			double area=Length(Cross(u,edgeV))*.5/(count*count);
 			for(unsigned i=0;i<count;++i)for(unsigned j=0;j<count-i;++j){
 				auto append=[&](double x,double y){Node node;node.surface=true;node.p=a+u*x+edgeV*y;
-					node.n=Unit(Cross(u,edgeV));node.area=area;node.sourceSurface=e.support.triangleSurfaces[t];
+					node.n=Unit(V(e.support.outward));node.area=area;node.sourceSurface=e.support.triangleSurfaces[t];
 					v.push_back(node);};
 				append((i+1./3)/count,(j+1./3)/count);
 				if(i+j+1<count)append((i+2./3)/count,(j+2./3)/count);
@@ -564,6 +564,13 @@ Error Prepare(const Model &model, const std::vector<Emitter> &emitters, const Ch
 		}
 		for(const auto& emitter:emitters)if(emitter.support.kind!=SourceSupport::Kind::LegacyVacuum){
 			Need(emitter.support.geometry==context.geometryKey,Code::InvalidState,"Stale emitter support geometry");
+			if(model.law==Law::HistoricalBake && emitter.support.kind==SourceSupport::Kind::OriginalSurface)
+				for(size_t i=0;i<emitter.support.original.count;++i){
+					const auto& t=emitter.support.original.data[i];
+					V raw=Unit(Cross(V(t.world[1])-V(t.world[0]),V(t.world[2])-V(t.world[0])));
+					Need(Dot(raw,V(emitter.support.outward))>1-1e-6,Code::Unavailable,
+						"Historical polygon expansion with reversed captured source winding is unverified");
+				}
 			if(model.law==Law::HistoricalBake && (emitter.support.kind==SourceSupport::Kind::MountedPoint||emitter.support.kind==SourceSupport::Kind::MountedSpot)){
 				double standOff=Dot(V(emitter.support.outward),V(emitter.geometry.position.world)-V(emitter.support.anchorWorld));
 				Need(standOff>0,Code::Unavailable,"Historical point/spot exactly on support: source endpoint trace replay is unverified; no black prediction substituted");

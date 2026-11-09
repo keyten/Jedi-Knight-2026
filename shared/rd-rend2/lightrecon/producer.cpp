@@ -1203,6 +1203,22 @@ bool Convert(const Candidates::Catalog &catalog, const Candidates::Model &model,
 	   e.origin != EvidenceOrigin::SurfaceObservation) {
 		SourceSupport::Contract support;ReadContext read;read.maxBytes=1ull<<20;
 		auto prepared=SourceSupport::FromSurfaces(r.placement.originalSurfaces,*r.placement.geometry,e.surfaces,model.bundle,read,support);
+		if (prepared && (e.origin == EvidenceOrigin::GlowSurface || e.origin == EvidenceOrigin::SurfaceLight) &&
+			g.kind != EmitterKind::Point)
+		{
+			// Archived evidence can predate source orientation/2. Reinterpret only
+			// a geometry-derived frame's hemisphere from its exact named lease.
+			// Keep pose, tangent axis, dimensions, identities and authored frames.
+			double alignment = Dot(V(g.frame.forward), V(support.outward));
+			if (!g.frame.known || std::abs(alignment) < 1 - 1e-6)
+				prepared = Failure(Code::Unavailable, "Archived source frame contradicts captured plane");
+			else if (alignment < 0)
+			{
+				g.frame.forward = (V(g.frame.forward) * -1).Float();
+				g.frame.up = (V(g.frame.up) * -1).Float();
+				c.provenance += "; archived source side rederived from named geometry/2";
+			}
+		}
 		if(!prepared){
 			support={};support.kind=SourceSupport::Kind::UnsupportedAssembly;support.map=r.mapKey;support.geometry=r.geometry.geometryKey;
 			support.fixture=model.bundle;support.provenance="Unsupported original fixture assembly: "+prepared.message;

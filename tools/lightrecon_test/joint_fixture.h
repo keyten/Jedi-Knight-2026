@@ -101,6 +101,7 @@ struct Scene
 		{
 			BakedVertex v;
 			v.position = p.Float();
+			v.shadingNormal = Unit(Cross(b - a, c - a)).Float();
 			s.vertices.push_back(v);
 		}
 		s.indices = {0, 1, 2, 0, 2, 3};

@@ -1,0 +1,146 @@
+{
+  "schema": "org.openjk.source-orientation-comparison.v1",
+  "before_protocol_sha256": "e98aa98e53a4370282390583d8adbcdd69e8fdb1c383122b1a2ba320a8943896",
+  "after_protocol_sha256": "5336b1b33903ac05c3bfa07099e83013b29d0305da326184f3cfa87f223b354b",
+  "unchanged_predicates": [
+    "shared/rd-rend2/lightrecon/regions_support.cpp",
+    "shared/rd-rend2/lightrecon/point_refine.cpp",
+    "shared/rd-rend2/lightrecon/visibility.cpp",
+    "SourceSupport::Check"
+  ],
+  "maps": {
+    "mp/duel4": {
+      "tested": 108,
+      "full_precision_occupied_geometry_matches": 108,
+      "same_candidate_and_fixture_ids": true,
+      "transitions": {
+        "Mount -> Mount": 4,
+        "Solid -> Solid": 17,
+        "UnknownGeometry -> Clearance": 32,
+        "UnknownGeometry -> Free": 20,
+        "UnknownGeometry -> UnknownGeometry": 35
+      },
+      "accepted": 20,
+      "accepted_source_ids": [
+        "74123568754762823",
+        "1306100435900299506",
+        "2458272224296654200",
+        "4480373312663643246",
+        "5248472070365465529",
+        "6361987031327913168",
+        "7702879952682018023",
+        "7854380362034997095",
+        "7967827599318894253",
+        "10285123240476712219",
+        "11067455518798817918",
+        "12492778983147770410",
+        "12985649331440224108",
+        "13490747156540536870",
+        "13822164036130606914",
+        "14075288316932806863",
+        "15472722673357019473",
+        "17113265162403112490",
+        "17642563986493954583",
+        "17881364168749391665"
+      ],
+      "accepted_with_independent_penetration_witness": 0,
+      "source_normal_agrees_with_all_captured_normals": 108,
+      "before_states": {
+        "UnknownGeometry": 87,
+        "Solid": 17,
+        "Mount": 4
+      },
+      "after_states": {
+        "Free": 20,
+        "Solid": 17,
+        "UnknownGeometry": 35,
+        "Clearance": 32,
+        "Mount": 4
+      }
+    },
+    "mp/siege_desert": {
+      "tested": 256,
+      "full_precision_occupied_geometry_matches": 256,
+      "same_candidate_and_fixture_ids": true,
+      "transitions": {
+        "Mount -> Mount": 2,
+        "Solid -> Solid": 2,
+        "UnknownGeometry -> Clearance": 225,
+        "UnknownGeometry -> Conditional": 9,
+        "UnknownGeometry -> UnknownGeometry": 18
+      },
+      "accepted": 9,
+      "accepted_source_ids": [
+        "207281828424223196",
+        "415901233883250972",
+        "605652325365153833",
+        "735982173673099841",
+        "1497896481259901778",
+        "2289334340819651771",
+        "2421188033436738112",
+        "2433361544553657107",
+        "2495597166895273974"
+      ],
+      "accepted_with_independent_penetration_witness": 0,
+      "source_normal_agrees_with_all_captured_normals": 256,
+      "before_states": {
+        "UnknownGeometry": 252,
+        "Solid": 2,
+        "Mount": 2
+      },
+      "after_states": {
+        "UnknownGeometry": 18,
+        "Clearance": 225,
+        "Conditional": 9,
+        "Solid": 2,
+        "Mount": 2
+      }
+    },
+    "hoth3": {
+      "tested": 256,
+      "full_precision_occupied_geometry_matches": 256,
+      "same_candidate_and_fixture_ids": true,
+      "transitions": {
+        "Mount -> Mount": 11,
+        "Solid -> Solid": 37,
+        "UnknownGeometry -> Clearance": 79,
+        "UnknownGeometry -> Conditional": 11,
+        "UnknownGeometry -> Solid": 3,
+        "UnknownGeometry -> UnknownGeometry": 115
+      },
+      "accepted": 11,
+      "accepted_source_ids": [
+        "620274267278898667",
+        "726643922567887850",
+        "835263239471497799",
+        "912337565413090348",
+        "2564495962260001453",
+        "2625970495719115678",
+        "2747424476304772333",
+        "4939542917833241408",
+        "7528550119989717416",
+        "7767654878754089219",
+        "8349230174925364851"
+      ],
+      "accepted_with_independent_penetration_witness": 0,
+      "source_normal_agrees_with_all_captured_normals": 256,
+      "before_states": {
+        "UnknownGeometry": 208,
+        "Mount": 11,
+        "Solid": 37
+      },
+      "after_states": {
+        "Clearance": 79,
+        "Mount": 11,
+        "UnknownGeometry": 115,
+        "Solid": 40,
+        "Conditional": 11
+      }
+    }
+  },
+  "original_archives_unchanged": true,
+  "canonical_storage_changed": false,
+  "source_truth": "Unavailable",
+  "classified": 620,
+  "accepted": 40
+}

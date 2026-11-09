@@ -117,6 +117,17 @@ class Writer
 			 const O::Sources &s, const StaticVisibility &rays, const ReadContext &read)
 	{
 		const auto &c=e.support; auto supports=Supports(e.geometry,c);
+		if (c.kind == SourceSupport::Kind::UnsupportedAssembly)
+		{
+			rows<<"{\"schema\":\"org.openjk.mount-diagnosis.v1\",\"source\":"<<Q(std::to_string(source))
+				<<",\"fixture\":"<<Q(std::to_string(c.fixture))<<",\"kind\":"<<unsigned(e.geometry.kind)
+				<<",\"contract\":"<<unsigned(c.kind)<<",\"state\":"<<Q(PointRefine::ConstraintName(result.placement.state))
+				<<",\"reason\":"<<Q(result.reason)<<",\"anchor\":[0,0,0],\"normal\":[0,0,0],\"surfaces\":[],"
+				  "\"local\":{\"complete\":0,\"issues\":0,\"triangles\":[]},\"supports\":[],\"rays\":[],\"point_probes\":[],"
+				  "\"diagnostic_scope\":\"unsupported contract; no fabricated support probes\",\"diagnostic_cumulative_work\":"<<work<<"}\n";
+			Need(bool(rows), "ASR17 witness output unavailable");
+			return;
+		}
 		auto bounds=BoundsOf(supports,c.anchorWorld); LocalGeometry local;
 		Check(rays.ExtractBox(bounds,read,4096,1048576,local)); work+=local.work;
 		rows<<"{\"schema\":\"org.openjk.mount-diagnosis.v1\",\"source\":"<<Q(std::to_string(source))

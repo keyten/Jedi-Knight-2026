@@ -39,15 +39,20 @@ BakedSurface Quad(uint32_t ordinal, Vec3 origin, Vec3 right, Vec3 up,
 	s.materialFacts.emissionStaticCoordinates = true;
 	s.materialFacts.emissionLayerCount = 1;
 	s.materialFacts.cull = SurfaceCull::Front;
+	Vec3 normal(right.y*up.z-right.z*up.y, right.z*up.x-right.x*up.z, right.x*up.y-right.y*up.x);
+	float normalLength=std::sqrt(normal.x*normal.x+normal.y*normal.y+normal.z*normal.z);
+	if(normalLength>0)normal=Scale(normal,1/normalLength);
 	for (unsigned y = 0; y < 2; ++y)
 		for (unsigned x = 0; x < 2; ++x)
 		{
 			BakedVertex v;
 			v.position = Plus(origin, Plus(Scale(right, width*x), Scale(up, height*y)));
+			v.shadingNormal = normal;
 			v.textureUv = LightmapUv(x, y);
 			s.vertices.push_back(v);
 		}
-	s.indices = {0,1,3,0,3,2};
+	// The captured renderer culls GL front faces; retain the authored side.
+	s.indices = {0,3,1,0,2,3};
 	return s;
 }
 struct Masks : EmissionMaskProvider

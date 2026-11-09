@@ -36,7 +36,7 @@ add_library(rend2_lightrecon_core STATIC
 	visibility.cpp visibility.h
 	regions.cpp regions_support.cpp regions.h geometry_key.h
 	emission_geometry.cpp emission_geometry.h evidence.cpp evidence.h
-	emitter_support.cpp emitter_support.h
+	emitter_support.cpp emitter_support.h source_orientation.h
 	offline.cpp offline.h offline_io.cpp offline_bsp.cpp
 	disk.cpp disk.h cache.cpp cache.h dependencies.cpp dependencies.h
 	persistent.cpp persistent.h lifecycle.cpp lifecycle.h ../tr_lightrecon_cvars.inc)
