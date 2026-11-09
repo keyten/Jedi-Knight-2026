@@ -1,0 +1,850 @@
+{
+  "cases": [
+    {
+      "name": "point_room",
+      "protocol": {
+        "anchors": [
+          [
+            -96.0,
+            32.0,
+            180.0
+          ]
+        ],
+        "authored_rgb_or_intensity_in_request": false,
+        "bsp_sha256": "890a15b75b0ae24ddad2725ba24327f7e1949bf17d0e7fd6baef100a59feb2af",
+        "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+        "fit_sha256": "45a7c34ad1524d11ed14cca0296bf0526bca069f74e10433a2c4043a30aa3d76",
+        "geometry_sha256": "f917d18c0796d3cb10a6b34ef63777eb05543a68559c0eb4d26ac70ace8abec0",
+        "held_sha256": "683b411d238251a8c1127bdfc578c7f9663bdda1239fe9606df81c71601d8b66",
+        "partitions": {
+          "heldout": "00ed225d5ee1b7416af1493cc74cc13b2d66a193904bdf366fda78b858aa051d",
+          "train": "ec41e254c9b447c7b9edbcaabf06b43e7645022777b4f6b50619eafacb9f9d72",
+          "validation": "2b21db10069e8716f29183e63f97cfa926601e6416b8959dd1e36ba81936e3c7"
+        },
+        "selection": "Geometry-only stable spatial strata, maximum 48 rows per fold"
+      },
+      "repeat_identical": true,
+      "result": {
+        "absolute_scale_known": false,
+        "baseline": {
+          "heldout": {
+            "available": 1,
+            "blocks": 2,
+            "mse": 1764.33333333,
+            "normal_bins": 1,
+            "robust": 158.888888889,
+            "rows": 15
+          },
+          "training": {
+            "available": 1,
+            "blocks": 2,
+            "mse": 1111.66666667,
+            "normal_bins": 1,
+            "robust": 110.666666667,
+            "rows": 18
+          },
+          "validation": {
+            "available": 1,
+            "blocks": 2,
+            "mse": 880.666666667,
+            "normal_bins": 1,
+            "robust": 99.7777777778,
+            "rows": 15
+          }
+        },
+        "configurations": [
+          {
+            "available": 1,
+            "background": [
+              0.176569148898,
+              0.176569148898,
+              0.176569148898
+            ],
+            "background_at_bound": 0,
+            "converged": 1,
+            "heldout": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 9.60507249046e-09,
+              "normal_bins": 1,
+              "robust": 4.80253624523e-09,
+              "rows": 15
+            },
+            "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+            "name": "fixtures-1",
+            "sources": [
+              {
+                "column_rms": 0.0185575475441,
+                "emitting_area_world_squared": 0,
+                "fixture": "1",
+                "maximum_correlation": 0,
+                "placement": "Free",
+                "position": [
+                  -96,
+                  32,
+                  180
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  2201.07617188,
+                  2201.07617188,
+                  2201.07617188
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              }
+            ],
+            "training": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 6.17623704279e-08,
+              "normal_bins": 1,
+              "robust": 3.08811852139e-08,
+              "rows": 18
+            },
+            "validation": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 5.21572979374e-08,
+              "normal_bins": 1,
+              "robust": 2.60786489687e-08,
+              "rows": 15
+            }
+          }
+        ],
+        "historical_source_truth": "Unavailable",
+        "map": "maps/lrq3_point_room.bsp",
+        "material": "textures/recon_offline/white",
+        "material_response": "Assumed same-material encoded appearance only",
+        "schema": "org.openjk.aesthetic-fit.v1",
+        "selected": 0,
+        "validation_equivalent": [
+          0
+        ],
+        "work": 1938353
+      }
+    },
+    {
+      "name": "two_colour",
+      "protocol": {
+        "anchors": [
+          [
+            -96.0,
+            32.0,
+            180.0
+          ],
+          [
+            96.0,
+            -32.0,
+            160.0
+          ],
+          [
+            0.0,
+            0.0,
+            170.0
+          ]
+        ],
+        "authored_rgb_or_intensity_in_request": false,
+        "bsp_sha256": "0969f5a631e5a9bac95224f1831df1587bad62f883761c89b92231119eef6ec1",
+        "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+        "fit_sha256": "4a0d00dc925dccca53b6743659d477a47b965e9861b7083c192b832e21e284d0",
+        "geometry_sha256": "e55df16fc3dda4d654ff5b0ac6f5b44ed30b478d4bc7ffbc9755eb7376c8bdc9",
+        "held_sha256": "3dd53efbf3943c43157e7e892f4e01f470358884f7844943ca9f255d8d9993c0",
+        "partitions": {
+          "heldout": "f9646b6e8a23d3630ef79d29c734d811c2e6a2d7ff5c9db2e40745138bf9b923",
+          "train": "84ff0375f3bee51aa0dc1bc469c74f01170735bc4f9f9da42ba99919f9f0adb7",
+          "validation": "e82486b9fa788c1353425ab78d0a64e20eb4b664589d1ab825130fb7001cf604"
+        },
+        "selection": "Geometry-only stable spatial strata, maximum 48 rows per fold"
+      },
+      "repeat_identical": true,
+      "result": {
+        "absolute_scale_known": false,
+        "baseline": {
+          "heldout": {
+            "available": 1,
+            "blocks": 2,
+            "mse": 773.657407407,
+            "normal_bins": 1,
+            "robust": 76.6805555556,
+            "rows": 15
+          },
+          "training": {
+            "available": 1,
+            "blocks": 2,
+            "mse": 635.759259259,
+            "normal_bins": 1,
+            "robust": 70.537037037,
+            "rows": 18
+          },
+          "validation": {
+            "available": 1,
+            "blocks": 2,
+            "mse": 1365.98148148,
+            "normal_bins": 1,
+            "robust": 93.5740740741,
+            "rows": 15
+          }
+        },
+        "configurations": [
+          {
+            "available": 1,
+            "background": [
+              2.05240416527,
+              8,
+              8
+            ],
+            "background_at_bound": 1,
+            "converged": 1,
+            "heldout": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 45.3587752629,
+              "normal_bins": 1,
+              "robust": 12.469134977,
+              "rows": 15
+            },
+            "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+            "name": "fixtures-1",
+            "sources": [
+              {
+                "column_rms": 0.0185575475441,
+                "emitting_area_world_squared": 0,
+                "fixture": "1",
+                "maximum_correlation": 0,
+                "placement": "Free",
+                "position": [
+                  -96,
+                  32,
+                  180
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  2168.03735352,
+                  161.99256897,
+                  792.838134766
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              }
+            ],
+            "training": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 113.9456545,
+              "normal_bins": 1,
+              "robust": 16.6713252846,
+              "rows": 18
+            },
+            "validation": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 866.481513794,
+              "normal_bins": 1,
+              "robust": 59.2645876607,
+              "rows": 15
+            }
+          },
+          {
+            "available": 1,
+            "background": [
+              8,
+              7.99999952316,
+              2.60167741776
+            ],
+            "background_at_bound": 1,
+            "converged": 0,
+            "heldout": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 333.870078333,
+              "normal_bins": 1,
+              "robust": 39.2915266126,
+              "rows": 15
+            },
+            "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+            "name": "fixtures-2",
+            "sources": [
+              {
+                "column_rms": 0.015366092009,
+                "emitting_area_world_squared": 0,
+                "fixture": "2",
+                "maximum_correlation": 0,
+                "placement": "Free",
+                "position": [
+                  96,
+                  -32,
+                  160
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  1054.80761719,
+                  190.066207886,
+                  2103.34960938
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              }
+            ],
+            "training": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 203.189860968,
+              "normal_bins": 1,
+              "robust": 22.7291073181,
+              "rows": 18
+            },
+            "validation": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 291.338070261,
+              "normal_bins": 1,
+              "robust": 37.1912144994,
+              "rows": 15
+            }
+          },
+          {
+            "available": 1,
+            "background": [
+              1.368735075,
+              3.89676117897,
+              0
+            ],
+            "background_at_bound": 0,
+            "converged": 0,
+            "heldout": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 0.112525398688,
+              "normal_bins": 1,
+              "robust": 0.056262699344,
+              "rows": 15
+            },
+            "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+            "name": "fixtures-3",
+            "sources": [
+              {
+                "column_rms": 0.0185575475441,
+                "emitting_area_world_squared": 0,
+                "fixture": "1",
+                "maximum_correlation": 0.789394780179,
+                "placement": "Free",
+                "position": [
+                  -96,
+                  32,
+                  180
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  2187.20288086,
+                  172.743484497,
+                  69.4985427856
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              },
+              {
+                "column_rms": 0.015366092009,
+                "emitting_area_world_squared": 0,
+                "fixture": "2",
+                "maximum_correlation": 0.789394780179,
+                "placement": "Free",
+                "position": [
+                  96,
+                  -32,
+                  160
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  25.7606487274,
+                  281.336029053,
+                  2197.57885742
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              }
+            ],
+            "training": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 0.00822705789649,
+              "normal_bins": 1,
+              "robust": 0.00411352894824,
+              "rows": 18
+            },
+            "validation": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 1.63007472218,
+              "normal_bins": 1,
+              "robust": 0.815037361091,
+              "rows": 15
+            }
+          },
+          {
+            "available": 1,
+            "background": [
+              0,
+              6.25187349319,
+              8
+            ],
+            "background_at_bound": 1,
+            "converged": 0,
+            "heldout": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 102.146088583,
+              "normal_bins": 1,
+              "robust": 20.70280743,
+              "rows": 15
+            },
+            "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+            "name": "fixtures-4",
+            "sources": [
+              {
+                "column_rms": 0.0200877332525,
+                "emitting_area_world_squared": 0,
+                "fixture": "3",
+                "maximum_correlation": 0,
+                "placement": "Free",
+                "position": [
+                  0,
+                  0,
+                  170
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  2103.74560547,
+                  247.747970581,
+                  986.883972168
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              }
+            ],
+            "training": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 92.6279409244,
+              "normal_bins": 1,
+              "robust": 22.4424504917,
+              "rows": 18
+            },
+            "validation": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 723.784522885,
+              "normal_bins": 1,
+              "robust": 72.7261548189,
+              "rows": 15
+            }
+          },
+          {
+            "available": 1,
+            "background": [
+              1.55547475815,
+              6.32431983948,
+              8
+            ],
+            "background_at_bound": 1,
+            "converged": 0,
+            "heldout": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 7.76864068528,
+              "normal_bins": 1,
+              "robust": 3.44539744853,
+              "rows": 15
+            },
+            "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+            "name": "fixtures-5",
+            "sources": [
+              {
+                "column_rms": 0.0185575475441,
+                "emitting_area_world_squared": 0,
+                "fixture": "1",
+                "maximum_correlation": 0.951884485548,
+                "placement": "Free",
+                "position": [
+                  -96,
+                  32,
+                  180
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  2163.90258789,
+                  0,
+                  0
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              },
+              {
+                "column_rms": 0.0200877332525,
+                "emitting_area_world_squared": 0,
+                "fixture": "3",
+                "maximum_correlation": 0.951884485548,
+                "placement": "Free",
+                "position": [
+                  0,
+                  0,
+                  170
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  30.106760025,
+                  244.030960083,
+                  986.909667969
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              }
+            ],
+            "training": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 45.4133112778,
+              "normal_bins": 1,
+              "robust": 10.3263670849,
+              "rows": 18
+            },
+            "validation": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 499.277714671,
+              "normal_bins": 1,
+              "robust": 40.9746137589,
+              "rows": 15
+            }
+          },
+          {
+            "available": 1,
+            "background": [
+              0,
+              4.44534254074,
+              2.60051393509
+            ],
+            "background_at_bound": 0,
+            "converged": 0,
+            "heldout": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 94.4484048583,
+              "normal_bins": 1,
+              "robust": 17.2934258371,
+              "rows": 15
+            },
+            "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+            "name": "fixtures-6",
+            "sources": [
+              {
+                "column_rms": 0.015366092009,
+                "emitting_area_world_squared": 0,
+                "fixture": "2",
+                "maximum_correlation": 0.936825787375,
+                "placement": "Free",
+                "position": [
+                  96,
+                  -32,
+                  160
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  0,
+                  127.036842346,
+                  2103.4128418
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              },
+              {
+                "column_rms": 0.0200877332525,
+                "emitting_area_world_squared": 0,
+                "fixture": "3",
+                "maximum_correlation": 0.936825787375,
+                "placement": "Free",
+                "position": [
+                  0,
+                  0,
+                  170
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  2103.80322266,
+                  232.279129028,
+                  0
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              }
+            ],
+            "training": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 47.2318652069,
+              "normal_bins": 1,
+              "robust": 12.1248553261,
+              "rows": 18
+            },
+            "validation": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 228.876621506,
+              "normal_bins": 1,
+              "robust": 33.891248393,
+              "rows": 15
+            }
+          },
+          {
+            "available": 1,
+            "background": [
+              1.36754965782,
+              3.89676117897,
+              0
+            ],
+            "background_at_bound": 0,
+            "converged": 0,
+            "heldout": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 0.112518605807,
+              "normal_bins": 1,
+              "robust": 0.0562593029033,
+              "rows": 15
+            },
+            "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+            "name": "fixtures-7",
+            "sources": [
+              {
+                "column_rms": 0.0185575475441,
+                "emitting_area_world_squared": 0,
+                "fixture": "1",
+                "maximum_correlation": 0.951884485548,
+                "placement": "Free",
+                "position": [
+                  -96,
+                  32,
+                  180
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  2187.25292969,
+                  172.743484497,
+                  69.4985427856
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              },
+              {
+                "column_rms": 0.015366092009,
+                "emitting_area_world_squared": 0,
+                "fixture": "2",
+                "maximum_correlation": 0.936825787375,
+                "placement": "Free",
+                "position": [
+                  96,
+                  -32,
+                  160
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  25.7789802551,
+                  281.336029053,
+                  2197.57885742
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              },
+              {
+                "column_rms": 0.0200877332525,
+                "emitting_area_world_squared": 0,
+                "fixture": "3",
+                "maximum_correlation": 0.951884485548,
+                "placement": "Free",
+                "position": [
+                  0,
+                  0,
+                  170
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  0,
+                  0,
+                  0
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              }
+            ],
+            "training": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 0.00822560172621,
+              "normal_bins": 1,
+              "robust": 0.00411280086311,
+              "rows": 18
+            },
+            "validation": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 1.63006163215,
+              "normal_bins": 1,
+              "robust": 0.815030816074,
+              "rows": 15
+            }
+          }
+        ],
+        "historical_source_truth": "Unavailable",
+        "map": "maps/lrq3_two_colour.bsp",
+        "material": "textures/recon_offline/white",
+        "material_response": "Assumed same-material encoded appearance only",
+        "schema": "org.openjk.aesthetic-fit.v1",
+        "selected": 2,
+        "validation_equivalent": [
+          2,
+          6
+        ],
+        "work": 29724052
+      }
+    },
+    {
+      "name": "door_occlusion",
+      "protocol": {
+        "anchors": [
+          [
+            -96.0,
+            32.0,
+            180.0
+          ]
+        ],
+        "authored_rgb_or_intensity_in_request": false,
+        "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+        "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+        "fit_sha256": "9efa1512a64081e7866b043060fdfbb56e50e1b6e2aa0caabc87258cfb90d26c",
+        "geometry_sha256": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+        "held_sha256": "d92d83e0c013a7dc6e1bd765e73657d364fea8580fb14ba502baa13183301b97",
+        "partitions": {
+          "heldout": "467ca4ac91336889212ba74ef4b385069b0b77aff598943ec111bfa8fe301d56",
+          "train": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734",
+          "validation": "ded6f9fb54688e685b81e3cb5b563bb85e28d6b30c7004aabfc825ec1a68c92c"
+        },
+        "selection": "Geometry-only stable spatial strata, maximum 48 rows per fold"
+      },
+      "repeat_identical": true,
+      "result": {
+        "absolute_scale_known": false,
+        "baseline": {
+          "heldout": {
+            "available": 1,
+            "blocks": 2,
+            "mse": 2001.46815915,
+            "normal_bins": 1,
+            "robust": 169.891994052,
+            "rows": 15
+          },
+          "training": {
+            "available": 1,
+            "blocks": 2,
+            "mse": 1132.7657831,
+            "normal_bins": 1,
+            "robust": 94.8888888889,
+            "rows": 18
+          },
+          "validation": {
+            "available": 1,
+            "blocks": 2,
+            "mse": 1036.500771,
+            "normal_bins": 1,
+            "robust": 110.780882941,
+            "rows": 15
+          }
+        },
+        "configurations": [
+          {
+            "available": 1,
+            "background": [
+              1,
+              1,
+              1
+            ],
+            "background_at_bound": 0,
+            "converged": 1,
+            "heldout": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 0,
+              "normal_bins": 1,
+              "robust": 0,
+              "rows": 15
+            },
+            "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+            "name": "fixtures-1",
+            "sources": [
+              {
+                "column_rms": 0.016975791296,
+                "emitting_area_world_squared": 0,
+                "fixture": "1",
+                "maximum_correlation": 0,
+                "placement": "Free",
+                "position": [
+                  -96,
+                  32,
+                  180
+                ],
+                "power_at_bound": 0,
+                "quadrature_difference": 0,
+                "relative_rgb": [
+                  2168.65551758,
+                  2168.65551758,
+                  2168.72436523
+                ],
+                "state": "Candidate",
+                "type": "Point"
+              }
+            ],
+            "training": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 0,
+              "normal_bins": 1,
+              "robust": 0,
+              "rows": 18
+            },
+            "validation": {
+              "available": 1,
+              "blocks": 2,
+              "mse": 0.0148289754605,
+              "normal_bins": 1,
+              "robust": 0.00741448773025,
+              "rows": 15
+            }
+          }
+        ],
+        "historical_source_truth": "Unavailable",
+        "map": "maps/lrq3_door_occlusion.bsp",
+        "material": "textures/recon_offline/white",
+        "material_response": "Assumed same-material encoded appearance only",
+        "schema": "org.openjk.aesthetic-fit.v1",
+        "selected": 0,
+        "validation_equivalent": [
+          0
+        ],
+        "work": 239995
+      }
+    }
+  ],
+  "historical_source_truth": "Unavailable"
+}

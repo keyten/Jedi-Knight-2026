@@ -1,0 +1,97 @@
+{
+  "private_result_sha256": "98c4db99972d5a0ce0889e1d72e2a12116456f60ae49ba0496f6423b8be08c0c",
+  "repeat_identical": true,
+  "result": {
+    "absolute_scale_known": false,
+    "baseline": {
+      "heldout": {
+        "available": 1,
+        "blocks": 2,
+        "mse": 1621.91817095,
+        "normal_bins": 3,
+        "robust": 107.089597218,
+        "rows": 22
+      },
+      "training": {
+        "available": 1,
+        "blocks": 2,
+        "mse": 1546.03703704,
+        "normal_bins": 1,
+        "robust": 148.444444444,
+        "rows": 8
+      },
+      "validation": {
+        "available": 1,
+        "blocks": 2,
+        "mse": 6048.9405504,
+        "normal_bins": 2,
+        "robust": 278.781314303,
+        "rows": 16
+      }
+    },
+    "configurations": [
+      {
+        "available": 1,
+        "background": [
+          32,
+          32,
+          32
+        ],
+        "background_at_bound": 1,
+        "converged": 1,
+        "heldout": {
+          "available": 1,
+          "blocks": 2,
+          "mse": 1621.91817095,
+          "normal_bins": 3,
+          "robust": 107.089597218,
+          "rows": 22
+        },
+        "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+        "name": "fixtures-1",
+        "sources": [
+          {
+            "column_rms": 0,
+            "emitting_area_world_squared": 2816,
+            "fixture": "1028",
+            "maximum_correlation": 0,
+            "placement": "Free",
+            "power_at_bound": 0,
+            "quadrature_difference": 0,
+            "relative_rgb": [
+              0,
+              0,
+              0
+            ],
+            "state": "Candidate",
+            "type": "Rectangle"
+          }
+        ],
+        "training": {
+          "available": 1,
+          "blocks": 2,
+          "mse": 1546.03703704,
+          "normal_bins": 1,
+          "robust": 148.444444444,
+          "rows": 8
+        },
+        "validation": {
+          "available": 1,
+          "blocks": 2,
+          "mse": 6048.9405504,
+          "normal_bins": 2,
+          "robust": 278.781314303,
+          "rows": 16
+        }
+      }
+    ],
+    "historical_source_truth": "Unavailable",
+    "map": "maps/mp/duel4.bsp",
+    "material": "textures/imperial/crate_panels",
+    "material_response": "Assumed same-material encoded appearance only",
+    "schema": "org.openjk.aesthetic-fit.v1",
+    "selected": -1,
+    "validation_equivalent": [],
+    "work": 136846
+  }
+}

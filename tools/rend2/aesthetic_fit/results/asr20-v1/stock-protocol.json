@@ -1,0 +1,27 @@
+{
+  "archive_sha256": "8173ddaa017c87dd4b341d240f95f6a99599f894d4164d0ab7902bc70b2ac3c5",
+  "fit_sha256": "ce812f2642e7bdf5312bdef4a0af1b3c4d1a368df239802084fd50cc2b8c38d6",
+  "frozen_before_fitting": true,
+  "held_sha256": "f32ded4ee1e0b2ecb6bb174cbdd0bdf07c98ba9263cb99c661c33d217f3841b5",
+  "radius": 512,
+  "raw_geometry_and_samples": "Private work directory only",
+  "selection": {
+    "fixture": "1028",
+    "historical_source_truth": "Unavailable",
+    "mask": "Unknown whole-face bound",
+    "material": "textures/imperial/crate_panels",
+    "minimum_fold_rows": 8,
+    "selection": "Geometry-only radius, facing receivers and stable sample hash; same material maximizes minimum fold coverage",
+    "surface": 1027
+  },
+  "spatial_blocks": {
+    "gap": "3 * exact source-UV footprint radius + 1 WU",
+    "offset": [
+      17,
+      31,
+      47
+    ],
+    "seed": 20261109,
+    "size": 256
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "compiled": {
+    "all_beat_nuisance_baseline_on_heldout": true,
+    "positive_scenes": 3,
+    "repeat_identical": true
+  },
+  "cpu_tests": {
+    "excluded": [
+      "lightrecon_point_refine"
+    ],
+    "failed": 0,
+    "passed": 55,
+    "reason": "Unchanged historical position-refinement path; ASR20 fixes positions"
+  },
+  "historical_core_and_canonical_types_match_asr19": true,
+  "licensed_geometry_committed": false,
+  "owned": {
+    "assertions": 365,
+    "failures": 0,
+    "repeat_identical": true
+  },
+  "runtime_changed": false,
+  "source_hashes_match_final_protocol": true,
+  "stock": {
+    "reason": "Zero training direct response, fixed panel power remains zero",
+    "repeat_identical": true,
+    "status": "No local light selected"
+  },
+  "syntax": {
+    "flags": [
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-fsyntax-only"
+    ],
+    "passed": true,
+    "standard": "C++11",
+    "translation_units": [
+      "aesthetic_fit.cpp",
+      "lightrecon_aesthetic_tool.cpp",
+      "lightrecon_aesthetic_test.cpp"
+    ]
+  }
+}
