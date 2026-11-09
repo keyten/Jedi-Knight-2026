@@ -1,0 +1,1328 @@
+{
+  "compiled_point_room": {
+    "full": {
+      "accepted_physical_sources": 0,
+      "active_sources": 4,
+      "fold_errors": {
+        "heldout": {
+          "mse": 413.7610050302044,
+          "relative_rmse": 69.22092366598875,
+          "rows": 30
+        },
+        "validation": {
+          "mse": 0.020118714402130686,
+          "relative_rmse": 0.4280987157195884,
+          "rows": 57
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 1,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 1,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 4,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.25
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 1
+        },
+        "32_WU": {
+          "false_negative": 1,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -176.63999998359,
+          78.50666664360128,
+          10.23999998352962
+        ],
+        [
+          -58.87999988593174,
+          78.50666667696484,
+          128.0
+        ],
+        [
+          -117.7600000495831,
+          39.25333334050836,
+          206.50666669425422
+        ],
+        [
+          -58.8799998884237,
+          -117.76000000275624,
+          128.0
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "one_pass_fit": {
+      "accepted_physical_sources": 0,
+      "active_sources": 2,
+      "fold_errors": {
+        "heldout": {
+          "mse": 0.008742098376446402,
+          "relative_rmse": 0.3181782257363784,
+          "rows": 30
+        },
+        "validation": {
+          "mse": 0.02452280978828344,
+          "relative_rmse": 0.47263831674698953,
+          "rows": 57
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 1,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 1,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 1,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "32_WU": {
+          "false_negative": 1,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -176.63999999129192,
+          39.25333337466958,
+          245.76000003134217
+        ],
+        [
+          -58.880000021748145,
+          39.253333352586026,
+          128.0
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "proposal_only": {
+      "accepted_physical_sources": 0,
+      "active_sources": 4,
+      "fold_errors": {},
+      "matching": {
+        "0.025_width": {
+          "false_negative": 1,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 1,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 1,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "32_WU": {
+          "false_negative": 1,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -117.75999999999999,
+          78.50666666666667,
+          10.24
+        ],
+        [
+          -58.879999999999995,
+          -117.76,
+          10.24
+        ],
+        [
+          -176.64,
+          39.253333333333345,
+          245.76
+        ],
+        [
+          -58.879999999999995,
+          39.253333333333345,
+          127.99999999999999
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    }
+  },
+  "compiled_two_colour": {
+    "full": {
+      "accepted_physical_sources": 0,
+      "active_sources": 4,
+      "fold_errors": {
+        "heldout": {
+          "mse": 335.8213580829473,
+          "relative_rmse": 100.32370313235855,
+          "rows": 30
+        },
+        "validation": {
+          "mse": 0.26594470671831094,
+          "relative_rmse": 2.147463595631844,
+          "rows": 57
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 2,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 2,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 2,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "32_WU": {
+          "false_negative": 2,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          117.76000002364844,
+          -78.50666669076618,
+          49.493333324712545
+        ],
+        [
+          -176.64000000928328,
+          117.76000001212131,
+          10.239999998191895
+        ],
+        [
+          176.64000002067075,
+          -78.50666668837356,
+          10.239999991308467
+        ],
+        [
+          176.63999999789922,
+          -117.75999999900426,
+          206.50666666823076
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "one_pass_fit": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {
+        "heldout": {
+          "mse": 1.754812834263785,
+          "relative_rmse": 7.25211694273698,
+          "rows": 30
+        },
+        "validation": {
+          "mse": 0.2725557484361685,
+          "relative_rmse": 2.1739913312119774,
+          "rows": 57
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "32_WU": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          117.75999999999999,
+          -78.50666666666666,
+          49.49333333333334
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "proposal_only": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {},
+      "matching": {
+        "0.025_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "32_WU": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          117.75999999999999,
+          -78.50666666666666,
+          49.49333333333333
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    }
+  },
+  "linear_fill_control": {
+    "full": {
+      "accepted_physical_sources": 0,
+      "active_sources": 4,
+      "fold_errors": {
+        "heldout": {
+          "mse": 5.298178727669429,
+          "relative_rmse": 2.301777297583202,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 5.366644684257833,
+          "relative_rmse": 2.3166019693201143,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -0.025698510736440916,
+          0.058383439068937726,
+          0.002773285848700624
+        ],
+        [
+          -0.4357962506141979,
+          -0.9604792268402408,
+          0.9596437643389235
+        ],
+        [
+          0.6698726568894409,
+          -0.7043006821874246,
+          -0.6885261827866127
+        ],
+        [
+          0.7136901329749756,
+          -0.8212831773889933,
+          0.7337676161167912
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "one_pass_fit": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {
+        "heldout": {
+          "mse": 0.13545527941661717,
+          "relative_rmse": 0.3680424967535912,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 0.14602010857987316,
+          "relative_rmse": 0.3821257758642737,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -0.0036706525182588212,
+          0.005704687978787648,
+          0.011152519658826687
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "proposal_only": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {},
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          1.1102230246251565e-16,
+          1.1102230246251565e-16,
+          1.1102230246251565e-16
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    }
+  },
+  "linear_four": {
+    "full": {
+      "accepted_physical_sources": 0,
+      "active_sources": 3,
+      "fold_errors": {
+        "heldout": {
+          "mse": 0.0006652141733028257,
+          "relative_rmse": 0.10922988308723365,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 0.0007534051645899762,
+          "relative_rmse": 0.12242649510318335,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 3,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 3,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.3333333333333333
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.25
+          },
+          "true_positive": 1
+        },
+        "0.05_width": {
+          "false_negative": 3,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 3,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.3333333333333333
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.25
+          },
+          "true_positive": 1
+        },
+        "0.1_width": {
+          "false_negative": 3,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 3,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.3333333333333333
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.25
+          },
+          "true_positive": 1
+        }
+      },
+      "source_positions": [
+        [
+          0.22268058461730456,
+          -0.07357958846138102,
+          -0.017844757832938263
+        ],
+        [
+          -0.5813584212723326,
+          -0.4040085366389373,
+          0.47255731603717566
+        ],
+        [
+          -0.9858875789808205,
+          -0.4161141293013185,
+          0.21452397191580208
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "one_pass_fit": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {
+        "heldout": {
+          "mse": 0.004549738235353986,
+          "relative_rmse": 0.28566295686010945,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 0.0054060210510912836,
+          "relative_rmse": 0.3279442240190483,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -0.4069336350477347,
+          -0.2864166968048487,
+          0.3352373321471802
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "proposal_only": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {},
+      "matching": {
+        "0.025_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          1.1102230246251565e-16,
+          1.1102230246251565e-16,
+          1.1102230246251565e-16
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    }
+  },
+  "linear_two": {
+    "full": {
+      "accepted_physical_sources": 0,
+      "active_sources": 3,
+      "fold_errors": {
+        "heldout": {
+          "mse": 1.23784492202814e-27,
+          "relative_rmse": 1.1507467300749516e-13,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 1.1149626310657976e-27,
+          "relative_rmse": 1.2482551451628921e-13,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 3,
+            "numerator": 2,
+            "status": "Available",
+            "value": 0.6666666666666666
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 3,
+            "numerator": 2,
+            "status": "Available",
+            "value": 0.6666666666666666
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 3,
+            "numerator": 2,
+            "status": "Available",
+            "value": 0.6666666666666666
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        }
+      },
+      "source_positions": [
+        [
+          0.45000000000022156,
+          0.34999999999998743,
+          0.09999999999995857
+        ],
+        [
+          -0.3999999934860945,
+          -0.2500000106125446,
+          0.45000000579541855
+        ],
+        [
+          -0.40000000574201233,
+          -0.24999999064503475,
+          0.44999999489133446
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "one_pass_fit": {
+      "accepted_physical_sources": 0,
+      "active_sources": 3,
+      "fold_errors": {
+        "heldout": {
+          "mse": 1.23784492202814e-27,
+          "relative_rmse": 1.1507467300749516e-13,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 1.1149626310657976e-27,
+          "relative_rmse": 1.2482551451628921e-13,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 3,
+            "numerator": 2,
+            "status": "Available",
+            "value": 0.6666666666666666
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 3,
+            "numerator": 2,
+            "status": "Available",
+            "value": 0.6666666666666666
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 3,
+            "numerator": 2,
+            "status": "Available",
+            "value": 0.6666666666666666
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        }
+      },
+      "source_positions": [
+        [
+          0.45000000000022156,
+          0.34999999999998743,
+          0.09999999999995857
+        ],
+        [
+          -0.3999999934860945,
+          -0.2500000106125446,
+          0.45000000579541855
+        ],
+        [
+          -0.40000000574201233,
+          -0.24999999064503475,
+          0.44999999489133446
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "proposal_only": {
+      "accepted_physical_sources": 0,
+      "active_sources": 3,
+      "fold_errors": {},
+      "matching": {
+        "0.025_width": {
+          "false_negative": 2,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 3,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 2,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 3,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 2,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 3,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          1.1102230246251565e-16,
+          1.1102230246251565e-16,
+          1.1102230246251565e-16
+        ],
+        [
+          1.1102230246251565e-16,
+          1.1102230246251565e-16,
+          0.92
+        ],
+        [
+          -0.92,
+          1.1102230246251565e-16,
+          1.1102230246251565e-16
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    }
+  }
+}

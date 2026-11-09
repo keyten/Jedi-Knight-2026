@@ -1,0 +1,4095 @@
+{
+  "compiled_point_room": {
+    "full": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 18439680,
+        "idf_transforms": 20,
+        "invalid_positions": 42,
+        "room_lattice_positions": 343,
+        "source_position_queries": 548,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 2688
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                -117.75999999999999,
+                78.50666666666667,
+                10.24
+              ],
+              "vote": 20.204703075193322
+            },
+            {
+              "position": [
+                -58.879999999999995,
+                -117.76,
+                10.24
+              ],
+              "vote": 12.26272714872531
+            },
+            {
+              "position": [
+                -176.64,
+                39.253333333333345,
+                245.76
+              ],
+              "vote": 12.191253238129285
+            },
+            {
+              "position": [
+                -58.879999999999995,
+                39.253333333333345,
+                127.99999999999999
+              ],
+              "vote": 7.81520490481252
+            }
+          ],
+          "stage": "initial_votes"
+        },
+        {
+          "added": 4,
+          "iteration": 0,
+          "proposals": 4,
+          "stage": "discovery",
+          "working_sources": 4
+        },
+        {
+          "iteration": 0,
+          "mse": 0.023516503083978794,
+          "new_sources": 4,
+          "nfev": 11,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "iteration": 0,
+          "minimum_remaining": 0.02756892230576441,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.025190009724861916,
+          "new": [
+            -176.64,
+            78.50666666666667,
+            10.24
+          ],
+          "old": [
+            -117.75999999999999,
+            78.50666666666667,
+            10.24
+          ],
+          "proposed": [
+            -176.64,
+            78.50666666666667,
+            10.24
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.018496532411590088,
+          "new": [
+            0.0,
+            -117.76,
+            10.24
+          ],
+          "old": [
+            -58.879999999999995,
+            -117.76,
+            10.24
+          ],
+          "proposed": [
+            0.0,
+            -117.76,
+            10.24
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.018496532411590088,
+          "new": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "old": [
+            -176.64,
+            39.253333333333345,
+            245.76
+          ],
+          "proposed": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "source": 2,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.018496532411590088,
+          "new": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "old": [
+            -58.879999999999995,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "proposed": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "source": 3,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 0,
+          "mse": 0.028136099937756027,
+          "new_sources": 0,
+          "nfev": 18,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 2,
+          "iteration": 1,
+          "proposals": 4,
+          "stage": "discovery",
+          "working_sources": 6
+        },
+        {
+          "iteration": 1,
+          "mse": 0.0270302331000029,
+          "new_sources": 2,
+          "nfev": 15,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            4,
+            5
+          ],
+          "iteration": 1,
+          "minimum_remaining": 0.018496532411590088,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": false,
+          "iteration": 1,
+          "minimum_remaining": -0.10441561673912561,
+          "new": [
+            -176.64,
+            78.50666666666667,
+            10.24
+          ],
+          "old": [
+            -176.64,
+            78.50666666666667,
+            10.24
+          ],
+          "proposed": [
+            -117.75999999999999,
+            -78.50666666666666,
+            10.24
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.018496532411590088,
+          "new": [
+            0.0,
+            -117.76,
+            10.24
+          ],
+          "old": [
+            0.0,
+            -117.76,
+            10.24
+          ],
+          "proposed": [
+            0.0,
+            -117.76,
+            10.24
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.018496532411590088,
+          "new": [
+            -58.879999999999995,
+            78.50666666666667,
+            127.99999999999999
+          ],
+          "old": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "proposed": [
+            -58.879999999999995,
+            78.50666666666667,
+            127.99999999999999
+          ],
+          "source": 2,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.018496532411590088,
+          "new": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "old": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "proposed": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "source": 3,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.018496532411590088,
+          "new": [
+            -117.75999999999999,
+            39.253333333333345,
+            206.50666666666666
+          ],
+          "old": [
+            -58.879999999999995,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "proposed": [
+            -117.75999999999999,
+            39.253333333333345,
+            206.50666666666666
+          ],
+          "source": 4,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.018496532411590088,
+          "new": [
+            -58.879999999999995,
+            -117.76,
+            127.99999999999999
+          ],
+          "old": [
+            -58.879999999999995,
+            -117.76,
+            127.99999999999999
+          ],
+          "proposed": [
+            -58.879999999999995,
+            -117.76,
+            127.99999999999999
+          ],
+          "source": 5,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 1,
+          "mse": 0.00790556627484346,
+          "new_sources": 0,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 2,
+          "proposals": 5,
+          "stage": "discovery",
+          "working_sources": 6
+        },
+        {
+          "active": [
+            5
+          ],
+          "iteration": 2,
+          "minimum_remaining": 0.018496532411590088,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.014812465951887968,
+          "new": [
+            -58.879999999999995,
+            78.50666666666667,
+            127.99999999999999
+          ],
+          "old": [
+            -176.64,
+            78.50666666666667,
+            10.24
+          ],
+          "proposed": [
+            -58.879999999999995,
+            78.50666666666667,
+            127.99999999999999
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.014812465951887968,
+          "new": [
+            0.0,
+            -117.76,
+            10.24
+          ],
+          "old": [
+            0.0,
+            -117.76,
+            10.24
+          ],
+          "proposed": [
+            0.0,
+            -117.76,
+            10.24
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.014812465951887968,
+          "new": [
+            -58.879999999999995,
+            78.50666666666667,
+            127.99999999999999
+          ],
+          "old": [
+            -58.879999999999995,
+            78.50666666666667,
+            127.99999999999999
+          ],
+          "proposed": [
+            -58.879999999999995,
+            78.50666666666667,
+            127.99999999999999
+          ],
+          "source": 2,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.014812465951887968,
+          "new": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "old": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "proposed": [
+            -117.75999999999999,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "source": 3,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.011894049470194012,
+          "new": [
+            -117.75999999999999,
+            78.50666666666667,
+            245.76
+          ],
+          "old": [
+            -117.75999999999999,
+            39.253333333333345,
+            206.50666666666666
+          ],
+          "proposed": [
+            -117.75999999999999,
+            78.50666666666667,
+            245.76
+          ],
+          "source": 4,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.016051742382221512,
+          "new": [
+            -58.879999999999995,
+            -39.25333333333333,
+            127.99999999999999
+          ],
+          "old": [
+            -58.879999999999995,
+            -117.76,
+            127.99999999999999
+          ],
+          "proposed": [
+            -58.879999999999995,
+            -39.25333333333333,
+            127.99999999999999
+          ],
+          "source": 5,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 2,
+          "mse": 0.021055791141262558,
+          "new_sources": 0,
+          "nfev": 18,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 3,
+          "proposals": 5,
+          "stage": "discovery",
+          "working_sources": 6
+        },
+        {
+          "active": [
+            0,
+            1
+          ],
+          "iteration": 3,
+          "minimum_remaining": -0.006665973951177462,
+          "stage": "intensity_increment"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            -117.75999999999999,
+            78.50666666666667,
+            10.24
+          ],
+          "vote": 20.204703075193322
+        },
+        {
+          "position": [
+            -58.879999999999995,
+            -117.76,
+            10.24
+          ],
+          "vote": 12.26272714872531
+        },
+        {
+          "position": [
+            -176.64,
+            39.253333333333345,
+            245.76
+          ],
+          "vote": 12.191253238129285
+        },
+        {
+          "position": [
+            -58.879999999999995,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "vote": 7.81520490481252
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.3212199046684083,
+            0.3212199046684083,
+            0.3212199046684083
+          ],
+          [
+            9.357622968840175e-14,
+            9.357622968840175e-14,
+            9.357622968840175e-14
+          ],
+          [
+            0.05356004071847468,
+            0.05356004071847468,
+            0.05356004071847468
+          ],
+          [
+            9.357622968840175e-14,
+            9.357622968840175e-14,
+            9.357622968840175e-14
+          ],
+          [
+            0.1999073611341252,
+            0.1999073611341252,
+            0.1999073611341252
+          ],
+          [
+            0.08227182755344317,
+            0.08227182755344317,
+            0.08227182755344317
+          ]
+        ],
+        "lm_evaluations": 13,
+        "lm_success": true,
+        "mse": 0.00790556627484346,
+        "nnls": true,
+        "positions": [
+          [
+            -176.63999998359,
+            78.50666664360128,
+            10.23999998352962
+          ],
+          [
+            0.0015433365790613607,
+            -117.76691374526507,
+            10.126888150452357
+          ],
+          [
+            -58.87999988593174,
+            78.50666667696484,
+            128.0
+          ],
+          [
+            -117.85722902834357,
+            39.47646343676604,
+            128.0
+          ],
+          [
+            -117.7600000495831,
+            39.25333334050836,
+            206.50666669425422
+          ],
+          [
+            -58.8799998884237,
+            -117.76000000275624,
+            128.0
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "NegativeResidualFailure"
+    },
+    "one_pass_fit": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 921984,
+        "idf_transforms": 1,
+        "invalid_positions": 6,
+        "room_lattice_positions": 343,
+        "source_position_queries": 61,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 384
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                -117.75999999999999,
+                78.50666666666667,
+                10.24
+              ],
+              "vote": 20.204703075193322
+            },
+            {
+              "position": [
+                -58.879999999999995,
+                -117.76,
+                10.24
+              ],
+              "vote": 12.26272714872531
+            },
+            {
+              "position": [
+                -176.64,
+                39.253333333333345,
+                245.76
+              ],
+              "vote": 12.191253238129285
+            },
+            {
+              "position": [
+                -58.879999999999995,
+                39.253333333333345,
+                127.99999999999999
+              ],
+              "vote": 7.81520490481252
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            -117.75999999999999,
+            78.50666666666667,
+            10.24
+          ],
+          "vote": 20.204703075193322
+        },
+        {
+          "position": [
+            -58.879999999999995,
+            -117.76,
+            10.24
+          ],
+          "vote": 12.26272714872531
+        },
+        {
+          "position": [
+            -176.64,
+            39.253333333333345,
+            245.76
+          ],
+          "vote": 12.191253238129285
+        },
+        {
+          "position": [
+            -58.879999999999995,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "vote": 7.81520490481252
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            9.357622968840175e-14,
+            9.357622968840175e-14,
+            9.357622968840175e-14
+          ],
+          [
+            9.357622968840175e-14,
+            9.357622968840175e-14,
+            9.357622968840175e-14
+          ],
+          [
+            0.13831612872076202,
+            0.13831612872076202,
+            0.13831612872076202
+          ],
+          [
+            0.2997121844469464,
+            0.2997121844469464,
+            0.2997121844469464
+          ]
+        ],
+        "lm_evaluations": 11,
+        "lm_success": true,
+        "mse": 0.023516503083978794,
+        "nnls": true,
+        "positions": [
+          [
+            -117.29448637346286,
+            78.45423390809412,
+            10.44151616150603
+          ],
+          [
+            -59.26521729496906,
+            -118.27100644895349,
+            11.112668688947553
+          ],
+          [
+            -176.63999999129192,
+            39.25333337466958,
+            245.76000003134217
+          ],
+          [
+            -58.880000021748145,
+            39.253333352586026,
+            128.0
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Partial"
+    },
+    "proposal_only": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 921984,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 0,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                -117.75999999999999,
+                78.50666666666667,
+                10.24
+              ],
+              "vote": 20.204703075193322
+            },
+            {
+              "position": [
+                -58.879999999999995,
+                -117.76,
+                10.24
+              ],
+              "vote": 12.26272714872531
+            },
+            {
+              "position": [
+                -176.64,
+                39.253333333333345,
+                245.76
+              ],
+              "vote": 12.191253238129285
+            },
+            {
+              "position": [
+                -58.879999999999995,
+                39.253333333333345,
+                127.99999999999999
+              ],
+              "vote": 7.81520490481252
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            -117.75999999999999,
+            78.50666666666667,
+            10.24
+          ],
+          "vote": 20.204703075193322
+        },
+        {
+          "position": [
+            -58.879999999999995,
+            -117.76,
+            10.24
+          ],
+          "vote": 12.26272714872531
+        },
+        {
+          "position": [
+            -176.64,
+            39.253333333333345,
+            245.76
+          ],
+          "vote": 12.191253238129285
+        },
+        {
+          "position": [
+            -58.879999999999995,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "vote": 7.81520490481252
+        }
+      ],
+      "model": null,
+      "repeat_equal": true,
+      "state": "ProposalsOnly"
+    }
+  },
+  "compiled_two_colour": {
+    "full": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 5531904,
+        "idf_transforms": 6,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 156,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                117.75999999999999,
+                -78.50666666666666,
+                49.49333333333333
+              ],
+              "vote": 49.40438543682951
+            }
+          ],
+          "stage": "initial_votes"
+        },
+        {
+          "added": 1,
+          "iteration": 0,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "iteration": 0,
+          "mse": 0.019325635150683133,
+          "new_sources": 1,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 0,
+          "minimum_remaining": 0.017100397978294934,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.017100397978294934,
+          "new": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "old": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "proposed": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 0,
+          "mse": 0.019325635150683133,
+          "new_sources": 0,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 1,
+          "iteration": 1,
+          "proposals": 2,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "iteration": 1,
+          "mse": 0.014742980734501305,
+          "new_sources": 1,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0,
+            1
+          ],
+          "iteration": 1,
+          "minimum_remaining": 0.0028546366238361848,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.0028546366238361848,
+          "new": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "old": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "proposed": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.0028546366238361848,
+          "new": [
+            -176.64,
+            117.76,
+            10.24
+          ],
+          "old": [
+            -176.64,
+            117.76,
+            10.24
+          ],
+          "proposed": [
+            -176.64,
+            117.76,
+            10.24
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 1,
+          "mse": 0.014742980734501305,
+          "new_sources": 0,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 2,
+          "iteration": 2,
+          "proposals": 3,
+          "stage": "discovery",
+          "working_sources": 4
+        },
+        {
+          "iteration": 2,
+          "mse": 0.011884462326579711,
+          "new_sources": 2,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            1,
+            2,
+            3
+          ],
+          "iteration": 2,
+          "minimum_remaining": -0.013525594630393205,
+          "stage": "intensity_increment"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "vote": 49.40438543682951
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.12940365968274609,
+            0.08773678934221094,
+            0.3307826784196346
+          ],
+          [
+            0.7267820787591892,
+            0.06993435410373974,
+            9.357622968840175e-14
+          ],
+          [
+            0.24527955177011598,
+            0.11809243516203656,
+            0.4614283173746329
+          ],
+          [
+            9.357622968840175e-14,
+            0.06967609283029547,
+            0.37653390058809505
+          ]
+        ],
+        "lm_evaluations": 13,
+        "lm_success": true,
+        "mse": 0.011884462326579711,
+        "nnls": true,
+        "positions": [
+          [
+            117.76000002364844,
+            -78.50666669076618,
+            49.493333324712545
+          ],
+          [
+            -176.64000000928328,
+            117.76000001212131,
+            10.239999998191895
+          ],
+          [
+            176.64000002067075,
+            -78.50666668837356,
+            10.239999991308467
+          ],
+          [
+            176.63999999789922,
+            -117.75999999900426,
+            206.50666666823076
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "NegativeResidualFailure"
+    },
+    "one_pass_fit": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 921984,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 15,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                117.75999999999999,
+                -78.50666666666666,
+                49.49333333333333
+              ],
+              "vote": 49.40438543682951
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "vote": 49.40438543682951
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.5086245638119875,
+            0.2279526305634695,
+            0.8690366689611342
+          ]
+        ],
+        "lm_evaluations": 13,
+        "lm_success": true,
+        "mse": 0.019325635150683133,
+        "nnls": true,
+        "positions": [
+          [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333334
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Partial"
+    },
+    "proposal_only": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 921984,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 0,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                117.75999999999999,
+                -78.50666666666666,
+                49.49333333333333
+              ],
+              "vote": 49.40438543682951
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "vote": 49.40438543682951
+        }
+      ],
+      "model": null,
+      "repeat_equal": true,
+      "state": "ProposalsOnly"
+    }
+  },
+  "linear_fill_control": {
+    "full": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 435637440,
+        "idf_transforms": 84,
+        "invalid_positions": 9,
+        "room_lattice_positions": 343,
+        "source_position_queries": 1440,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 12.566370614359187
+            }
+          ],
+          "stage": "initial_votes"
+        },
+        {
+          "added": 1,
+          "iteration": 0,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "iteration": 0,
+          "mse": 0.1352461137371042,
+          "new_sources": 1,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 0,
+          "minimum_remaining": 0.9757963902463698,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.9757963902463698,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 0,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 1,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 1,
+          "minimum_remaining": 0.9515927804927395,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.9515927804927395,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 1,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 2,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 2,
+          "minimum_remaining": 0.9273891707391093,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.9273891707391093,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 2,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 3,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 3,
+          "minimum_remaining": 0.9031855609854791,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.9031855609854791,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 3,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 4,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 4,
+          "minimum_remaining": 0.8789819512318489,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.8789819512318489,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 4,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 5,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 5,
+          "minimum_remaining": 0.8547783414782186,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.8547783414782186,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 5,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 6,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 6,
+          "minimum_remaining": 0.8305747317245884,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 6,
+          "minimum_remaining": 0.8305747317245884,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 6,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 7,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 7,
+          "minimum_remaining": 0.8063711219709582,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 7,
+          "minimum_remaining": 0.8063711219709582,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 7,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 8,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 8,
+          "minimum_remaining": 0.7821675122173279,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 8,
+          "minimum_remaining": 0.7821675122173279,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 8,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 9,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 9,
+          "minimum_remaining": 0.7579639024636977,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 9,
+          "minimum_remaining": 0.7579639024636977,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 9,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 10,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 10,
+          "minimum_remaining": 0.7337602927100675,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 10,
+          "minimum_remaining": 0.7337602927100675,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 10,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 11,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 11,
+          "minimum_remaining": 0.7095566829564373,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 11,
+          "minimum_remaining": 0.7095566829564373,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 11,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 12,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 12,
+          "minimum_remaining": 0.685353073202807,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 12,
+          "minimum_remaining": 0.685353073202807,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 12,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 13,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 13,
+          "minimum_remaining": 0.6611494634491768,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 13,
+          "minimum_remaining": 0.6611494634491768,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 13,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 14,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 14,
+          "minimum_remaining": 0.6369458536955465,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 14,
+          "minimum_remaining": 0.6369458536955465,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 14,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 15,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 15,
+          "minimum_remaining": 0.6127422439419162,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 15,
+          "minimum_remaining": 0.6127422439419162,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 15,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 16,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 16,
+          "minimum_remaining": 0.5885386341882859,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 16,
+          "minimum_remaining": 0.5885386341882859,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 16,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 17,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 17,
+          "minimum_remaining": 0.5643350244346557,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 17,
+          "minimum_remaining": 0.5643350244346557,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 17,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 18,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 18,
+          "minimum_remaining": 0.5401314146810254,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 18,
+          "minimum_remaining": 0.5401314146810254,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 18,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 19,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 19,
+          "minimum_remaining": 0.5159278049273952,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 19,
+          "minimum_remaining": 0.5159278049273952,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 19,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 20,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 20,
+          "minimum_remaining": 0.491724195173765,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 20,
+          "minimum_remaining": 0.491724195173765,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 20,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 21,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 21,
+          "minimum_remaining": 0.46752058542013475,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 21,
+          "minimum_remaining": 0.46752058542013475,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 21,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 22,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 22,
+          "minimum_remaining": 0.4433169756665045,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 22,
+          "minimum_remaining": 0.4433169756665045,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 22,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 23,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 23,
+          "minimum_remaining": 0.4191133659128743,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 23,
+          "minimum_remaining": 0.4191133659128743,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 23,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 24,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 24,
+          "minimum_remaining": 0.39490975615924395,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 24,
+          "minimum_remaining": 0.39490975615924395,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 24,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 25,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 25,
+          "minimum_remaining": 0.3707061464056137,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 25,
+          "minimum_remaining": 0.3707061464056137,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 25,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 26,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 26,
+          "minimum_remaining": 0.3465025366519835,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 26,
+          "minimum_remaining": 0.3465025366519835,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 26,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 27,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 27,
+          "minimum_remaining": 0.32229892689835327,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 27,
+          "minimum_remaining": 0.32229892689835327,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 27,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 28,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 28,
+          "minimum_remaining": 0.29809531714472304,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 28,
+          "minimum_remaining": 0.29809531714472304,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 28,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 29,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 29,
+          "minimum_remaining": 0.2738917073910927,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 29,
+          "minimum_remaining": 0.2738917073910927,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 29,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 30,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 30,
+          "minimum_remaining": 0.24968809763746247,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 30,
+          "minimum_remaining": 0.24968809763746247,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 30,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 31,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 31,
+          "minimum_remaining": 0.22548448788383224,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 31,
+          "minimum_remaining": 0.22548448788383224,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 31,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 32,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 32,
+          "minimum_remaining": 0.201280878130202,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 32,
+          "minimum_remaining": 0.201280878130202,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 32,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 33,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 33,
+          "minimum_remaining": 0.17707726837657167,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 33,
+          "minimum_remaining": 0.17707726837657167,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 33,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 34,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 34,
+          "minimum_remaining": 0.15287365862294144,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 34,
+          "minimum_remaining": 0.15287365862294144,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 34,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 35,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 35,
+          "minimum_remaining": 0.12867004886931122,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 35,
+          "minimum_remaining": 0.12867004886931122,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 35,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 36,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 36,
+          "minimum_remaining": 0.10446643911568099,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 36,
+          "minimum_remaining": 0.10446643911568099,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 36,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 37,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 37,
+          "minimum_remaining": 0.08026282936205076,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 37,
+          "minimum_remaining": 0.08026282936205076,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 37,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 38,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 38,
+          "minimum_remaining": 0.05605921960842042,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 38,
+          "minimum_remaining": 0.05605921960842042,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 38,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 39,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 39,
+          "minimum_remaining": 0.0318556098547903,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 39,
+          "minimum_remaining": 0.0318556098547903,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 39,
+          "mse": 0.1352461137371042,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 1,
+          "iteration": 40,
+          "proposals": 2,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "iteration": 40,
+          "mse": 0.11884633125427237,
+          "new_sources": 1,
+          "nfev": 10,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0,
+            1
+          ],
+          "iteration": 40,
+          "minimum_remaining": 0.002437835329716198,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 40,
+          "minimum_remaining": 0.002437835329716198,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 40,
+          "minimum_remaining": 0.002437835329716198,
+          "new": [
+            -0.30666666666666664,
+            -0.92,
+            0.92
+          ],
+          "old": [
+            -0.30666666666666664,
+            -0.92,
+            0.92
+          ],
+          "proposed": [
+            -0.30666666666666664,
+            -0.92,
+            0.92
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 40,
+          "mse": 0.11884633125427237,
+          "new_sources": 0,
+          "nfev": 10,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 2,
+          "iteration": 41,
+          "proposals": 2,
+          "stage": "discovery",
+          "working_sources": 4
+        },
+        {
+          "iteration": 41,
+          "mse": 0.10149400139434632,
+          "new_sources": 2,
+          "nfev": 94,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            2,
+            3
+          ],
+          "iteration": 41,
+          "minimum_remaining": -0.4390927832436686,
+          "stage": "intensity_increment"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 12.566370614359187
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            1.456676383833079
+          ],
+          [
+            0.5463903231742984
+          ],
+          [
+            0.08497885089198016
+          ],
+          [
+            0.05808492937701569
+          ]
+        ],
+        "lm_evaluations": 94,
+        "lm_success": true,
+        "mse": 0.10149400139434632,
+        "nnls": true,
+        "positions": [
+          [
+            -0.025698510736440916,
+            0.058383439068937726,
+            0.002773285848700624
+          ],
+          [
+            -0.4357962506141979,
+            -0.9604792268402408,
+            0.9596437643389235
+          ],
+          [
+            0.6698726568894409,
+            -0.7043006821874246,
+            -0.6885261827866127
+          ],
+          [
+            0.7136901329749756,
+            -0.8212831773889933,
+            0.7337676161167912
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "NegativeResidualFailure"
+    },
+    "one_pass_fit": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 5186160,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 23,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 12.566370614359187
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 12.566370614359187
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            1.7148211716826898
+          ]
+        ],
+        "lm_evaluations": 6,
+        "lm_success": true,
+        "mse": 0.1352461137371042,
+        "nnls": true,
+        "positions": [
+          [
+            -0.0036706525182588212,
+            0.005704687978787648,
+            0.011152519658826687
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Partial"
+    },
+    "proposal_only": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 5186160,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 0,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 12.566370614359187
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 12.566370614359187
+        }
+      ],
+      "model": null,
+      "repeat_equal": true,
+      "state": "ProposalsOnly"
+    }
+  },
+  "linear_four": {
+    "full": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 88164720,
+        "idf_transforms": 17,
+        "invalid_positions": 5,
+        "room_lattice_positions": 343,
+        "source_position_queries": 931,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 13.02936266519611
+            }
+          ],
+          "stage": "initial_votes"
+        },
+        {
+          "added": 1,
+          "iteration": 0,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "iteration": 0,
+          "mse": 0.005657306654470484,
+          "new_sources": 1,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 0,
+          "minimum_remaining": 0.05333483658599247,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.05333483658599247,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 0,
+          "mse": 0.005657306654470484,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 1,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 1,
+          "minimum_remaining": 0.04790384430966049,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.04790384430966049,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 1,
+          "mse": 0.005657306654470484,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 2,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 2,
+          "minimum_remaining": 0.04247285203332852,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.04247285203332852,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 2,
+          "mse": 0.005657306654470484,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 3,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 3,
+          "minimum_remaining": 0.037041859756996545,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.037041859756996545,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 3,
+          "mse": 0.005657306654470484,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 4,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 4,
+          "minimum_remaining": 0.031610867480664565,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.031610867480664565,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 4,
+          "mse": 0.005657306654470484,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 1,
+          "iteration": 5,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "iteration": 5,
+          "mse": 0.0010019045619026456,
+          "new_sources": 1,
+          "nfev": 22,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            1
+          ],
+          "iteration": 5,
+          "minimum_remaining": 0.027051903478794305,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.027051903478794305,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.027051903478794305,
+          "new": [
+            -0.30666666666666664,
+            -0.30666666666666664,
+            0.30666666666666675
+          ],
+          "old": [
+            -0.30666666666666664,
+            -0.30666666666666664,
+            0.30666666666666675
+          ],
+          "proposed": [
+            -0.30666666666666664,
+            -0.30666666666666664,
+            0.30666666666666675
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 5,
+          "mse": 0.0010019045619026456,
+          "new_sources": 0,
+          "nfev": 22,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 6,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 6,
+          "minimum_remaining": 0.02162091120246233,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 6,
+          "minimum_remaining": 0.02162091120246233,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 6,
+          "minimum_remaining": 0.02162091120246233,
+          "new": [
+            -0.30666666666666664,
+            -0.30666666666666664,
+            0.30666666666666675
+          ],
+          "old": [
+            -0.30666666666666664,
+            -0.30666666666666664,
+            0.30666666666666675
+          ],
+          "proposed": [
+            -0.30666666666666664,
+            -0.30666666666666664,
+            0.30666666666666675
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 6,
+          "mse": 0.0010019045619026456,
+          "new_sources": 0,
+          "nfev": 22,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 1,
+          "iteration": 7,
+          "proposals": 2,
+          "stage": "discovery",
+          "working_sources": 3
+        },
+        {
+          "iteration": 7,
+          "mse": 0.0009915879329707947,
+          "new_sources": 1,
+          "nfev": 68,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            1,
+            2
+          ],
+          "iteration": 7,
+          "minimum_remaining": -0.011287319295645248,
+          "stage": "intensity_increment"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 13.02936266519611
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.205961712579962
+          ],
+          [
+            0.1723671996985815
+          ],
+          [
+            0.011079289415451957
+          ]
+        ],
+        "lm_evaluations": 68,
+        "lm_success": true,
+        "mse": 0.0009915879329707947,
+        "nnls": true,
+        "positions": [
+          [
+            0.22268058461730456,
+            -0.07357958846138102,
+            -0.017844757832938263
+          ],
+          [
+            -0.5813584212723326,
+            -0.4040085366389373,
+            0.47255731603717566
+          ],
+          [
+            -0.9858875789808205,
+            -0.4161141293013185,
+            0.21452397191580208
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "NegativeResidualFailure"
+    },
+    "one_pass_fit": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 5186160,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 79,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 13.02936266519611
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 13.02936266519611
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.3413010130457705
+          ]
+        ],
+        "lm_evaluations": 20,
+        "lm_success": true,
+        "mse": 0.005657306654470484,
+        "nnls": true,
+        "positions": [
+          [
+            -0.4069336350477347,
+            -0.2864166968048487,
+            0.3352373321471802
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Partial"
+    },
+    "proposal_only": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 5186160,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 0,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 13.02936266519611
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 13.02936266519611
+        }
+      ],
+      "model": null,
+      "repeat_equal": true,
+      "state": "ProposalsOnly"
+    }
+  },
+  "linear_two": {
+    "full": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 5186160,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 523,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 1.7981921165290053
+            },
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                0.92
+              ],
+              "vote": 1.7300510419771147
+            },
+            {
+              "position": [
+                -0.92,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 1.1891898413808333
+            }
+          ],
+          "stage": "initial_votes"
+        },
+        {
+          "added": 3,
+          "iteration": 0,
+          "proposals": 3,
+          "stage": "discovery",
+          "working_sources": 3
+        },
+        {
+          "iteration": 0,
+          "mse": 6.0856433916414886e-27,
+          "new_sources": 3,
+          "nfev": 68,
+          "stage": "nnls_lm"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 1.7981921165290053
+        },
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.92
+          ],
+          "vote": 1.7300510419771147
+        },
+        {
+          "position": [
+            -0.92,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 1.1891898413808333
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.1393139213253095
+          ],
+          [
+            0.1522964159354167
+          ],
+          [
+            0.17276940049028996
+          ]
+        ],
+        "lm_evaluations": 68,
+        "lm_success": true,
+        "mse": 6.0856433916414886e-27,
+        "nnls": true,
+        "positions": [
+          [
+            0.45000000000022156,
+            0.34999999999998743,
+            0.09999999999995857
+          ],
+          [
+            -0.3999999934860945,
+            -0.2500000106125446,
+            0.45000000579541855
+          ],
+          [
+            -0.40000000574201233,
+            -0.24999999064503475,
+            0.44999999489133446
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Converged"
+    },
+    "one_pass_fit": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 5186160,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 523,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 1.7981921165290053
+            },
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                0.92
+              ],
+              "vote": 1.7300510419771147
+            },
+            {
+              "position": [
+                -0.92,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 1.1891898413808333
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 1.7981921165290053
+        },
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.92
+          ],
+          "vote": 1.7300510419771147
+        },
+        {
+          "position": [
+            -0.92,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 1.1891898413808333
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.1393139213253095
+          ],
+          [
+            0.1522964159354167
+          ],
+          [
+            0.17276940049028996
+          ]
+        ],
+        "lm_evaluations": 68,
+        "lm_success": true,
+        "mse": 6.0856433916414886e-27,
+        "nnls": true,
+        "positions": [
+          [
+            0.45000000000022156,
+            0.34999999999998743,
+            0.09999999999995857
+          ],
+          [
+            -0.3999999934860945,
+            -0.2500000106125446,
+            0.45000000579541855
+          ],
+          [
+            -0.40000000574201233,
+            -0.24999999064503475,
+            0.44999999489133446
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Converged"
+    },
+    "proposal_only": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 5186160,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 0,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 1.7981921165290053
+            },
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                0.92
+              ],
+              "vote": 1.7300510419771147
+            },
+            {
+              "position": [
+                -0.92,
+                1.1102230246251565e-16,
+                1.1102230246251565e-16
+              ],
+              "vote": 1.1891898413808333
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 1.7981921165290053
+        },
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.92
+          ],
+          "vote": 1.7300510419771147
+        },
+        {
+          "position": [
+            -0.92,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "vote": 1.1891898413808333
+        }
+      ],
+      "model": null,
+      "repeat_equal": true,
+      "state": "ProposalsOnly"
+    }
+  }
+}

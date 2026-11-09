@@ -1,0 +1,15 @@
+{
+  "artifacts": {
+    "metrics.json": "94d099d4ff06d1a3806e0e78671880fdfd81247543ba4cc2316520618ed96033",
+    "models.json": "e904c48bd0a096781fa63aac9c80af44018f4c1f06ac57fc2a29cda60576fa39",
+    "protocol.json": "606b0d5ce2e1b8392ac4b0c29ae0be82577991530c3cf6f4fb8955436ea71952",
+    "resources.json": "077786ad0ecfe81c140615b349b27c0c053c5482943d87c73329dccdf2eced7e",
+    "source-snapshot/algorithm.py": "1352f6202ba03f97a57eedd31c49d5b6754985357932d9cf859a16634851d47b",
+    "source-snapshot/fixtures.py": "a093fa65af8011efe6c9830a6f5125194fca9388092f7411b74b4799a3cbbd3b",
+    "source-snapshot/policy-v1.json": "a306dacb3dd88fbb9002536361d44bc5a9f385785279aeea68467db55aedb943",
+    "source-snapshot/run.py": "6be18c90c3ac4d165b147189716ce3fc90f01cef010ec6a57ce33c401eb08913",
+    "source-snapshot/test_algorithm.py": "0c8200ca18ef1c320dd424d7c8cfd7ebbb8ebe4ed9b6dad79046af56900184f3"
+  },
+  "historical_certification": "NotCertified",
+  "production_modified": false
+}

@@ -1,0 +1,1308 @@
+{
+  "compiled_point_room": {
+    "full": {
+      "accepted_physical_sources": 0,
+      "active_sources": 2,
+      "fold_errors": {
+        "heldout": {
+          "mse": 0.02357822612352847,
+          "relative_rmse": 0.5225383568390825,
+          "rows": 30
+        },
+        "validation": {
+          "mse": 1.9893346548975341,
+          "relative_rmse": 4.256942031958859,
+          "rows": 57
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 1,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 1,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 1,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "32_WU": {
+          "false_negative": 1,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -74.88000006363534,
+          39.253333360829544,
+          144.0000000302628
+        ],
+        [
+          -168.6400001447271,
+          70.50666673180547,
+          206.50666684940154
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "one_pass_fit": {
+      "accepted_physical_sources": 0,
+      "active_sources": 3,
+      "fold_errors": {
+        "heldout": {
+          "mse": 0.05504967773061219,
+          "relative_rmse": 0.7984358000573101,
+          "rows": 30
+        },
+        "validation": {
+          "mse": 0.6711376906132472,
+          "relative_rmse": 2.472575870743457,
+          "rows": 57
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 1,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 3,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 1,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 3,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 2,
+          "precision": {
+            "denominator": 3,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.3333333333333333
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 1
+        },
+        "32_WU": {
+          "false_negative": 1,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 3,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -82.88000175463617,
+          31.253333860238456,
+          144.00000051681243
+        ],
+        [
+          -176.6400034049029,
+          63.25334273819084,
+          237.76000301537456
+        ],
+        [
+          -109.76000135402127,
+          78.50666756657716,
+          2.2399999922632268
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "proposal_only": {
+      "accepted_physical_sources": 0,
+      "active_sources": 4,
+      "fold_errors": {},
+      "matching": {
+        "0.025_width": {
+          "false_negative": 1,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 1,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 4,
+            "numerator": 1,
+            "status": "Available",
+            "value": 0.25
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 1,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 1
+        },
+        "32_WU": {
+          "false_negative": 1,
+          "false_positive": 4,
+          "precision": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -82.88,
+          31.253333333333345,
+          144.0
+        ],
+        [
+          -176.64,
+          63.253333333333345,
+          237.76
+        ],
+        [
+          -109.75999999999999,
+          78.50666666666667,
+          2.24
+        ],
+        [
+          -42.879999999999995,
+          -101.76,
+          10.24
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    }
+  },
+  "compiled_two_colour": {
+    "full": {
+      "accepted_physical_sources": 0,
+      "active_sources": 5,
+      "fold_errors": {
+        "heldout": {
+          "mse": 706.8916254284712,
+          "relative_rmse": 145.5545600388644,
+          "rows": 30
+        },
+        "validation": {
+          "mse": 0.15892443479575774,
+          "relative_rmse": 1.6600664506964613,
+          "rows": 57
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 2,
+          "false_positive": 5,
+          "precision": {
+            "denominator": 5,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 2,
+          "false_positive": 5,
+          "precision": {
+            "denominator": 5,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 2,
+          "false_positive": 5,
+          "precision": {
+            "denominator": 5,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "32_WU": {
+          "false_negative": 2,
+          "false_positive": 5,
+          "precision": {
+            "denominator": 5,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          117.75999999999999,
+          -78.50666666666666,
+          49.49333333333334
+        ],
+        [
+          -176.64,
+          109.75999999999999,
+          10.240000000000004
+        ],
+        [
+          176.64,
+          -78.50666666666666,
+          10.240000000000004
+        ],
+        [
+          168.64,
+          -94.50666666666666,
+          34.24000000000001
+        ],
+        [
+          184.64,
+          -109.76,
+          206.50666666666666
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "one_pass_fit": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {
+        "heldout": {
+          "mse": 1.754812834263785,
+          "relative_rmse": 7.25211694273698,
+          "rows": 30
+        },
+        "validation": {
+          "mse": 0.2725557484361685,
+          "relative_rmse": 2.1739913312119774,
+          "rows": 57
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "32_WU": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          117.75999999999999,
+          -78.50666666666666,
+          49.49333333333334
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "proposal_only": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {},
+      "matching": {
+        "0.025_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "32_WU": {
+          "false_negative": 2,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          117.75999999999999,
+          -78.50666666666666,
+          49.49333333333333
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    }
+  },
+  "linear_fill_control": {
+    "full": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {
+        "heldout": {
+          "mse": 0.13545528683600436,
+          "relative_rmse": 0.3680425068331162,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 0.14602008578169468,
+          "relative_rmse": 0.38212574603354676,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -0.0036704655448358547,
+          0.005704771259693375,
+          0.01115239198117468
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "one_pass_fit": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {
+        "heldout": {
+          "mse": 0.13545528683600436,
+          "relative_rmse": 0.3680425068331162,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 0.14602008578169468,
+          "relative_rmse": 0.38212574603354676,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -0.0036704655448358547,
+          0.005704771259693375,
+          0.01115239198117468
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "proposal_only": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {},
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 0,
+            "numerator": 0,
+            "reason": "Empty denominator",
+            "status": "Unavailable",
+            "value": null
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          0.041666666666666775,
+          1.1102230246251565e-16,
+          0.041666666666666775
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    }
+  },
+  "linear_four": {
+    "full": {
+      "accepted_physical_sources": 0,
+      "active_sources": 4,
+      "fold_errors": {
+        "heldout": {
+          "mse": 1.3564194115874448e-18,
+          "relative_rmse": 4.932393536992284e-09,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 1.1944081923366377e-18,
+          "relative_rmse": 4.8745834169400115e-09,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 0,
+          "precision": {
+            "denominator": 4,
+            "numerator": 4,
+            "status": "Available",
+            "value": 1.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 4,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 4
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 0,
+          "precision": {
+            "denominator": 4,
+            "numerator": 4,
+            "status": "Available",
+            "value": 1.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 4,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 4
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 0,
+          "precision": {
+            "denominator": 4,
+            "numerator": 4,
+            "status": "Available",
+            "value": 1.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 4,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 4
+        }
+      },
+      "source_positions": [
+        [
+          -0.09999999742014443,
+          0.49999999612563206,
+          -0.3499999982693853
+        ],
+        [
+          -0.550000001055087,
+          -0.3999999999419026,
+          0.4500000002973046
+        ],
+        [
+          0.4999999978984202,
+          -0.3500000008105575,
+          1.2960181594579012e-08
+        ],
+        [
+          0.4500000066362295,
+          0.4800000194460148,
+          0.4000000075219359
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "one_pass_fit": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {
+        "heldout": {
+          "mse": 0.004549738904791673,
+          "relative_rmse": 0.28566297787599343,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 0.005406020826544618,
+          "relative_rmse": 0.3279442172082366,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          -0.4069336821812263,
+          -0.28641674507953885,
+          0.33523738022728855
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "proposal_only": {
+      "accepted_physical_sources": 0,
+      "active_sources": 1,
+      "fold_errors": {},
+      "matching": {
+        "0.025_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 4,
+          "false_positive": 1,
+          "precision": {
+            "denominator": 1,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 4,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          1.1102230246251565e-16,
+          1.1102230246251565e-16,
+          0.08333333333333344
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    }
+  },
+  "linear_two": {
+    "full": {
+      "accepted_physical_sources": 0,
+      "active_sources": 2,
+      "fold_errors": {
+        "heldout": {
+          "mse": 4.284798700424196e-26,
+          "relative_rmse": 6.770361240482688e-13,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 2.6640639966676804e-26,
+          "relative_rmse": 6.101625319837292e-13,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 0,
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 0,
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 0,
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        }
+      },
+      "source_positions": [
+        [
+          0.449999999999823,
+          0.35000000000038,
+          0.10000000000011688
+        ],
+        [
+          -0.39999999999985814,
+          -0.2499999999999114,
+          0.4500000000005666
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "one_pass_fit": {
+      "accepted_physical_sources": 0,
+      "active_sources": 2,
+      "fold_errors": {
+        "heldout": {
+          "mse": 4.284798700424196e-26,
+          "relative_rmse": 6.770361240482688e-13,
+          "rows": 120
+        },
+        "validation": {
+          "mse": 2.6640639966676804e-26,
+          "relative_rmse": 6.101625319837292e-13,
+          "rows": 120
+        }
+      },
+      "matching": {
+        "0.025_width": {
+          "false_negative": 0,
+          "false_positive": 0,
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        },
+        "0.05_width": {
+          "false_negative": 0,
+          "false_positive": 0,
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        },
+        "0.1_width": {
+          "false_negative": 0,
+          "false_positive": 0,
+          "precision": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 2,
+            "status": "Available",
+            "value": 1.0
+          },
+          "true_positive": 2
+        }
+      },
+      "source_positions": [
+        [
+          0.449999999999823,
+          0.35000000000038,
+          0.10000000000011688
+        ],
+        [
+          -0.39999999999985814,
+          -0.2499999999999114,
+          0.4500000000005666
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    },
+    "proposal_only": {
+      "accepted_physical_sources": 0,
+      "active_sources": 3,
+      "fold_errors": {},
+      "matching": {
+        "0.025_width": {
+          "false_negative": 2,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 3,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.05_width": {
+          "false_negative": 2,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 3,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        },
+        "0.1_width": {
+          "false_negative": 2,
+          "false_positive": 3,
+          "precision": {
+            "denominator": 3,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "recall": {
+            "denominator": 2,
+            "numerator": 0,
+            "status": "Available",
+            "value": 0.0
+          },
+          "true_positive": 0
+        }
+      },
+      "source_positions": [
+        [
+          0.08333333333333344,
+          0.041666666666666775,
+          0.08333333333333344
+        ],
+        [
+          -0.04166666666666655,
+          -0.04166666666666655,
+          0.92
+        ],
+        [
+          -0.92,
+          -0.04166666666666655,
+          0.08333333333333344
+        ]
+      ],
+      "source_truth_used_for_selection": false
+    }
+  }
+}

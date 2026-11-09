@@ -1,0 +1,23 @@
+{
+  "installed_only_in_ignored_workspace_build": true,
+  "numpy": "2.3.5",
+  "optimization_documentation": [
+    "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.nnls.html",
+    "https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html"
+  ],
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "relevant_library_bytes": {
+    "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\Lib\\site-packages\\numpy.libs\\libscipy_openblas64_-9e3e5a4229c1ca39f10dc82bba9e2b2b.dll": "86804c300fa5a7e27cb5360820d2a676c0bd862fd9b68833de64279f8a9ac76f",
+    "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\Lib\\site-packages\\numpy.libs\\msvcp140-a4c2229bdc2a2a630acdc095b4d86008.dll": "a4c2229bdc2a2a630acdc095b4d86008e5c3e3bc7773174354f3da4f5beb9cde",
+    "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\Lib\\site-packages\\numpy\\__init__.py": "a1792c20af1146952a6dfce4c0daeb197b2832b23d27434a97544544c497742d",
+    "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\Lib\\site-packages\\numpy\\_core\\_multiarray_umath.cp312-win_amd64.pyd": "42ab8c3eee950ab2c070c487fc4e758893303d34a890930ceb59ced935b946bf",
+    "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\Lib\\site-packages\\numpy\\linalg\\_umath_linalg.cp312-win_amd64.pyd": "e97f7a0282c65133adcb0718673f34c57db21c8a7bac81021ab73b4e956496d9",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\idf-full-deps\\scipy.libs\\libscipy_openblas-48c358d105077551cc9cc3ba79387ed5.dll": "48c358d105077551cc9cc3ba79387ed54f5f57794d8382bffce42ff788135adc",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\idf-full-deps\\scipy\\__init__.py": "08888bea625c2f5b948f81232a796bb8fd18b5883659205ce23593d93e67991b",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\idf-full-deps\\scipy\\optimize\\_minpack.cp312-win_amd64.pyd": "624f228f0cb1ec18ded15cb05e0b17a776272fcf52ca2a733ea8dcdedd3cae03",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\idf-full-deps\\scipy\\optimize\\_nnls.py": "6dbc95a73602596b8ce565a2939a180edc84d18bc187d9e86efab918818434d7"
+  },
+  "scipy": "1.16.3",
+  "source_paper": "https://grail.cs.washington.edu/projects/lightlocalization/lightlocalization.pdf",
+  "source_supplement": "https://grail.cs.washington.edu/projects/lightlocalization/lightlocalization_supplementary.pdf"
+}

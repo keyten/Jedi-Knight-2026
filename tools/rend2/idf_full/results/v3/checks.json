@@ -1,0 +1,105 @@
+{
+  "all_passed": true,
+  "checks": {
+    "artifact_hashes": true,
+    "complete_cycle_exercised": true,
+    "exact_repeats": true,
+    "finite_nonnegative_intensities": true,
+    "four_light_recovery": true,
+    "positive_scene_is_not_black": true,
+    "production_unchanged": true,
+    "source_hashes": true,
+    "tests": true,
+    "two_light_recovery": true
+  },
+  "report_sha256": "e534818519b9500be1c3333b86e71121def806a75e5305091f5a9af901e556ae",
+  "stages": {
+    "compiled_point_room": {
+      "full": {
+        "discovery": 7,
+        "initial_votes": 1,
+        "intensity_increment": 6,
+        "leave_one_out_relocation": 31,
+        "nnls_lm": 9
+      },
+      "one_pass_fit": {
+        "initial_votes": 1
+      },
+      "proposal_only": {
+        "initial_votes": 1
+      }
+    },
+    "compiled_two_colour": {
+      "full": {
+        "discovery": 10,
+        "initial_votes": 1,
+        "intensity_increment": 10,
+        "leave_one_out_relocation": 16,
+        "nnls_lm": 13
+      },
+      "one_pass_fit": {
+        "initial_votes": 1
+      },
+      "proposal_only": {
+        "initial_votes": 1
+      }
+    },
+    "linear_fill_control": {
+      "full": {
+        "discovery": 80,
+        "initial_votes": 1,
+        "intensity_increment": 80,
+        "leave_one_out_relocation": 80,
+        "nnls_lm": 81
+      },
+      "one_pass_fit": {
+        "initial_votes": 1
+      },
+      "proposal_only": {
+        "initial_votes": 1
+      }
+    },
+    "linear_four": {
+      "full": {
+        "discovery": 33,
+        "initial_votes": 1,
+        "intensity_increment": 32,
+        "leave_one_out_relocation": 35,
+        "nnls_lm": 35
+      },
+      "one_pass_fit": {
+        "initial_votes": 1
+      },
+      "proposal_only": {
+        "initial_votes": 1
+      }
+    },
+    "linear_two": {
+      "full": {
+        "discovery": 1,
+        "initial_votes": 1,
+        "nnls_lm": 1
+      },
+      "one_pass_fit": {
+        "initial_votes": 1
+      },
+      "proposal_only": {
+        "initial_votes": 1
+      }
+    }
+  },
+  "tests": {
+    "command": [
+      "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+      "-X",
+      "utf8",
+      "-m",
+      "unittest",
+      "tools.rend2.idf_full.test_algorithm",
+      "tools.rend2.idf.test_idf",
+      "-v"
+    ],
+    "exit_code": 0,
+    "output": "test_negative_residual_is_rejected (tools.rend2.idf_full.test_algorithm.Algorithm.test_negative_residual_is_rejected) ... ok\ntest_nnls_and_joint_lm_recover_from_inexact_initial_positions (tools.rend2.idf_full.test_algorithm.Algorithm.test_nnls_and_joint_lm_recover_from_inexact_initial_positions) ... ok\ntest_sphere_is_closed_triangulation (tools.rend2.idf_full.test_algorithm.Algorithm.test_sphere_is_closed_triangulation) ... ok\ntest_unknown_coefficient_is_not_a_zero_prediction (tools.rend2.idf_full.test_algorithm.Algorithm.test_unknown_coefficient_is_not_a_zero_prediction) ... ok\ntest_noise_interval_contains_exact_single_source_intensity (tools.rend2.idf.test_idf.IDF.test_noise_interval_contains_exact_single_source_intensity) ... ok\ntest_positive_additivity_gives_bound_at_true_source (tools.rend2.idf.test_idf.IDF.test_positive_additivity_gives_bound_at_true_source) ... ok\ntest_raw_ablation_does_not_assume_unknown_geometry_is_clear (tools.rend2.idf.test_idf.IDF.test_raw_ablation_does_not_assume_unknown_geometry_is_clear) ... ok\ntest_saturation_has_no_upper_bound_even_for_other_channels (tools.rend2.idf.test_idf.IDF.test_saturation_has_no_upper_bound_even_for_other_channels) ... ok\ntest_unknown_transfer_breaks_physical_bound (tools.rend2.idf.test_idf.IDF.test_unknown_transfer_breaks_physical_bound) ... ok\ntest_votes_follow_limiter_changes_not_brightness_maximum (tools.rend2.idf.test_idf.IDF.test_votes_follow_limiter_changes_not_brightness_maximum) ... ok\ntest_zero_coefficient_and_unknown_ray_supply_no_cap (tools.rend2.idf.test_idf.IDF.test_zero_coefficient_and_unknown_ray_supply_no_cap) ... ok\n\n----------------------------------------------------------------------\nRan 11 tests in 0.076s\n\nOK\n"
+  }
+}

@@ -1,0 +1,7731 @@
+{
+  "compiled_point_room": {
+    "full": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 60436992,
+        "idf_transforms": 38,
+        "invalid_positions": 9923,
+        "room_lattice_positions": 343,
+        "source_position_queries": 52591,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 532694
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                -82.88,
+                31.253333333333345,
+                144.0
+              ],
+              "vote": 84.23923108904246
+            },
+            {
+              "position": [
+                -176.64,
+                63.253333333333345,
+                237.76
+              ],
+              "vote": 22.684766895075782
+            },
+            {
+              "position": [
+                -109.75999999999999,
+                78.50666666666667,
+                2.24
+              ],
+              "vote": 20.214203559127107
+            },
+            {
+              "position": [
+                -42.879999999999995,
+                -101.76,
+                10.24
+              ],
+              "vote": 14.990369052498046
+            }
+          ],
+          "stage": "initial_votes"
+        },
+        {
+          "added": 4,
+          "iteration": 0,
+          "proposals": 4,
+          "stage": "discovery",
+          "working_sources": 4
+        },
+        {
+          "iteration": 0,
+          "mse": 0.0141451496329734,
+          "new_sources": 4,
+          "nfev": 12,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "iteration": 0,
+          "minimum_remaining": 0.02756892230576441,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -82.88,
+            31.253333333333345,
+            144.0
+          ],
+          "old": [
+            -82.88,
+            31.253333333333345,
+            144.0
+          ],
+          "proposed": [
+            -82.88,
+            31.253333333333345,
+            144.0
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -184.64,
+            47.253333333333345,
+            237.76
+          ],
+          "old": [
+            -176.64,
+            63.253333333333345,
+            237.76
+          ],
+          "proposed": [
+            -184.64,
+            47.253333333333345,
+            237.76
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "old": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "proposed": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "source": 2,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -42.879999999999995,
+            -101.76,
+            10.24
+          ],
+          "old": [
+            -42.879999999999995,
+            -101.76,
+            10.24
+          ],
+          "proposed": [
+            -42.879999999999995,
+            -101.76,
+            10.24
+          ],
+          "source": 3,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 0,
+          "mse": 0.014794563738858171,
+          "new_sources": 0,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 1,
+          "proposals": 4,
+          "stage": "discovery",
+          "working_sources": 4
+        },
+        {
+          "active": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "iteration": 1,
+          "minimum_remaining": 0.02756892230576441,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -82.88,
+            39.253333333333345,
+            136.0
+          ],
+          "old": [
+            -82.88,
+            31.253333333333345,
+            144.0
+          ],
+          "proposed": [
+            -82.88,
+            39.253333333333345,
+            136.0
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -176.64,
+            78.50666666666667,
+            222.50666666666666
+          ],
+          "old": [
+            -184.64,
+            47.253333333333345,
+            237.76
+          ],
+          "proposed": [
+            -176.64,
+            78.50666666666667,
+            222.50666666666666
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "old": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "proposed": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "source": 2,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -34.879999999999995,
+            -109.76,
+            18.240000000000002
+          ],
+          "old": [
+            -42.879999999999995,
+            -101.76,
+            10.24
+          ],
+          "proposed": [
+            -34.879999999999995,
+            -109.76,
+            18.240000000000002
+          ],
+          "source": 3,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 1,
+          "mse": 0.018345365692560348,
+          "new_sources": 0,
+          "nfev": 11,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 1,
+          "iteration": 2,
+          "proposals": 4,
+          "stage": "discovery",
+          "working_sources": 5
+        },
+        {
+          "iteration": 2,
+          "mse": 0.01834536569466134,
+          "new_sources": 1,
+          "nfev": 11,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0,
+            1,
+            2,
+            4
+          ],
+          "iteration": 2,
+          "minimum_remaining": 0.02756892230576441,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -74.88,
+            31.253333333333345,
+            144.0
+          ],
+          "old": [
+            -82.88,
+            39.253333333333345,
+            136.0
+          ],
+          "proposed": [
+            -74.88,
+            31.253333333333345,
+            144.0
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -184.64,
+            47.253333333333345,
+            237.76
+          ],
+          "old": [
+            -176.64,
+            78.50666666666667,
+            222.50666666666666
+          ],
+          "proposed": [
+            -184.64,
+            47.253333333333345,
+            237.76
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "old": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "proposed": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "source": 2,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "old": [
+            -34.879999999999995,
+            -109.76,
+            18.240000000000002
+          ],
+          "proposed": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "source": 3,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.02756892230576441,
+          "new": [
+            -42.879999999999995,
+            -101.76,
+            10.24
+          ],
+          "old": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "proposed": [
+            -42.879999999999995,
+            -101.76,
+            10.24
+          ],
+          "source": 4,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 2,
+          "mse": 0.01465093958376056,
+          "new_sources": 0,
+          "nfev": 11,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 1,
+          "iteration": 3,
+          "proposals": 5,
+          "stage": "discovery",
+          "working_sources": 6
+        },
+        {
+          "iteration": 3,
+          "mse": 0.014650678775125619,
+          "new_sources": 1,
+          "nfev": 15,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0,
+            4,
+            5
+          ],
+          "iteration": 3,
+          "minimum_remaining": 0.02756892230576441,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.024450794860559514,
+          "new": [
+            -74.88,
+            39.253333333333345,
+            144.0
+          ],
+          "old": [
+            -74.88,
+            31.253333333333345,
+            144.0
+          ],
+          "proposed": [
+            -74.88,
+            39.253333333333345,
+            144.0
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.024450794860559514,
+          "new": [
+            -168.64,
+            70.50666666666667,
+            206.50666666666666
+          ],
+          "old": [
+            -184.64,
+            47.253333333333345,
+            237.76
+          ],
+          "proposed": [
+            -168.64,
+            70.50666666666667,
+            206.50666666666666
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.024450794860559514,
+          "new": [
+            -160.64,
+            117.76,
+            26.240000000000002
+          ],
+          "old": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "proposed": [
+            -160.64,
+            117.76,
+            26.240000000000002
+          ],
+          "source": 2,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.024450794860559514,
+          "new": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "old": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "proposed": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "source": 3,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.024450794860559514,
+          "new": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "old": [
+            -42.879999999999995,
+            -101.76,
+            10.24
+          ],
+          "proposed": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "source": 4,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.023141803338820707,
+          "new": [
+            0.0,
+            62.506666666666675,
+            10.24
+          ],
+          "old": [
+            -66.88,
+            55.253333333333345,
+            2.24
+          ],
+          "proposed": [
+            0.0,
+            62.506666666666675,
+            10.24
+          ],
+          "source": 5,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 3,
+          "mse": 0.013685149392108806,
+          "new_sources": 0,
+          "nfev": 18,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 4,
+          "proposals": 5,
+          "stage": "discovery",
+          "working_sources": 6
+        },
+        {
+          "active": [
+            0,
+            1,
+            2,
+            5
+          ],
+          "iteration": 4,
+          "minimum_remaining": 0.021053279955780678,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.0249509392622868,
+          "new": [
+            -58.879999999999995,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "old": [
+            -74.88,
+            39.253333333333345,
+            144.0
+          ],
+          "proposed": [
+            -58.879999999999995,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.0249509392622868,
+          "new": [
+            -176.64,
+            70.50666666666667,
+            214.50666666666666
+          ],
+          "old": [
+            -168.64,
+            70.50666666666667,
+            206.50666666666666
+          ],
+          "proposed": [
+            -176.64,
+            70.50666666666667,
+            214.50666666666666
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.023047809197564804,
+          "new": [
+            -176.64,
+            78.50666666666667,
+            10.24
+          ],
+          "old": [
+            -160.64,
+            117.76,
+            26.240000000000002
+          ],
+          "proposed": [
+            -176.64,
+            78.50666666666667,
+            10.24
+          ],
+          "source": 2,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.023047809197564804,
+          "new": [
+            16.0,
+            -117.76,
+            26.240000000000002
+          ],
+          "old": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "proposed": [
+            16.0,
+            -117.76,
+            26.240000000000002
+          ],
+          "source": 3,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.023047809197564804,
+          "new": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "old": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "proposed": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "source": 4,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.023047809197564804,
+          "new": [
+            0.0,
+            62.506666666666675,
+            10.24
+          ],
+          "old": [
+            0.0,
+            62.506666666666675,
+            10.24
+          ],
+          "proposed": [
+            0.0,
+            62.506666666666675,
+            10.24
+          ],
+          "source": 5,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 4,
+          "mse": 0.022347271729598564,
+          "new_sources": 0,
+          "nfev": 14,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 5,
+          "proposals": 5,
+          "stage": "discovery",
+          "working_sources": 6
+        },
+        {
+          "active": [
+            0,
+            1,
+            3
+          ],
+          "iteration": 5,
+          "minimum_remaining": 0.023047809197564804,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.023047809197564804,
+          "new": [
+            -82.88,
+            39.253333333333345,
+            136.0
+          ],
+          "old": [
+            -58.879999999999995,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "proposed": [
+            -82.88,
+            39.253333333333345,
+            136.0
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.023047809197564804,
+          "new": [
+            -74.88,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "old": [
+            -176.64,
+            70.50666666666667,
+            214.50666666666666
+          ],
+          "proposed": [
+            -74.88,
+            39.253333333333345,
+            127.99999999999999
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.0249509392622868,
+          "new": [
+            -184.64,
+            94.50666666666667,
+            18.240000000000002
+          ],
+          "old": [
+            -176.64,
+            78.50666666666667,
+            10.24
+          ],
+          "proposed": [
+            -184.64,
+            94.50666666666667,
+            18.240000000000002
+          ],
+          "source": 2,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.0249509392622868,
+          "new": [
+            -66.88,
+            -117.76,
+            2.24
+          ],
+          "old": [
+            16.0,
+            -117.76,
+            26.240000000000002
+          ],
+          "proposed": [
+            -66.88,
+            -117.76,
+            2.24
+          ],
+          "source": 3,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.02233327151669072,
+          "new": [
+            -8.0,
+            -117.76,
+            18.240000000000002
+          ],
+          "old": [
+            -66.88,
+            -109.76,
+            18.240000000000002
+          ],
+          "proposed": [
+            -8.0,
+            -117.76,
+            18.240000000000002
+          ],
+          "source": 4,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.022059593389137225,
+          "new": [
+            -66.88,
+            55.253333333333345,
+            10.24
+          ],
+          "old": [
+            0.0,
+            62.506666666666675,
+            10.24
+          ],
+          "proposed": [
+            -66.88,
+            55.253333333333345,
+            10.24
+          ],
+          "source": 5,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 5,
+          "mse": 0.020784379912953555,
+          "new_sources": 0,
+          "nfev": 12,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 6,
+          "proposals": 3,
+          "stage": "discovery",
+          "working_sources": 6
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            -82.88,
+            31.253333333333345,
+            144.0
+          ],
+          "vote": 84.23923108904246
+        },
+        {
+          "position": [
+            -176.64,
+            63.253333333333345,
+            237.76
+          ],
+          "vote": 22.684766895075782
+        },
+        {
+          "position": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "vote": 20.214203559127107
+        },
+        {
+          "position": [
+            -42.879999999999995,
+            -101.76,
+            10.24
+          ],
+          "vote": 14.990369052498046
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.24686293629052525,
+            0.24686293629052525,
+            0.24686293629052525
+          ],
+          [
+            0.2487702696733813,
+            0.2487702696733813,
+            0.2487702696733813
+          ],
+          [
+            9.357622968840175e-14,
+            9.357622968840175e-14,
+            9.357622968840175e-14
+          ],
+          [
+            9.357622968840175e-14,
+            9.357622968840175e-14,
+            9.357622968840175e-14
+          ],
+          [
+            9.357622968840175e-14,
+            9.357622968840175e-14,
+            9.357622968840175e-14
+          ],
+          [
+            9.357622968840175e-14,
+            9.357622968840175e-14,
+            9.357622968840175e-14
+          ]
+        ],
+        "lm_evaluations": 18,
+        "lm_success": true,
+        "mse": 0.013685149392108806,
+        "nnls": true,
+        "positions": [
+          [
+            -74.88000006363534,
+            39.253333360829544,
+            144.0000000302628
+          ],
+          [
+            -168.6400001447271,
+            70.50666673180547,
+            206.50666684940154
+          ],
+          [
+            -155.989321388078,
+            115.59706374451994,
+            22.145513820739033
+          ],
+          [
+            -65.64900826410651,
+            -109.38784734371916,
+            18.492791821212986
+          ],
+          [
+            -65.64900826410651,
+            -109.38784734371916,
+            18.492791821212986
+          ],
+          [
+            0.005277761988821794,
+            55.36152773171062,
+            10.427991966806164
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "NoRemainingVotePeaks"
+    },
+    "one_pass_fit": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 1502592,
+        "idf_transforms": 1,
+        "invalid_positions": 2037,
+        "room_lattice_positions": 343,
+        "source_position_queries": 9084,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 104415
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                -82.88,
+                31.253333333333345,
+                144.0
+              ],
+              "vote": 84.23923108904246
+            },
+            {
+              "position": [
+                -176.64,
+                63.253333333333345,
+                237.76
+              ],
+              "vote": 22.684766895075782
+            },
+            {
+              "position": [
+                -109.75999999999999,
+                78.50666666666667,
+                2.24
+              ],
+              "vote": 20.214203559127107
+            },
+            {
+              "position": [
+                -42.879999999999995,
+                -101.76,
+                10.24
+              ],
+              "vote": 14.990369052498046
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            -82.88,
+            31.253333333333345,
+            144.0
+          ],
+          "vote": 84.23923108904246
+        },
+        {
+          "position": [
+            -176.64,
+            63.253333333333345,
+            237.76
+          ],
+          "vote": 22.684766895075782
+        },
+        {
+          "position": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "vote": 20.214203559127107
+        },
+        {
+          "position": [
+            -42.879999999999995,
+            -101.76,
+            10.24
+          ],
+          "vote": 14.990369052498046
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.3024679942662205,
+            0.3024679942662205,
+            0.3024679942662205
+          ],
+          [
+            0.07966107079210814,
+            0.07966107079210814,
+            0.07966107079210814
+          ],
+          [
+            0.1444372266848251,
+            0.1444372266848251,
+            0.1444372266848251
+          ],
+          [
+            9.357622968840175e-14,
+            9.357622968840175e-14,
+            9.357622968840175e-14
+          ]
+        ],
+        "lm_evaluations": 12,
+        "lm_success": true,
+        "mse": 0.0141451496329734,
+        "nnls": true,
+        "positions": [
+          [
+            -82.88000175463617,
+            31.253333860238456,
+            144.00000051681243
+          ],
+          [
+            -176.6400034049029,
+            63.25334273819084,
+            237.76000301537456
+          ],
+          [
+            -109.76000135402127,
+            78.50666756657716,
+            2.2399999922632268
+          ],
+          [
+            -101.73749479059798,
+            -94.89569640960102,
+            14.789292423161838
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Partial"
+    },
+    "proposal_only": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 1502592,
+        "idf_transforms": 1,
+        "invalid_positions": 2034,
+        "room_lattice_positions": 343,
+        "source_position_queries": 8944,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 104223
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                -82.88,
+                31.253333333333345,
+                144.0
+              ],
+              "vote": 84.23923108904246
+            },
+            {
+              "position": [
+                -176.64,
+                63.253333333333345,
+                237.76
+              ],
+              "vote": 22.684766895075782
+            },
+            {
+              "position": [
+                -109.75999999999999,
+                78.50666666666667,
+                2.24
+              ],
+              "vote": 20.214203559127107
+            },
+            {
+              "position": [
+                -42.879999999999995,
+                -101.76,
+                10.24
+              ],
+              "vote": 14.990369052498046
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            -82.88,
+            31.253333333333345,
+            144.0
+          ],
+          "vote": 84.23923108904246
+        },
+        {
+          "position": [
+            -176.64,
+            63.253333333333345,
+            237.76
+          ],
+          "vote": 22.684766895075782
+        },
+        {
+          "position": [
+            -109.75999999999999,
+            78.50666666666667,
+            2.24
+          ],
+          "vote": 20.214203559127107
+        },
+        {
+          "position": [
+            -42.879999999999995,
+            -101.76,
+            10.24
+          ],
+          "vote": 14.990369052498046
+        }
+      ],
+      "model": null,
+      "repeat_equal": true,
+      "state": "ProposalsOnly"
+    }
+  },
+  "compiled_two_colour": {
+    "full": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 29922816,
+        "idf_transforms": 26,
+        "invalid_positions": 2720,
+        "room_lattice_positions": 343,
+        "source_position_queries": 12271,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 142575
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                117.75999999999999,
+                -78.50666666666666,
+                49.49333333333333
+              ],
+              "vote": 49.40438543682951
+            }
+          ],
+          "stage": "initial_votes"
+        },
+        {
+          "added": 1,
+          "iteration": 0,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "iteration": 0,
+          "mse": 0.019325635150683133,
+          "new_sources": 1,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 0,
+          "minimum_remaining": 0.024261762962392453,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.024261762962392453,
+          "new": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "old": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "proposed": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 0,
+          "mse": 0.019325635150683133,
+          "new_sources": 0,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 1,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 1,
+          "minimum_remaining": 0.022471421716368074,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.022471421716368074,
+          "new": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "old": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "proposed": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 1,
+          "mse": 0.019325635150683133,
+          "new_sources": 0,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 2,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 2,
+          "minimum_remaining": 0.020681080470343696,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.020681080470343696,
+          "new": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "old": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "proposed": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 2,
+          "mse": 0.019325635150683133,
+          "new_sources": 0,
+          "nfev": 13,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 1,
+          "iteration": 3,
+          "proposals": 2,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "iteration": 3,
+          "mse": 0.015359906190243263,
+          "new_sources": 1,
+          "nfev": 16,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0,
+            1
+          ],
+          "iteration": 3,
+          "minimum_remaining": 0.017035309739949676,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.023206518696980375,
+          "new": [
+            101.75999999999999,
+            -78.50666666666666,
+            65.49333333333334
+          ],
+          "old": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "proposed": [
+            101.75999999999999,
+            -78.50666666666666,
+            65.49333333333334
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.023206518696980375,
+          "new": [
+            -168.64,
+            109.76,
+            10.24
+          ],
+          "old": [
+            -168.64,
+            109.76,
+            10.24
+          ],
+          "proposed": [
+            -168.64,
+            109.76,
+            10.24
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 3,
+          "mse": 0.015399524180441819,
+          "new_sources": 0,
+          "nfev": 15,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 4,
+          "proposals": 2,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "active": [
+            0,
+            1
+          ],
+          "iteration": 4,
+          "minimum_remaining": 0.02149311831110523,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.02149311831110523,
+          "new": [
+            101.75999999999999,
+            -78.50666666666666,
+            65.49333333333334
+          ],
+          "old": [
+            101.75999999999999,
+            -78.50666666666666,
+            65.49333333333334
+          ],
+          "proposed": [
+            101.75999999999999,
+            -78.50666666666666,
+            65.49333333333334
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.02149311831110523,
+          "new": [
+            -168.64,
+            109.76,
+            10.24
+          ],
+          "old": [
+            -168.64,
+            109.76,
+            10.24
+          ],
+          "proposed": [
+            -168.64,
+            109.76,
+            10.24
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 4,
+          "mse": 0.015399524180441819,
+          "new_sources": 0,
+          "nfev": 15,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 5,
+          "proposals": 2,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "active": [
+            0,
+            1
+          ],
+          "iteration": 5,
+          "minimum_remaining": 0.019779717925230082,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.019779717925230082,
+          "new": [
+            101.75999999999999,
+            -78.50666666666666,
+            65.49333333333334
+          ],
+          "old": [
+            101.75999999999999,
+            -78.50666666666666,
+            65.49333333333334
+          ],
+          "proposed": [
+            101.75999999999999,
+            -78.50666666666666,
+            65.49333333333334
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.018214692405288786,
+          "new": [
+            -176.64,
+            101.76,
+            2.24
+          ],
+          "old": [
+            -168.64,
+            109.76,
+            10.24
+          ],
+          "proposed": [
+            -176.64,
+            101.76,
+            2.24
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 5,
+          "mse": 0.01655326699043053,
+          "new_sources": 0,
+          "nfev": 12,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 6,
+          "proposals": 2,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "active": [
+            0,
+            1
+          ],
+          "iteration": 6,
+          "minimum_remaining": 0.015979616846099873,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 6,
+          "minimum_remaining": 0.013519715486246179,
+          "new": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "old": [
+            101.75999999999999,
+            -78.50666666666666,
+            65.49333333333334
+          ],
+          "proposed": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 6,
+          "minimum_remaining": 0.013519715486246179,
+          "new": [
+            -184.64,
+            125.76,
+            10.24
+          ],
+          "old": [
+            -176.64,
+            101.76,
+            2.24
+          ],
+          "proposed": [
+            -184.64,
+            125.76,
+            10.24
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 6,
+          "mse": 0.015551889710067913,
+          "new_sources": 0,
+          "nfev": 10,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 7,
+          "proposals": 2,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "active": [
+            0,
+            1
+          ],
+          "iteration": 7,
+          "minimum_remaining": 0.0117293742402218,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 7,
+          "minimum_remaining": 0.0117293742402218,
+          "new": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "old": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "proposed": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 7,
+          "minimum_remaining": 0.005200926159216482,
+          "new": [
+            -176.64,
+            109.76,
+            10.24
+          ],
+          "old": [
+            -184.64,
+            125.76,
+            10.24
+          ],
+          "proposed": [
+            -176.64,
+            109.76,
+            10.24
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 7,
+          "mse": 0.014245143088381046,
+          "new_sources": 0,
+          "nfev": 15,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 1,
+          "iteration": 8,
+          "proposals": 2,
+          "stage": "discovery",
+          "working_sources": 3
+        },
+        {
+          "iteration": 8,
+          "mse": 0.014329125869622447,
+          "new_sources": 1,
+          "nfev": 11,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            1,
+            2
+          ],
+          "iteration": 8,
+          "minimum_remaining": 0.003822294646366086,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 8,
+          "minimum_remaining": 0.003822294646366086,
+          "new": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "old": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "proposed": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 8,
+          "minimum_remaining": 0.003822294646366086,
+          "new": [
+            -176.64,
+            109.76,
+            10.24
+          ],
+          "old": [
+            -176.64,
+            109.76,
+            10.24
+          ],
+          "proposed": [
+            -176.64,
+            109.76,
+            10.24
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 8,
+          "minimum_remaining": 0.002523878420044798,
+          "new": [
+            176.64,
+            -78.50666666666666,
+            10.24
+          ],
+          "old": [
+            160.64,
+            -94.50666666666666,
+            34.24
+          ],
+          "proposed": [
+            176.64,
+            -78.50666666666666,
+            10.24
+          ],
+          "source": 2,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 8,
+          "mse": 0.014654079095918454,
+          "new_sources": 0,
+          "nfev": 10,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 2,
+          "iteration": 9,
+          "proposals": 3,
+          "stage": "discovery",
+          "working_sources": 5
+        },
+        {
+          "iteration": 9,
+          "mse": 0.011790486908142786,
+          "new_sources": 2,
+          "nfev": 12,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            1,
+            3,
+            4
+          ],
+          "iteration": 9,
+          "minimum_remaining": -0.00015996501230127608,
+          "stage": "intensity_increment"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "vote": 49.40438543682951
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.03767869793355563,
+            0.06312807315458364,
+            0.2963815436700198
+          ],
+          [
+            0.7283219207450201,
+            0.08658384788070975,
+            0.014181546600212178
+          ],
+          [
+            0.15263794088664626,
+            0.06266741487851048,
+            0.22958929511200654
+          ],
+          [
+            0.16909177937312742,
+            0.03737227920347175,
+            0.10235868418190128
+          ],
+          [
+            0.04006668257748483,
+            0.10740331049379637,
+            0.5273915424960018
+          ]
+        ],
+        "lm_evaluations": 12,
+        "lm_success": true,
+        "mse": 0.011790486908142786,
+        "nnls": true,
+        "positions": [
+          [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333334
+          ],
+          [
+            -176.64,
+            109.75999999999999,
+            10.240000000000004
+          ],
+          [
+            176.64,
+            -78.50666666666666,
+            10.240000000000004
+          ],
+          [
+            168.64,
+            -94.50666666666666,
+            34.24000000000001
+          ],
+          [
+            184.64,
+            -109.76,
+            206.50666666666666
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "NegativeResidualFailure"
+    },
+    "one_pass_fit": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 1067136,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 2251,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                117.75999999999999,
+                -78.50666666666666,
+                49.49333333333333
+              ],
+              "vote": 49.40438543682951
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "vote": 49.40438543682951
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.5086245638119875,
+            0.2279526305634695,
+            0.8690366689611342
+          ]
+        ],
+        "lm_evaluations": 13,
+        "lm_success": true,
+        "mse": 0.019325635150683133,
+        "nnls": true,
+        "positions": [
+          [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333334
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Partial"
+    },
+    "proposal_only": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 1067136,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 2236,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                117.75999999999999,
+                -78.50666666666666,
+                49.49333333333333
+              ],
+              "vote": 49.40438543682951
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            117.75999999999999,
+            -78.50666666666666,
+            49.49333333333333
+          ],
+          "vote": 49.40438543682951
+        }
+      ],
+      "model": null,
+      "repeat_equal": true,
+      "state": "ProposalsOnly"
+    }
+  },
+  "linear_fill_control": {
+    "full": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 960422400,
+        "idf_transforms": 160,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 2990,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                0.041666666666666775,
+                1.1102230246251565e-16,
+                0.041666666666666775
+              ],
+              "vote": 18.21601935376874
+            }
+          ],
+          "stage": "initial_votes"
+        },
+        {
+          "added": 1,
+          "iteration": 0,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "iteration": 0,
+          "mse": 0.13524611373718345,
+          "new_sources": 1,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 0,
+          "minimum_remaining": 0.9950585386045596,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.9950585386045596,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 0,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 1,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 1,
+          "minimum_remaining": 0.9901170772091192,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.9901170772091192,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 1,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 2,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 2,
+          "minimum_remaining": 0.985175615813679,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.985175615813679,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 2,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 3,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 3,
+          "minimum_remaining": 0.9802341544182386,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.9802341544182386,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 3,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 4,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 4,
+          "minimum_remaining": 0.9752926930227982,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.9752926930227982,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 4,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 5,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 5,
+          "minimum_remaining": 0.9703512316273578,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.9703512316273578,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 5,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 6,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 6,
+          "minimum_remaining": 0.9654097702319175,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 6,
+          "minimum_remaining": 0.9654097702319175,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 6,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 7,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 7,
+          "minimum_remaining": 0.9604683088364772,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 7,
+          "minimum_remaining": 0.9604683088364772,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 7,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 8,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 8,
+          "minimum_remaining": 0.9555268474410368,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 8,
+          "minimum_remaining": 0.9555268474410368,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 8,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 9,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 9,
+          "minimum_remaining": 0.9505853860455964,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 9,
+          "minimum_remaining": 0.9505853860455964,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 9,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 10,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 10,
+          "minimum_remaining": 0.9456439246501561,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 10,
+          "minimum_remaining": 0.9456439246501561,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 10,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 11,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 11,
+          "minimum_remaining": 0.9407024632547157,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 11,
+          "minimum_remaining": 0.9407024632547157,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 11,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 12,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 12,
+          "minimum_remaining": 0.9357610018592754,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 12,
+          "minimum_remaining": 0.9357610018592754,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 12,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 13,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 13,
+          "minimum_remaining": 0.930819540463835,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 13,
+          "minimum_remaining": 0.930819540463835,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 13,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 14,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 14,
+          "minimum_remaining": 0.9258780790683946,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 14,
+          "minimum_remaining": 0.9258780790683946,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 14,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 15,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 15,
+          "minimum_remaining": 0.9209366176729543,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 15,
+          "minimum_remaining": 0.9209366176729543,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 15,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 16,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 16,
+          "minimum_remaining": 0.9159951562775139,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 16,
+          "minimum_remaining": 0.9159951562775139,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 16,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 17,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 17,
+          "minimum_remaining": 0.9110536948820736,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 17,
+          "minimum_remaining": 0.9110536948820736,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 17,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 18,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 18,
+          "minimum_remaining": 0.9061122334866332,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 18,
+          "minimum_remaining": 0.9061122334866332,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 18,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 19,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 19,
+          "minimum_remaining": 0.9011707720911928,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 19,
+          "minimum_remaining": 0.9011707720911928,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 19,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 20,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 20,
+          "minimum_remaining": 0.8962293106957524,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 20,
+          "minimum_remaining": 0.8962293106957524,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 20,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 21,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 21,
+          "minimum_remaining": 0.8912878493003121,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 21,
+          "minimum_remaining": 0.8912878493003121,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 21,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 22,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 22,
+          "minimum_remaining": 0.8863463879048717,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 22,
+          "minimum_remaining": 0.8863463879048717,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 22,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 23,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 23,
+          "minimum_remaining": 0.8814049265094314,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 23,
+          "minimum_remaining": 0.8814049265094314,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 23,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 24,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 24,
+          "minimum_remaining": 0.876463465113991,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 24,
+          "minimum_remaining": 0.876463465113991,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 24,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 25,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 25,
+          "minimum_remaining": 0.8715220037185507,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 25,
+          "minimum_remaining": 0.8715220037185507,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 25,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 26,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 26,
+          "minimum_remaining": 0.8665805423231103,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 26,
+          "minimum_remaining": 0.8665805423231103,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 26,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 27,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 27,
+          "minimum_remaining": 0.8616390809276699,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 27,
+          "minimum_remaining": 0.8616390809276699,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 27,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 28,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 28,
+          "minimum_remaining": 0.8566976195322296,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 28,
+          "minimum_remaining": 0.8566976195322296,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 28,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 29,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 29,
+          "minimum_remaining": 0.8517561581367892,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 29,
+          "minimum_remaining": 0.8517561581367892,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 29,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 30,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 30,
+          "minimum_remaining": 0.8468146967413488,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 30,
+          "minimum_remaining": 0.8468146967413488,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 30,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 31,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 31,
+          "minimum_remaining": 0.8418732353459085,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 31,
+          "minimum_remaining": 0.8418732353459085,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 31,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 32,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 32,
+          "minimum_remaining": 0.8369317739504681,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 32,
+          "minimum_remaining": 0.8369317739504681,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 32,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 33,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 33,
+          "minimum_remaining": 0.8319903125550278,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 33,
+          "minimum_remaining": 0.8319903125550278,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 33,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 34,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 34,
+          "minimum_remaining": 0.8270488511595874,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 34,
+          "minimum_remaining": 0.8270488511595874,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 34,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 35,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 35,
+          "minimum_remaining": 0.8221073897641471,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 35,
+          "minimum_remaining": 0.8221073897641471,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 35,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 36,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 36,
+          "minimum_remaining": 0.8171659283687067,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 36,
+          "minimum_remaining": 0.8171659283687067,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 36,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 37,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 37,
+          "minimum_remaining": 0.8122244669732663,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 37,
+          "minimum_remaining": 0.8122244669732663,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 37,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 38,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 38,
+          "minimum_remaining": 0.807283005577826,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 38,
+          "minimum_remaining": 0.807283005577826,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 38,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 39,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 39,
+          "minimum_remaining": 0.8023415441823856,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 39,
+          "minimum_remaining": 0.8023415441823856,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 39,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 40,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 40,
+          "minimum_remaining": 0.7974000827869452,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 40,
+          "minimum_remaining": 0.7974000827869452,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 40,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 41,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 41,
+          "minimum_remaining": 0.7924586213915048,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 41,
+          "minimum_remaining": 0.7924586213915048,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 41,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 42,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 42,
+          "minimum_remaining": 0.7875171599960645,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 42,
+          "minimum_remaining": 0.7875171599960645,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 42,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 43,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 43,
+          "minimum_remaining": 0.7825756986006241,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 43,
+          "minimum_remaining": 0.7825756986006241,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 43,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 44,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 44,
+          "minimum_remaining": 0.7776342372051838,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 44,
+          "minimum_remaining": 0.7776342372051838,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 44,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 45,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 45,
+          "minimum_remaining": 0.7726927758097434,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 45,
+          "minimum_remaining": 0.7726927758097434,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 45,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 46,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 46,
+          "minimum_remaining": 0.7677513144143031,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 46,
+          "minimum_remaining": 0.7677513144143031,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 46,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 47,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 47,
+          "minimum_remaining": 0.7628098530188627,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 47,
+          "minimum_remaining": 0.7628098530188627,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 47,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 48,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 48,
+          "minimum_remaining": 0.7578683916234223,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 48,
+          "minimum_remaining": 0.7578683916234223,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 48,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 49,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 49,
+          "minimum_remaining": 0.752926930227982,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 49,
+          "minimum_remaining": 0.752926930227982,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 49,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 50,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 50,
+          "minimum_remaining": 0.7479854688325416,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 50,
+          "minimum_remaining": 0.7479854688325416,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 50,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 51,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 51,
+          "minimum_remaining": 0.7430440074371012,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 51,
+          "minimum_remaining": 0.7430440074371012,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 51,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 52,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 52,
+          "minimum_remaining": 0.7381025460416609,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 52,
+          "minimum_remaining": 0.7381025460416609,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 52,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 53,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 53,
+          "minimum_remaining": 0.7331610846462205,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 53,
+          "minimum_remaining": 0.7331610846462205,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 53,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 54,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 54,
+          "minimum_remaining": 0.7282196232507802,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 54,
+          "minimum_remaining": 0.7282196232507802,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 54,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 55,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 55,
+          "minimum_remaining": 0.7232781618553399,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 55,
+          "minimum_remaining": 0.7232781618553399,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 55,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 56,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 56,
+          "minimum_remaining": 0.7183367004598995,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 56,
+          "minimum_remaining": 0.7183367004598995,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 56,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 57,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 57,
+          "minimum_remaining": 0.7133952390644591,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 57,
+          "minimum_remaining": 0.7133952390644591,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 57,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 58,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 58,
+          "minimum_remaining": 0.7084537776690187,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 58,
+          "minimum_remaining": 0.7084537776690187,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 58,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 59,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 59,
+          "minimum_remaining": 0.7035123162735784,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 59,
+          "minimum_remaining": 0.7035123162735784,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 59,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 60,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 60,
+          "minimum_remaining": 0.698570854878138,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 60,
+          "minimum_remaining": 0.698570854878138,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 60,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 61,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 61,
+          "minimum_remaining": 0.6936293934826976,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 61,
+          "minimum_remaining": 0.6936293934826976,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 61,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 62,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 62,
+          "minimum_remaining": 0.6886879320872572,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 62,
+          "minimum_remaining": 0.6886879320872572,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 62,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 63,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 63,
+          "minimum_remaining": 0.6837464706918169,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 63,
+          "minimum_remaining": 0.6837464706918169,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 63,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 64,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 64,
+          "minimum_remaining": 0.6788050092963765,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 64,
+          "minimum_remaining": 0.6788050092963765,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 64,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 65,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 65,
+          "minimum_remaining": 0.6738635479009362,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 65,
+          "minimum_remaining": 0.6738635479009362,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 65,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 66,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 66,
+          "minimum_remaining": 0.6689220865054959,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 66,
+          "minimum_remaining": 0.6689220865054959,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 66,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 67,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 67,
+          "minimum_remaining": 0.6639806251100555,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 67,
+          "minimum_remaining": 0.6639806251100555,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 67,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 68,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 68,
+          "minimum_remaining": 0.6590391637146151,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 68,
+          "minimum_remaining": 0.6590391637146151,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 68,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 69,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 69,
+          "minimum_remaining": 0.6540977023191747,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 69,
+          "minimum_remaining": 0.6540977023191747,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 69,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 70,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 70,
+          "minimum_remaining": 0.6491562409237344,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 70,
+          "minimum_remaining": 0.6491562409237344,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 70,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 71,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 71,
+          "minimum_remaining": 0.644214779528294,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 71,
+          "minimum_remaining": 0.644214779528294,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 71,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 72,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 72,
+          "minimum_remaining": 0.6392733181328536,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 72,
+          "minimum_remaining": 0.6392733181328536,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 72,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 73,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 73,
+          "minimum_remaining": 0.6343318567374132,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 73,
+          "minimum_remaining": 0.6343318567374132,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 73,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 74,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 74,
+          "minimum_remaining": 0.6293903953419729,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 74,
+          "minimum_remaining": 0.6293903953419729,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 74,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 75,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 75,
+          "minimum_remaining": 0.6244489339465326,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 75,
+          "minimum_remaining": 0.6244489339465326,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 75,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 76,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 76,
+          "minimum_remaining": 0.6195074725510923,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 76,
+          "minimum_remaining": 0.6195074725510923,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 76,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 77,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 77,
+          "minimum_remaining": 0.6145660111556519,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 77,
+          "minimum_remaining": 0.6145660111556519,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 77,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 78,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 78,
+          "minimum_remaining": 0.6096245497602115,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 78,
+          "minimum_remaining": 0.6096245497602115,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 78,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 79,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 79,
+          "minimum_remaining": 0.6046830883647711,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 79,
+          "minimum_remaining": 0.6046830883647711,
+          "new": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "old": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 79,
+          "mse": 0.13524611373718345,
+          "new_sources": 0,
+          "nfev": 6,
+          "stage": "nnls_lm"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "vote": 18.21601935376874
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            1.714821171288093
+          ]
+        ],
+        "lm_evaluations": 6,
+        "lm_success": true,
+        "mse": 0.13524611373718345,
+        "nnls": true,
+        "positions": [
+          [
+            -0.0036704655448358547,
+            0.005704771259693375,
+            0.01115239198117468
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Budget"
+    },
+    "one_pass_fit": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 6002640,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 2259,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                0.041666666666666775,
+                1.1102230246251565e-16,
+                0.041666666666666775
+              ],
+              "vote": 18.21601935376874
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "vote": 18.21601935376874
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            1.714821171288093
+          ]
+        ],
+        "lm_evaluations": 6,
+        "lm_success": true,
+        "mse": 0.13524611373718345,
+        "nnls": true,
+        "positions": [
+          [
+            -0.0036704655448358547,
+            0.005704771259693375,
+            0.01115239198117468
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Partial"
+    },
+    "proposal_only": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 6002640,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 2236,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                0.041666666666666775,
+                1.1102230246251565e-16,
+                0.041666666666666775
+              ],
+              "vote": 18.21601935376874
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            0.041666666666666775,
+            1.1102230246251565e-16,
+            0.041666666666666775
+          ],
+          "vote": 18.21601935376874
+        }
+      ],
+      "model": null,
+      "repeat_equal": true,
+      "state": "ProposalsOnly"
+    }
+  },
+  "linear_four": {
+    "full": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 410628960,
+        "idf_transforms": 68,
+        "invalid_positions": 815,
+        "room_lattice_positions": 343,
+        "source_position_queries": 24999,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                0.08333333333333344
+              ],
+              "vote": 14.091207402948374
+            }
+          ],
+          "stage": "initial_votes"
+        },
+        {
+          "added": 1,
+          "iteration": 0,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "iteration": 0,
+          "mse": 0.005657306654462002,
+          "new_sources": 1,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 0,
+          "minimum_remaining": 0.05776930372022338,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 0,
+          "minimum_remaining": 0.05776930372022338,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 0,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 1,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 1,
+          "minimum_remaining": 0.05677277857812232,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 1,
+          "minimum_remaining": 0.05677277857812232,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 1,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 2,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 2,
+          "minimum_remaining": 0.055776253436021245,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 2,
+          "minimum_remaining": 0.055776253436021245,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 2,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 3,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 3,
+          "minimum_remaining": 0.05477972829392018,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 3,
+          "minimum_remaining": 0.05477972829392018,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 3,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 4,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 4,
+          "minimum_remaining": 0.053783203151819114,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 4,
+          "minimum_remaining": 0.053783203151819114,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 4,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 5,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 5,
+          "minimum_remaining": 0.05278667800971805,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 5,
+          "minimum_remaining": 0.05278667800971805,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 5,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 6,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 6,
+          "minimum_remaining": 0.05179015286761698,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 6,
+          "minimum_remaining": 0.05179015286761698,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 6,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 7,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 7,
+          "minimum_remaining": 0.05079362772551591,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 7,
+          "minimum_remaining": 0.05079362772551591,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 7,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 8,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 8,
+          "minimum_remaining": 0.04979710258341485,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 8,
+          "minimum_remaining": 0.04979710258341485,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 8,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 9,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 9,
+          "minimum_remaining": 0.04880057744131378,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 9,
+          "minimum_remaining": 0.04880057744131378,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 9,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 10,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 10,
+          "minimum_remaining": 0.04780405229921272,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 10,
+          "minimum_remaining": 0.04780405229921272,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 10,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 11,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 11,
+          "minimum_remaining": 0.046807527157111645,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 11,
+          "minimum_remaining": 0.046807527157111645,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 11,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 12,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 12,
+          "minimum_remaining": 0.04581100201501058,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 12,
+          "minimum_remaining": 0.04581100201501058,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 12,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 13,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 13,
+          "minimum_remaining": 0.04472992557665369,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 13,
+          "minimum_remaining": 0.04472992557665369,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 13,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 14,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 14,
+          "minimum_remaining": 0.04354920943789603,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 14,
+          "minimum_remaining": 0.04354920943789603,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 14,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 15,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 15,
+          "minimum_remaining": 0.04236849329913838,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 15,
+          "minimum_remaining": 0.04236849329913838,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 15,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 16,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 16,
+          "minimum_remaining": 0.04118777716038073,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 16,
+          "minimum_remaining": 0.04118777716038073,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 16,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 17,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 17,
+          "minimum_remaining": 0.040007061021623075,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 17,
+          "minimum_remaining": 0.040007061021623075,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 17,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 18,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 18,
+          "minimum_remaining": 0.03882634488286542,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 18,
+          "minimum_remaining": 0.03882634488286542,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 18,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 19,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 19,
+          "minimum_remaining": 0.03764562874410776,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 19,
+          "minimum_remaining": 0.03764562874410776,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 19,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 20,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 20,
+          "minimum_remaining": 0.036464912605350105,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 20,
+          "minimum_remaining": 0.036464912605350105,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 20,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 21,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 21,
+          "minimum_remaining": 0.035284196466592456,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 21,
+          "minimum_remaining": 0.035284196466592456,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 21,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 22,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 22,
+          "minimum_remaining": 0.034103480327834806,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 22,
+          "minimum_remaining": 0.034103480327834806,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 22,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 23,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 23,
+          "minimum_remaining": 0.03292276418907715,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 23,
+          "minimum_remaining": 0.03292276418907715,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 23,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 24,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 24,
+          "minimum_remaining": 0.031742048050319494,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 24,
+          "minimum_remaining": 0.031742048050319494,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 24,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 25,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 25,
+          "minimum_remaining": 0.030561331911561844,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 25,
+          "minimum_remaining": 0.030561331911561844,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 25,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 26,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 26,
+          "minimum_remaining": 0.029380615772804188,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 26,
+          "minimum_remaining": 0.029380615772804188,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 26,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 27,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 27,
+          "minimum_remaining": 0.028199899634046538,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 27,
+          "minimum_remaining": 0.028199899634046538,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 27,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 28,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 1
+        },
+        {
+          "active": [
+            0
+          ],
+          "iteration": 28,
+          "minimum_remaining": 0.02701918349528888,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 28,
+          "minimum_remaining": 0.02701918349528888,
+          "new": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 28,
+          "mse": 0.005657306654462002,
+          "new_sources": 0,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 1,
+          "iteration": 29,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "iteration": 29,
+          "mse": 0.0010019045618991332,
+          "new_sources": 1,
+          "nfev": 20,
+          "stage": "nnls_lm"
+        },
+        {
+          "active": [
+            1
+          ],
+          "iteration": 29,
+          "minimum_remaining": 0.02618949743592154,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 29,
+          "minimum_remaining": 0.02633468893818408,
+          "new": [
+            -0.04166666666666655,
+            -0.04166666666666655,
+            0.041666666666666775
+          ],
+          "old": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "proposed": [
+            -0.04166666666666655,
+            -0.04166666666666655,
+            0.041666666666666775
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 29,
+          "minimum_remaining": 0.02617945294497845,
+          "new": [
+            0.08333333333333344,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            -0.38999999999999996,
+            -0.30666666666666664,
+            0.26500000000000007
+          ],
+          "proposed": [
+            0.08333333333333344,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 29,
+          "mse": 0.0010019045619073332,
+          "new_sources": 0,
+          "nfev": 56,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 30,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "active": [
+            1
+          ],
+          "iteration": 30,
+          "minimum_remaining": 0.025105385842723135,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 30,
+          "minimum_remaining": 0.026571881186304547,
+          "new": [
+            0.041666666666666775,
+            -0.04166666666666655,
+            0.08333333333333344
+          ],
+          "old": [
+            -0.04166666666666655,
+            -0.04166666666666655,
+            0.041666666666666775
+          ],
+          "proposed": [
+            0.041666666666666775,
+            -0.04166666666666655,
+            0.08333333333333344
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 30,
+          "minimum_remaining": 0.025868509056758637,
+          "new": [
+            0.041666666666666775,
+            -0.22333333333333333,
+            -0.08333333333333322
+          ],
+          "old": [
+            0.08333333333333344,
+            1.1102230246251565e-16,
+            1.1102230246251565e-16
+          ],
+          "proposed": [
+            0.041666666666666775,
+            -0.22333333333333333,
+            -0.08333333333333322
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 30,
+          "mse": 0.0010019045618993106,
+          "new_sources": 0,
+          "nfev": 29,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 0,
+          "iteration": 31,
+          "proposals": 1,
+          "stage": "discovery",
+          "working_sources": 2
+        },
+        {
+          "active": [
+            1
+          ],
+          "iteration": 31,
+          "minimum_remaining": 0.024406500208577507,
+          "stage": "intensity_increment"
+        },
+        {
+          "accepted": true,
+          "iteration": 31,
+          "minimum_remaining": 0.02013903429380913,
+          "new": [
+            1.1102230246251565e-16,
+            -0.08333333333333322,
+            1.1102230246251565e-16
+          ],
+          "old": [
+            0.041666666666666775,
+            -0.04166666666666655,
+            0.08333333333333344
+          ],
+          "proposed": [
+            1.1102230246251565e-16,
+            -0.08333333333333322,
+            1.1102230246251565e-16
+          ],
+          "source": 0,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "accepted": true,
+          "iteration": 31,
+          "minimum_remaining": 0.022041551366767068,
+          "new": [
+            -0.04166666666666655,
+            0.18166666666666678,
+            0.08333333333333344
+          ],
+          "old": [
+            0.041666666666666775,
+            -0.22333333333333333,
+            -0.08333333333333322
+          ],
+          "proposed": [
+            -0.04166666666666655,
+            0.18166666666666678,
+            0.08333333333333344
+          ],
+          "source": 1,
+          "stage": "leave_one_out_relocation"
+        },
+        {
+          "iteration": 31,
+          "mse": 0.0010019045618989333,
+          "new_sources": 0,
+          "nfev": 62,
+          "stage": "nnls_lm"
+        },
+        {
+          "added": 3,
+          "iteration": 32,
+          "proposals": 3,
+          "stage": "discovery",
+          "working_sources": 5
+        },
+        {
+          "iteration": 32,
+          "mse": 1.5424358224496333e-18,
+          "new_sources": 3,
+          "nfev": 81,
+          "stage": "nnls_lm"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "vote": 14.091207402948374
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.06787386055613498
+          ],
+          [
+            0.2088426436273149
+          ],
+          [
+            0.09397919077652975
+          ],
+          [
+            0.016707410327686915
+          ],
+          [
+            4.2892239544916323e-10
+          ]
+        ],
+        "lm_evaluations": 81,
+        "lm_success": true,
+        "mse": 1.5424358224496333e-18,
+        "nnls": true,
+        "positions": [
+          [
+            -0.09999999742014443,
+            0.49999999612563206,
+            -0.3499999982693853
+          ],
+          [
+            -0.550000001055087,
+            -0.3999999999419026,
+            0.4500000002973046
+          ],
+          [
+            0.4999999978984202,
+            -0.3500000008105575,
+            1.2960181594579012e-08
+          ],
+          [
+            0.4500000066362295,
+            0.4800000194460148,
+            0.4000000075219359
+          ],
+          [
+            -0.9938385085426933,
+            -0.42495047407902253,
+            0.014970475634866975
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Converged"
+    },
+    "one_pass_fit": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 6002640,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 2315,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                0.08333333333333344
+              ],
+              "vote": 14.091207402948374
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "vote": 14.091207402948374
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.3413009928991923
+          ]
+        ],
+        "lm_evaluations": 20,
+        "lm_success": true,
+        "mse": 0.005657306654462002,
+        "nnls": true,
+        "positions": [
+          [
+            -0.4069336821812263,
+            -0.28641674507953885,
+            0.33523738022728855
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Partial"
+    },
+    "proposal_only": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 6002640,
+        "idf_transforms": 1,
+        "invalid_positions": 0,
+        "room_lattice_positions": 343,
+        "source_position_queries": 2236,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                1.1102230246251565e-16,
+                1.1102230246251565e-16,
+                0.08333333333333344
+              ],
+              "vote": 14.091207402948374
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            1.1102230246251565e-16,
+            1.1102230246251565e-16,
+            0.08333333333333344
+          ],
+          "vote": 14.091207402948374
+        }
+      ],
+      "model": null,
+      "repeat_equal": true,
+      "state": "ProposalsOnly"
+    }
+  },
+  "linear_two": {
+    "full": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 7635600,
+        "idf_transforms": 1,
+        "invalid_positions": 702,
+        "room_lattice_positions": 343,
+        "source_position_queries": 7062,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                0.08333333333333344,
+                0.041666666666666775,
+                0.08333333333333344
+              ],
+              "vote": 15.16816979903855
+            },
+            {
+              "position": [
+                -0.04166666666666655,
+                -0.04166666666666655,
+                0.92
+              ],
+              "vote": 2.709245033612058
+            },
+            {
+              "position": [
+                -0.92,
+                -0.04166666666666655,
+                0.08333333333333344
+              ],
+              "vote": 1.4775435746973786
+            }
+          ],
+          "stage": "initial_votes"
+        },
+        {
+          "added": 3,
+          "iteration": 0,
+          "proposals": 3,
+          "stage": "discovery",
+          "working_sources": 3
+        },
+        {
+          "iteration": 0,
+          "mse": 3.2870308168497475e-26,
+          "new_sources": 3,
+          "nfev": 62,
+          "stage": "nnls_lm"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            0.08333333333333344,
+            0.041666666666666775,
+            0.08333333333333344
+          ],
+          "vote": 15.16816979903855
+        },
+        {
+          "position": [
+            -0.04166666666666655,
+            -0.04166666666666655,
+            0.92
+          ],
+          "vote": 2.709245033612058
+        },
+        {
+          "position": [
+            -0.92,
+            -0.04166666666666655,
+            0.08333333333333344
+          ],
+          "vote": 1.4775435746973786
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.13931392132530468
+          ],
+          [
+            0.3250658164252147
+          ],
+          [
+            5.291519311504975e-13
+          ]
+        ],
+        "lm_evaluations": 62,
+        "lm_success": true,
+        "mse": 3.2870308168497475e-26,
+        "nnls": true,
+        "positions": [
+          [
+            0.449999999999823,
+            0.35000000000038,
+            0.10000000000011688
+          ],
+          [
+            -0.39999999999985814,
+            -0.2499999999999114,
+            0.4500000000005666
+          ],
+          [
+            -0.44805924605658787,
+            -0.09841394024614314,
+            0.29419873162009824
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Converged"
+    },
+    "one_pass_fit": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 7635600,
+        "idf_transforms": 1,
+        "invalid_positions": 702,
+        "room_lattice_positions": 343,
+        "source_position_queries": 7062,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                0.08333333333333344,
+                0.041666666666666775,
+                0.08333333333333344
+              ],
+              "vote": 15.16816979903855
+            },
+            {
+              "position": [
+                -0.04166666666666655,
+                -0.04166666666666655,
+                0.92
+              ],
+              "vote": 2.709245033612058
+            },
+            {
+              "position": [
+                -0.92,
+                -0.04166666666666655,
+                0.08333333333333344
+              ],
+              "vote": 1.4775435746973786
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            0.08333333333333344,
+            0.041666666666666775,
+            0.08333333333333344
+          ],
+          "vote": 15.16816979903855
+        },
+        {
+          "position": [
+            -0.04166666666666655,
+            -0.04166666666666655,
+            0.92
+          ],
+          "vote": 2.709245033612058
+        },
+        {
+          "position": [
+            -0.92,
+            -0.04166666666666655,
+            0.08333333333333344
+          ],
+          "vote": 1.4775435746973786
+        }
+      ],
+      "model": {
+        "intensities": [
+          [
+            0.13931392132530468
+          ],
+          [
+            0.3250658164252147
+          ],
+          [
+            5.291519311504975e-13
+          ]
+        ],
+        "lm_evaluations": 62,
+        "lm_success": true,
+        "mse": 3.2870308168497475e-26,
+        "nnls": true,
+        "positions": [
+          [
+            0.449999999999823,
+            0.35000000000038,
+            0.10000000000011688
+          ],
+          [
+            -0.39999999999985814,
+            -0.2499999999999114,
+            0.4500000000005666
+          ],
+          [
+            -0.44805924605658787,
+            -0.09841394024614314,
+            0.29419873162009824
+          ]
+        ]
+      },
+      "repeat_equal": true,
+      "state": "Converged"
+    },
+    "proposal_only": {
+      "cost": {
+        "global_map_grid": false,
+        "idf_pair_visits": 7635600,
+        "idf_transforms": 1,
+        "invalid_positions": 702,
+        "room_lattice_positions": 343,
+        "source_position_queries": 6708,
+        "sphere_triangles": 80,
+        "sphere_vertices": 42,
+        "unknown_coefficients": 0
+      },
+      "history": [
+        {
+          "proposals": [
+            {
+              "position": [
+                0.08333333333333344,
+                0.041666666666666775,
+                0.08333333333333344
+              ],
+              "vote": 15.16816979903855
+            },
+            {
+              "position": [
+                -0.04166666666666655,
+                -0.04166666666666655,
+                0.92
+              ],
+              "vote": 2.709245033612058
+            },
+            {
+              "position": [
+                -0.92,
+                -0.04166666666666655,
+                0.08333333333333344
+              ],
+              "vote": 1.4775435746973786
+            }
+          ],
+          "stage": "initial_votes"
+        }
+      ],
+      "initial_proposals": [
+        {
+          "position": [
+            0.08333333333333344,
+            0.041666666666666775,
+            0.08333333333333344
+          ],
+          "vote": 15.16816979903855
+        },
+        {
+          "position": [
+            -0.04166666666666655,
+            -0.04166666666666655,
+            0.92
+          ],
+          "vote": 2.709245033612058
+        },
+        {
+          "position": [
+            -0.92,
+            -0.04166666666666655,
+            0.08333333333333344
+          ],
+          "vote": 1.4775435746973786
+        }
+      ],
+      "model": null,
+      "repeat_equal": true,
+      "state": "ProposalsOnly"
+    }
+  }
+}

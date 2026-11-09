@@ -1,0 +1,64 @@
+{
+  "schema": "org.openjk.idf-full-experiment/1",
+  "date": "2026-11-09",
+  "method": "Zhang/Cohen/Curless 2018 sections 3-5; local 3D spherical limiter-area votes, discovery, feasible increments, NNLS, LM, leave-one-source-out relocation",
+  "cases": [
+    "linear_two",
+    "linear_four",
+    "linear_fill_control",
+    "compiled_point_room",
+    "compiled_two_colour"
+  ],
+  "variants": [
+    "proposal_only",
+    "one_pass_fit",
+    "full"
+  ],
+  "grid_divisions": 7,
+  "sphere_subdivisions": 1,
+  "sphere_radius_fraction": 0.045,
+  "wall_margin_fraction": 0.04,
+  "peak_merge_radius_fraction": 0.1,
+  "max_peaks": 6,
+  "max_lights": 6,
+  "max_rounds": 80,
+  "intensity_increment": 0.005,
+  "max_nonlinear_evaluations": 400,
+  "mse_threshold": 1e-06,
+  "negative_residual_tolerance": 1e-09,
+  "relocation_guard": "Reject a leave-one-out proposed move if it overpredicts any required observation; do not clip negative residuals into fake measurements",
+  "position_tolerances_fraction": [
+    0.025,
+    0.05,
+    0.1
+  ],
+  "finite_difference_step": 1e-05,
+  "evaluation_active_intensity_fraction": 0.01,
+  "training": "Geometry-only split, no withheld RGB or source answers; fixed sample coordinates and input hashes before discovery",
+  "linear_box": {
+    "bounds": [
+      -1,
+      -1,
+      -1,
+      1,
+      1,
+      1
+    ],
+    "side_samples": 10,
+    "brdf": "known unit diffuse response, explicit common scale"
+  },
+  "compiled": {
+    "input_protocol": "tools/rend2/idf/results/v3/protocol.json",
+    "sample_cap": 64,
+    "kernel": "conditional diffuse inverse-square response on supplied sanitized geometry; not exact compiler replay",
+    "transfer_hypothesis": "Owned gamma=1, no sRGB, unsaturated floor-code intervals; interval midpoints in compiler-relative preencoding domain",
+    "saturated": "exclude whole RGB vector before fitting; keep exclusion count",
+    "uncalibrated_RGB8_is_linear_irradiance": false
+  },
+  "optimization": "SciPy 1.16.3 NNLS, then MINPACK Levenberg-Marquardt; logistic bounded XYZ and positive log intensity. Failed joint fits remain provisional; incremental state retains positivity.",
+  "paper_differences": "Bounded room-local lattice and deterministic peak extraction, numerical optimizer library differs from Ceres, finite work limits, training-normalized 3D tolerance; these are not the authors' exact experimental parameters",
+  "publication": "Research result only; no production solver, runtime, or canonical storage changes",
+  "local_refinement_levels": 2,
+  "extra_geometry_query_soft_cap": 150000,
+  "experiment": "Finer increments and two local 3x3x3 vote-peak refinements, same scenes/folds/acceptance thresholds as coarse v1; results reported alongside coarse experiment"
+}
