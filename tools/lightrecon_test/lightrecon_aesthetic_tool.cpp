@@ -93,6 +93,56 @@ void ScoreJson(const A::Score &s)
 			  << ",\"mse\":" << s.mse << ",\"rows\":" << s.rows << ",\"blocks\":" << s.blocks
 			  << ",\"normal_bins\":" << s.normalBins << '}';
 }
+void SparseJson(const A::SparseReport &s, const A::Request &r)
+{
+	const auto &p = s.policy;
+	std::cout << ",\"sparse\":{\"input_candidates\":" << s.inputCandidates
+		<< ",\"unique_candidates\":" << s.uniqueCandidates << ",\"duplicate_inputs_removed\":"
+		<< s.duplicateInputs << ",\"models\":" << s.models << ",\"rationale\":";
+	Q(s.rationale);
+	std::cout << ",\"policy\":{\"max_candidates\":" << p.maxCandidates
+		<< ",\"max_sources\":" << p.maxSources << ",\"max_models\":" << p.maxModels
+		<< ",\"training_penalty_per_fixture\":" << p.trainingPenaltyPerFixture
+		<< ",\"minimum_training_gain\":" << p.minimumTrainingGain << ",\"prune_slack\":" << p.pruneSlack
+		<< ",\"minimum_contribution\":" << p.minimumContribution
+		<< ",\"validation_penalty_per_fixture\":" << r.options.validationPenaltyPerFixture
+		<< ",\"validation_equivalent_slack\":" << r.options.validationEquivalentSlack
+		<< ",\"provenance\":";
+	Q(p.provenance);
+	std::cout << "},\"input_evidence\":[";
+	for (size_t i = 0; i < p.evidence.size(); ++i)
+	{
+		std::cout << (i ? "," : "") << "{\"fixture\":";
+		Q(std::to_string(r.fixtures[i].variants[0].geometry.source.id));
+		std::cout << ",\"independently_visible\":" << p.evidence[i].independentlyVisible
+			<< ",\"provenance\":";
+		Q(p.evidence[i].provenance);
+		std::cout << '}';
+	}
+	std::cout << "],\"assumptions\":[";
+	for (size_t i = 0; i < s.assumptions.size(); ++i)
+	{
+		std::cout << (i ? "," : "");
+		Q(s.assumptions[i]);
+	}
+	std::cout << "],\"training_path\":[";
+	for (size_t i = 0; i < s.trainingPath.size(); ++i)
+		std::cout << (i ? "," : "") << (s.trainingPath[i] == SIZE_MAX ? -1 : int(s.trainingPath[i]));
+	std::cout << "],\"decisions\":[";
+	for (size_t i = 0; i < s.decisions.size(); ++i)
+	{
+		const auto &d = s.decisions[i];
+		std::cout << (i ? "," : "") << "{\"fixture\":";
+		Q(std::to_string(d.fixture));
+		std::cout << ",\"configuration\":" << (d.configuration == SIZE_MAX ? -1 : int(d.configuration))
+			<< ",\"action\":";
+		Q(d.action);
+		std::cout << ",\"rationale\":";
+		Q(d.rationale);
+		std::cout << '}';
+	}
+	std::cout << "]}";
+}
 #include "aesthetic_region.h"
 int main(int argc, char **argv)
 {
@@ -174,13 +224,24 @@ int main(int argc, char **argv)
 		std::ifstream in(argv[2]);
 		std::string magic;
 		in >> magic;
-		Need(magic == "JKASR20-ENCODED-ASSUMED-MATERIAL-1",
+		bool sparse = magic == "JKASR21-SPARSE-ENCODED-ASSUMED-MATERIAL-1";
+		Need(sparse || magic == "JKASR20-ENCODED-ASSUMED-MATERIAL-1",
 			 "Explicit conditional domain/response protocol required");
 		in >> r.targets.gain;
 		Vec(in, r.options.backgroundUpper);
+		A::SparsePolicy policy;
+		if (sparse)
+		{
+			in >> policy.maxSources >> policy.maxModels >> policy.trainingPenaltyPerFixture
+				>> policy.minimumTrainingGain >> policy.pruneSlack >> policy.minimumContribution
+				>> r.options.validationPenaltyPerFixture >> r.options.validationEquivalentSlack
+				>> policy.provenance;
+			r.options.maxBytes = read.maxBytes;
+		}
 		size_t fixtures = 0;
 		in >> fixtures;
-		Need(fixtures > 0 && fixtures <= 4, "1..4 fixture configurations required");
+		Need(bool(in) && (sparse ? fixtures <= 128 : fixtures > 0 && fixtures <= 4),
+			 "Bounded fixture list required (ASR20: 1..4, ASR21: 0..128)");
 		for (size_t i = 0; i < fixtures; ++i)
 		{
 			std::string kind;
@@ -229,13 +290,23 @@ int main(int argc, char **argv)
 				throw std::runtime_error(
 					"Only explicit point anchors or supported original surfaces accepted");
 			Vec(in, f.upperPower);
+			if (sparse)
+			{
+				std::string evidence;
+				A::FixtureEvidence prior;
+				in >> evidence >> prior.provenance;
+				Need(bool(in) && (evidence == "visible" || evidence == "hidden"),
+					 "Explicit visible/hidden evidence and provenance reference required");
+				prior.independentlyVisible = evidence == "visible";
+				policy.evidence.push_back(prior);
+			}
 			e.rgbAmplitude = Vec3(1, 1, 1);
 			f.variants = {e};
 			f.provenance =
 				"Supplied offline fixture anchor; whole-face emission remains conditional";
 			r.fixtures.push_back(f);
 		}
-		for (size_t mask = 1; mask < (size_t(1) << fixtures); ++mask)
+		for (size_t mask = 1; !sparse && mask < (size_t(1) << fixtures); ++mask)
 		{
 			A::Configuration c;
 			c.name = "fixtures-" + std::to_string(mask);
@@ -250,7 +321,8 @@ int main(int argc, char **argv)
 		std::string extra;
 		Need(!(in >> extra), "Trailing fit fields");
 		A::Experiment experiment;
-		Check(A::FitAndValidate(r, train, validation, read, experiment));
+		Check(sparse ? A::SelectSparse(r, policy, train, validation, read, experiment) :
+			A::FitAndValidate(r, train, validation, read, experiment));
 		// Held-out target file is opened only after training and validation have frozen.
 		std::ifstream hidden(argv[3]);
 		auto held = Rows(hidden, Shape::Role::Heldout, source.geometry, material);
@@ -258,13 +330,16 @@ int main(int argc, char **argv)
 		std::vector<A::Score> scores;
 		A::Score baseline;
 		Check(A::AuditHeldout(experiment, held, read, scores, baseline));
-		std::cout << std::setprecision(12)
-				  << "{\"schema\":\"org.openjk.aesthetic-fit.v1\",\"map\":";
+		std::cout << std::setprecision(12) << "{\"schema\":";
+		Q(sparse ? "org.openjk.sparse-fit.v1" : "org.openjk.aesthetic-fit.v1");
+		std::cout << ",\"map\":";
 		Q(source.metadata.map.path);
 		std::cout << ",\"material\":";
 		Q(material);
 		std::cout << ",\"selected\":"
 				  << (experiment.Selected() == SIZE_MAX ? -1 : int(experiment.Selected()));
+		if (sparse)
+			SparseJson(experiment.Sparse(), r);
 		std::cout << ",\"validation_equivalent\":[";
 		for (size_t i = 0; i < experiment.ValidationAlternatives().size(); ++i)
 			std::cout << (i ? "," : "") << experiment.ValidationAlternatives()[i];

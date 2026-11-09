@@ -1,0 +1,15 @@
+{
+  "authored_rgb_or_intensity_in_request": false,
+  "bsp_sha256": "5763cba0befb01a84686664338c7ce8cc8a1feb333e4a90bb9a74343ab5f9c39",
+  "candidate_geometry": "Owned authored anchors, one fixed geometric rival, one exact duplicate",
+  "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+  "fit_sha256": "91353001b6f1578276f8620922a6b1cb3a6d54bd10afc1320c2b20c7de023a43",
+  "geometry_sha256": "d3afd207d035608d6739531c95b2aa3febbec30bcd526c6ac4d26d83dc67e33f",
+  "held_sha256": "d92d83e0c013a7dc6e1bd765e73657d364fea8580fb14ba502baa13183301b97",
+  "partitions": {
+    "heldout": "467ca4ac91336889212ba74ef4b385069b0b77aff598943ec111bfa8fe301d56",
+    "train": "be19cecde0583667498ef67b176d19fc0cf156e282601dd4f646e1d21386f734",
+    "validation": "ded6f9fb54688e685b81e3cb5b563bb85e28d6b30c7004aabfc825ec1a68c92c"
+  },
+  "selection": "Geometry-only stable spatial strata, maximum 48 rows per fold"
+}

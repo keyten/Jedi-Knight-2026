@@ -152,6 +152,7 @@ def main(a):
     a.out.mkdir(parents=True, exist_ok=False)
     files = [ROOT/'tools/lightrecon_test'/n for n in
              ('aesthetic_fit.h', 'aesthetic_fit.cpp', 'lightrecon_aesthetic_test.cpp',
+              'aesthetic_sparse.inc', 'aesthetic_test_scene.h',
               'lightrecon_aesthetic_tool.cpp', 'CMakeLists.txt')]
     files += [ROOT/'tools/lightrecon_test/aesthetic_region.h', Path(__file__).resolve()]
     core = sorted((ROOT/'shared/rd-rend2/lightrecon').glob('*.[ch]*'))

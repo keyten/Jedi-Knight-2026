@@ -1,0 +1,26 @@
+{
+  "artifacts": {
+    "compiled.json": "255f77113247c8953d02fcedd0cf42ccb7d2aa9b59467edec7956f956af5e433",
+    "door_occlusion-fit.txt": "91353001b6f1578276f8620922a6b1cb3a6d54bd10afc1320c2b20c7de023a43",
+    "door_occlusion-held.txt": "d92d83e0c013a7dc6e1bd765e73657d364fea8580fb14ba502baa13183301b97",
+    "door_occlusion-protocol.json": "686b60e3fe3ee65468ec406b80bfe3a3545c1bbc117186c8651a1c55a736dbdb",
+    "door_occlusion.json": "48c774ff9e701d44c8dbe70e7dc2696f4666dde044d170b98bbe27306dbee621",
+    "owned-repeat.json": "b1ec482feff313cb91535c2f5050b7244d5b3718e310850722591c83e1024f89",
+    "owned.json": "b1ec482feff313cb91535c2f5050b7244d5b3718e310850722591c83e1024f89",
+    "point_room-fit.txt": "e99bf5982ae1d956882cebff8188bd4fa6597df32e89e1aa0eff1089a65d579c",
+    "point_room-held.txt": "683b411d238251a8c1127bdfc578c7f9663bdda1239fe9606df81c71601d8b66",
+    "point_room-protocol.json": "3e9be16fdb2821cf9b00227087f7c30d2eafded1f10ce6e465e220e0e1e4e200",
+    "point_room.json": "13ccd3a9f307ba0b331a2f81a2666ead9e981d99075c9eb4650bde9625fc21ab",
+    "protocol.json": "f2b64f669c7e3d3189b0f349b7029c9d92d6b54c3688c66d28c7af3f3d49eaea",
+    "two_colour-fit.txt": "ccff2c6181996d5228f63371249030fe9af95a29f0c8384b4c584666f73e3dd8",
+    "two_colour-held.txt": "3dd53efbf3943c43157e7e892f4e01f470358884f7844943ca9f255d8d9993c0",
+    "two_colour-protocol.json": "d2c5db0525b57184e94e2bba8889045a0b5fd7bfeb2b3b77f3feeee4f7009dad",
+    "two_colour.json": "80f5bfb48e3b2387e595ea064ff10a5d466a1a72cb088df6f8a32f9b526057bd"
+  },
+  "canonical_storage_changed": false,
+  "compiled_repeat_identical": true,
+  "historical_core_matches_asr20": true,
+  "owned_repeat_identical": true,
+  "runtime_changed": false,
+  "sources_unchanged": true
+}

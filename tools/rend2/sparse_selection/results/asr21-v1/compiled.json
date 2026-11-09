@@ -1,0 +1,78 @@
+{
+  "cases": [
+    {
+      "baseline_heldout": {
+        "available": 1,
+        "blocks": 2,
+        "mse": 1764.33333333,
+        "normal_bins": 1,
+        "robust": 158.888888889,
+        "rows": 15
+      },
+      "models": 3,
+      "name": "point_room",
+      "repeat_identical": true,
+      "selected_heldout": {
+        "available": 1,
+        "blocks": 2,
+        "mse": 9.60507249046e-09,
+        "normal_bins": 1,
+        "robust": 4.80253624523e-09,
+        "rows": 15
+      },
+      "selected_ids": [
+        "1"
+      ]
+    },
+    {
+      "baseline_heldout": {
+        "available": 1,
+        "blocks": 2,
+        "mse": 773.657407407,
+        "normal_bins": 1,
+        "robust": 76.6805555556,
+        "rows": 15
+      },
+      "models": 7,
+      "name": "two_colour",
+      "repeat_identical": true,
+      "selected_heldout": {
+        "available": 1,
+        "blocks": 2,
+        "mse": 0.112525398688,
+        "normal_bins": 1,
+        "robust": 0.056262699344,
+        "rows": 15
+      },
+      "selected_ids": [
+        "1",
+        "2"
+      ]
+    },
+    {
+      "baseline_heldout": {
+        "available": 1,
+        "blocks": 2,
+        "mse": 2001.46815915,
+        "normal_bins": 1,
+        "robust": 169.891994052,
+        "rows": 15
+      },
+      "models": 3,
+      "name": "door_occlusion",
+      "repeat_identical": true,
+      "selected_heldout": {
+        "available": 1,
+        "blocks": 2,
+        "mse": 0,
+        "normal_bins": 1,
+        "robust": 0,
+        "rows": 15
+      },
+      "selected_ids": [
+        "1"
+      ]
+    }
+  ],
+  "historical_source_truth": "Unavailable"
+}

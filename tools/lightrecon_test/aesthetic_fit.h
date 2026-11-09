@@ -83,6 +83,36 @@ struct Fit
 	Score training, validation;
 	std::vector<SourceDiagnostic> sources;
 };
+// ASR21 selection policy is separate from photometry/support and canonical storage.
+struct FixtureEvidence
+{
+	bool independentlyVisible = false;
+	std::string provenance; // supplied before fitting; residual brightness is not fixture evidence
+};
+struct SparsePolicy
+{
+	size_t maxCandidates = 128, maxSources = 8, maxModels = 512;
+	double trainingPenaltyPerFixture = 1e-4, minimumTrainingGain = 1e-7;
+	double pruneSlack = 1e-7, minimumContribution = 1e-7;
+	std::vector<FixtureEvidence> evidence; // one entry per input fixture, including duplicates
+	std::string provenance;
+};
+struct SparseDecision
+{
+	Id fixture = 0;
+	size_t configuration = SIZE_MAX;
+	std::string action, rationale;
+};
+struct SparseReport
+{
+	bool enabled = false;
+	size_t inputCandidates = 0, uniqueCandidates = 0, duplicateInputs = 0, models = 0;
+	SparsePolicy policy; // original input evidence and fixed thresholds
+	std::vector<std::string> assumptions;
+	std::vector<SparseDecision> decisions;
+	std::vector<size_t> trainingPath;
+	std::string rationale;
+};
 class Experiment
 {
   public:
@@ -92,6 +122,7 @@ class Experiment
 	size_t Selected() const; // SIZE_MAX means no validated local-light improvement
 	const std::vector<size_t> &ValidationAlternatives() const;
 	uint64_t Work() const;
+	const SparseReport &Sparse() const;
 
   private:
 	std::shared_ptr<const Data> data;
@@ -100,11 +131,20 @@ class Experiment
 								Experiment &);
 	friend Error AuditHeldout(const Experiment &, const std::vector<Shape::Observation> &,
 							  const ReadContext &, std::vector<Score> &, Score &);
+	friend Error SelectSparse(const Request &, const SparsePolicy &,
+		const std::vector<Shape::Observation> &, const std::vector<Shape::Observation> &,
+		const ReadContext &, Experiment &);
 };
 // Snapshots bounded rows. Validation is used only after every training fit freezes.
 Error FitAndValidate(const Request &, const std::vector<Shape::Observation> &training,
 					 const std::vector<Shape::Observation> &validation, const ReadContext &,
 					 Experiment &);
+// Requires empty configurations. Builds a bounded
+// training-only forward/prune/swap catalog, then freezes it before validation.
+// Visible evidence breaks validation-equivalent ties only; heldout never selects.
+Error SelectSparse(const Request &, const SparsePolicy &,
+	const std::vector<Shape::Observation> &training,
+	const std::vector<Shape::Observation> &validation, const ReadContext &, Experiment &);
 // Same frozen nuisance, geometry, powers, weights and transfer. Cannot refit/rerank.
 Error AuditHeldout(const Experiment &, const std::vector<Shape::Observation> &, const ReadContext &,
 				   std::vector<Score> &, Score &baseline);

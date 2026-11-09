@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "aesthetic_fit.h"
 #include "lightrecon/bake_math.h"
+#include "lightrecon/geometry_key.h"
 #include <algorithm>
+#include <limits>
 #include <map>
 #include <set>
 namespace Rend2LightRecon
@@ -309,7 +311,7 @@ State Optimize(const Request &r, const Rows &rows, const Columns &columns,
 	}
 	return state;
 }
-void Validate(const Request &r, const ReadContext &read)
+void Validate(const Request &r, const ReadContext &read, bool sparse = false)
 {
 	Need(r.model.law == Shape::Law::DiffuseIntegral &&
 			 r.model.output == Shape::Output::RelativeIncident,
@@ -341,7 +343,9 @@ void Validate(const Request &r, const ReadContext &read)
 			 std::isfinite(o.validationEquivalentSlack) && o.validationEquivalentSlack >= 0 &&
 			 Nonnegative(o.backgroundUpper),
 		 Code::InvalidInput, "Invalid bounded aesthetic objective options");
-	Need(r.fixtures.size() <= 16 && !r.configurations.empty() && r.configurations.size() <= 32,
+	Need(r.fixtures.size() <= (sparse ? 128u : 16u) &&
+			 (sparse ? r.configurations.empty() :
+			  (!r.configurations.empty() && r.configurations.size() <= 32)),
 		 Code::WorkLimit, "Aesthetic configuration bounds");
 	size_t variants = 0;
 	std::set<Id> ids;
@@ -511,6 +515,8 @@ struct Experiment::Data
 	std::vector<State> states;
 	std::vector<size_t> alternatives;
 	State baselineState;
+	SparseReport sparse;
+	std::vector<FixtureEvidence> evidence;
 	size_t selected = SIZE_MAX;
 	uint64_t work = 0;
 	std::shared_ptr<const PointRefine::PlacementProvider> placement;
@@ -538,17 +544,44 @@ uint64_t Experiment::Work() const
 {
 	return data ? data->work : 0;
 }
-Error FitAndValidate(const Request &input, const std::vector<Shape::Observation> &train,
-					 const std::vector<Shape::Observation> &valid, const ReadContext &read,
-					 Experiment &out)
+const SparseReport &Experiment::Sparse() const
 {
-	out = {};
+	static const SparseReport empty;
+	return data ? data->sparse : empty;
+}
+#include "aesthetic_sparse.inc"
+namespace
+{
+Error RunExperiment(const Request &input, const SparsePolicy *policy,
+					const std::vector<Shape::Observation> &train,
+					const std::vector<Shape::Observation> &valid, const ReadContext &read,
+					std::shared_ptr<const Experiment::Data> &out)
+{
+	out.reset();
 	try
 	{
-		Validate(input, read);
 		auto d = std::make_shared<Experiment::Data>();
-		d->request = input;
+		if (policy)
+			NormalizeSparse(input, *policy, d->request, d->sparse, d->evidence);
+		else
+		{
+			Validate(input, read);
+			d->request = input;
+		}
 		auto &r = d->request;
+		if (policy)
+		{
+			Validate(r, read, true);
+			size_t variants = 0;
+			for (const auto &f : r.fixtures)
+				variants += f.variants.size();
+			uint64_t bytes = 4ull * 1024 * 1024 + r.sampling.maxBytes +
+				uint64_t(r.options.maxRows) * (variants * 24 + sizeof(Shape::Observation) * 3 + 128) +
+				uint64_t(policy->maxModels) * (sizeof(Fit) + sizeof(State) + 256 +
+				std::min(policy->maxSources, r.fixtures.size()) * (sizeof(SourceDiagnostic) + 256));
+			Need(bytes <= r.options.maxBytes && (!read.maxBytes || bytes <= read.maxBytes),
+				Code::MemoryLimit, "Sparse catalog/basis memory preflight");
+		}
 		Meter meter(r.options, read);
 		meter.Tick();
 		d->training = Inspect(train, Shape::Role::Training, r);
@@ -560,10 +593,15 @@ Error FitAndValidate(const Request &input, const std::vector<Shape::Observation>
 		Configuration background;
 		background.name = "no-local-light";
 		d->baseline = MakeFit(r, d->training, columns, background, d->baselineState, meter);
-		d->states.resize(r.configurations.size());
-		for (size_t i = 0; i < r.configurations.size(); ++i)
-			d->fits.push_back(
-				MakeFit(r, d->training, columns, r.configurations[i], d->states[i], meter));
+		if (policy)
+			SparseTraining(*d, columns, meter);
+		else
+		{
+			d->states.resize(r.configurations.size());
+			for (size_t i = 0; i < r.configurations.size(); ++i)
+				d->fits.push_back(
+					MakeFit(r, d->training, columns, r.configurations[i], d->states[i], meter));
+		}
 		// All choices freeze before the validation partition is forward evaluated.
 		auto validation = Prepare(r, d->validation, meter, d->placement);
 		d->baseline.validation =
@@ -577,7 +615,7 @@ Error FitAndValidate(const Request &input, const std::vector<Shape::Observation>
 										  d->states[i], meter);
 				double objective = fit.validation.robust +
 								   r.options.validationPenaltyPerFixture * fit.sources.size();
-				if (fit.validation.available)
+				if (fit.validation.available && (!policy || Active(fit, *policy)))
 					best = std::min(best, objective);
 			}
 		if (best + r.options.validationEquivalentSlack + r.options.tolerance <
@@ -587,17 +625,47 @@ Error FitAndValidate(const Request &input, const std::vector<Shape::Observation>
 				const auto &fit = d->fits[i];
 				double objective = fit.validation.robust +
 								   r.options.validationPenaltyPerFixture * fit.sources.size();
-				if (fit.available && fit.validation.available &&
+				if (fit.available && fit.validation.available && (!policy || Active(fit, *policy)) &&
 					objective <= best + r.options.validationEquivalentSlack)
 				{
 					d->alternatives.push_back(i);
 					if (d->selected == SIZE_MAX ||
-						fit.sources.size() < d->fits[d->selected].sources.size())
+						fit.sources.size() < d->fits[d->selected].sources.size() ||
+						(policy && fit.sources.size() == d->fits[d->selected].sources.size() &&
+						 (HiddenCount(*d, i) < HiddenCount(*d, d->selected) ||
+						  (HiddenCount(*d, i) == HiddenCount(*d, d->selected) &&
+						   r.configurations[i].fixtures < r.configurations[d->selected].fixtures))))
 						d->selected = i;
 				}
 			}
+		if (policy)
+		{
+			if (d->selected != SIZE_MAX)
+			{
+				const auto &chosen = r.configurations[d->selected].fixtures;
+				double chosenObjective = d->fits[d->selected].validation.robust +
+					r.options.validationPenaltyPerFixture * chosen.size();
+				for (size_t i : d->alternatives)
+				{
+					const auto &fs = r.configurations[i].fixtures;
+					double objective = d->fits[i].validation.robust +
+						r.options.validationPenaltyPerFixture * fs.size();
+					if (fs.size() > chosen.size() && std::includes(fs.begin(), fs.end(), chosen.begin(), chosen.end()) &&
+						objective + r.options.validationEquivalentSlack >= chosenObjective)
+						for (size_t f : fs)
+							if (!std::binary_search(chosen.begin(), chosen.end(), f))
+								Decision(d->sparse, r.fixtures[f].variants[0].geometry.source.id, i,
+									"redundant-source-removed", "Frozen deletion/refit is validation-equivalent with fewer sources; redundant superset pruned");
+				}
+				// Equivalence alternatives describe compact competing explanations.
+				// Redundant supersets remain in Fits() for reproducible loss diagnostics.
+				d->alternatives.erase(std::remove_if(d->alternatives.begin(), d->alternatives.end(),
+					[&](size_t i) { return d->fits[i].sources.size() > chosen.size(); }), d->alternatives.end());
+			}
+			SparseConclusion(*d);
+		}
 		d->work = meter.work;
-		out.data = std::move(d);
+		out = std::move(d);
 		return {};
 	}
 	catch (const Error &e)
@@ -608,6 +676,22 @@ Error FitAndValidate(const Request &input, const std::vector<Shape::Observation>
 	{
 		return Failure(Code::MemoryLimit, "Aesthetic fit allocation");
 	}
+}
+} // namespace
+Error FitAndValidate(const Request &input, const std::vector<Shape::Observation> &train,
+					 const std::vector<Shape::Observation> &valid, const ReadContext &read,
+					 Experiment &out)
+{
+	out = {};
+	return RunExperiment(input, nullptr, train, valid, read, out.data);
+}
+Error SelectSparse(const Request &input, const SparsePolicy &policy,
+				   const std::vector<Shape::Observation> &train,
+				   const std::vector<Shape::Observation> &valid, const ReadContext &read,
+				   Experiment &out)
+{
+	out = {};
+	return RunExperiment(input, &policy, train, valid, read, out.data);
 }
 Error AuditHeldout(const Experiment &experiment, const std::vector<Shape::Observation> &held,
 				   const ReadContext &read, std::vector<Score> &scores, Score &baseline)
