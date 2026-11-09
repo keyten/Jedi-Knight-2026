@@ -1,0 +1,109 @@
+{
+  "interpretation": "aesthetic hypotheses; no historical bake or exact lamp certification",
+  "maps": {
+    "hoth2": {
+      "counts": {
+        "bsp_surfaces": 7421,
+        "clipped_polygons": 2241,
+        "degenerate_triangles": 0,
+        "duplicate_triangles": 0,
+        "fixtures": 337,
+        "luminous_surfaces": 149,
+        "shape_counts": {
+          "point": 5,
+          "rectangle": 67,
+          "surface": 337,
+          "tube": 0
+        },
+        "source_triangles": 368,
+        "supported_footprints": 304,
+        "unsupported_surfaces": 43
+      },
+      "emitting_area": 41210.6615556453,
+      "issues": {
+        "alpha_composition_unknown": 28,
+        "animated_stage": 26,
+        "colour_transfer_assumed": 337,
+        "historical_bake_unknown": 337,
+        "mask_unavailable": 26,
+        "moving_or_unknown_model": 26,
+        "no_luminous_mask_samples": 7
+      },
+      "map_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+      "output_sha256": {
+        "catalogue.json": "f6a25f195a2a6cd1345c26f9259e543b149ba6fdb6fb38e37e01918638d0f302",
+        "fixtures.tsv": "57747a277c1684cd00db006cd1cbc464cf1983f9fc6a35eb1232dae713ca7d76",
+        "footprints.obj": "af78a84eca511453c8c4a3b640a6427626c29e88fe560cfa28d2e74c7d03d801"
+      },
+      "repeated_export_byte_equal": true,
+      "representative_ids": [
+        "0080204fe5fabaf3b467993fc53c63f8ce2635ed430d795764ff86932b5fd058",
+        "013d1d8bd282221d9ba3c9def3cf0cc17c3b6e66e76782faebc73071a1e4baf9",
+        "02626b310744926a18139e6a9e8262f017ef46c7143db2777a876edf7b40d959",
+        "03f02d3a4135851538e381bc98b8df38b538fcabee2b5fcf550447400694e67c",
+        "0408516f0a59935f8e2a447b44fdfe97707d528a214d9458147cd01618ddbad3",
+        "0563bbbd232d475a3b83d4bf17115fed7b1a56cdba97a27f3a28e9da5f95c7f0",
+        "05ce51677453fc4c88b46bd6bde1a21622259ed3cb4d1cddff119ec9bbd980d2",
+        "06e0429d3373763f0b4709ba586973c3fc5e54c53b92b167db99e3c024609fc2"
+      ],
+      "source": "assets0.pk3:maps/hoth2.bsp",
+      "static_eligible": 311
+    },
+    "hoth3": {
+      "counts": {
+        "bsp_surfaces": 12911,
+        "clipped_polygons": 1917,
+        "degenerate_triangles": 0,
+        "duplicate_triangles": 0,
+        "fixtures": 314,
+        "luminous_surfaces": 229,
+        "shape_counts": {
+          "point": 0,
+          "rectangle": 121,
+          "surface": 314,
+          "tube": 0
+        },
+        "source_triangles": 516,
+        "supported_footprints": 205,
+        "unsupported_surfaces": 19
+      },
+      "emitting_area": 429307.08550065657,
+      "issues": {
+        "alpha_composition_unknown": 61,
+        "animated_stage": 61,
+        "colour_transfer_assumed": 314,
+        "historical_bake_unknown": 314,
+        "mask_unavailable": 61,
+        "moving_or_unknown_model": 34,
+        "no_luminous_mask_samples": 48
+      },
+      "map_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "output_sha256": {
+        "catalogue.json": "b652f5cd35bc1dcb7a6731aac6860aaa649357321ce5966f4fdda7a2786a1d61",
+        "fixtures.tsv": "f6aa17871a39c54f144c51422124c2f3373f1ff88f0691218becef2e4badd907",
+        "footprints.obj": "77f4fa6b6d4e325e00d18cc944416a28783ccdd97842cb980166dfca7c71fb4f"
+      },
+      "repeated_export_byte_equal": true,
+      "representative_ids": [
+        "0039b52638a3b2be3e6add76f0d5a61f5bd4569cad875f1bb6c871071c6c06cc",
+        "05e40ecc0b71d7af07ea71a9ab7f62abdf1eb7476a53f2813b97fe241ed6457b",
+        "0602863d6228f45a301b699be12962ecf9502eaeb46bec5d103e4aecee2a59fd",
+        "060e2f0db02ce0cf9a9b2bafa9ab307cb1b20601217a7d88394694351b80f229",
+        "087b20e917a6f24167fdd153cbbf14b142452ec42f73a10c0cd6a4bd831d2f1f",
+        "08ea468846f7b64a2923a03a20b04286c73eb63f2863b576304ee4f39f956995",
+        "09649c098544c357967b48857d062c5858a93f13f6c1430bfcc97bcbc9dafcdd",
+        "0ae09169f2e755fd650b6e19ca01ea4c2daa69a5dd4bae877ee53eaebd8a91ed"
+      ],
+      "source": "assets0.pk3:maps/hoth3.bsp",
+      "static_eligible": 253
+    }
+  },
+  "options": {
+    "mask_axis": 32,
+    "max_pieces": 250000,
+    "max_work": 1000000,
+    "threshold": 0.1
+  },
+  "schema": "org.openjk.research.bsp-fixture-inventory/1",
+  "selection": "explicit loose-base then reverse lexical PK3; first lexical shader definition; conflicts flagged"
+}

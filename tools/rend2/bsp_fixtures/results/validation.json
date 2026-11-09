@@ -1,0 +1,27 @@
+{
+  "base_revision": "95d2dd2f4",
+  "compiled_geometry_checks": 105,
+  "date": "2026-11-09",
+  "existing_cpp_regression_tests": 4,
+  "existing_cpp_tests": [
+    "lightrecon_evidence",
+    "lightrecon_fixture_discovery",
+    "lightrecon_bsp_capture",
+    "lightrecon_offline"
+  ],
+  "pillow": "10.4.0",
+  "python": "3.8.5",
+  "result_sha256": {
+    "compiled-validation.json": "3bccf56aab82c648878e172751f4892956a6d082303c6ead298a3f8c314caedd",
+    "stock-inventory.json": "583ed467babb3aa139580649898dd65a6e0cb6f067f597bd448860fe0edcef79"
+  },
+  "scope": "Offline ASR09 only; canonical assets, storage, historical solver and renderer unchanged",
+  "source_sha256": {
+    "catalogue.py": "a46c4d228f05e845f858f87a3e7f5c461df9c2926d4cd02d7cb9e25e13f545a5",
+    "compiled.py": "e510126f312bb6f492d415a9ba7307c91acbc7be950b9d96d9658eb8abd2a8b4",
+    "inventory.py": "5ccb668c1eaa6a4eeb08f8331821294eae32274fdf14c3aea47198bbba59dd02",
+    "test_catalogue.py": "e1fd178826577d7e2c2c26c2814b30682189bf5fc0a04645b2314eec71714075"
+  },
+  "stock_exports_repeated_byte_equal": true,
+  "unit_tests": 14
+}

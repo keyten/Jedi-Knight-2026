@@ -1,0 +1,40 @@
+{
+  "bsp_sha256": "a0ee6308bcbec334ab6c90d199f27aa048104bcf8453f20d3ef2f38b1a8a5b12",
+  "catalogue_sha256": "6c158f821992de5e1b548b423bee9e2f56ba7b6308a6891f0c06f170a7ca6bb0",
+  "checks": 105,
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\toolchain\\netradiant-20220628\\portable\\netradiant_1.5.0-20220628-windows-amd64\\q3map2.exe",
+    "-game",
+    "ja",
+    "-fs_basepath",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr09\\compiled\\authoring",
+    "-fs_game",
+    "base",
+    "-threads",
+    "1",
+    "-meta",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr09\\compiled\\authoring\\base\\maps\\asr09.map"
+  ],
+  "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+  "counts": {
+    "bsp_surfaces": 8,
+    "clipped_polygons": 22,
+    "degenerate_triangles": 0,
+    "duplicate_triangles": 0,
+    "fixtures": 10,
+    "luminous_surfaces": 8,
+    "shape_counts": {
+      "point": 2,
+      "rectangle": 10,
+      "surface": 10,
+      "tube": 2
+    },
+    "source_triangles": 16,
+    "supported_footprints": 10,
+    "unsupported_surfaces": 0
+  },
+  "map_sha256": "ec14c92e70cac9a738c46c843b111f4f5dfad2ef2de143a22161e7949320fd41",
+  "repeated_extraction_equal": true,
+  "scope": "geometry discovery only; compiler light phase and historical solver not invoked",
+  "source": "owned fresh q3map2 -meta compilation"
+}
