@@ -1,0 +1,699 @@
+{
+  "maps": {
+    "hoth2": {
+      "bsp_correspondence": {
+        "no_exact_geometry_correspondence_found": 376,
+        "unknown": 131
+      },
+      "counts": {
+        "asset_status": {
+          "available": 379,
+          "not_applicable": 124,
+          "unavailable": 4
+        },
+        "assets": 38,
+        "entities": 1506,
+        "instances": 507,
+        "roles": {
+          "brush_model": 124,
+          "dynamic_or_effect_model": 7,
+          "external_static_runtime": 376
+        },
+        "static_eligible": 376
+      },
+      "fixture_name_examples_checked": 46,
+      "issues": {
+        "dynamic_or_unsupported_entity_class": 131,
+        "model_asset_missing": 4,
+        "scalar_trailing_tokens_ignored_by_loader": 1
+      },
+      "map_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+      "output_sha256": {
+        "instances.json": "665fb2eab8b6999441cc0fee232dcbc83d36f62e51a2a5bf2ddf56bcff74f24b",
+        "instances.tsv": "f0816dcc36ec9f78f5ff995b3602352b7a7fc162d5ae8d489fc1abf7f29b56f4"
+      },
+      "repeated_export_byte_equal": true,
+      "representative_examples": [
+        {
+          "bsp_presence": "no_exact_geometry_correspondence_found",
+          "entity_ordinal": 667,
+          "id": "0e99bb031d411f0f0d0cc1db2fa369329c56faab545d496afd69fdcdbbe4bccf",
+          "md3_surfaces": 3,
+          "model": "models/map_objects/hoth/light_wall.md3",
+          "model_sha256": "288323c2a018ce0daf30785438887ec7711621133c661133c66f6ec443082ce3",
+          "source_fields": {
+            "_cs": "1",
+            "_rs": "1",
+            "angle": "90",
+            "classname": "misc_model_static",
+            "model": "models/map_objects/hoth/light_wall.md3",
+            "origin": "5997 -2544 1160"
+          },
+          "transform": {
+            "angles": [
+              0.0,
+              90.0,
+              0.0
+            ],
+            "columns": [
+              [
+                6.123233995736766e-17,
+                1.0,
+                -0.0
+              ],
+              [
+                -1.0,
+                6.123233995736766e-17,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "convention": "world = origin + columns * local; scale then pitch/yaw/roll",
+            "determinant": 1.0,
+            "origin": [
+              5997.0,
+              -2544.0,
+              1160.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "zoffset_culling_only": 0.0
+          },
+          "world_bounds": {
+            "max": [
+              6012.859375,
+              -2534.625,
+              1169.90625
+            ],
+            "min": [
+              5996.890625,
+              -2553.375,
+              1158.53125
+            ]
+          }
+        },
+        {
+          "bsp_presence": "no_exact_geometry_correspondence_found",
+          "entity_ordinal": 668,
+          "id": "12430627ffffd776f99f06da400c9da5ca3e16caf24913a4be4abf7d2b9e65d9",
+          "md3_surfaces": 3,
+          "model": "models/map_objects/hoth/light_wall.md3",
+          "model_sha256": "288323c2a018ce0daf30785438887ec7711621133c661133c66f6ec443082ce3",
+          "source_fields": {
+            "_cs": "1",
+            "_rs": "1",
+            "angle": "270",
+            "classname": "misc_model_static",
+            "model": "models/map_objects/hoth/light_wall.md3",
+            "origin": "6411 -2552 1160"
+          },
+          "transform": {
+            "angles": [
+              0.0,
+              270.0,
+              0.0
+            ],
+            "columns": [
+              [
+                -1.8369701987210297e-16,
+                -1.0,
+                -0.0
+              ],
+              [
+                1.0,
+                -1.8369701987210297e-16,
+                0.0
+              ],
+              [
+                -0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "convention": "world = origin + columns * local; scale then pitch/yaw/roll",
+            "determinant": 1.0,
+            "origin": [
+              6411.0,
+              -2552.0,
+              1160.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "zoffset_culling_only": 0.0
+          },
+          "world_bounds": {
+            "max": [
+              6411.109375,
+              -2542.625,
+              1169.90625
+            ],
+            "min": [
+              6395.140625,
+              -2561.375,
+              1158.53125
+            ]
+          }
+        },
+        {
+          "bsp_presence": "no_exact_geometry_correspondence_found",
+          "entity_ordinal": 642,
+          "id": "1249ebc8ea931147f15b61d51ad18b6a5813fbc603bdff23527157797ff33f66",
+          "md3_surfaces": 3,
+          "model": "models/map_objects/hoth/light_wall.md3",
+          "model_sha256": "288323c2a018ce0daf30785438887ec7711621133c661133c66f6ec443082ce3",
+          "source_fields": {
+            "_cs": "1",
+            "_rs": "1",
+            "angle": "90",
+            "classname": "misc_model_static",
+            "model": "models/map_objects/hoth/light_wall.md3",
+            "origin": "5901 -2368 720"
+          },
+          "transform": {
+            "angles": [
+              0.0,
+              90.0,
+              0.0
+            ],
+            "columns": [
+              [
+                6.123233995736766e-17,
+                1.0,
+                -0.0
+              ],
+              [
+                -1.0,
+                6.123233995736766e-17,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "convention": "world = origin + columns * local; scale then pitch/yaw/roll",
+            "determinant": 1.0,
+            "origin": [
+              5901.0,
+              -2368.0,
+              720.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "zoffset_culling_only": 0.0
+          },
+          "world_bounds": {
+            "max": [
+              5916.859375,
+              -2358.625,
+              729.90625
+            ],
+            "min": [
+              5900.890625,
+              -2377.375,
+              718.53125
+            ]
+          }
+        }
+      ],
+      "source": "assets0.pk3:maps/hoth2.bsp"
+    },
+    "hoth3": {
+      "bsp_correspondence": {
+        "no_exact_geometry_correspondence_found": 379,
+        "unknown": 90
+      },
+      "counts": {
+        "asset_status": {
+          "available": 379,
+          "not_applicable": 88,
+          "unavailable": 2
+        },
+        "assets": 27,
+        "entities": 1352,
+        "instances": 469,
+        "roles": {
+          "brush_model": 88,
+          "dynamic_or_effect_model": 2,
+          "external_static_runtime": 379
+        },
+        "static_eligible": 379
+      },
+      "fixture_name_examples_checked": 142,
+      "issues": {
+        "dynamic_or_unsupported_entity_class": 90,
+        "model_asset_missing": 2
+      },
+      "map_sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32",
+      "output_sha256": {
+        "instances.json": "2af440144dc769b9bcc592828aa8d45bf061a34ee745a4a00d6367841aad079d",
+        "instances.tsv": "55e12ff2a5d25553942371d4eacd8ded43881a4310e82aaa3dd3a43fb334c203"
+      },
+      "repeated_export_byte_equal": true,
+      "representative_examples": [
+        {
+          "bsp_presence": "no_exact_geometry_correspondence_found",
+          "entity_ordinal": 403,
+          "id": "0158a80786a1f5e0d0b11564ebb046e0fb9510bc711854f1173218d9b23fdf4c",
+          "md3_surfaces": 3,
+          "model": "models/map_objects/hoth/light_wall.md3",
+          "model_sha256": "288323c2a018ce0daf30785438887ec7711621133c661133c66f6ec443082ce3",
+          "source_fields": {
+            "_cs": "1",
+            "_rs": "1",
+            "angle": "360",
+            "classname": "misc_model_static",
+            "model": "models/map_objects/hoth/light_wall.md3",
+            "origin": "6240 -1948 362"
+          },
+          "transform": {
+            "angles": [
+              0.0,
+              360.0,
+              0.0
+            ],
+            "columns": [
+              [
+                1.0,
+                -2.4492935982947064e-16,
+                -0.0
+              ],
+              [
+                2.4492935982947064e-16,
+                1.0,
+                0.0
+              ],
+              [
+                0.0,
+                -0.0,
+                1.0
+              ]
+            ],
+            "convention": "world = origin + columns * local; scale then pitch/yaw/roll",
+            "determinant": 1.0,
+            "origin": [
+              6240.0,
+              -1948.0,
+              362.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "zoffset_culling_only": 0.0
+          },
+          "world_bounds": {
+            "max": [
+              6249.375,
+              -1947.890625,
+              371.90625
+            ],
+            "min": [
+              6230.625,
+              -1963.859375,
+              360.53125
+            ]
+          }
+        },
+        {
+          "bsp_presence": "no_exact_geometry_correspondence_found",
+          "entity_ordinal": 686,
+          "id": "03d5c91effc2915213858bbf0da0bcb1edd65d292dbc6dd15d226f0ecc06e17f",
+          "md3_surfaces": 3,
+          "model": "models/map_objects/hoth/light_wall.md3",
+          "model_sha256": "288323c2a018ce0daf30785438887ec7711621133c661133c66f6ec443082ce3",
+          "source_fields": {
+            "_cs": "1",
+            "_rs": "1",
+            "angle": "270",
+            "classname": "misc_model_static",
+            "model": "models/map_objects/hoth/light_wall.md3",
+            "origin": "1046 776 144"
+          },
+          "transform": {
+            "angles": [
+              0.0,
+              270.0,
+              0.0
+            ],
+            "columns": [
+              [
+                -1.8369701987210297e-16,
+                -1.0,
+                -0.0
+              ],
+              [
+                1.0,
+                -1.8369701987210297e-16,
+                0.0
+              ],
+              [
+                -0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "convention": "world = origin + columns * local; scale then pitch/yaw/roll",
+            "determinant": 1.0,
+            "origin": [
+              1046.0,
+              776.0,
+              144.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "zoffset_culling_only": 0.0
+          },
+          "world_bounds": {
+            "max": [
+              1046.109375,
+              785.375,
+              153.90625
+            ],
+            "min": [
+              1030.140625,
+              766.625,
+              142.53125
+            ]
+          }
+        },
+        {
+          "bsp_presence": "no_exact_geometry_correspondence_found",
+          "entity_ordinal": 781,
+          "id": "04a3a87e6081ede8fcabd0cd1c0ca52233425d24666e1059a94b09d1ad3dc0d9",
+          "md3_surfaces": 4,
+          "model": "models/map_objects/hoth/light_floor.md3",
+          "model_sha256": "40c954f9a3d5b358b864e1f7a753e36a347ab0c9d105ecc7037c70232f63b483",
+          "source_fields": {
+            "_cs": "1",
+            "_rs": "1",
+            "angle": "315",
+            "classname": "misc_model_static",
+            "model": "models/map_objects/hoth/light_floor.md3",
+            "origin": "7706 342 -128",
+            "zoffset": "32"
+          },
+          "transform": {
+            "angles": [
+              0.0,
+              315.0,
+              0.0
+            ],
+            "columns": [
+              [
+                0.7071067811865474,
+                -0.7071067811865477,
+                -0.0
+              ],
+              [
+                0.7071067811865477,
+                0.7071067811865474,
+                0.0
+              ],
+              [
+                0.0,
+                -0.0,
+                1.0
+              ]
+            ],
+            "convention": "world = origin + columns * local; scale then pitch/yaw/roll",
+            "determinant": 1.0,
+            "origin": [
+              7706.0,
+              342.0,
+              -128.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "zoffset_culling_only": 32.0
+          },
+          "world_bounds": {
+            "max": [
+              7719.799630776593,
+              355.79963077659374,
+              -113.546875
+            ],
+            "min": [
+              7689.559767337413,
+              325.5597673374128,
+              -127.8125
+            ]
+          }
+        }
+      ],
+      "source": "assets0.pk3:maps/hoth3.bsp"
+    },
+    "taspir1": {
+      "bsp_correspondence": {
+        "no_exact_geometry_correspondence_found": 267,
+        "unknown": 228
+      },
+      "counts": {
+        "asset_status": {
+          "available": 298,
+          "not_applicable": 191,
+          "unavailable": 6
+        },
+        "assets": 15,
+        "entities": 1334,
+        "instances": 495,
+        "roles": {
+          "brush_model": 191,
+          "dynamic_or_effect_model": 37,
+          "external_static_runtime": 267
+        },
+        "static_eligible": 267
+      },
+      "fixture_name_examples_checked": 79,
+      "issues": {
+        "dynamic_or_unsupported_entity_class": 228,
+        "model_asset_missing": 6
+      },
+      "map_sha256": "42e022cc643416a6687c7cf2596b7f0d4353f0a072b958c224281790e1cfe263",
+      "output_sha256": {
+        "instances.json": "021a25d190a4db0813b15a857432cfded2a53ef1ee5b0b0f63921b9f525493bf",
+        "instances.tsv": "4a7cbb1e7c9e437f28d6115ed9f38d82ad93322970b230158710ae0aa762a237"
+      },
+      "repeated_export_byte_equal": true,
+      "representative_examples": [
+        {
+          "bsp_presence": "no_exact_geometry_correspondence_found",
+          "entity_ordinal": 767,
+          "id": "05dd081582bcb0ab4939961da2c6fa461705ab482ae9242bc5848d9c34af2639",
+          "md3_surfaces": 3,
+          "model": "models/map_objects/taspir/lamp_rotated.md3",
+          "model_sha256": "5e0f6e98a616dfaf694c3665dfa2f7c8dad55ab6c8a505d1e03c77b0a2cb3d40",
+          "source_fields": {
+            "angle": "270",
+            "classname": "misc_model_static",
+            "model": "models/map_objects/taspir/lamp_rotated.md3",
+            "modelscale": ".5",
+            "origin": "-2176 1055 832"
+          },
+          "transform": {
+            "angles": [
+              0.0,
+              270.0,
+              0.0
+            ],
+            "columns": [
+              [
+                -9.184850993605148e-17,
+                -0.5,
+                -0.0
+              ],
+              [
+                0.5,
+                -9.184850993605148e-17,
+                0.0
+              ],
+              [
+                -0.0,
+                0.0,
+                0.5
+              ]
+            ],
+            "convention": "world = origin + columns * local; scale then pitch/yaw/roll",
+            "determinant": 0.125,
+            "origin": [
+              -2176.0,
+              1055.0,
+              832.0
+            ],
+            "scale": [
+              0.5,
+              0.5,
+              0.5
+            ],
+            "zoffset_culling_only": 0.0
+          },
+          "world_bounds": {
+            "max": [
+              -2146.1484375,
+              1054.9921875,
+              842.5
+            ],
+            "min": [
+              -2204.3359375,
+              1003.1953125,
+              793.9140625
+            ]
+          }
+        },
+        {
+          "bsp_presence": "no_exact_geometry_correspondence_found",
+          "entity_ordinal": 783,
+          "id": "065705c8ac5b3ddc16cfcf023cb4667322375044604ae57f5f4aa1c688d43108",
+          "md3_surfaces": 3,
+          "model": "models/map_objects/taspir/lamp_rotated.md3",
+          "model_sha256": "5e0f6e98a616dfaf694c3665dfa2f7c8dad55ab6c8a505d1e03c77b0a2cb3d40",
+          "source_fields": {
+            "angle": "104",
+            "classname": "misc_model_static",
+            "model": "models/map_objects/taspir/lamp_rotated.md3",
+            "origin": "-4664 -2495 2112"
+          },
+          "transform": {
+            "angles": [
+              0.0,
+              104.0,
+              0.0
+            ],
+            "columns": [
+              [
+                -0.24192189559966779,
+                0.9702957262759965,
+                -0.0
+              ],
+              [
+                -0.9702957262759965,
+                -0.24192189559966779,
+                0.0
+              ],
+              [
+                0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "convention": "world = origin + columns * local; scale then pitch/yaw/roll",
+            "determinant": 1.0,
+            "origin": [
+              -4664.0,
+              -2495.0,
+              2112.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "zoffset_culling_only": 0.0
+          },
+          "world_bounds": {
+            "max": [
+              -4618.111824350909,
+              -2380.86393963751,
+              2133.0
+            ],
+            "min": [
+              -4746.908122753487,
+              -2506.6537905623422,
+              2035.828125
+            ]
+          }
+        },
+        {
+          "bsp_presence": "no_exact_geometry_correspondence_found",
+          "entity_ordinal": 762,
+          "id": "08db4cb91fda66ff9f1941b00546decc064722eb9060ecded78639398d6b4f12",
+          "md3_surfaces": 3,
+          "model": "models/map_objects/taspir/lamp_rotated.md3",
+          "model_sha256": "5e0f6e98a616dfaf694c3665dfa2f7c8dad55ab6c8a505d1e03c77b0a2cb3d40",
+          "source_fields": {
+            "angle": "270",
+            "classname": "misc_model_static",
+            "model": "models/map_objects/taspir/lamp_rotated.md3",
+            "origin": "-1792 927 832"
+          },
+          "transform": {
+            "angles": [
+              0.0,
+              270.0,
+              0.0
+            ],
+            "columns": [
+              [
+                -1.8369701987210297e-16,
+                -1.0,
+                -0.0
+              ],
+              [
+                1.0,
+                -1.8369701987210297e-16,
+                0.0
+              ],
+              [
+                -0.0,
+                0.0,
+                1.0
+              ]
+            ],
+            "convention": "world = origin + columns * local; scale then pitch/yaw/roll",
+            "determinant": 1.0,
+            "origin": [
+              -1792.0,
+              927.0,
+              832.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "zoffset_culling_only": 0.0
+          },
+          "world_bounds": {
+            "max": [
+              -1732.296875,
+              926.984375,
+              853.0
+            ],
+            "min": [
+              -1848.671875,
+              823.390625,
+              755.828125
+            ]
+          }
+        }
+      ],
+      "source": "assets0.pk3:maps/taspir1.bsp"
+    }
+  },
+  "profile": "sp",
+  "schema": "org.openjk.research.md3-instance-inventory/1",
+  "scope": "Original BSP entity placements and available MD3 poses; bake/occlusion participation unknown",
+  "selection": "explicit loose base then reverse lexical PK3; source paths case folded",
+  "stripped_compiler_model_instances": "not recoverable without original source placements"
+}

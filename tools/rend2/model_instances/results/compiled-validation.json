@@ -1,0 +1,37 @@
+{
+  "bsp_sha256": "f7bb66c3e35e790d24a16ab6c3d32f7ddd908e3e31fdf5a063863c9d5bdb7088",
+  "checks": 28,
+  "command": [
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\toolchain\\netradiant-20220628\\portable\\netradiant_1.5.0-20220628-windows-amd64\\q3map2.exe",
+    "-game",
+    "ja",
+    "-fs_basepath",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr10\\compiled\\authoring",
+    "-fs_game",
+    "base",
+    "-threads",
+    "1",
+    "-meta",
+    "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr10\\compiled\\authoring\\base\\maps\\asr10.map"
+  ],
+  "compiler_sha256": "894049bd136e7828b0f068d12c932833153b3ada87b99655dac90e4a60c85ad4",
+  "counts": {
+    "asset_status": {
+      "available": 4,
+      "unavailable": 1
+    },
+    "assets": 2,
+    "entities": 5,
+    "instances": 5,
+    "roles": {
+      "compiler_baked_model": 2,
+      "dynamic_or_effect_model": 1,
+      "external_static_runtime": 2
+    },
+    "static_eligible": 1
+  },
+  "repeated_extraction_equal": true,
+  "scope": "pose/geometry correspondence only; no light phase, historical solver or runtime consumer",
+  "source": "owned MD3 and fresh q3map2 -meta compilation",
+  "source_map_sha256": "6eb02d5e30c73cb64be4170d94086fdd645de70d14312aee8ed6e76632bcf203"
+}

@@ -1,0 +1,27 @@
+{
+  "asr09_regression_tests": 14,
+  "base_revision": "76215a03d",
+  "compiled_geometry_checks": 28,
+  "date": "2026-11-09",
+  "dependency_sha256": {
+    "tools/rend2/bsp_fixtures/catalogue.py": "a46c4d228f05e845f858f87a3e7f5c461df9c2926d4cd02d7cb9e25e13f545a5",
+    "tools/rend2/bsp_fixtures/compiled.py": "e510126f312bb6f492d415a9ba7307c91acbc7be950b9d96d9658eb8abd2a8b4"
+  },
+  "existing_cpp_regression_tests": 4,
+  "python": "3.8.5",
+  "result_sha256": {
+    "compiled-validation.json": "45a1b1e2cadb74ae93dd4bb6e136053da5b22f3bb749c576e4146662e1db140d",
+    "stock-inventory.json": "6a3f5224aadef7e77dbc301c2894b4c6da10ff82dbfd62fd18f227b4d1be221a"
+  },
+  "scope": "Offline ASR10 only; canonical assets/storage, historical solver and renderer unchanged",
+  "source_sha256": {
+    "compiled.py": "f07ea1a36cfdb5dda127862fff6008498f0013bad76c317b94fd9ce1af9af797",
+    "instances.py": "068e46c62e6e4bc2fce12af8d030548b71675d771b77a0593420695c96853419",
+    "inventory.py": "4c418d784f2c9aa823546938ccb26284d3212f7aa8908a24f3a15612a415013f",
+    "test_instances.py": "b78b0d6a3eef5da4168b62de5295eb2b6b19af9f183a8d32a162c7b299485a88"
+  },
+  "stock_exports_repeated_byte_equal": true,
+  "stock_pose_examples_checked": 267,
+  "stock_static_instances": 1022,
+  "unit_tests": 14
+}
