@@ -18,7 +18,7 @@ verified physical source. Checked stock JA maps remain `UnknownProfile`.
 * `lightrecon/fit_evidence.h`: immutable optional fitting objective. It accepts
   source geometry and fitted RGB, without any observation reader or held-out API.
 * `point_refine.{h,cpp}` and `emitter_shape.{h,cpp}`: optional `shadow` and
-  independently reported `shadowWeight`. Zero weight performs no shadow work and
+  independ/ently reported `shadowWeight`. Zero weight performs no shadow work and
   leaves the previous objective/dependency keys unchanged. Both use the additional
   objective for accepting bounded geometry proposals. Existing RGB-only Jacobian
   proposals remain proposals; no new analytical visibility gradient is claimed.
