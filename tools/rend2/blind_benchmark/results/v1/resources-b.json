@@ -1,0 +1,310 @@
+{
+  "platform": "Windows-10-10.0.19045-SP0",
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "scenes": [
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\point_room",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\point_room",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "point_room",
+      "seconds": 12.841680199999246
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\spot",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\spot",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "spot",
+      "seconds": 2.358223999995971
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\panel",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\panel",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "panel",
+      "seconds": 3.3853990999923553
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\tube",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\tube",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "tube",
+      "seconds": 7.889491400012048
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\two_colour",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\two_colour",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "two_colour",
+      "seconds": 16.301284200002556
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\overlap_whites",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\overlap_whites",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "overlap_whites",
+      "seconds": 9.44566389999818
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\sun_sky",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\sun_sky",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "sun_sky",
+      "seconds": 4.598217899998417
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\skylight",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\skylight",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "skylight",
+      "seconds": 0.3084967000031611
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\bounce_colour",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\bounce_colour",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "bounce_colour",
+      "seconds": 6.7726101000007475
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\bounce_control",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\bounce_control",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "bounce_control",
+      "seconds": 6.358480499999132
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\door_occlusion",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\door_occlusion",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "door_occlusion",
+      "seconds": 6.880676900007529
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\wall_leak",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\wall_leak",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "wall_leak",
+      "seconds": 7.032625599997118
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\empty",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\empty",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "empty",
+      "seconds": 0.29088400000182446
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\mixed_sun_local",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\mixed_sun_local",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "mixed_sun_local",
+      "seconds": 5.613584299993818
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\bridge_direct",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\bridge_direct",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "bridge_direct",
+      "seconds": 10.707523999997647
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "tools.rend2.blind_benchmark.solver",
+        "--inputs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\public\\bridge_passive_bounce1",
+        "--output",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b\\bridge_passive_bounce1",
+        "--native",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--policy",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5\\policy.json"
+      ],
+      "name": "bridge_passive_bounce1",
+      "seconds": 13.077396499997121
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+# ASR23 freezes this new adapter's LF source bytes before inference.
+lightrecon_blind_basis_tool.cpp text eol=lf

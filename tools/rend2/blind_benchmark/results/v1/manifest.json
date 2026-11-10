@@ -1,0 +1,41 @@
+{
+  "artifacts": {
+    "integrity.json": "a8b1288631ba2f72d9a84b69e0525a7c000c7b7e70fa70a142229805d0081af9",
+    "native-regression.log": "addfa9ae15ff3ef39a0f366b2b0f70e2cd693c3e0d1040bec5a98d5057bdd60f",
+    "protocol.json": "5ca2c25f9b3e79ac4c738f8b73bd4bec334f6bbd13173f69617ebed05e1dd0ef",
+    "repeat.json": "3fbd988b8bb67d1ac9b40088a0225957850ff85ba95bf60ab15d51a5c3774406",
+    "resources-a.json": "5ab0cb7b73d2aa5ecc4c1d1734f88374728c241e644b9507db635128465c3c17",
+    "resources-b.json": "f794ce5faae773780927378992a0347d1a0bbad83ac66b3784334701085462de",
+    "results.json": "930537df207ff806b8405e267e1d74d48af3e012ddf4e6867f9ba6eceaba654e",
+    "selected-models.json": "7ee170440da89e89a9445ac0571d54834d02a0e4c4e0ea05e3ca34d5bc8d763e",
+    "tables.md": "e81f5d526f8e4b255aafc2dd10dc305ad588c980c1f1b867f526feb4c7010f89",
+    "validation-selections.json": "42236c708c47c7af601b30cadd84b32281fd4eded14560c0c73dcf6fb6c5c6b8"
+  },
+  "detailed_frozen_model_sha256": {
+    "bounce_colour": "b55d39f2572616cb1f608c263b762f7158e817c58201ac2ea37e515500ceaccd",
+    "bounce_control": "90fd336a08c795c58d07e8cb93dee0e397cffe5f1ecc4586ac1f2c9464070206",
+    "bridge_direct": "8a57b37534efb6add7dcba4d67fa0db0dd3291f5e0ba1b8ad7b448a2f53fb865",
+    "bridge_passive_bounce1": "8734d06bc0c63123800e84a6be64145b098e49772f5d21082f47eee70173cfec",
+    "door_occlusion": "b80d5b6214817f0ef68ca8a48ff1726fd6cb4cc8131133213730bfe10b5f3f7f",
+    "empty": "3cc4f90e68e4d536ee77c4f651b428a5ad39a130443d8545295cc1a5f159b1a8",
+    "mixed_sun_local": "e92b4faa972a9285336a5a71ffbe87bf0e13a39df4b8156725827ae097b03564",
+    "overlap_whites": "739508cb88aefc197a08922280eb9a266e9d2a48ea0c5d42acaf3351d47a88a8",
+    "panel": "075fa806d6d48eeff7e610dbeca8daf780939ca2c005f77e386f4407a8503320",
+    "point_room": "3015ae352f92546b65a3338076c1a40e230a6566f692ec0059899f72c208b6a9",
+    "skylight": "a943dd618ccbd020b8069758382a48506aaf15eab9a4ad6cfa5e8437f385be0b",
+    "spot": "40905fee2bb10b6e187b7878abc4db980774fbe793fd74d4b59411492f462d1c",
+    "sun_sky": "db02f9611013b15205b913539fc520a733d727531cc986ac85492f8846b20b0a",
+    "tube": "5e8f4ee0d73b58545342ee7a0bfa1deeb95cbb0093a5bc067ee25f6dc2db0486",
+    "two_colour": "27b772da0bb7460dd48d9f3d14fab1d906309085d9f825f75627bfd1ffd31d7a",
+    "wall_leak": "13a6e6b1d100ba68bd772a1a6b3244398edb4b72e6a4de5a132f884f0198798a"
+  },
+  "detailed_models_location": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-a",
+  "historical_core_and_canonical_contracts_unchanged": true,
+  "licensed_payloads": false,
+  "publish_source_sha256": "8647a91718c20c00e54d1604090b0488297f457784ae955cf60c76b257afd67b",
+  "published_owned_receipts_only": true,
+  "repeat_location": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-final-b",
+  "runtime_changed": false,
+  "schema": "org.openjk.asr23-publication.v1",
+  "source_input_locations": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v5"
+}

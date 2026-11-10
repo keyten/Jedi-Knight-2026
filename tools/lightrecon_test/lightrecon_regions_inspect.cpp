@@ -166,7 +166,15 @@ int main(int argc, char **argv)
 					!controlled.emplace(ordinal, std::make_pair(material, kind)).second ||
 					(material != "textures/bake_forward/white" &&
 					 material != "textures/bake_forward/panel" &&
-					 material != "textures/bake_forward/red"))
+					 material != "textures/bake_forward/red" &&
+					 // ASR23 own-content compiler fixtures use this second explicit
+					 // namespace. Exact shader/map identity is still checked below;
+					 // this does not authorize arbitrary stock material assumptions.
+					 material != "textures/recon_offline/white" &&
+					 material != "textures/recon_offline/panel" &&
+					 material != "textures/recon_offline/tube" &&
+					 material != "textures/recon_offline/red" &&
+					 material != "textures/recon_offline/sky"))
 					throw std::runtime_error("Controlled material declaration invalid");
 			}
 			std::string extra;

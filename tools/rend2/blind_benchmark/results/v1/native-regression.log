@@ -1,0 +1,23 @@
+Test project C:/Users/Keyten/Desktop/projects/OpenJK-rend2/build/s06-gcc
+    Start 44: lightrecon_hidden
+    Start  1: lightrecon_discovery
+1/9 Test  #1: lightrecon_discovery .............   Passed    5.25 sec
+    Start 45: lightrecon_adaptive_hidden
+2/9 Test #44: lightrecon_hidden ................   Passed    5.65 sec
+    Start  3: lightrecon_sparse
+3/9 Test  #3: lightrecon_sparse ................   Passed    1.30 sec
+    Start 54: lightrecon_shape_selection
+4/9 Test #45: lightrecon_adaptive_hidden .......   Passed    1.87 sec
+    Start 41: lightrecon_bake_forward
+5/9 Test #54: lightrecon_shape_selection .......   Passed    0.20 sec
+    Start 36: lightrecon_visibility
+6/9 Test #41: lightrecon_bake_forward ..........   Passed    0.03 sec
+    Start 28: lightrecon_lightgrid
+7/9 Test #28: lightrecon_lightgrid .............   Passed    0.06 sec
+    Start  2: lightrecon_aesthetic
+8/9 Test  #2: lightrecon_aesthetic .............   Passed    0.19 sec
+9/9 Test #36: lightrecon_visibility ............   Passed    0.87 sec
+
+100% tests passed out of 9
+
+Total Test time (real) =   8.04 sec

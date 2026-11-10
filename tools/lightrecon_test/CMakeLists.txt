@@ -8,6 +8,10 @@ if(NOT TARGET rend2_lightrecon_core)
 	add_subdirectory(../../shared/rd-rend2/lightrecon "${CMAKE_CURRENT_BINARY_DIR}/core")
 endif()
 find_package(Threads REQUIRED)
+# ASR23 geometry-only benchmark adapter; never linked into a renderer.
+add_executable(lightrecon_blind_basis_tool lightrecon_blind_basis_tool.cpp)
+target_link_libraries(lightrecon_blind_basis_tool rend2_lightrecon_core)
+set_target_properties(lightrecon_blind_basis_tool PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 # ASR22 controller is tool-only and reuses frozen modern Joint/Indirect evaluation.
 add_library(lightrecon_discovery STATIC iterative_discovery.cpp iterative_discovery.h)
 target_link_libraries(lightrecon_discovery PUBLIC rend2_lightrecon_core)

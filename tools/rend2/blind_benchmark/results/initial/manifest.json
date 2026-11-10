@@ -1,0 +1,18 @@
+{
+  "artifacts": {
+    "README.md": "96d5be50a81284b9e956e9002f57109fad3b786e37834ed170bc82aaded1d633",
+    "code/tools/lightrecon_test/lightrecon_blind_basis_tool.cpp": "dca6cd54b8481aad75f3df8a731392ef7f40b68f111a5d7006d3889c4333d61b",
+    "code/tools/rend2/blind_benchmark/evaluate.py": "5d4cbc266a8685c1d02f415700d82440f49cb05e2b9c654e79ac99c8bde721be",
+    "code/tools/rend2/blind_benchmark/freeze.py": "7d7e8548477295144a47399b85e8e8117ba1fab5a2a3f8f05e7bfbdd38d3c13d",
+    "code/tools/rend2/blind_benchmark/policy-v1.json": "7f19ff3b4ea33423c9e9bf94b8c1a57f712c2b3d20d29ea38a3e5e83fc04a301",
+    "code/tools/rend2/blind_benchmark/run.py": "34dfddf25c46a8d9fa05d55caae24f3f91aa854a9adfcc7bc4f4333aded085d9",
+    "code/tools/rend2/blind_benchmark/solver.py": "7337a1c0c6ac7c12c14f9ea50538a33989145887a4af4cad3693512cf7ccc6a1",
+    "code/tools/rend2/blind_benchmark/test_protocol.py": "ec5ea91e7f2e6917b753852106db10f530e8af83abc1d6062b74bb204017be4c",
+    "protocol.json": "d5a604872b2d5b49bf2f61051a322dd0e076da282688078a9fb7804c00b2108d",
+    "repeat.json": "3fbd988b8bb67d1ac9b40088a0225957850ff85ba95bf60ab15d51a5c3774406",
+    "results.json": "b5dbcb47c3425079067cc253bc2f9279da94075d9ee92c3bc916cfc572fcfe02",
+    "tables.md": "b9cf4d71342020e611064385a3b3c52e4831fe2df8a463b8a809be00c1bc7084"
+  },
+  "local_frozen_inputs": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v3",
+  "local_native_snapshot": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr23-frozen-v3\\bin-snapshot"
+}

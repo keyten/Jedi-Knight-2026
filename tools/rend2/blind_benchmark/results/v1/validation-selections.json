@@ -1,0 +1,1883 @@
+{
+  "heldout_scored": false,
+  "selections": {
+    "bounce_colour": {
+      "adaptive_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0002922569195825223,
+          "black_mse": 995.4000000000001,
+          "blocks": 1,
+          "mse": 0.2909125377524427,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.5393630852704352
+        }
+      },
+      "all_cues": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.005585348986184492,
+          "black_mse": 995.4000000000001,
+          "blocks": 1,
+          "mse": 5.559656380848044,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.357892359894328
+        }
+      },
+      "area_off": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.005585348986184492,
+          "black_mse": 995.4000000000001,
+          "blocks": 1,
+          "mse": 5.559656380848044,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.357892359894328
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.574576384702967,
+          "black_mse": 995.4000000000001,
+          "blocks": 1,
+          "mse": 571.9333333333334,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 23.91512770890704
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.005585348986184492,
+          "black_mse": 995.4000000000001,
+          "blocks": 1,
+          "mse": 5.559656380848044,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.357892359894328
+        }
+      },
+      "grid_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.007129790586031086,
+          "black_mse": 995.4000000000001,
+          "blocks": 1,
+          "mse": 7.096993549335344,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.664018308746271
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0002922569195825223,
+          "black_mse": 995.4000000000001,
+          "blocks": 1,
+          "mse": 0.2909125377524427,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.5393630852704352
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.003823288855450796,
+          "black_mse": 995.4000000000001,
+          "blocks": 1,
+          "mse": 3.8057017267157227,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.9508207828285307
+        }
+      },
+      "sun_off": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.005585348986184492,
+          "black_mse": 995.4000000000001,
+          "blocks": 1,
+          "mse": 5.559656380848044,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.357892359894328
+        }
+      }
+    },
+    "bounce_control": {
+      "adaptive_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0007160324371283057,
+          "black_mse": 313.2,
+          "blocks": 1,
+          "mse": 0.22426135930858535,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4735624133190739
+        }
+      },
+      "all_cues": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0007160324371283057,
+          "black_mse": 313.2,
+          "blocks": 1,
+          "mse": 0.22426135930858535,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4735624133190739
+        }
+      },
+      "area_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0007160324371283057,
+          "black_mse": 313.2,
+          "blocks": 1,
+          "mse": 0.22426135930858535,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4735624133190739
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.3563218390804599,
+          "black_mse": 313.2,
+          "blocks": 1,
+          "mse": 111.60000000000004,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 10.564090116995406
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0007160324371283057,
+          "black_mse": 313.2,
+          "blocks": 1,
+          "mse": 0.22426135930858535,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4735624133190739
+        }
+      },
+      "grid_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0007160324371283057,
+          "black_mse": 313.2,
+          "blocks": 1,
+          "mse": 0.22426135930858535,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4735624133190739
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.015571226492928433,
+          "black_mse": 313.2,
+          "blocks": 1,
+          "mse": 4.876908137585185,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.2083722823802114
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0064983892716823565,
+          "black_mse": 313.2,
+          "blocks": 1,
+          "mse": 2.035295519890914,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.4266378376767224
+        }
+      },
+      "sun_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0007160324371283057,
+          "black_mse": 313.2,
+          "blocks": 1,
+          "mse": 0.22426135930858535,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4735624133190739
+        }
+      }
+    },
+    "bridge_direct": {
+      "adaptive_off": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0022599567720413953,
+          "black_mse": 145.8235294117647,
+          "blocks": 17,
+          "mse": 0.3295548728170952,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 1.1835389849650206
+        }
+      },
+      "all_cues": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.02073294724980371,
+          "black_mse": 145.8235294117647,
+          "blocks": 17,
+          "mse": 3.0233515430743174,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.161420924899741
+        }
+      },
+      "area_off": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.02073294724980371,
+          "black_mse": 145.8235294117647,
+          "blocks": 17,
+          "mse": 3.0233515430743174,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.161420924899741
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.8504256391711207,
+          "black_mse": 145.8235294117647,
+          "blocks": 17,
+          "mse": 124.0120682061887,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 39.10883189794698
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.02073294724980371,
+          "black_mse": 145.8235294117647,
+          "blocks": 17,
+          "mse": 3.0233515430743174,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.161420924899741
+        }
+      },
+      "grid_only": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.020364602355795503,
+          "black_mse": 145.8235294117647,
+          "blocks": 17,
+          "mse": 2.9696381905892384,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.180037120197561
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.7349983113735082,
+          "black_mse": 145.8235294117647,
+          "blocks": 17,
+          "mse": 107.18004787617217,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 39.85536520013499
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.7348883144741728,
+          "black_mse": 145.8235294117647,
+          "blocks": 17,
+          "mse": 107.16400774008672,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 39.34227156527932
+        }
+      },
+      "sun_off": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.02073294724980371,
+          "black_mse": 145.8235294117647,
+          "blocks": 17,
+          "mse": 3.0233515430743174,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.161420924899741
+        }
+      }
+    },
+    "bridge_passive_bounce1": {
+      "adaptive_off": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.015042959329931091,
+          "black_mse": 274.0294117647058,
+          "blocks": 17,
+          "mse": 4.1222132963814095,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.51224720038605
+        }
+      },
+      "all_cues": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.015042959329931091,
+          "black_mse": 274.0294117647058,
+          "blocks": 17,
+          "mse": 4.1222132963814095,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.51224720038605
+        }
+      },
+      "area_off": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.015042959329931091,
+          "black_mse": 274.0294117647058,
+          "blocks": 17,
+          "mse": 4.1222132963814095,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.51224720038605
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.7972165575471364,
+          "black_mse": 274.0294117647058,
+          "blocks": 17,
+          "mse": 218.46078431372553,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 52.230259428802384
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.015042959329931091,
+          "black_mse": 274.0294117647058,
+          "blocks": 17,
+          "mse": 4.1222132963814095,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.51224720038605
+        }
+      },
+      "grid_only": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.015042959329931091,
+          "black_mse": 274.0294117647058,
+          "blocks": 17,
+          "mse": 4.1222132963814095,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.51224720038605
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6889878316146797,
+          "black_mse": 274.0294117647058,
+          "blocks": 17,
+          "mse": 188.80293021041084,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 52.447767230945786
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6887106547376196,
+          "black_mse": 274.0294117647058,
+          "blocks": 17,
+          "mse": 188.7269755938353,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 52.45024265892588
+        }
+      },
+      "sun_off": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.015042959329931091,
+          "black_mse": 274.0294117647058,
+          "blocks": 17,
+          "mse": 4.1222132963814095,
+          "rows": 34,
+          "status": "Pass",
+          "worst_block_rmse": 2.51224720038605
+        }
+      }
+    },
+    "door_occlusion": {
+      "adaptive_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.328795651590587e-05,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.2071850530704659,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4551758485140286
+        }
+      },
+      "all_cues": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.328795651590587e-05,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.2071850530704659,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4551758485140286
+        }
+      },
+      "area_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.328795651590587e-05,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.2071850530704659,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4551758485140286
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.72380615493456,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 2046.2000000000007,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 45.23494224601154
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.328795651590587e-05,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.2071850530704659,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4551758485140286
+        }
+      },
+      "grid_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.328795651590587e-05,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.2071850530704659,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4551758485140286
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.005541374979428076,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 15.665467066843169,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 3.957962489317347
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0019475416157516802,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 5.505700147729999,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.346422840779129
+        }
+      },
+      "sun_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.328795651590587e-05,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.2071850530704659,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.4551758485140286
+        }
+      }
+    },
+    "empty": {
+      "adaptive_off": {
+        "reason": "Solid-page training-only empty control abstained; no independent illumination score",
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "status": "Unavailable"
+        }
+      },
+      "all_cues": {
+        "reason": "Solid-page training-only empty control abstained; no independent illumination score",
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "status": "Unavailable"
+        }
+      },
+      "area_off": {
+        "reason": "Solid-page training-only empty control abstained; no independent illumination score",
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "status": "Unavailable"
+        }
+      },
+      "fixture_only": {
+        "reason": "Solid-page training-only empty control abstained; no independent illumination score",
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "status": "Unavailable"
+        }
+      },
+      "grid_lightmap": {
+        "reason": "Solid-page training-only empty control abstained; no independent illumination score",
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "status": "Unavailable"
+        }
+      },
+      "grid_only": {
+        "reason": "Solid-page training-only empty control abstained; no independent illumination score",
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "status": "Unavailable"
+        }
+      },
+      "ja_baseline": {
+        "reason": "Solid-page training-only empty control abstained; no independent illumination score",
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "status": "Unavailable"
+        }
+      },
+      "lightmap_only": {
+        "reason": "Solid-page training-only empty control abstained; no independent illumination score",
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "status": "Unavailable"
+        }
+      },
+      "sun_off": {
+        "reason": "Solid-page training-only empty control abstained; no independent illumination score",
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "status": "Unavailable"
+        }
+      }
+    },
+    "mixed_sun_local": {
+      "adaptive_off": {
+        "selected_path": 4,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.2965876278990402,
+          "black_mse": 9398.266666666668,
+          "blocks": 1,
+          "mse": 2787.4096170292864,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 52.795924246378014
+        }
+      },
+      "all_cues": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.30991368503857236,
+          "black_mse": 9398.266666666668,
+          "blocks": 1,
+          "mse": 2912.6514556418474,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 53.96898605349045
+        }
+      },
+      "area_off": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.30991368503857236,
+          "black_mse": 9398.266666666668,
+          "blocks": 1,
+          "mse": 2912.6514556418474,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 53.96898605349045
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.8758281668960232,
+          "black_mse": 9398.266666666668,
+          "blocks": 1,
+          "mse": 8231.266666666666,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 90.7263284094902
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.4340633703425803,
+          "black_mse": 9398.266666666668,
+          "blocks": 1,
+          "mse": 4079.4433047116618,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 63.87051984062492
+        }
+      },
+      "grid_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.8758281668960232,
+          "black_mse": 9398.266666666668,
+          "blocks": 1,
+          "mse": 8231.266666666666,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 90.7263284094902
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.40036179186932347,
+          "black_mse": 9398.266666666668,
+          "blocks": 1,
+          "mse": 3762.706883132401,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 61.34090709414396
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.4340633703425803,
+          "black_mse": 9398.266666666668,
+          "blocks": 1,
+          "mse": 4079.4433047116618,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 63.87051984062492
+        }
+      },
+      "sun_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.4340633703425803,
+          "black_mse": 9398.266666666668,
+          "blocks": 1,
+          "mse": 4079.4433047116618,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 63.87051984062492
+        }
+      }
+    },
+    "overlap_whites": {
+      "adaptive_off": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.03753128179043428,
+          "black_mse": 4761.7,
+          "blocks": 1,
+          "mse": 178.7127045015109,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 13.368347111797735
+        }
+      },
+      "all_cues": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.03846926367797043,
+          "black_mse": 4761.7,
+          "blocks": 1,
+          "mse": 183.17909285539181,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 13.534367102136391
+        }
+      },
+      "area_off": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.03846926367797043,
+          "black_mse": 4761.7,
+          "blocks": 1,
+          "mse": 183.17909285539181,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 13.534367102136391
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.7839427095365101,
+          "black_mse": 4761.7,
+          "blocks": 1,
+          "mse": 3732.9,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 61.09746312245706
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.03846926367797043,
+          "black_mse": 4761.7,
+          "blocks": 1,
+          "mse": 183.17909285539181,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 13.534367102136391
+        }
+      },
+      "grid_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.08860029492702587,
+          "black_mse": 4761.7,
+          "blocks": 1,
+          "mse": 421.8880243540191,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 20.539912958774167
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.24941041753830767,
+          "black_mse": 4761.7,
+          "blocks": 1,
+          "mse": 1187.6175851921596,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 34.46182794327891
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.3112271449312957,
+          "black_mse": 4761.7,
+          "blocks": 1,
+          "mse": 1481.9702960193508,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 38.49636730938844
+        }
+      },
+      "sun_off": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.03846926367797043,
+          "black_mse": 4761.7,
+          "blocks": 1,
+          "mse": 183.17909285539181,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 13.534367102136391
+        }
+      }
+    },
+    "panel": {
+      "adaptive_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.017978203964485216,
+          "black_mse": 1.9000000000000004,
+          "blocks": 1,
+          "mse": 0.03415858753252191,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.18482041968495233
+        }
+      },
+      "all_cues": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.017978203964485216,
+          "black_mse": 1.9000000000000004,
+          "blocks": 1,
+          "mse": 0.03415858753252191,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.18482041968495233
+        }
+      },
+      "area_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.017978203964485216,
+          "black_mse": 1.9000000000000004,
+          "blocks": 1,
+          "mse": 0.03415858753252191,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.18482041968495233
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.017978203964485216,
+          "black_mse": 1.9000000000000004,
+          "blocks": 1,
+          "mse": 0.03415858753252191,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.18482041968495233
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.017978203964485216,
+          "black_mse": 1.9000000000000004,
+          "blocks": 1,
+          "mse": 0.03415858753252191,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.18482041968495233
+        }
+      },
+      "grid_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.017978203964485216,
+          "black_mse": 1.9000000000000004,
+          "blocks": 1,
+          "mse": 0.03415858753252191,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.18482041968495233
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.017978203964485216,
+          "black_mse": 1.9000000000000004,
+          "blocks": 1,
+          "mse": 0.03415858753252191,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.18482041968495233
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.017978203964485216,
+          "black_mse": 1.9000000000000004,
+          "blocks": 1,
+          "mse": 0.03415858753252191,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.18482041968495233
+        }
+      },
+      "sun_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.017978203964485216,
+          "black_mse": 1.9000000000000004,
+          "blocks": 1,
+          "mse": 0.03415858753252191,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.18482041968495233
+        }
+      }
+    },
+    "point_room": {
+      "adaptive_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0001505057204606174,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.42547967174216533,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.6522880282069918
+        }
+      },
+      "all_cues": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0001505057204606174,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.42547967174216533,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.6522880282069918
+        }
+      },
+      "area_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0001505057204606174,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.42547967174216533,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.6522880282069918
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.72380615493456,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 2046.2000000000007,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 45.23494224601154
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0001505057204606174,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.42547967174216533,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.6522880282069918
+        }
+      },
+      "grid_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0001505057204606174,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.42547967174216533,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.6522880282069918
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.003243495206012251,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 9.169360947396632,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 3.0280952672260217
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 4,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.001266844809640524,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 3.5813702768537605,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.892450865109517
+        }
+      },
+      "sun_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0001505057204606174,
+          "black_mse": 2826.9999999999995,
+          "blocks": 1,
+          "mse": 0.42547967174216533,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.6522880282069918
+        }
+      }
+    },
+    "skylight": {
+      "adaptive_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": null,
+          "black_mse": 0.0,
+          "blocks": 1,
+          "mse": 0.0,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.0
+        }
+      },
+      "all_cues": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": null,
+          "black_mse": 0.0,
+          "blocks": 1,
+          "mse": 0.0,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.0
+        }
+      },
+      "area_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": null,
+          "black_mse": 0.0,
+          "blocks": 1,
+          "mse": 0.0,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.0
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": null,
+          "black_mse": 0.0,
+          "blocks": 1,
+          "mse": 0.0,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.0
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": null,
+          "black_mse": 0.0,
+          "blocks": 1,
+          "mse": 0.0,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.0
+        }
+      },
+      "grid_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": null,
+          "black_mse": 0.0,
+          "blocks": 1,
+          "mse": 0.0,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.0
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": null,
+          "black_mse": 0.0,
+          "blocks": 1,
+          "mse": 0.0,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.0
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": null,
+          "black_mse": 0.0,
+          "blocks": 1,
+          "mse": 0.0,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.0
+        }
+      },
+      "sun_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": null,
+          "black_mse": 0.0,
+          "blocks": 1,
+          "mse": 0.0,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.0
+        }
+      }
+    },
+    "spot": {
+      "adaptive_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.5895341820803526,
+          "black_mse": 193.5,
+          "blocks": 1,
+          "mse": 114.07486423254822,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 10.680583515545779
+        }
+      },
+      "all_cues": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6535344532820129,
+          "black_mse": 193.5,
+          "blocks": 1,
+          "mse": 126.45891671006949,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 11.245395355880978
+        }
+      },
+      "area_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6535344532820129,
+          "black_mse": 193.5,
+          "blocks": 1,
+          "mse": 126.45891671006949,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 11.245395355880978
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6535344532820129,
+          "black_mse": 193.5,
+          "blocks": 1,
+          "mse": 126.45891671006949,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 11.245395355880978
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6535344532820129,
+          "black_mse": 193.5,
+          "blocks": 1,
+          "mse": 126.45891671006949,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 11.245395355880978
+        }
+      },
+      "grid_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6535344532820129,
+          "black_mse": 193.5,
+          "blocks": 1,
+          "mse": 126.45891671006949,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 11.245395355880978
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.5895341820803526,
+          "black_mse": 193.5,
+          "blocks": 1,
+          "mse": 114.07486423254822,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 10.680583515545779
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6535344532820129,
+          "black_mse": 193.5,
+          "blocks": 1,
+          "mse": 126.45891671006949,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 11.245395355880978
+        }
+      },
+      "sun_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6535344532820129,
+          "black_mse": 193.5,
+          "blocks": 1,
+          "mse": 126.45891671006949,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 11.245395355880978
+        }
+      }
+    },
+    "sun_sky": {
+      "adaptive_off": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.4973563502937401,
+          "black_mse": 5844.133333333334,
+          "blocks": 1,
+          "mse": 2906.6168252966568,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 53.91304874792982
+        }
+      },
+      "all_cues": {
+        "selected_path": 4,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.5431568520189027,
+          "black_mse": 5844.133333333334,
+          "blocks": 1,
+          "mse": 3174.2810641120705,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 56.34075846234297
+        }
+      },
+      "area_off": {
+        "selected_path": 4,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.5431568520189027,
+          "black_mse": 5844.133333333334,
+          "blocks": 1,
+          "mse": 3174.2810641120705,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 56.34075846234297
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.8592719764550203,
+          "black_mse": 5844.133333333334,
+          "blocks": 1,
+          "mse": 5021.7,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 70.86395416571108
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.8266044818717886,
+          "black_mse": 5844.133333333334,
+          "blocks": 1,
+          "mse": 4830.786805989649,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 69.50386180630288
+        }
+      },
+      "grid_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.8592719764550203,
+          "black_mse": 5844.133333333334,
+          "blocks": 1,
+          "mse": 5021.7,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 70.86395416571108
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.5364388407814199,
+          "black_mse": 5844.133333333334,
+          "blocks": 1,
+          "mse": 3135.020110705389,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 55.991250304894855
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.8266044818717886,
+          "black_mse": 5844.133333333334,
+          "blocks": 1,
+          "mse": 4830.786805989649,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 69.50386180630288
+        }
+      },
+      "sun_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.8266044818717886,
+          "black_mse": 5844.133333333334,
+          "blocks": 1,
+          "mse": 4830.786805989649,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 69.50386180630288
+        }
+      }
+    },
+    "tube": {
+      "adaptive_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.036932875133276324,
+          "black_mse": 29.599999999999994,
+          "blocks": 1,
+          "mse": 1.093213103944979,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.0455683162495786
+        }
+      },
+      "all_cues": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.036932875133276324,
+          "black_mse": 29.599999999999994,
+          "blocks": 1,
+          "mse": 1.093213103944979,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.0455683162495786
+        }
+      },
+      "area_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.036932875133276324,
+          "black_mse": 29.599999999999994,
+          "blocks": 1,
+          "mse": 1.093213103944979,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.0455683162495786
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.036932875133276324,
+          "black_mse": 29.599999999999994,
+          "blocks": 1,
+          "mse": 1.093213103944979,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.0455683162495786
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.036932875133276324,
+          "black_mse": 29.599999999999994,
+          "blocks": 1,
+          "mse": 1.093213103944979,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.0455683162495786
+        }
+      },
+      "grid_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.036932875133276324,
+          "black_mse": 29.599999999999994,
+          "blocks": 1,
+          "mse": 1.093213103944979,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.0455683162495786
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.036932875133276324,
+          "black_mse": 29.599999999999994,
+          "blocks": 1,
+          "mse": 1.093213103944979,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.0455683162495786
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.036932875133276324,
+          "black_mse": 29.599999999999994,
+          "blocks": 1,
+          "mse": 1.093213103944979,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.0455683162495786
+        }
+      },
+      "sun_off": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.036932875133276324,
+          "black_mse": 29.599999999999994,
+          "blocks": 1,
+          "mse": 1.093213103944979,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 1.0455683162495786
+        }
+      }
+    },
+    "two_colour": {
+      "adaptive_off": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0040968475890310885,
+          "black_mse": 1096.5,
+          "blocks": 1,
+          "mse": 4.492193381372589,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.119479507183919
+        }
+      },
+      "all_cues": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.005977109854915846,
+          "black_mse": 1096.5,
+          "blocks": 1,
+          "mse": 6.553900955915225,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.5600587797773757
+        }
+      },
+      "area_off": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.005977109854915846,
+          "black_mse": 1096.5,
+          "blocks": 1,
+          "mse": 6.553900955915225,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.5600587797773757
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6744794041647666,
+          "black_mse": 1096.5,
+          "blocks": 1,
+          "mse": 739.5666666666666,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 27.19497502603499
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.005977109854915846,
+          "black_mse": 1096.5,
+          "blocks": 1,
+          "mse": 6.553900955915225,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.5600587797773757
+        }
+      },
+      "grid_only": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0040968475890310885,
+          "black_mse": 1096.5,
+          "blocks": 1,
+          "mse": 4.492193381372589,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.119479507183919
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.06560551125119639,
+          "black_mse": 1096.5,
+          "blocks": 1,
+          "mse": 71.93644308693683,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 8.48153542036681
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 2,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.0452455618744096,
+          "black_mse": 1096.5,
+          "blocks": 1,
+          "mse": 49.61175859529013,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 7.043561499361677
+        }
+      },
+      "sun_off": {
+        "selected_path": 3,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.005977109854915846,
+          "black_mse": 1096.5,
+          "blocks": 1,
+          "mse": 6.553900955915225,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 2.5600587797773757
+        }
+      }
+    },
+    "wall_leak": {
+      "adaptive_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.745547640520584e-07,
+          "black_mse": 1950.6000000000004,
+          "blocks": 1,
+          "mse": 0.0015108465227599455,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.03886960924372595
+        }
+      },
+      "all_cues": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.745547640520584e-07,
+          "black_mse": 1950.6000000000004,
+          "blocks": 1,
+          "mse": 0.0015108465227599455,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.03886960924372595
+        }
+      },
+      "area_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.745547640520584e-07,
+          "black_mse": 1950.6000000000004,
+          "blocks": 1,
+          "mse": 0.0015108465227599455,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.03886960924372595
+        }
+      },
+      "fixture_only": {
+        "selected_path": 0,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.6735363477904233,
+          "black_mse": 1950.6000000000004,
+          "blocks": 1,
+          "mse": 1313.8,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 36.246379129507545
+        }
+      },
+      "grid_lightmap": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.745547640520584e-07,
+          "black_mse": 1950.6000000000004,
+          "blocks": 1,
+          "mse": 0.0015108465227599455,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.03886960924372595
+        }
+      },
+      "grid_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.745547640520584e-07,
+          "black_mse": 1950.6000000000004,
+          "blocks": 1,
+          "mse": 0.0015108465227599455,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.03886960924372595
+        }
+      },
+      "ja_baseline": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 2.56140436031107e-06,
+          "black_mse": 1950.6000000000004,
+          "blocks": 1,
+          "mse": 0.0049962753452227745,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.07068433592545645
+        }
+      },
+      "lightmap_only": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 0.07238014602279859,
+          "black_mse": 1950.6000000000004,
+          "blocks": 1,
+          "mse": 141.18471283207094,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 11.882117354750834
+        }
+      },
+      "sun_off": {
+        "selected_path": 1,
+        "status": "Pass",
+        "validation": {
+          "black_fraction": 7.745547640520584e-07,
+          "black_mse": 1950.6000000000004,
+          "blocks": 1,
+          "mse": 0.0015108465227599455,
+          "rows": 10,
+          "status": "Pass",
+          "worst_block_rmse": 0.03886960924372595
+        }
+      }
+    }
+  },
+  "source_answers_opened": false,
+  "training_output_hashes": {
+    "bounce_colour": "b55d39f2572616cb1f608c263b762f7158e817c58201ac2ea37e515500ceaccd",
+    "bounce_control": "90fd336a08c795c58d07e8cb93dee0e397cffe5f1ecc4586ac1f2c9464070206",
+    "bridge_direct": "8a57b37534efb6add7dcba4d67fa0db0dd3291f5e0ba1b8ad7b448a2f53fb865",
+    "bridge_passive_bounce1": "8734d06bc0c63123800e84a6be64145b098e49772f5d21082f47eee70173cfec",
+    "door_occlusion": "b80d5b6214817f0ef68ca8a48ff1726fd6cb4cc8131133213730bfe10b5f3f7f",
+    "empty": "3cc4f90e68e4d536ee77c4f651b428a5ad39a130443d8545295cc1a5f159b1a8",
+    "mixed_sun_local": "e92b4faa972a9285336a5a71ffbe87bf0e13a39df4b8156725827ae097b03564",
+    "overlap_whites": "739508cb88aefc197a08922280eb9a266e9d2a48ea0c5d42acaf3351d47a88a8",
+    "panel": "075fa806d6d48eeff7e610dbeca8daf780939ca2c005f77e386f4407a8503320",
+    "point_room": "3015ae352f92546b65a3338076c1a40e230a6566f692ec0059899f72c208b6a9",
+    "skylight": "a943dd618ccbd020b8069758382a48506aaf15eab9a4ad6cfa5e8437f385be0b",
+    "spot": "40905fee2bb10b6e187b7878abc4db980774fbe793fd74d4b59411492f462d1c",
+    "sun_sky": "db02f9611013b15205b913539fc520a733d727531cc986ac85492f8846b20b0a",
+    "tube": "5e8f4ee0d73b58545342ee7a0bfa1deeb95cbb0093a5bc067ee25f6dc2db0486",
+    "two_colour": "27b772da0bb7460dd48d9f3d14fab1d906309085d9f825f75627bfd1ffd31d7a",
+    "wall_leak": "13a6e6b1d100ba68bd772a1a6b3244398edb4b72e6a4de5a132f884f0198798a"
+  }
+}

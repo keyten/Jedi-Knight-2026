@@ -1,0 +1,26 @@
+{
+  "ignored_fields": [
+    "seconds",
+    "fit_seconds"
+  ],
+  "numerical_results_and_work_exact": true,
+  "scenes": {
+    "bounce_colour": true,
+    "bounce_control": true,
+    "bridge_direct": true,
+    "bridge_passive_bounce1": true,
+    "door_occlusion": true,
+    "empty": true,
+    "mixed_sun_local": true,
+    "overlap_whites": true,
+    "panel": true,
+    "point_room": true,
+    "skylight": true,
+    "spot": true,
+    "sun_sky": true,
+    "tube": true,
+    "two_colour": true,
+    "wall_leak": true
+  },
+  "status": "Pass"
+}

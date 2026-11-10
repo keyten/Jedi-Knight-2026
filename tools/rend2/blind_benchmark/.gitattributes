@@ -1,0 +1,5 @@
+# Preserve exact frozen artifact bytes, including their authored newlines.
+*.json -text whitespace=cr-at-eol
+results/** -text whitespace=cr-at-eol
+*.py text eol=lf
+README.md text eol=lf

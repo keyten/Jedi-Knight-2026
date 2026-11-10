@@ -1,0 +1,4378 @@
+{
+  "bounce_colour": {
+    "adaptive_off": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          3.13646836141644,
+          2.8304796457028556,
+          2.7934976188394858
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            104.5,
+            9,
+            155
+          ],
+          "proposal_id": 10,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 2,
+      "training_mse": 62.47772170006986
+    },
+    "all_cues": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.846379916130633,
+          2.5766896847113294,
+          2.543984103508764
+        ],
+        [
+          0.04805163982254562,
+          0.034946091166028155,
+          0.03345856468762605
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.74365234375,
+            0.052110631018877,
+            161.70166015625
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            98.2545013427734,
+            -7.13063049316406,
+            146
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 2,
+      "training_mse": 77.12331970155434
+    },
+    "area_off": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.846379916130633,
+          2.5766896847113294,
+          2.543984103508764
+        ],
+        [
+          0.04805163982254562,
+          0.034946091166028155,
+          0.03345856468762605
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.74365234375,
+            0.052110631018877,
+            161.70166015625
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            98.2545013427734,
+            -7.13063049316406,
+            146
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 2,
+      "training_mse": 77.12331970155434
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 8146.336600899101
+    },
+    "grid_lightmap": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.846379916130633,
+          2.5766896847113294,
+          2.543984103508764
+        ],
+        [
+          0.04805163982254562,
+          0.034946091166028155,
+          0.03345856468762605
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.74365234375,
+            0.052110631018877,
+            161.70166015625
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            98.2545013427734,
+            -7.13063049316406,
+            146
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 2,
+      "training_mse": 77.12331970155434
+    },
+    "grid_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.8463799161306325,
+          2.5766896847113285,
+          2.5439841035087634
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.74365234375,
+            0.052110631018877,
+            161.70166015625
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 2,
+      "training_mse": 84.28686221979659
+    },
+    "ja_baseline": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          3.13646836141644,
+          2.8304796457028556,
+          2.7934976188394858
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            104.5,
+            9,
+            155
+          ],
+          "proposal_id": 10,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 2,
+      "training_mse": 62.47772170006986
+    },
+    "lightmap_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.9603421552424605,
+          2.671301444658742,
+          2.636351008539308
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            98.2545013427734,
+            -7.13063049316406,
+            146
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 2,
+      "training_mse": 115.60469073104476
+    },
+    "sun_off": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.846379916130633,
+          2.5766896847113294,
+          2.543984103508764
+        ],
+        [
+          0.04805163982254562,
+          0.034946091166028155,
+          0.03345856468762605
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.74365234375,
+            0.052110631018877,
+            161.70166015625
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            98.2545013427734,
+            -7.13063049316406,
+            146
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 2,
+      "training_mse": 77.12331970155434
+    }
+  },
+  "bounce_control": {
+    "adaptive_off": {
+      "background": [
+        1.1759155524483458,
+        1.1759155524483458,
+        1.1759155524483458
+      ],
+      "powers": [
+        [
+          2.2198016042250206,
+          2.2198016042250206,
+          2.2198016042250206
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.685104370117,
+            -0.0503391213715076,
+            161.759567260742
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 12,
+      "training_mse": 0.7186583615604443
+    },
+    "all_cues": {
+      "background": [
+        1.1759155524483458,
+        1.1759155524483458,
+        1.1759155524483458
+      ],
+      "powers": [
+        [
+          2.2198016042250206,
+          2.2198016042250206,
+          2.2198016042250206
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.685104370117,
+            -0.0503391213715076,
+            161.759567260742
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 12,
+      "training_mse": 0.7186583615604443
+    },
+    "area_off": {
+      "background": [
+        1.1759155524483458,
+        1.1759155524483458,
+        1.1759155524483458
+      ],
+      "powers": [
+        [
+          2.2198016042250206,
+          2.2198016042250206,
+          2.2198016042250206
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.685104370117,
+            -0.0503391213715076,
+            161.759567260742
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 12,
+      "training_mse": 0.7186583615604443
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 4743.972170686457
+    },
+    "grid_lightmap": {
+      "background": [
+        1.1759155524483458,
+        1.1759155524483458,
+        1.1759155524483458
+      ],
+      "powers": [
+        [
+          2.2198016042250206,
+          2.2198016042250206,
+          2.2198016042250206
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.685104370117,
+            -0.0503391213715076,
+            161.759567260742
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 12,
+      "training_mse": 0.7186583615604443
+    },
+    "grid_only": {
+      "background": [
+        1.1759155524483458,
+        1.1759155524483458,
+        1.1759155524483458
+      ],
+      "powers": [
+        [
+          2.2198016042250206,
+          2.2198016042250206,
+          2.2198016042250206
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.685104370117,
+            -0.0503391213715076,
+            161.759567260742
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 12,
+      "training_mse": 0.7186583615604443
+    },
+    "ja_baseline": {
+      "background": [
+        5.4322826390488546,
+        5.4322826390488546,
+        5.4322826390488546
+      ],
+      "powers": [
+        [
+          1.858733293906867,
+          1.858733293906867,
+          1.858733293906867
+        ],
+        [
+          3.646542330860547,
+          3.646542330860547,
+          3.646542330860547
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            104.5,
+            9,
+            173
+          ],
+          "proposal_id": 11,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -158,
+            36,
+            92
+          ],
+          "proposal_id": 15,
+          "state": "Candidate",
+          "type": "Spot"
+        }
+      ],
+      "sweeps": 20,
+      "training_mse": 29.167086556077905
+    },
+    "lightmap_only": {
+      "background": [
+        3.998572845606634,
+        3.998572845606634,
+        3.998572845606634
+      ],
+      "powers": [
+        [
+          2.0630690638048503,
+          2.0630690638048503,
+          2.0630690638048503
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            107.952835083008,
+            -1.36147010326385,
+            164
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 14,
+      "training_mse": 15.225044884929114
+    },
+    "sun_off": {
+      "background": [
+        1.1759155524483458,
+        1.1759155524483458,
+        1.1759155524483458
+      ],
+      "powers": [
+        [
+          2.2198016042250206,
+          2.2198016042250206,
+          2.2198016042250206
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            100.685104370117,
+            -0.0503391213715076,
+            161.759567260742
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 12,
+      "training_mse": 0.7186583615604443
+    }
+  },
+  "bridge_direct": {
+    "adaptive_off": {
+      "background": [
+        0.48431442170769234,
+        0.9513050864341706,
+        0.6884016961171053
+      ],
+      "powers": [
+        [
+          3.6865319503006373,
+          0.7726247170266225,
+          0.43559996407439716
+        ],
+        [
+          0.3356649390474585,
+          1.4515738303116363,
+          3.769301365471861
+        ],
+        [
+          0.08420495326853933,
+          0.4424333286505728,
+          0.10758207381583519
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -453.077087402344,
+            -294.400421142578,
+            216.909286499023
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            452.211883544922,
+            -319.532135009766,
+            196.835174560547
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            480,
+            320,
+            50
+          ],
+          "proposal_id": 25,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 7.437937665242182
+    },
+    "all_cues": {
+      "background": [
+        1.6027337735840814,
+        3.8708029596162916,
+        1.5591624847192853
+      ],
+      "powers": [
+        [
+          3.30353303295814,
+          0.46335711319397693,
+          0.327027191405005
+        ],
+        [
+          0.23085725841453336,
+          1.1747466769533192,
+          3.686811587066658
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -469.058044433594,
+            -303.793548583984,
+            204
+          ],
+          "proposal_id": 10,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            452.211883544922,
+            -319.532135009766,
+            196.835174560547
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 6,
+      "training_mse": 37.036574944174575
+    },
+    "area_off": {
+      "background": [
+        1.6027337735840814,
+        3.8708029596162916,
+        1.5591624847192853
+      ],
+      "powers": [
+        [
+          3.30353303295814,
+          0.46335711319397693,
+          0.327027191405005
+        ],
+        [
+          0.23085725841453336,
+          1.1747466769533192,
+          3.686811587066658
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -469.058044433594,
+            -303.793548583984,
+            204
+          ],
+          "proposal_id": 10,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            452.211883544922,
+            -319.532135009766,
+            196.835174560547
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 6,
+      "training_mse": 37.036574944174575
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        6.5,
+        7.453125
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 177.6945343017578
+    },
+    "grid_lightmap": {
+      "background": [
+        1.6027337735840814,
+        3.8708029596162916,
+        1.5591624847192853
+      ],
+      "powers": [
+        [
+          3.30353303295814,
+          0.46335711319397693,
+          0.327027191405005
+        ],
+        [
+          0.23085725841453336,
+          1.1747466769533192,
+          3.686811587066658
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -469.058044433594,
+            -303.793548583984,
+            204
+          ],
+          "proposal_id": 10,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            452.211883544922,
+            -319.532135009766,
+            196.835174560547
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 6,
+      "training_mse": 37.036574944174575
+    },
+    "grid_only": {
+      "background": [
+        1.218530538117361,
+        3.8637273461102684,
+        1.5453838412682315
+      ],
+      "powers": [
+        [
+          3.6157811840994607,
+          0.49192932062207884,
+          0.353015119557283
+        ],
+        [
+          0.2660074968315966,
+          1.1752630944485793,
+          3.6879967260540267
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -453.077087402344,
+            -294.400421142578,
+            216.909286499023
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            452.211883544922,
+            -319.532135009766,
+            196.835174560547
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 5,
+      "training_mse": 37.04505243832828
+    },
+    "ja_baseline": {
+      "background": [
+        2.2085893751211154,
+        3.733241538538685,
+        7.262157062648605
+      ],
+      "powers": [
+        [
+          2.8068841125098425,
+          0.42186464967469195,
+          0.0
+        ],
+        [
+          0.06740369961329534,
+          0.4153262713381358,
+          0.043527712206062635
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -480,
+            -320,
+            182
+          ],
+          "proposal_id": 19,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            480,
+            320,
+            50
+          ],
+          "proposal_id": 25,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 4,
+      "training_mse": 76.73445681401381
+    },
+    "lightmap_only": {
+      "background": [
+        1.9374025872399376,
+        5.843634317939554,
+        7.453125
+      ],
+      "powers": [
+        [
+          3.2751929236802204,
+          0.29607093188763406,
+          0.0
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -469.058044433594,
+            -303.793548583984,
+            204
+          ],
+          "proposal_id": 10,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 100.45852286140526
+    },
+    "sun_off": {
+      "background": [
+        1.6027337735840814,
+        3.8708029596162916,
+        1.5591624847192853
+      ],
+      "powers": [
+        [
+          3.30353303295814,
+          0.46335711319397693,
+          0.327027191405005
+        ],
+        [
+          0.23085725841453336,
+          1.1747466769533192,
+          3.686811587066658
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -469.058044433594,
+            -303.793548583984,
+            204
+          ],
+          "proposal_id": 10,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            452.211883544922,
+            -319.532135009766,
+            196.835174560547
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 6,
+      "training_mse": 37.036574944174575
+    }
+  },
+  "bridge_passive_bounce1": {
+    "adaptive_off": {
+      "background": [
+        2.1518514449071446,
+        4.597056937675884,
+        2.1971045248936116
+      ],
+      "powers": [
+        [
+          0.32377399178332067,
+          1.6633651677176358,
+          5.067306881187877
+        ],
+        [
+          4.974626398078259,
+          0.6614875086194945,
+          0.43785862835198863
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            451.697662353516,
+            -318.894866943359,
+            197.346420288086
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -453.536407470703,
+            -293.469268798828,
+            218.522491455078
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 37.58827146320031
+    },
+    "all_cues": {
+      "background": [
+        2.1518514449071446,
+        4.597056937675884,
+        2.1971045248936116
+      ],
+      "powers": [
+        [
+          0.32377399178332067,
+          1.6633651677176358,
+          5.067306881187877
+        ],
+        [
+          4.974626398078259,
+          0.6614875086194945,
+          0.43785862835198863
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            451.697662353516,
+            -318.894866943359,
+            197.346420288086
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -453.536407470703,
+            -293.469268798828,
+            218.522491455078
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 37.58827146320031
+    },
+    "area_off": {
+      "background": [
+        2.1518514449071446,
+        4.597056937675884,
+        2.1971045248936116
+      ],
+      "powers": [
+        [
+          0.32377399178332067,
+          1.6633651677176358,
+          5.067306881187877
+        ],
+        [
+          4.974626398078259,
+          0.6614875086194945,
+          0.43785862835198863
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            451.697662353516,
+            -318.894866943359,
+            197.346420288086
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -453.536407470703,
+            -293.469268798828,
+            218.522491455078
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 37.58827146320031
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 262.96875
+    },
+    "grid_lightmap": {
+      "background": [
+        2.1518514449071446,
+        4.597056937675884,
+        2.1971045248936116
+      ],
+      "powers": [
+        [
+          0.32377399178332067,
+          1.6633651677176358,
+          5.067306881187877
+        ],
+        [
+          4.974626398078259,
+          0.6614875086194945,
+          0.43785862835198863
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            451.697662353516,
+            -318.894866943359,
+            197.346420288086
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -453.536407470703,
+            -293.469268798828,
+            218.522491455078
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 37.58827146320031
+    },
+    "grid_only": {
+      "background": [
+        2.1518514449071446,
+        4.597056937675884,
+        2.1971045248936116
+      ],
+      "powers": [
+        [
+          0.32377399178332067,
+          1.6633651677176358,
+          5.067306881187877
+        ],
+        [
+          4.974626398078259,
+          0.6614875086194945,
+          0.43785862835198863
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            451.697662353516,
+            -318.894866943359,
+            197.346420288086
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -453.536407470703,
+            -293.469268798828,
+            218.522491455078
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 37.58827146320031
+    },
+    "ja_baseline": {
+      "background": [
+        2.170308387545699,
+        7.618397382115162,
+        8.0
+      ],
+      "powers": [
+        [
+          6.230694616698273,
+          0.34760025915295417,
+          0.0
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -480,
+            -320,
+            270
+          ],
+          "proposal_id": 18,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 6,
+      "training_mse": 156.3851604080677
+    },
+    "lightmap_only": {
+      "background": [
+        2.0555380912603267,
+        7.631817702801382,
+        8.0
+      ],
+      "powers": [
+        [
+          6.2272075674649985,
+          0.33483979579657686,
+          0.0
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -477.364715576172,
+            -309.552947998047,
+            270
+          ],
+          "proposal_id": 10,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 5,
+      "training_mse": 156.2057280470352
+    },
+    "sun_off": {
+      "background": [
+        2.1518514449071446,
+        4.597056937675884,
+        2.1971045248936116
+      ],
+      "powers": [
+        [
+          0.32377399178332067,
+          1.6633651677176358,
+          5.067306881187877
+        ],
+        [
+          4.974626398078259,
+          0.6614875086194945,
+          0.43785862835198863
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            451.697662353516,
+            -318.894866943359,
+            197.346420288086
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -453.536407470703,
+            -293.469268798828,
+            218.522491455078
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 37.58827146320031
+    }
+  },
+  "door_occlusion": {
+    "adaptive_off": {
+      "background": [
+        1.2230120740157149,
+        1.2230120740157149,
+        1.2230120740157149
+      ],
+      "powers": [
+        [
+          2.2314410690452906,
+          2.2314410690452906,
+          2.2314410690452906
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.2517929077148,
+            32.2353057861328,
+            182.471328735352
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 5.812764849617188
+    },
+    "all_cues": {
+      "background": [
+        1.2230120740157149,
+        1.2230120740157149,
+        1.2230120740157149
+      ],
+      "powers": [
+        [
+          2.2314410690452906,
+          2.2314410690452906,
+          2.2314410690452906
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.2517929077148,
+            32.2353057861328,
+            182.471328735352
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 5.812764849617188
+    },
+    "area_off": {
+      "background": [
+        1.2230120740157149,
+        1.2230120740157149,
+        1.2230120740157149
+      ],
+      "powers": [
+        [
+          2.2314410690452906,
+          2.2314410690452906,
+          2.2314410690452906
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.2517929077148,
+            32.2353057861328,
+            182.471328735352
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 5.812764849617188
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 8075.856534090909
+    },
+    "grid_lightmap": {
+      "background": [
+        1.2230120740157149,
+        1.2230120740157149,
+        1.2230120740157149
+      ],
+      "powers": [
+        [
+          2.2314410690452906,
+          2.2314410690452906,
+          2.2314410690452906
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.2517929077148,
+            32.2353057861328,
+            182.471328735352
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 5.812764849617188
+    },
+    "grid_only": {
+      "background": [
+        1.2230120740157149,
+        1.2230120740157149,
+        1.2230120740157149
+      ],
+      "powers": [
+        [
+          2.2314410690452906,
+          2.2314410690452906,
+          2.2314410690452906
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.2517929077148,
+            32.2353057861328,
+            182.471328735352
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 5.812764849617188
+    },
+    "ja_baseline": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [
+        [
+          1.617239193018767,
+          1.617239193018767,
+          1.617239193018767
+        ],
+        [
+          0.8772410264153839,
+          0.8772410264153839,
+          0.8772410264153839
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -91,
+            27,
+            173
+          ],
+          "proposal_id": 10,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -91,
+            27,
+            191
+          ],
+          "proposal_id": 12,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 160,
+      "training_mse": 10.320443215898424
+    },
+    "lightmap_only": {
+      "background": [
+        1.270587866330922,
+        1.270587866330922,
+        1.270587866330922
+      ],
+      "powers": [
+        [
+          2.3070656520143253,
+          2.3070656520143253,
+          2.3070656520143253
+        ],
+        [
+          0.22456727742781288,
+          0.22456727742781288,
+          0.22456727742781288
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -73.5,
+            18,
+            184.404907226562
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -104,
+            72,
+            200
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 62,
+      "training_mse": 133.6209433076149
+    },
+    "sun_off": {
+      "background": [
+        1.2230120740157149,
+        1.2230120740157149,
+        1.2230120740157149
+      ],
+      "powers": [
+        [
+          2.2314410690452906,
+          2.2314410690452906,
+          2.2314410690452906
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.2517929077148,
+            32.2353057861328,
+            182.471328735352
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 5.812764849617188
+    }
+  },
+  "empty": {
+    "adaptive_off": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "all_cues": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "area_off": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "fixture_only": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "grid_lightmap": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "grid_only": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "ja_baseline": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "lightmap_only": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "sun_off": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    }
+  },
+  "mixed_sun_local": {
+    "adaptive_off": {
+      "background": [
+        0.0,
+        4.186633366574917,
+        5.651588168026304
+      ],
+      "powers": [
+        [
+          2.349137404970961,
+          0.22499359863124588,
+          4.16399751996662e-08
+        ],
+        [
+          0.4525812235558986,
+          0.4698562444803001,
+          0.43116717969436724
+        ],
+        [
+          0.18475909081479142,
+          0.1908278392241074,
+          0.1725716344653573
+        ],
+        [
+          4.019998491152886,
+          4.018013969380743,
+          3.5839189183782767
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -78,
+            18,
+            171
+          ],
+          "proposal_id": 17,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 27,
+          "state": "Candidate",
+          "type": "sun"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 25,
+          "state": "Candidate",
+          "type": "sun"
+        },
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            182,
+            -126,
+            171
+          ],
+          "proposal_id": 21,
+          "state": "Candidate",
+          "type": "Spot"
+        }
+      ],
+      "sweeps": 69,
+      "training_mse": 565.9127693448203
+    },
+    "all_cues": {
+      "background": [
+        0.0,
+        1.6408976391205514,
+        3.3437594399064494
+      ],
+      "powers": [
+        [
+          2.69238358656381,
+          0.6162209529820586,
+          0.3469716971350304
+        ],
+        [
+          0.6442868424996815,
+          0.5713276252430847,
+          0.5137381433919798
+        ],
+        [
+          0.15503793525999157,
+          0.195173778457696,
+          0.18007747823149722
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -68.0943298339844,
+            18,
+            171.828918457031
+          ],
+          "proposal_id": 11,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 27,
+          "state": "Candidate",
+          "type": "sun"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 25,
+          "state": "Candidate",
+          "type": "sun"
+        }
+      ],
+      "sweeps": 21,
+      "training_mse": 577.7588353741678
+    },
+    "area_off": {
+      "background": [
+        0.0,
+        1.6408976391205514,
+        3.3437594399064494
+      ],
+      "powers": [
+        [
+          2.69238358656381,
+          0.6162209529820586,
+          0.3469716971350304
+        ],
+        [
+          0.6442868424996815,
+          0.5713276252430847,
+          0.5137381433919798
+        ],
+        [
+          0.15503793525999157,
+          0.195173778457696,
+          0.18007747823149722
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -68.0943298339844,
+            18,
+            171.828918457031
+          ],
+          "proposal_id": 11,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 27,
+          "state": "Candidate",
+          "type": "sun"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 25,
+          "state": "Candidate",
+          "type": "sun"
+        }
+      ],
+      "sweeps": 21,
+      "training_mse": 577.7588353741678
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3339.2727056893723
+    },
+    "grid_lightmap": {
+      "background": [
+        6.961117089909099,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.9045577522317987,
+          0.8163032170342454,
+          0.5547007830724059
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -68.0943298339844,
+            18,
+            171.828918457031
+          ],
+          "proposal_id": 11,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 809.5634910170166
+    },
+    "grid_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3339.2727056893723
+    },
+    "ja_baseline": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.10600663032429,
+          0.13614469987226538,
+          0.0
+        ],
+        [
+          7.905234475835658,
+          7.471673121142274,
+          6.217284446673744
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -78,
+            18,
+            171
+          ],
+          "proposal_id": 17,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            182,
+            -126,
+            171
+          ],
+          "proposal_id": 21,
+          "state": "Candidate",
+          "type": "Spot"
+        }
+      ],
+      "sweeps": 49,
+      "training_mse": 719.641753821496
+    },
+    "lightmap_only": {
+      "background": [
+        6.961117089909099,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.9045577522317987,
+          0.8163032170342454,
+          0.5547007830724059
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -68.0943298339844,
+            18,
+            171.828918457031
+          ],
+          "proposal_id": 11,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 809.5634910170166
+    },
+    "sun_off": {
+      "background": [
+        6.961117089909099,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.9045577522317987,
+          0.8163032170342454,
+          0.5547007830724059
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -68.0943298339844,
+            18,
+            171.828918457031
+          ],
+          "proposal_id": 11,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 809.5634910170166
+    }
+  },
+  "overlap_whites": {
+    "adaptive_off": {
+      "background": [
+        6.514566328383467,
+        6.514566328383467,
+        6.514566328383467
+      ],
+      "powers": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          2.6901518579302595,
+          2.6901518579302595,
+          2.6901518579302595
+        ],
+        [
+          2.111090445649798,
+          2.111090445649798,
+          2.111090445649798
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -13,
+            -45,
+            155
+          ],
+          "proposal_id": 17,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -73.9897155761719,
+            20.8822002410889,
+            174.469100952148
+          ],
+          "proposal_id": 5,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            91.3861846923828,
+            -30.5549030303955,
+            162.100662231445
+          ],
+          "proposal_id": 8,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 70,
+      "training_mse": 244.2072308293773
+    },
+    "all_cues": {
+      "background": [
+        7.125679942758863,
+        7.125679942758863,
+        7.125679942758863
+      ],
+      "powers": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          2.10372472406418,
+          2.10372472406418,
+          2.10372472406418
+        ],
+        [
+          2.6742250943633,
+          2.6742250943633,
+          2.6742250943633
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -28.1135883331299,
+            -54,
+            176.0244140625
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            91.3861846923828,
+            -30.5549030303955,
+            162.100662231445
+          ],
+          "proposal_id": 8,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -73.9897155761719,
+            20.8822002410889,
+            174.469100952148
+          ],
+          "proposal_id": 5,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 82,
+      "training_mse": 244.82716424840203
+    },
+    "area_off": {
+      "background": [
+        7.125679942758863,
+        7.125679942758863,
+        7.125679942758863
+      ],
+      "powers": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          2.10372472406418,
+          2.10372472406418,
+          2.10372472406418
+        ],
+        [
+          2.6742250943633,
+          2.6742250943633,
+          2.6742250943633
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -28.1135883331299,
+            -54,
+            176.0244140625
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            91.3861846923828,
+            -30.5549030303955,
+            162.100662231445
+          ],
+          "proposal_id": 8,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -73.9897155761719,
+            20.8822002410889,
+            174.469100952148
+          ],
+          "proposal_id": 5,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 82,
+      "training_mse": 244.82716424840203
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 20736.056870039683
+    },
+    "grid_lightmap": {
+      "background": [
+        7.125679942758863,
+        7.125679942758863,
+        7.125679942758863
+      ],
+      "powers": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          2.10372472406418,
+          2.10372472406418,
+          2.10372472406418
+        ],
+        [
+          2.6742250943633,
+          2.6742250943633,
+          2.6742250943633
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -28.1135883331299,
+            -54,
+            176.0244140625
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            91.3861846923828,
+            -30.5549030303955,
+            162.100662231445
+          ],
+          "proposal_id": 8,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -73.9897155761719,
+            20.8822002410889,
+            174.469100952148
+          ],
+          "proposal_id": 5,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 82,
+      "training_mse": 244.82716424840203
+    },
+    "grid_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          4.0117706515691385,
+          4.0117706515691385,
+          4.0117706515691385
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            49.1418075561523,
+            -13.165078163147,
+            171.198303222656
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 3,
+      "training_mse": 4066.710088840607
+    },
+    "ja_baseline": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          7.399898780375978,
+          7.399898780375978,
+          7.399898780375978
+        ],
+        [
+          1.692834597236951,
+          1.692834597236951,
+          1.692834597236951
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -13,
+            -45,
+            155
+          ],
+          "proposal_id": 17,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -26,
+            -54,
+            2
+          ],
+          "proposal_id": 23,
+          "state": "Candidate",
+          "type": "Spot"
+        }
+      ],
+      "sweeps": 2,
+      "training_mse": 1525.5198065076445
+    },
+    "lightmap_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          8.430453420577159,
+          8.430453420577159,
+          8.430453420577159
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -28.1135883331299,
+            -54,
+            176.0244140625
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 3,
+      "training_mse": 1759.5545435823399
+    },
+    "sun_off": {
+      "background": [
+        7.125679942758863,
+        7.125679942758863,
+        7.125679942758863
+      ],
+      "powers": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          2.10372472406418,
+          2.10372472406418,
+          2.10372472406418
+        ],
+        [
+          2.6742250943633,
+          2.6742250943633,
+          2.6742250943633
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -28.1135883331299,
+            -54,
+            176.0244140625
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            91.3861846923828,
+            -30.5549030303955,
+            162.100662231445
+          ],
+          "proposal_id": 8,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -73.9897155761719,
+            20.8822002410889,
+            174.469100952148
+          ],
+          "proposal_id": 5,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 82,
+      "training_mse": 244.82716424840203
+    }
+  },
+  "panel": {
+    "adaptive_off": {
+      "background": [
+        1.56977813852814,
+        1.8166666666666684,
+        1.4509740259740274
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3.5601385119337574
+    },
+    "all_cues": {
+      "background": [
+        1.56977813852814,
+        1.8166666666666684,
+        1.4509740259740274
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3.5601385119337574
+    },
+    "area_off": {
+      "background": [
+        1.56977813852814,
+        1.8166666666666684,
+        1.4509740259740274
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3.5601385119337574
+    },
+    "fixture_only": {
+      "background": [
+        1.56977813852814,
+        1.8166666666666684,
+        1.4509740259740274
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3.5601385119337574
+    },
+    "grid_lightmap": {
+      "background": [
+        1.56977813852814,
+        1.8166666666666684,
+        1.4509740259740274
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3.5601385119337574
+    },
+    "grid_only": {
+      "background": [
+        1.56977813852814,
+        1.8166666666666684,
+        1.4509740259740274
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3.5601385119337574
+    },
+    "ja_baseline": {
+      "background": [
+        1.56977813852814,
+        1.8166666666666684,
+        1.4509740259740274
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3.5601385119337574
+    },
+    "lightmap_only": {
+      "background": [
+        1.56977813852814,
+        1.8166666666666684,
+        1.4509740259740274
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3.5601385119337574
+    },
+    "sun_off": {
+      "background": [
+        1.56977813852814,
+        1.8166666666666684,
+        1.4509740259740274
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3.5601385119337574
+    }
+  },
+  "point_room": {
+    "adaptive_off": {
+      "background": [
+        0.9291387534191673,
+        0.9291387534191673,
+        0.9291387534191673
+      ],
+      "powers": [
+        [
+          2.2332879247866693,
+          2.2332879247866693,
+          2.2332879247866693
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -93.8233032226562,
+            32.2272911071777,
+            182.526626586914
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 9,
+      "training_mse": 8.321073725080847
+    },
+    "all_cues": {
+      "background": [
+        0.9291387534191673,
+        0.9291387534191673,
+        0.9291387534191673
+      ],
+      "powers": [
+        [
+          2.2332879247866693,
+          2.2332879247866693,
+          2.2332879247866693
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -93.8233032226562,
+            32.2272911071777,
+            182.526626586914
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 9,
+      "training_mse": 8.321073725080847
+    },
+    "area_off": {
+      "background": [
+        0.9291387534191673,
+        0.9291387534191673,
+        0.9291387534191673
+      ],
+      "powers": [
+        [
+          2.2332879247866693,
+          2.2332879247866693,
+          2.2332879247866693
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -93.8233032226562,
+            32.2272911071777,
+            182.526626586914
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 9,
+      "training_mse": 8.321073725080847
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 9869.183238636362
+    },
+    "grid_lightmap": {
+      "background": [
+        0.9291387534191673,
+        0.9291387534191673,
+        0.9291387534191673
+      ],
+      "powers": [
+        [
+          2.2332879247866693,
+          2.2332879247866693,
+          2.2332879247866693
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -93.8233032226562,
+            32.2272911071777,
+            182.526626586914
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 9,
+      "training_mse": 8.321073725080847
+    },
+    "grid_only": {
+      "background": [
+        0.9291387534191673,
+        0.9291387534191673,
+        0.9291387534191673
+      ],
+      "powers": [
+        [
+          2.2332879247866693,
+          2.2332879247866693,
+          2.2332879247866693
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -93.8233032226562,
+            32.2272911071777,
+            182.526626586914
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 9,
+      "training_mse": 8.321073725080847
+    },
+    "ja_baseline": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [
+        [
+          1.7884741703729141,
+          1.7884741703729141,
+          1.7884741703729141
+        ],
+        [
+          0.6319274882464901,
+          0.6319274882464901,
+          0.6319274882464901
+        ],
+        [
+          0.26196274028499106,
+          0.26196274028499106,
+          0.26196274028499106
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -91,
+            27,
+            173
+          ],
+          "proposal_id": 10,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -91,
+            27,
+            191
+          ],
+          "proposal_id": 12,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -26,
+            54,
+            146
+          ],
+          "proposal_id": 17,
+          "state": "Candidate",
+          "type": "Spot"
+        }
+      ],
+      "sweeps": 160,
+      "training_mse": 14.848525435243635
+    },
+    "lightmap_only": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [
+        [
+          1.3230397458579155,
+          1.3230397458579155,
+          1.3230397458579155
+        ],
+        [
+          0.3442750094058977,
+          0.3442750094058977,
+          0.3442750094058977
+        ],
+        [
+          0.39223399465030584,
+          0.39223399465030584,
+          0.39223399465030584
+        ],
+        [
+          0.4289147781855373,
+          0.4289147781855373,
+          0.4289147781855373
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -104,
+            -12.3448276519775,
+            174.551727294922
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -76.027702331543,
+            72,
+            200.42658996582
+          ],
+          "proposal_id": 5,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -129.449996948242,
+            42.1500015258789,
+            182
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -109.949996948242,
+            46.6500015258789,
+            164
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 160,
+      "training_mse": 26.442328990913087
+    },
+    "sun_off": {
+      "background": [
+        0.9291387534191673,
+        0.9291387534191673,
+        0.9291387534191673
+      ],
+      "powers": [
+        [
+          2.2332879247866693,
+          2.2332879247866693,
+          2.2332879247866693
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -93.8233032226562,
+            32.2272911071777,
+            182.526626586914
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 9,
+      "training_mse": 8.321073725080847
+    }
+  },
+  "skylight": {
+    "adaptive_off": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "all_cues": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "area_off": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "fixture_only": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "grid_lightmap": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "grid_only": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "ja_baseline": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "lightmap_only": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    },
+    "sun_off": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 1,
+      "training_mse": 0.0
+    }
+  },
+  "spot": {
+    "adaptive_off": {
+      "background": [
+        1.0464893963601831,
+        1.0464893963601831,
+        1.0464893963601831
+      ],
+      "powers": [
+        [
+          1.1289303879693293,
+          1.1289303879693293,
+          1.1289303879693293
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            129.5,
+            -34.5,
+            77.5
+          ],
+          "proposal_id": 14,
+          "state": "Candidate",
+          "type": "Spot"
+        }
+      ],
+      "sweeps": 3,
+      "training_mse": 2.910716199092865
+    },
+    "all_cues": {
+      "background": [
+        2.7664583333333317,
+        2.7664583333333317,
+        2.7664583333333317
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 40.681769835069446
+    },
+    "area_off": {
+      "background": [
+        2.7664583333333317,
+        2.7664583333333317,
+        2.7664583333333317
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 40.681769835069446
+    },
+    "fixture_only": {
+      "background": [
+        2.7664583333333317,
+        2.7664583333333317,
+        2.7664583333333317
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 40.681769835069446
+    },
+    "grid_lightmap": {
+      "background": [
+        2.7664583333333317,
+        2.7664583333333317,
+        2.7664583333333317
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 40.681769835069446
+    },
+    "grid_only": {
+      "background": [
+        2.7664583333333317,
+        2.7664583333333317,
+        2.7664583333333317
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 40.681769835069446
+    },
+    "ja_baseline": {
+      "background": [
+        1.0464893963601831,
+        1.0464893963601831,
+        1.0464893963601831
+      ],
+      "powers": [
+        [
+          1.1289303879693293,
+          1.1289303879693293,
+          1.1289303879693293
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            129.5,
+            -34.5,
+            77.5
+          ],
+          "proposal_id": 14,
+          "state": "Candidate",
+          "type": "Spot"
+        }
+      ],
+      "sweeps": 3,
+      "training_mse": 2.910716199092865
+    },
+    "lightmap_only": {
+      "background": [
+        2.7664583333333317,
+        2.7664583333333317,
+        2.7664583333333317
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 40.681769835069446
+    },
+    "sun_off": {
+      "background": [
+        2.7664583333333317,
+        2.7664583333333317,
+        2.7664583333333317
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 40.681769835069446
+    }
+  },
+  "sun_sky": {
+    "adaptive_off": {
+      "background": [
+        1.3068021822926754,
+        2.0632394275605823,
+        3.6344471415488138
+      ],
+      "powers": [
+        [
+          7.665075032357859,
+          7.487570367596593,
+          6.793035132277066
+        ],
+        [
+          0.20873610124779957,
+          0.20369722659976108,
+          0.18255963435642633
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            182,
+            126,
+            205
+          ],
+          "proposal_id": 14,
+          "state": "Candidate",
+          "type": "Spot"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 17,
+          "state": "Candidate",
+          "type": "sun"
+        }
+      ],
+      "sweeps": 11,
+      "training_mse": 501.29574806472084
+    },
+    "all_cues": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [
+        [
+          0.8675847101720794,
+          0.8342563663966767,
+          0.7440979083976621
+        ],
+        [
+          0.5061809281452582,
+          0.5001766356544198,
+          0.4682619814437377
+        ],
+        [
+          0.029102139295218946,
+          0.03276096082810476,
+          0.03684116641132033
+        ],
+        [
+          0.055194515980932154,
+          0.09104294833472096,
+          0.14679025865974465
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            52,
+            36,
+            18
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 19,
+          "state": "Candidate",
+          "type": "sun"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 17,
+          "state": "Candidate",
+          "type": "sun"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            26,
+            18,
+            35
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 33,
+      "training_mse": 355.5891648805613
+    },
+    "area_off": {
+      "background": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "powers": [
+        [
+          0.8675847101720794,
+          0.8342563663966767,
+          0.7440979083976621
+        ],
+        [
+          0.5061809281452582,
+          0.5001766356544198,
+          0.4682619814437377
+        ],
+        [
+          0.029102139295218946,
+          0.03276096082810476,
+          0.03684116641132033
+        ],
+        [
+          0.055194515980932154,
+          0.09104294833472096,
+          0.14679025865974465
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            52,
+            36,
+            18
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 19,
+          "state": "Candidate",
+          "type": "sun"
+        },
+        {
+          "cue": "sun",
+          "placement": "SkyBoundary",
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "proposal_id": 17,
+          "state": "Candidate",
+          "type": "sun"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            26,
+            18,
+            35
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 33,
+      "training_mse": 355.5891648805613
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 957.7191493691494
+    },
+    "grid_lightmap": {
+      "background": [
+        4.476031424731817,
+        5.109131329898677,
+        6.210181898221494
+      ],
+      "powers": [
+        [
+          0.9337326882692052,
+          0.913399988605455,
+          0.8340327511747476
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            52,
+            36,
+            18
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 533.318124816086
+    },
+    "grid_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 957.7191493691494
+    },
+    "ja_baseline": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          6.49868742194822,
+          6.336668153485008,
+          5.741399283386674
+        ],
+        [
+          0.1160872343152704,
+          0.14078427230791482,
+          0.17028329687792948
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            182,
+            126,
+            205
+          ],
+          "proposal_id": 14,
+          "state": "Candidate",
+          "type": "Spot"
+        },
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -26,
+            126,
+            137
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 9,
+      "training_mse": 586.2586174898792
+    },
+    "lightmap_only": {
+      "background": [
+        4.476031424731817,
+        5.109131329898677,
+        6.210181898221494
+      ],
+      "powers": [
+        [
+          0.9337326882692052,
+          0.913399988605455,
+          0.8340327511747476
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            52,
+            36,
+            18
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 533.318124816086
+    },
+    "sun_off": {
+      "background": [
+        4.476031424731817,
+        5.109131329898677,
+        6.210181898221494
+      ],
+      "powers": [
+        [
+          0.9337326882692052,
+          0.913399988605455,
+          0.8340327511747476
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            52,
+            36,
+            18
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 533.318124816086
+    }
+  },
+  "tube": {
+    "adaptive_off": {
+      "background": [
+        6.33010392385393,
+        7.311820124320132,
+        5.7388548951049
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 103.82077004753835
+    },
+    "all_cues": {
+      "background": [
+        6.33010392385393,
+        7.311820124320132,
+        5.7388548951049
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 103.82077004753835
+    },
+    "area_off": {
+      "background": [
+        6.33010392385393,
+        7.311820124320132,
+        5.7388548951049
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 103.82077004753835
+    },
+    "fixture_only": {
+      "background": [
+        6.33010392385393,
+        7.311820124320132,
+        5.7388548951049
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 103.82077004753835
+    },
+    "grid_lightmap": {
+      "background": [
+        6.33010392385393,
+        7.311820124320132,
+        5.7388548951049
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 103.82077004753835
+    },
+    "grid_only": {
+      "background": [
+        6.33010392385393,
+        7.311820124320132,
+        5.7388548951049
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 103.82077004753835
+    },
+    "ja_baseline": {
+      "background": [
+        6.33010392385393,
+        7.311820124320132,
+        5.7388548951049
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 103.82077004753835
+    },
+    "lightmap_only": {
+      "background": [
+        6.33010392385393,
+        7.311820124320132,
+        5.7388548951049
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 103.82077004753835
+    },
+    "sun_off": {
+      "background": [
+        6.33010392385393,
+        7.311820124320132,
+        5.7388548951049
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 103.82077004753835
+    }
+  },
+  "two_colour": {
+    "adaptive_off": {
+      "background": [
+        2.91683379692739,
+        1.8219122862189931,
+        1.6281562786069865
+      ],
+      "powers": [
+        [
+          0.0,
+          0.44460773228138456,
+          2.3563472447853995
+        ],
+        [
+          2.42846711441572,
+          0.2627325709050273,
+          0.014465889456855193
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            90.6814422607422,
+            -30.0810832977295,
+            162.247177124023
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -84.6945877075195,
+            28.1411743164062,
+            182.111022949219
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 17,
+      "training_mse": 41.97496902675531
+    },
+    "all_cues": {
+      "background": [
+        0.0,
+        1.9087649473096622,
+        2.031289071768978
+      ],
+      "powers": [
+        [
+          0.035564938571019576,
+          0.4449775753573558,
+          2.351235788271924
+        ],
+        [
+          2.526879186142813,
+          0.24947431517908697,
+          0.0
+        ],
+        [
+          0.12565561803093556,
+          0.021842590668668182,
+          0.005987220337850063
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            90.6814422607422,
+            -30.0810832977295,
+            162.247177124023
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -95.2671203613281,
+            18,
+            179.886306762695
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -104,
+            72,
+            200
+          ],
+          "proposal_id": 14,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 57,
+      "training_mse": 13.986846550166822
+    },
+    "area_off": {
+      "background": [
+        0.0,
+        1.9087649473096622,
+        2.031289071768978
+      ],
+      "powers": [
+        [
+          0.035564938571019576,
+          0.4449775753573558,
+          2.351235788271924
+        ],
+        [
+          2.526879186142813,
+          0.24947431517908697,
+          0.0
+        ],
+        [
+          0.12565561803093556,
+          0.021842590668668182,
+          0.005987220337850063
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            90.6814422607422,
+            -30.0810832977295,
+            162.247177124023
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -95.2671203613281,
+            18,
+            179.886306762695
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -104,
+            72,
+            200
+          ],
+          "proposal_id": 14,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 57,
+      "training_mse": 13.986846550166822
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 5760.606724987975
+    },
+    "grid_lightmap": {
+      "background": [
+        0.0,
+        1.9087649473096622,
+        2.031289071768978
+      ],
+      "powers": [
+        [
+          0.035564938571019576,
+          0.4449775753573558,
+          2.351235788271924
+        ],
+        [
+          2.526879186142813,
+          0.24947431517908697,
+          0.0
+        ],
+        [
+          0.12565561803093556,
+          0.021842590668668182,
+          0.005987220337850063
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            90.6814422607422,
+            -30.0810832977295,
+            162.247177124023
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -95.2671203613281,
+            18,
+            179.886306762695
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -104,
+            72,
+            200
+          ],
+          "proposal_id": 14,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 57,
+      "training_mse": 13.986846550166822
+    },
+    "grid_only": {
+      "background": [
+        2.91683379692739,
+        1.8219122862189931,
+        1.6281562786069865
+      ],
+      "powers": [
+        [
+          0.0,
+          0.44460773228138456,
+          2.3563472447853995
+        ],
+        [
+          2.42846711441572,
+          0.2627325709050273,
+          0.014465889456855193
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            90.6814422607422,
+            -30.0810832977295,
+            162.247177124023
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -84.6945877075195,
+            28.1411743164062,
+            182.111022949219
+          ],
+          "proposal_id": 4,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 17,
+      "training_mse": 41.97496902675531
+    },
+    "ja_baseline": {
+      "background": [
+        0.0,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.868302197274392,
+          0.3655323780889316,
+          0.9794703022528026
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -78,
+            18,
+            182
+          ],
+          "proposal_id": 17,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 6,
+      "training_mse": 3122.3106814837556
+    },
+    "lightmap_only": {
+      "background": [
+        0.4981536219701577,
+        8.0,
+        8.0
+      ],
+      "powers": [
+        [
+          2.5568314015336195,
+          0.33511735530022957,
+          0.8301303210662478
+        ],
+        [
+          0.11195168219884415,
+          0.0,
+          0.0
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -95.2671203613281,
+            18,
+            179.886306762695
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -104,
+            72,
+            200
+          ],
+          "proposal_id": 14,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 71,
+      "training_mse": 3138.6015584014945
+    },
+    "sun_off": {
+      "background": [
+        0.0,
+        1.9087649473096622,
+        2.031289071768978
+      ],
+      "powers": [
+        [
+          0.035564938571019576,
+          0.4449775753573558,
+          2.351235788271924
+        ],
+        [
+          2.526879186142813,
+          0.24947431517908697,
+          0.0
+        ],
+        [
+          0.12565561803093556,
+          0.021842590668668182,
+          0.005987220337850063
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            90.6814422607422,
+            -30.0810832977295,
+            162.247177124023
+          ],
+          "proposal_id": 3,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -95.2671203613281,
+            18,
+            179.886306762695
+          ],
+          "proposal_id": 9,
+          "state": "Candidate",
+          "type": "Point"
+        },
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -104,
+            72,
+            200
+          ],
+          "proposal_id": 14,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 57,
+      "training_mse": 13.986846550166822
+    }
+  },
+  "wall_leak": {
+    "adaptive_off": {
+      "background": [
+        1.0284940380595597,
+        1.0284940380595597,
+        1.0284940380595597
+      ],
+      "powers": [
+        [
+          2.2332990498532466,
+          2.2332990498532466,
+          2.2332990498532466
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.9185791015625,
+            0.384976953268051,
+            182.174545288086
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 0.4527138049152164
+    },
+    "all_cues": {
+      "background": [
+        1.0284940380595597,
+        1.0284940380595597,
+        1.0284940380595597
+      ],
+      "powers": [
+        [
+          2.2332990498532466,
+          2.2332990498532466,
+          2.2332990498532466
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.9185791015625,
+            0.384976953268051,
+            182.174545288086
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 0.4527138049152164
+    },
+    "area_off": {
+      "background": [
+        1.0284940380595597,
+        1.0284940380595597,
+        1.0284940380595597
+      ],
+      "powers": [
+        [
+          2.2332990498532466,
+          2.2332990498532466,
+          2.2332990498532466
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.9185791015625,
+            0.384976953268051,
+            182.174545288086
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 0.4527138049152164
+    },
+    "fixture_only": {
+      "background": [
+        8.0,
+        8.0,
+        8.0
+      ],
+      "powers": [],
+      "sources": [],
+      "sweeps": 2,
+      "training_mse": 3242.0589285714286
+    },
+    "grid_lightmap": {
+      "background": [
+        1.0284940380595597,
+        1.0284940380595597,
+        1.0284940380595597
+      ],
+      "powers": [
+        [
+          2.2332990498532466,
+          2.2332990498532466,
+          2.2332990498532466
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.9185791015625,
+            0.384976953268051,
+            182.174545288086
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 0.4527138049152164
+    },
+    "grid_only": {
+      "background": [
+        1.0284940380595597,
+        1.0284940380595597,
+        1.0284940380595597
+      ],
+      "powers": [
+        [
+          2.2332990498532466,
+          2.2332990498532466,
+          2.2332990498532466
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.9185791015625,
+            0.384976953268051,
+            182.174545288086
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 0.4527138049152164
+    },
+    "ja_baseline": {
+      "background": [
+        1.07555399260864,
+        1.07555399260864,
+        1.07555399260864
+      ],
+      "powers": [
+        [
+          1.9881612108833138,
+          1.9881612108833138,
+          1.9881612108833138
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "strict",
+          "placement": "Free",
+          "position": [
+            -95.5,
+            9,
+            173
+          ],
+          "proposal_id": 11,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 7,
+      "training_mse": 5.912019848279763
+    },
+    "lightmap_only": {
+      "background": [
+        0.5403580441798019,
+        0.5403580441798019,
+        0.5403580441798019
+      ],
+      "powers": [
+        [
+          2.9098300409469062,
+          2.9098300409469062,
+          2.9098300409469062
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "adaptive",
+          "placement": "Free",
+          "position": [
+            -97.6096496582031,
+            -18,
+            163.640350341797
+          ],
+          "proposal_id": 2,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 14,
+      "training_mse": 32.30624987577671
+    },
+    "sun_off": {
+      "background": [
+        1.0284940380595597,
+        1.0284940380595597,
+        1.0284940380595597
+      ],
+      "powers": [
+        [
+          2.2332990498532466,
+          2.2332990498532466,
+          2.2332990498532466
+        ]
+      ],
+      "sources": [
+        {
+          "cue": "grid",
+          "placement": "Free",
+          "position": [
+            -94.9185791015625,
+            0.384976953268051,
+            182.174545288086
+          ],
+          "proposal_id": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "sweeps": 8,
+      "training_mse": 0.4527138049152164
+    }
+  }
+}
