@@ -1,0 +1,11 @@
+{
+  "exporter_sha256": "0c68ddea5d2bdcb20ca169eb9464f904ad218b7d2a9a0412fc87bb4dd8db37ad",
+  "files": {
+    "checks.json": "f89b7454425296c456349e182a0beefdb5f803983bcf66749e6ec91cb3b33320",
+    "maps.csv": "c63ecbff5976d7939564b5e65666d970c937161d12874921a7238bed7371e352",
+    "maps.json": "d9ad0967923620b18601a9c1fe68fc63965e662ed7860a41e4a9770d8c0ad0ee",
+    "maps.md": "068605943f2cb78c717687c5d80f17b82bcba62bd631cc05226c0d9aa68771fc",
+    "protocol.json": "75ae9fe8a29c4fac65e9841cd6c1205a09cdcbd0fed1ede28257caa73aa13863",
+    "summary.json": "fb5c4c7a1b30fa4bbb60f4ca3d11f11503d22b92a50f149eeeba1bd67c770094"
+  }
+}

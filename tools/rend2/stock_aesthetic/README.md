@@ -4,6 +4,10 @@
 [public receipts](results/v1/summary.json) |
 [all exploratory attempts](results/v1/attempts.json).
 
+For the uniform 57-map inventory, current capture availability, independent ROI
+coverage and explicit per-map blockers, see the [ASR25 audit](../stock_audit/README.md)
+and [measured corpus report](../../../docs/rend2-stock-discovery-asr25.md).
+
 This controller connects existing providers: ASR09 visible BSP fixtures, ASR14
 lightmap descriptors, ASR15 associations, ASR12/13 grid/geometry, ASR07 solar,
 ASR20 fitting and optional ASR21 sparse selection. It introduces no new fitter,

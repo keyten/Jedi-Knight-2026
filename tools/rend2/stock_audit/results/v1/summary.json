@@ -1,0 +1,75 @@
+{
+  "absolute_si": "Unknown",
+  "accepted_bounded_configurations": 2,
+  "accepted_counts_unavailable_maps": 53,
+  "accepted_maps": [
+    "mp/duel10",
+    "mp/duel7"
+  ],
+  "archived_census_sha256": "87397b6f7453f043c9b5b58ecdc9db3faa9f476908fa984fd878791dd5628594",
+  "base_commit": "bddf5b376b6f9a909b5f36b363b2100fe5cdcb72",
+  "blocker_and_rejection_classes": {
+    "CaptureSectionUnsupported": 2,
+    "CataloguePolygonBudget": 1,
+    "CatalogueWorkBudget": 11,
+    "DynamicMapUnsupported": 23,
+    "HeldoutGateFailed": 1,
+    "MissingOriginalCapture": 20,
+    "ReceiverFoldCoverage": 4,
+    "UnknownForwardSupport": 2
+  },
+  "canonical_assets_written": false,
+  "caveats": [
+    "Accepted lights counts bounded conditional configurations; duplicate/overlapping hypotheses are not historical lamp counts",
+    "Independent ROI observation coverage does not measure accepted-source coverage or source recall",
+    "Each ROI count is separate; overlap is not a unique summed denominator",
+    "Sky reach diagnostics do not establish a numeric sun or an exact historical direction",
+    "Dynamic maps and external-model source discovery remain explicitly unsupported by this frozen path",
+    "MP uses qualified SP material interpretation; encoded RGB8 is not calibrated irradiance"
+  ],
+  "current_capture_files": 37,
+  "elapsed_seconds": 1209.9219999999914,
+  "exact_historical_positions": "Unknown",
+  "historical_source_certified": false,
+  "independent_roi_maps": 35,
+  "independent_rois": 210,
+  "inputs_unchanged": true,
+  "inventory_maps": 57,
+  "maps_with_known_upward_sky_case": 24,
+  "modes": {
+    "mp": 23,
+    "sp": 34
+  },
+  "numerically_fitted_regions": 5,
+  "policy_sha256": "c8e9fcd3bd15786704defd8ab616c27310824c820eeb89563d419cebfa3fffd5",
+  "private_summary_sha256": "2b06944417a56f57930d798d68123ed3f37f1c4c01f94389a539549ceab47e69",
+  "protocol_sha256": "83698daacae11af605b0352f0147fbb1195124e91f8c401d45d22bf9593dbe7d",
+  "runtime_changed": false,
+  "schema": "org.openjk.stock-aesthetic-audit.v1",
+  "selected_regions": 9,
+  "source_count_truth": "Unknown",
+  "stage_seconds": {
+    "catalogue": 1688.2499999999127,
+    "discovery": 110.0,
+    "evaluate": 89.95300000000861,
+    "prepare": 95.40600000001723,
+    "roi": 246.24699999994482,
+    "scan": 48.14100000000326
+  },
+  "statuses": {
+    "AestheticCandidate": 2,
+    "Blocked": 53,
+    "NoAcceptedCandidate": 1,
+    "NoSupportedCandidate": 1
+  },
+  "substantive_multi_map_demonstration": true,
+  "summed_map_seconds": 2402.2639999999083,
+  "unsupported_shapes": "Unavailable",
+  "work": {
+    "discovery_logical_point_checks": 95,
+    "discovery_logical_segment_checks": 3537,
+    "independent_roi_ray_primitive_tests": 4557876,
+    "native_fit_work_one_pass": 8432810,
+    "native_fit_work_with_identical_repeat": 16865620
+  }
+}

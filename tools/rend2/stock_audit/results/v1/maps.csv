@@ -1,0 +1,58 @@
+map,mode,capture,mapped_archived,roi_count,fixtures,candidates,supported,selected,fitted,accepted,accepted_receivers,accepted_heldout,status,causes,seconds
+academy1,sp,True,235581,6,22,0,0,0,0,0,,,NoSupportedCandidate,,16.875
+academy2,sp,False,211130,0,0,,,,0,,,,Blocked,MissingOriginalCapture,1.594
+academy3,sp,False,228917,0,0,,,,0,,,,Blocked,MissingOriginalCapture,1.141
+academy4,sp,False,211130,0,0,,,,0,,,,Blocked,MissingOriginalCapture,1.281
+academy5,sp,False,211130,0,0,,,,0,,,,Blocked,MissingOriginalCapture,0.969
+academy6,sp,False,352907,0,100,,,,0,,,,Blocked,MissingOriginalCapture,1.719
+hoth2,sp,True,79565,6,337,,,,0,,,,Blocked,DynamicMapUnsupported,17.187
+hoth3,sp,True,403084,6,319,,,,0,,,,Blocked,DynamicMapUnsupported,23.734
+kor1,sp,False,235843,0,336,,,,0,,,,Blocked,MissingOriginalCapture,23.812
+kor2,sp,False,717542,0,504,,,,0,,,,Blocked,MissingOriginalCapture,24.594
+mp/ctf1,mp,False,159777,0,,,,,0,,,,Blocked,CatalogueWorkBudget; MissingOriginalCapture,100.109
+mp/ctf2,mp,False,260065,0,496,,,,0,,,,Blocked,MissingOriginalCapture,8.437
+mp/ctf3,mp,False,199362,0,1526,,,,0,,,,Blocked,MissingOriginalCapture,9.437
+mp/ctf4,mp,False,663613,0,15719,,,,0,,,,Blocked,MissingOriginalCapture,94.329
+mp/ctf5,mp,False,198998,0,2376,,,,0,,,,Blocked,MissingOriginalCapture,29.235
+mp/duel1,mp,False,486958,0,78,,,,0,,,,Blocked,MissingOriginalCapture,2.844
+mp/duel10,mp,True,439569,6,1178,33,14,3,2,1,57,17,AestheticCandidate,HeldoutGateFailed; ReceiverFoldCoverage,158.234
+mp/duel2,mp,True,32297,6,,,,,0,,,,Blocked,CatalogueWorkBudget,133.218
+mp/duel3,mp,True,237522,6,588,,,,0,,,,Blocked,DynamicMapUnsupported,16.0
+mp/duel4,mp,True,19842,6,980,52,25,3,0,0,0,0,NoAcceptedCandidate,ReceiverFoldCoverage,29.563
+mp/duel5,mp,True,833796,6,157,,,,0,,,,Blocked,DynamicMapUnsupported,30.265
+mp/duel6,mp,True,748769,6,98,,,,0,,,,Blocked,DynamicMapUnsupported,23.016
+mp/duel7,mp,True,247563,6,62,10,4,3,3,1,144,48,AestheticCandidate,UnknownForwardSupport,112.062
+mp/duel8,mp,True,318431,6,16,,,,0,,,,Blocked,DynamicMapUnsupported,12.203
+mp/duel9,mp,True,444221,6,9,,,,0,,,,Blocked,DynamicMapUnsupported,16.047
+mp/ffa1,mp,False,226573,0,1372,,,,0,,,,Blocked,MissingOriginalCapture,50.532
+mp/ffa2,mp,False,381767,0,161,,,,0,,,,Blocked,MissingOriginalCapture,6.578
+mp/ffa3,mp,True,301473,6,626,,,,0,,,,Blocked,DynamicMapUnsupported,27.125
+mp/ffa4,mp,False,522042,0,485,,,,0,,,,Blocked,MissingOriginalCapture,4.313
+mp/ffa5,mp,False,539814,0,1616,,,,0,,,,Blocked,MissingOriginalCapture,15.297
+mp/siege_desert,mp,True,227302,6,905,,,,0,,,,Blocked,DynamicMapUnsupported,20.046
+mp/siege_hoth,mp,True,382098,6,327,,,,0,,,,Blocked,DynamicMapUnsupported,20.422
+mp/siege_korriban,mp,True,140383,6,266,,,,0,,,,Blocked,DynamicMapUnsupported,12.094
+t1_danger,sp,True,654675,6,732,,,,0,,,,Blocked,DynamicMapUnsupported,36.735
+t1_fatal,sp,True,293094,6,941,,,,0,,,,Blocked,DynamicMapUnsupported,31.454
+t1_inter,sp,True,107085,6,0,,,,0,,,,Blocked,DynamicMapUnsupported,6.125
+t1_rail,sp,True,75186,0,,,,,0,,,,Blocked,CaptureSectionUnsupported; CataloguePolygonBudget,77.265
+t1_sour,sp,True,94812,6,647,,,,0,,,,Blocked,DynamicMapUnsupported,16.14
+t1_surprise,sp,True,293536,6,512,,,,0,,,,Blocked,DynamicMapUnsupported,15.844
+t2_dpred,sp,True,312913,6,,,,,0,,,,Blocked,CatalogueWorkBudget,149.844
+t2_rancor,sp,True,67625,6,,,,,0,,,,Blocked,CatalogueWorkBudget,88.109
+t2_rogue,sp,True,299268,6,,,,,0,,,,Blocked,CatalogueWorkBudget,104.563
+t2_trip,sp,False,101098,0,0,,,,0,,,,Blocked,MissingOriginalCapture,3.344
+t2_wedge,sp,True,311739,6,8030,,,,0,,,,Blocked,DynamicMapUnsupported,50.718
+t3_bounty,sp,True,284029,6,,,,,0,,,,Blocked,CatalogueWorkBudget,76.89
+t3_byss,sp,True,325784,6,4421,,,,0,,,,Blocked,DynamicMapUnsupported,33.75
+t3_hevil,sp,True,295319,6,,,,,0,,,,Blocked,CatalogueWorkBudget,114.469
+t3_rift,sp,True,682408,6,1280,,,,0,,,,Blocked,DynamicMapUnsupported,42.297
+t3_stamp,sp,True,226561,6,1486,,,,0,,,,Blocked,DynamicMapUnsupported,53.953
+taspir1,sp,True,467212,6,3261,,,,0,,,,Blocked,DynamicMapUnsupported,45.922
+taspir2,sp,True,317209,6,,,,,0,,,,Blocked,CatalogueWorkBudget,126.703
+vjun1,sp,True,299160,6,,,,,0,,,,Blocked,CatalogueWorkBudget,62.266
+vjun2,sp,False,448811,0,,,,,0,,,,Blocked,CatalogueWorkBudget; MissingOriginalCapture,91.907
+vjun3,sp,True,225081,0,,,,,0,,,,Blocked,CaptureSectionUnsupported; CatalogueWorkBudget,90.546
+yavin1,sp,True,144622,6,1650,,,,0,,,,Blocked,DynamicMapUnsupported,13.718
+yavin1b,sp,False,92167,0,870,,,,0,,,,Blocked,MissingOriginalCapture,5.765
+yavin2,sp,True,400283,6,81,,,,0,,,,Blocked,DynamicMapUnsupported,19.625

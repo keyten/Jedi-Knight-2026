@@ -148,11 +148,14 @@ def prepare(a):
         discovery = load(a.discovery)
         discovery_map = discovery.get('map', 'maps/mp/duel4.bsp')[5:-4].replace('/', '_')
         selected = discovery['candidates'][:3]
-        if len(selected) != 3 or any(c['agreeing_distinct_records'] < 3 for c in selected):
+        if a.all_stock_inputs:
+            selected = [c for c in selected if c['agreeing_distinct_records'] >= 3]
+        if not selected or (not a.all_stock_inputs and len(selected) != 3) or any(c['agreeing_distinct_records'] < 3 for c in selected):
             raise ValueError('Three independently grid-supported original fixtures required')
         if a.area_groups or a.point_groups:
             selected = list({c['surfaces'][0]: c for c in reversed(selected)}.values())
-        regions = [(discovery_map[3:]+'-'+('area-' if a.area_groups else 'grid-')+str(i+1),
+        region_map = discovery_map[3:] if discovery_map.startswith('mp_') else discovery_map
+        regions = [(region_map+'-'+('area-' if a.area_groups else 'grid-')+str(i+1),
                     discovery_map, c['fixture_id'], c['surfaces'][0]) for i, c in enumerate(selected)]
         shutil.copyfile(a.discovery, a.work/'discovery.json')
     assets = Assets(a.base)
@@ -165,12 +168,21 @@ def prepare(a):
             catalogue = a.catalogues/m/'catalogue.json'
             prefix = a.catalogues/m if m.startswith('mp_') else a.rows/m
             source = prefix.with_suffix('.source.json')
+            if a.all_stock_inputs:
+                source = Path(load(a.all_stock_inputs)[m]['source'])
             identity = digest(bsp)
             if identity != load(catalogue)['map_sha256'] or identity != load(source)['map_sha256']:
                 raise ValueError('Original BSP/catalogue/receiver identity mismatch')
             capture = (a.stock_private/'capture'/m/'home/rend2/lightrecon/v1/observations'/(m+'_all.jkobs')
                        if m.startswith('mp_') else a.captures/(m+'_a.jkobs'))
             rows_path = prefix.with_suffix('.rows.jsonl') if m.startswith('mp_') else prefix.with_suffix('.rows.jsonl.gz')
+            if a.all_stock_inputs:
+                inputs = load(a.all_stock_inputs)[m]
+                source = Path(inputs['source'])
+                capture = Path(inputs['capture'])
+                rows_path = Path(inputs['rows'])
+                if identity != load(source)['map_sha256']:
+                    raise ValueError('Unified original receiver identity mismatch')
             maps[m] = dict(bsp_sha256=identity, bsp_source=origin, catalogue=str(catalogue.resolve()),
                            catalogue_sha256=sha(catalogue), rows=str(rows_path.resolve()),
                            rows_sha256=sha(rows_path), source=str(source.resolve()),
@@ -645,6 +657,7 @@ def main():
     p.add_argument('--captures', type=Path, default=ROOT/'build/x02/runtime/run/home/rend2/lightrecon/v1/observations')
     p.add_argument('--stock-private', type=Path, default=Path.home()/'AppData/Local/Temp/jk-lightrecon-all-stock-20261031')
     p.add_argument('--discovery', type=Path, help='Frozen independent-grid fixture ranking for the separate top-three follow-up')
+    p.add_argument('--all-stock-inputs', type=Path, help='Explicit original per-map capture/source/rows manifest; allow one to three supported fixtures with unchanged acceptance gates')
     p.add_argument('--area-groups', action='store_true', help='Fit original-face extended groups from the grid-selected surfaces')
     p.add_argument('--common-normals', action='store_true', help='Geometry-only same-normal/material subset with informative response in every fold')
     p.add_argument('--point-groups', action='store_true', help='Enumerate subsets of visible luminous component points on grid-selected fixture surfaces')

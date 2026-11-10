@@ -1,0 +1,611 @@
+{
+  "frozen_before_discovery": true,
+  "implementation": {
+    "shared/rd-rend2/lightrecon/amplitude_fit.cpp": "a0f5a845f480405ad32a1ae7737abbe30883d4215b3472763882afbea85bfdcc",
+    "shared/rd-rend2/lightrecon/amplitude_fit.h": "9c7bf0bce8be3cd1b2e23ee8079321ec3d5111fff68ac3824edd95d3cf47ba15",
+    "shared/rd-rend2/lightrecon/bake_forward.cpp": "a8e5e539c92bc172dfeb6e78bcb02bc70f28da6b7cd84d919a191ebc32d9ed18",
+    "shared/rd-rend2/lightrecon/bake_forward.h": "0bb57923f03907b9125b9cc4afdc619c68cc565c131204f7bcba6380265ce8b2",
+    "shared/rd-rend2/lightrecon/bake_integral.cpp": "07f70526816259884badad6c11e3f0574b5d62ab6c2325262e0d4aa1e84bcbbc",
+    "shared/rd-rend2/lightrecon/bake_math.h": "342a4b791e8e2af250e4e986eac5ffc52543200270a9aef6522a148f93716041",
+    "shared/rd-rend2/lightrecon/bake_profile.h": "22cadb811897f96feb6f21e3d162373bf1b5e1067fbd447af15c618b2100e64c",
+    "shared/rd-rend2/lightrecon/bake_trace.cpp": "4670cf72e42f14ca6c397120824f26ab417946515712d49643697cc600e53494",
+    "shared/rd-rend2/lightrecon/bake_trace.h": "45247951e2e67f0f153c69243e2a630d243204bb0c4023e5f7db6405fa729702",
+    "shared/rd-rend2/lightrecon/cache.cpp": "c288a3f680cec1f34c18754c5ce4d330d3ff82f64f0f669050609eb8452d6f8c",
+    "shared/rd-rend2/lightrecon/cache.h": "15c31790e0baed89665634515c54d0e1e515ddd260f6f4a246b53c667c2deadb",
+    "shared/rd-rend2/lightrecon/candidate_pool.cpp": "57554fab2d4ec9f75d69cd17c1231c88bc11fc268529a775aef7eaf523f65ef8",
+    "shared/rd-rend2/lightrecon/candidate_pool.h": "1936ae029ba159b07b533612ce355c8fca75a53352a3f32bb9621e75bb72056a",
+    "shared/rd-rend2/lightrecon/classification.cpp": "4557dc1f3c410b6a4998f07c1ee655fa0b896af2673c1b26e4c806035f913b9b",
+    "shared/rd-rend2/lightrecon/classification.h": "ea2cf11f347893e7c846dcea08190d1ff6f8d89ce8c9ea9466f4fdfc20f846a9",
+    "shared/rd-rend2/lightrecon/contributions.cpp": "624ce3ab834ad4ba19af8e034373a6767f652b565e7e79f3891997569c78e5b6",
+    "shared/rd-rend2/lightrecon/contributions.h": "17e1b070626b7344c8732c70373a5c3bb7e20e868426da251ce6a6a5d6570704",
+    "shared/rd-rend2/lightrecon/control.cpp": "e73082b288fef756af91a29d470908f181566b548ec162b08146cd855edfd108",
+    "shared/rd-rend2/lightrecon/control.h": "46fc42bda96c0fc8d89ab04a98f2ac11861809888adf7daf646760c012c981b7",
+    "shared/rd-rend2/lightrecon/decode.cpp": "62750a8a0813b9d5bf332ec67c31dab92d186dabe42c62e6b7e1abef3f872464",
+    "shared/rd-rend2/lightrecon/decode.h": "066f1c28c590dc054b51b50cc57a2adff66ec5e46f2b0394baa2f5dd92fe14d1",
+    "shared/rd-rend2/lightrecon/dependencies.cpp": "fe158e6450ea8e1a6cfde68c2072846e10454e4c38d0fce51f63e83c45449dad",
+    "shared/rd-rend2/lightrecon/dependencies.h": "0c8306eb2c2a4443aba252f387710930aa05da1f0ef0767674c2a05051465a42",
+    "shared/rd-rend2/lightrecon/diagnostics.cpp": "8c4556c6b99118c82b2c8cbb6a96b37b411929f6d50eaf00a16d330fad1668e1",
+    "shared/rd-rend2/lightrecon/diagnostics.h": "f6ba15849cef7c6a955d66b2df8cb95b115d4cf059bf99ab73d9d861637db217",
+    "shared/rd-rend2/lightrecon/diagnostics_capture.cpp": "5dbea9d5cf2a5e4e4fe22940ea86c4843a498acae595b12f9d279f2e2b3b4ecf",
+    "shared/rd-rend2/lightrecon/diagnostics_io.cpp": "f3cbc4c4d1659c602cff458741cb1ad173e1ffce8a3aabfdd5d4aec0fe5a9e3c",
+    "shared/rd-rend2/lightrecon/diagnostics_report.cpp": "16ca2a21adcfca98d5b5336971f9e282fbcc0059a7a500121fa4489736ef4e82",
+    "shared/rd-rend2/lightrecon/disk.cpp": "52559f19d5ade7d94d20231535d2f881e6e8cdec46a383dbf7286a0efd96c0c4",
+    "shared/rd-rend2/lightrecon/disk.h": "d5e7077930775cdf23e8dd830035d62e1da5c86175570b6e9ea959cdd7ff1f34",
+    "shared/rd-rend2/lightrecon/emission_geometry.cpp": "5ea95d301a1682989e99b33bcd49b8062aa26fb8120d26f3d12b80d96bb7afb4",
+    "shared/rd-rend2/lightrecon/emission_geometry.h": "0a5f0355d4f3f400c1ce79910999e030d0b0ffd7395a6748d4debb8ffc15e7a2",
+    "shared/rd-rend2/lightrecon/emitter_shape.cpp": "20d15bca86c95523ab7bdc2784a5d44fa67947ad91a0bb8cfc0038ecd7f4d64e",
+    "shared/rd-rend2/lightrecon/emitter_shape.h": "d445aafc56cc1465b49026552d27953030ac1793ba523164cb0c46f4f4cd49e1",
+    "shared/rd-rend2/lightrecon/emitter_support.cpp": "5f532ec02d34683e9c6718243285ae0c685e2dec9f937f271d73e8e831f30249",
+    "shared/rd-rend2/lightrecon/emitter_support.h": "11deafece78db0d88c0f9709cf04e2796656aaaf06a4695d52acd15adc2fe34f",
+    "shared/rd-rend2/lightrecon/evidence.cpp": "0452002e80a66bc2ee5448ec1a3daa1fc055e7a73894e5d940fa757a3ce4dc00",
+    "shared/rd-rend2/lightrecon/evidence.h": "428c4e882785a9b101a173eb27055978a2f9ebaf70507c839eac37568d3e647d",
+    "shared/rd-rend2/lightrecon/field_basis.cpp": "a44387e05f5ac6b39b6e2dd2721d621828e23d68d90529634f12cb704011ae97",
+    "shared/rd-rend2/lightrecon/field_basis.h": "3f5299b9ede75a54ac588302aa87afe84b01ee93d1475f1a890f5225e2dafc69",
+    "shared/rd-rend2/lightrecon/field_builder.cpp": "076b3abb5570a16413be67ec8d9701b6b8a239d1babff1252946da9a14cd5c6f",
+    "shared/rd-rend2/lightrecon/field_builder.h": "3b9e6e373f8eca9a0a2df152c1b3bca8379b0a7e2644421355b28c4b838e68df",
+    "shared/rd-rend2/lightrecon/field_codec.cpp": "e3350023bd58dfd73a2fe0ce82bc6c2c5ec2d2bc11b5c8fa110811701df61a6c",
+    "shared/rd-rend2/lightrecon/field_internal.h": "6cf67e378194865f7d81bf1dbde56a2e3b7f00285997d297b7df249bed8f1a4a",
+    "shared/rd-rend2/lightrecon/field_prepared.cpp": "9ce6a48eec75a41a84704cda738c8f14efe64042986761925e09b15aa72399c3",
+    "shared/rd-rend2/lightrecon/fit_evidence.h": "87612a806cbcdda89b66bea7d232631de0c950444f41aee81be43b6125d6b1a1",
+    "shared/rd-rend2/lightrecon/geometry_key.h": "74ec7e33b16ee51a2f9af52f3c3db200808ba3940201c4f49f2eb35af0ad47cd",
+    "shared/rd-rend2/lightrecon/hidden_candidates.cpp": "00b2e310cd19d93cd8400a08b185f8a8bb9869d29110f9330cd0f89da9c7d81d",
+    "shared/rd-rend2/lightrecon/hidden_candidates.h": "7fe7d4a9eb07a575cc94dabaeb633941dd2e36f1aef67e2306f388ff7dfaefce",
+    "shared/rd-rend2/lightrecon/indirect.cpp": "aa45ea1ecf3667027bc30946d5cafa1a7171037187200b9f16be50c6b8019061",
+    "shared/rd-rend2/lightrecon/indirect.h": "edc7ef58ffa24872b036c94c5ada6537867dd22c37989d126c78d6289243de20",
+    "shared/rd-rend2/lightrecon/input.cpp": "35f7ceab8f57944d29deaba7151e5e49e7cbe534da94e2583efd61137a24c5b7",
+    "shared/rd-rend2/lightrecon/input.h": "341dcbeae49963af10b017159f126641608568ca0ad8ef6d2142f093e2f54040",
+    "shared/rd-rend2/lightrecon/joint.cpp": "7cdb075ff58bc5507b0825b469f1ecdaf04d8d9fb6e73fd38492b96f8bf85fb6",
+    "shared/rd-rend2/lightrecon/joint.h": "cd756b62fdf7fcd76a724f1fba9bfa1828140ef63cafb9cb148ab67d6f85cf62",
+    "shared/rd-rend2/lightrecon/joint_support.cpp": "4b67c8332883f2cab467861d1952b0ca6454c65efae61d31e7770ccb2138e222",
+    "shared/rd-rend2/lightrecon/lifecycle.cpp": "4fb2f6507d646babff4407db78aa3b6948a1d742ac201b227386ef9e3d860a94",
+    "shared/rd-rend2/lightrecon/lifecycle.h": "59ac6cd640d1f47dd6f5c9170cfb61dee2fbf8926bfa2287062e164cae92a2e9",
+    "shared/rd-rend2/lightrecon/lightgrid.cpp": "5c7778f3b9c1ed008c518ba5b1c6b6ef9a8ca661d5735f4e7d30014d656633ac",
+    "shared/rd-rend2/lightrecon/lightgrid.h": "f1deb4b120cc9779c9a94a827674116d2dc251601a7535fcc588328fae244e07",
+    "shared/rd-rend2/lightrecon/lightmaps.cpp": "fa4e5f507dd96ca1aa48660a66b8c227cae28e7f4167933c94e72a496ddf1298",
+    "shared/rd-rend2/lightrecon/lightmaps.h": "6b2c1dc52363c40b55fc6c64c4126b85ea23e06fde40eeb82afb69eb23f6e76a",
+    "shared/rd-rend2/lightrecon/offline.cpp": "2776fb61d89d815fcfdd5636f262a32d583ce2a6188337ff20fe50442886d12e",
+    "shared/rd-rend2/lightrecon/offline.h": "b1dd7be80412117f932a1ac9f60edb980565be8f0d16148c4059cdf3cfce8990",
+    "shared/rd-rend2/lightrecon/offline_bsp.cpp": "49f8a1546befb224a5a93baf0eac93b2e827c3caa4e90f54412c64d9f93fd65b",
+    "shared/rd-rend2/lightrecon/offline_io.cpp": "ce3a7a956f86de319c0b3c7c61ffc7d5cfba9d828d13a7dbbf440ffa0a5f18df",
+    "shared/rd-rend2/lightrecon/persistent.cpp": "00db397ac33b46c8511f3f605ddfb7ba40be48c3d3ddf1d988fa2189af2d6e1d",
+    "shared/rd-rend2/lightrecon/persistent.h": "266dc0ecda99155cd10b13dc124f87b9043f62b34d5fe2f466d2b481f85f5877",
+    "shared/rd-rend2/lightrecon/photometry.cpp": "623d5b0530c5ae5fb7ca3b9bfd87bf9b60f22c2147ae8a2d834b6649069942c4",
+    "shared/rd-rend2/lightrecon/photometry.h": "6cbac2a303fd4fa280841b408235a8681fe6b3a36a168620fcd0a0889f7d00ce",
+    "shared/rd-rend2/lightrecon/point_refine.cpp": "641fbde5eb0e992045d3d937d6a4cb0372df10e16ca6a2717eef19256df606b9",
+    "shared/rd-rend2/lightrecon/point_refine.h": "9fb72c47e9b0f017d9e26842dd2d63c86cf40bc3677754de1229854caf1fe658",
+    "shared/rd-rend2/lightrecon/probe_codec.cpp": "40ab282ccd530485b50c534b3be23b7e86aebdb83269eb186984d2a921e20ac9",
+    "shared/rd-rend2/lightrecon/probe_internal.h": "108d355c9a10ccee768c4d9f0ed5a74b00e4ddcd9a4b9f230ba3864f7923119f",
+    "shared/rd-rend2/lightrecon/probe_values.cpp": "fbd30729ccceae8f3443206895cbb04c99a4a4552c67f796751c6947dc38cb98",
+    "shared/rd-rend2/lightrecon/probes.cpp": "56c893032165f258cf944d57cd5a55e82700dc4a42c953f6895108c92390ebce",
+    "shared/rd-rend2/lightrecon/probes.h": "33a4d9e2c8c0fd0142d2fe2cdcb973d6be77f99e62c4f6991e88bb05dbef1f26",
+    "shared/rd-rend2/lightrecon/producer.cpp": "12f44a12ab154e0de3cfeea8a679e1141bc12ede50df1b574bbb49c3c33808a3",
+    "shared/rd-rend2/lightrecon/producer.h": "34332798433fed4efd482929e19d278f7c2a6ec8bcb84133048a70a79e1a30aa",
+    "shared/rd-rend2/lightrecon/provider_outcome.h": "3dc6abd2b585a4f185e807500ff5c830aad4af113cf3319e7efcd0081a947f0d",
+    "shared/rd-rend2/lightrecon/receiver_support.cpp": "2159d7f44585745206f7de1b4b90d4778fdb9715a95f512a064814faa2f1ba2f",
+    "shared/rd-rend2/lightrecon/receiver_support.h": "c561df154ed284e96e9d42391addd817d09181ddf238d189ce9d5a950c9a192c",
+    "shared/rd-rend2/lightrecon/regions.cpp": "f1b1e99ffd8cd6ed2ebcfe3fe6a0561c8eae623907f2b58734d7c0f82465a151",
+    "shared/rd-rend2/lightrecon/regions.h": "cbbcf7b67513cecad571b5a9856f0213b866dfa63078fadd21d179963f99d0cc",
+    "shared/rd-rend2/lightrecon/regions_support.cpp": "f1965a70fd1e3b900be46452496bc8347a7dc8d772ce7eedacb21a727ecfc7cd",
+    "shared/rd-rend2/lightrecon/sampling.cpp": "822b0d6835cde1da726d00ed0275a2a73cddfee1dbe6d9d42c6f5daca0ceb692",
+    "shared/rd-rend2/lightrecon/sampling.h": "61e43171f3b6baf40f2e155655b15cb4ca2d09044b3d22661af26ff157250d34",
+    "shared/rd-rend2/lightrecon/scene_schedule.cpp": "3d7f6db687f67e21b7c8566db899b54e69e843ed3d4bcdc7a8787c4e351692a4",
+    "shared/rd-rend2/lightrecon/scene_schedule.h": "a51b633adec1188c7caebd8076ee0be89c2944babd776648c7bc97fb3478e399",
+    "shared/rd-rend2/lightrecon/session.cpp": "3f4167c7801d43737c9023bc4fc0cde263df1644604341f54013a31448b22415",
+    "shared/rd-rend2/lightrecon/session.h": "89fc700c5a4067ee53688297c882f291f13e6fe5b6f7519b20b336d2c9932a89",
+    "shared/rd-rend2/lightrecon/shadow_cache.cpp": "ca7fc8c8fd263a0d015456b0c21f6a3ade95a7eaa98b4686079ff5cf06f3dedb",
+    "shared/rd-rend2/lightrecon/shadow_cache.h": "570f5db0150f2f3257c29698e6121a8f8987dfd3bb659338d5a94372333b7b89",
+    "shared/rd-rend2/lightrecon/shadow_cache_codec.cpp": "674103e4fbc20fbcebef1e4ceec97fd323869c858e2d97197b34e73a647bb339",
+    "shared/rd-rend2/lightrecon/shadow_cache_internal.h": "31ca5de0acaf4647422a48ef4d1fed75a0ba93f7114f9af6efc22062eebbd83c",
+    "shared/rd-rend2/lightrecon/shadow_cache_prepared.cpp": "94a83d075f65e67b6f117d7de52fd0b65d91c2565b0ccaee2fe8176daaa82a3b",
+    "shared/rd-rend2/lightrecon/shadow_evidence.cpp": "f6c94f05080a5e6b6405e7fe618576ea48e97b3791955567043eaa5b9e5ea57a",
+    "shared/rd-rend2/lightrecon/shadow_evidence.h": "74c414dbdbd10675168d35cf0d57d3da5591877a9603a46e53ebea0dce2d6b51",
+    "shared/rd-rend2/lightrecon/shape_selection.cpp": "f4054aa7543b1373c6bb5e411d9c7d78abb0b189c61c3937fe0949760a81dfdf",
+    "shared/rd-rend2/lightrecon/shape_selection.h": "f84ab8ce1768f94f385db7c979ac802da3cf7fd4f91a041f9d99fb5dee0acac3",
+    "shared/rd-rend2/lightrecon/source_orientation.h": "5d4dfb7b3245cb5a5f6596b25f85c3a5a63c0801aaff18eb94ff2fc2f77fbaf1",
+    "shared/rd-rend2/lightrecon/sun_fit.cpp": "1dae095ff85792a1a80af223d72e55b4ebfe8817b443234e6a52c5346da0dfce",
+    "shared/rd-rend2/lightrecon/sun_fit.h": "cafe0e48bcb9b72b90e0d234dbe903613d98d536c0b5e8507e960f14c94aae67",
+    "shared/rd-rend2/lightrecon/surfaces.cpp": "abba92319ea77755b21cdef5a5e84dc9caa8703963a4c43a496ef42af3280f3e",
+    "shared/rd-rend2/lightrecon/surfaces.h": "96716b12d66f1919d6c49727881c47bec690e7b5fe70a55f8039484ae0eea683",
+    "shared/rd-rend2/lightrecon/transport_mesh.cpp": "23eca8575e78f1782601fb2bd0250e92895c4de8c32e7ba22ab3045e883d1c9d",
+    "shared/rd-rend2/lightrecon/transport_mesh.h": "a42f068ff28ad6218895f4b87a8fb941b7a0e2b3e54a563df895ef6bd117352d",
+    "shared/rd-rend2/lightrecon/uncertainty.cpp": "5ca0c9ae998d437c3e7812e737c55aa0dfaeb276acbf681a0516e1b2416cb44a",
+    "shared/rd-rend2/lightrecon/uncertainty.h": "ba984a816e920445fea6ec96bc1c8019aeeeea6ad1d24feb92311c556658530f",
+    "shared/rd-rend2/lightrecon/visibility.cpp": "f3adee5f49d4f3669b2e0c513d25491318c1f61b0e329c241b43bf950f40d1a3",
+    "shared/rd-rend2/lightrecon/visibility.h": "79da1345796a4b2f8903e2f392305fc8a82d13dfe0ebd2e22936dcfe97b41847",
+    "shared/rd-rend2/tr_lightrecon_types.cpp": "fac98da30d9f14d2222179611ddf41dee9e94a6d581e40392a68446d24aceac1",
+    "shared/rd-rend2/tr_lightrecon_types.h": "b8e33e78e71193e50df9be0010b897a42bb63b54a99cf5d832fe082b38c88efd",
+    "tools/lightrecon_test/aesthetic_fit.cpp": "3e2944a11281256537bde615297e0ea589cd6cc08a9067405f02460d9a4cbf8b",
+    "tools/lightrecon_test/aesthetic_fit.h": "e869218b26aecac134bed5c428cf324fdf093e4319653751d2ad8874e3c1e1d1",
+    "tools/lightrecon_test/aesthetic_sparse.inc": "b024da563dcc3fcf55e0874e5c5c52ada317958fd7512a82b03185fd3e56d4b5",
+    "tools/lightrecon_test/lightrecon_aesthetic_tool.cpp": "cba15742a8e4305145422383addc6401d0d2041b3c7f57d990bfac65395fd27e",
+    "tools/lightrecon_test/lightrecon_grid_geometry_tool.cpp": "6933db07c255f7e7714e467a31c705da8440aa270220e5f88cf166d3d983ea18",
+    "tools/rend2/bsp_fixtures/catalogue.py": "a46c4d228f05e845f858f87a3e7f5c461df9c2926d4cd02d7cb9e25e13f545a5",
+    "tools/rend2/bsp_fixtures/compiled.py": "e510126f312bb6f492d415a9ba7307c91acbc7be950b9d96d9658eb8abd2a8b4",
+    "tools/rend2/bsp_fixtures/inventory.py": "5ccb668c1eaa6a4eeb08f8331821294eae32274fdf14c3aea47198bbba59dd02",
+    "tools/rend2/bsp_fixtures/test_catalogue.py": "e1fd178826577d7e2c2c26c2814b30682189bf5fc0a04645b2314eec71714075",
+    "tools/rend2/fixture_association/adapters.py": "5edd3917d18696a26b0ca4911c217a63162daaebfb43a350d8e3cf0bae889570",
+    "tools/rend2/fixture_association/associate.py": "7c214e09a097851759b32b3827fe912c27c1de5e27209eeac2b77eb8d54c4fe5",
+    "tools/rend2/fixture_association/controls.py": "ecea5846acb802dd8a1cbc166764553e32374bf44b27273386e02bf9cc1e5dfd",
+    "tools/rend2/fixture_association/evaluate.py": "ce04e5d53fb4ee8716d8906281d98d6ef0f63b82c6850bb89c3de5ac53a52cf8",
+    "tools/rend2/fixture_association/run.py": "827a59dba1ff57fce7544f8465eb2d9b86331a5a6d3c17e31c56913096992ed2",
+    "tools/rend2/fixture_association/test_associate.py": "d039a58a2c49aa0be262fdba197bd5b130dfc02d363436649511b1c8432a0a1b",
+    "tools/rend2/fixture_association/verify.py": "70120e92a7386bdb3e803a67c302f0e17d445603128130be52b7569c1d96e07e",
+    "tools/rend2/grid_triangulation/diagnostic.py": "4b9cef022dcb4f706a0d31b220f38c6e0458d9323fbe8499e9474e298bdb8167",
+    "tools/rend2/grid_triangulation/evaluate.py": "099e14f75a58a15cdb7293012c0bf0000f218ca1bb5b0129d0b5582990c9f937",
+    "tools/rend2/grid_triangulation/fixtures.py": "d94a10ccb15f3a3947e171f2bdf774fe6f4d55fd081c7c7c49fe406a5312f6bf",
+    "tools/rend2/grid_triangulation/test_triangulate.py": "6e792fe6999df2a9c3ad9c2eb58c52b3b06df304e633bac74acf2d69d325c7d3",
+    "tools/rend2/grid_triangulation/triangulate.py": "3d7c1b8be5f069e97f4134af2cb5e340a277b05a81a71109e0d5334629ba3f24",
+    "tools/rend2/grid_triangulation/validate.py": "a268c711836147c1c68724db16f9061094ef9ccfd1afaad9390d8e9ac1d81a98",
+    "tools/rend2/lightmap_patches/evaluate.py": "cccc7d67cd8c96fd7a6431f08b392e7fd0f7351925ab828d8a652d16a762f4aa",
+    "tools/rend2/lightmap_patches/extract.py": "548c7ea30247eabf3269a128427f7c981aebe20f626c50145252dce7cf1da13d",
+    "tools/rend2/lightmap_patches/fixtures.py": "738fb19e69fd6a0c2177bf3aa1357c6ec253f7d058641fc49a8e8a61902fde31",
+    "tools/rend2/lightmap_patches/inspect.py": "0d7adc95736107d856bbd183d235b298cd8cb51254638f468c95d1d1f5c05c72",
+    "tools/rend2/lightmap_patches/run.py": "cfc254b9129f7c0f771faa3000f587b42ace368bfc5dfdc42f72954e09590fad",
+    "tools/rend2/lightmap_patches/test_patches.py": "f8f5e37e51b17548180cd94c9102669d21bafb21fbd4e4fbfed83aea083f0b39",
+    "tools/rend2/lightmap_patches/verify.py": "3d7acfce5db7ce9f2b8042b2fa8ca531838d1469aeaaf0351d90f8e642192658",
+    "tools/rend2/stock_aesthetic/__init__.py": "7802c9456605ba5cdf1b63cc660c5bc957cc54f77573bddfca930e620f3cbf03",
+    "tools/rend2/stock_aesthetic/audit.py": "53c027e3ecf411ef21cda624f4dbfaa8901e7ed12e8daf5bbc4bbd2a974e88c7",
+    "tools/rend2/stock_aesthetic/discover.py": "fd42ac4c33e7f46af25888b46813d1a5fa2a2538c330f6d59a11261ef9689047",
+    "tools/rend2/stock_aesthetic/report.py": "cedf8ac3c74b40311cad7ff39af0116c8cea2fcdeba0e24e86acb67d0e3342a5",
+    "tools/rend2/stock_aesthetic/run.py": "604f1f8f0cd3e0dddc5c290f08b86a4a5aeb3fe5a8ccf4ae5d01d682ede722ed",
+    "tools/rend2/stock_aesthetic/test_protocol.py": "69bcb03c0aa52ff12d3caa282939b7e0f8f805ac4ee33588c0afa6297e928154",
+    "tools/rend2/stock_audit/policy-v1.json": "c8e9fcd3bd15786704defd8ab616c27310824c820eeb89563d419cebfa3fffd5",
+    "tools/rend2/stock_audit/run.py": "c8d1189419df0982a33423757b9963d339a9455a5ed9f94a0b7102e1da9622c1"
+  },
+  "inventory": [
+    {
+      "bytes": 1770292,
+      "map": "academy1",
+      "member": "maps/academy1.bsp",
+      "mode": "sp",
+      "sha256": "d50ad832c18a08c5f57c9cc1e1e6048d9a7cd50b33b6d70c3897ff9fffbc3ad3"
+    },
+    {
+      "bytes": 1606072,
+      "map": "academy2",
+      "member": "maps/academy2.bsp",
+      "mode": "sp",
+      "sha256": "0d90065d0abb3831a5e076729044608fc3ac918610c8531c51383669a3bdcdd5"
+    },
+    {
+      "bytes": 1601976,
+      "map": "academy3",
+      "member": "maps/academy3.bsp",
+      "mode": "sp",
+      "sha256": "d5f21febdf169f7f66661dd3c7a4db0e34caf9e6633bc9329abaab3e036868a1"
+    },
+    {
+      "bytes": 1687236,
+      "map": "academy4",
+      "member": "maps/academy4.bsp",
+      "mode": "sp",
+      "sha256": "ca034a412105046fbe3f561855649caa9d91bc3661f34f4184d65ed1f577d023"
+    },
+    {
+      "bytes": 1601176,
+      "map": "academy5",
+      "member": "maps/academy5.bsp",
+      "mode": "sp",
+      "sha256": "55c8b1919b86fa2a98501cc4ae9de535c7f066143c2d69e4a22adc16ba662ed4"
+    },
+    {
+      "bytes": 4098704,
+      "map": "academy6",
+      "member": "maps/academy6.bsp",
+      "mode": "sp",
+      "sha256": "e0b93d90d637602159874a3b746d25496b97b3f021db63a5210dc76058752889"
+    },
+    {
+      "bytes": 13970616,
+      "map": "hoth2",
+      "member": "maps/hoth2.bsp",
+      "mode": "sp",
+      "sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d"
+    },
+    {
+      "bytes": 13920700,
+      "map": "hoth3",
+      "member": "maps/hoth3.bsp",
+      "mode": "sp",
+      "sha256": "821e6413f10e1e4aca7b6a5fd1bc57a6731bce5d9075cb0175208915cee5cb32"
+    },
+    {
+      "bytes": 12565400,
+      "map": "kor1",
+      "member": "maps/kor1.bsp",
+      "mode": "sp",
+      "sha256": "6f70c0e44ed63ab8f73a4739e2697d4ed500b1d75bc46697a2e797a05e918223"
+    },
+    {
+      "bytes": 11963536,
+      "map": "kor2",
+      "member": "maps/kor2.bsp",
+      "mode": "sp",
+      "sha256": "b3e222b0fecf9fdeb8b5b03d2202d6ad203bc2f9753fbcc2ac47f3a482d2de8f"
+    },
+    {
+      "bytes": 8269312,
+      "map": "mp/ctf1",
+      "member": "maps/mp/ctf1.bsp",
+      "mode": "mp",
+      "sha256": "375ba6a60ec25efde0a9744286d1e2998ff2a039eb9374290d0dc3b6e8d7bd36"
+    },
+    {
+      "bytes": 7863876,
+      "map": "mp/ctf2",
+      "member": "maps/mp/ctf2.bsp",
+      "mode": "mp",
+      "sha256": "74aac9245380a89f867b76dd9442f566bc5f92352df8f492e032d21fdbee21c8"
+    },
+    {
+      "bytes": 8488040,
+      "map": "mp/ctf3",
+      "member": "maps/mp/ctf3.bsp",
+      "mode": "mp",
+      "sha256": "f1b13a2352c08aa385e7c61a3bde41dd76c0713aeb11843d09767ae24a147616"
+    },
+    {
+      "bytes": 7521088,
+      "map": "mp/ctf4",
+      "member": "maps/mp/ctf4.bsp",
+      "mode": "mp",
+      "sha256": "f4ee5ef33c197208299b58c7ef1eeead216c7e70d284dd8f9380030206e9ef9f"
+    },
+    {
+      "bytes": 9502232,
+      "map": "mp/ctf5",
+      "member": "maps/mp/ctf5.bsp",
+      "mode": "mp",
+      "sha256": "f9d54f49f12ab7d639003fae92e6f0e8dd106ad25db7d8a626c4d470f6e21d4b"
+    },
+    {
+      "bytes": 3036068,
+      "map": "mp/duel1",
+      "member": "maps/mp/duel1.bsp",
+      "mode": "mp",
+      "sha256": "113bdcf0732ae1abc15ef1e43d13c00bcdca64d465e87c08534e50e2a19b92f2"
+    },
+    {
+      "bytes": 3778576,
+      "map": "mp/duel10",
+      "member": "maps/mp/duel10.bsp",
+      "mode": "mp",
+      "sha256": "6112dfeeb7f224697c3a96794e9c0cb0f05d421c712b64b70c635f11e81de461"
+    },
+    {
+      "bytes": 6073332,
+      "map": "mp/duel2",
+      "member": "maps/mp/duel2.bsp",
+      "mode": "mp",
+      "sha256": "073d7598a2d4f14d93329d3e5168703affa2b6ee1f83641cb2008dd147c5f48e"
+    },
+    {
+      "bytes": 2456616,
+      "map": "mp/duel3",
+      "member": "maps/mp/duel3.bsp",
+      "mode": "mp",
+      "sha256": "025f0bdc9302ff2f1065a6455c80838d3973452fe403340c276a687643191790"
+    },
+    {
+      "bytes": 1167576,
+      "map": "mp/duel4",
+      "member": "maps/mp/duel4.bsp",
+      "mode": "mp",
+      "sha256": "6575914ae34291ae645889a14650184157774a83f094e3fc43feed2a88ff65f0"
+    },
+    {
+      "bytes": 6900108,
+      "map": "mp/duel5",
+      "member": "maps/mp/duel5.bsp",
+      "mode": "mp",
+      "sha256": "61f10807019f500f806530dca29983e712fa8b388bac5a5c78999a5652abe3ca"
+    },
+    {
+      "bytes": 7619140,
+      "map": "mp/duel6",
+      "member": "maps/mp/duel6.bsp",
+      "mode": "mp",
+      "sha256": "809e34d89b4803501da145a174421c7df95212614c246dafabf4083d502b0e2c"
+    },
+    {
+      "bytes": 2730040,
+      "map": "mp/duel7",
+      "member": "maps/mp/duel7.bsp",
+      "mode": "mp",
+      "sha256": "8ae1d672900e668e989befad1c152cb1f4e79e41a1fb283cb4189f5f151409ca"
+    },
+    {
+      "bytes": 5689552,
+      "map": "mp/duel8",
+      "member": "maps/mp/duel8.bsp",
+      "mode": "mp",
+      "sha256": "c2f45d181dc27d7fd15e5673d4e22483a79a2bc0d1da751ea05cfd11a513d1f6"
+    },
+    {
+      "bytes": 5004800,
+      "map": "mp/duel9",
+      "member": "maps/mp/duel9.bsp",
+      "mode": "mp",
+      "sha256": "d24e57f38b0f3912da89ad95e241c427a5bf3a98718cff477b95a6089677c8c4"
+    },
+    {
+      "bytes": 4617652,
+      "map": "mp/ffa1",
+      "member": "maps/mp/ffa1.bsp",
+      "mode": "mp",
+      "sha256": "87c7732e8439ab01cc7b7d2bc17333133102a16d42b086636b4af0a7ed0d6f9a"
+    },
+    {
+      "bytes": 8168232,
+      "map": "mp/ffa2",
+      "member": "maps/mp/ffa2.bsp",
+      "mode": "mp",
+      "sha256": "31f2213300fa712d1a53e22d26e5d7b93a35d46c7f3e0eba6a8fd399129a8f0d"
+    },
+    {
+      "bytes": 7577200,
+      "map": "mp/ffa3",
+      "member": "maps/mp/ffa3.bsp",
+      "mode": "mp",
+      "sha256": "2a448530b908761dd797a02f6530bbe2deb6597f1bc58d9c458e6d62619d5b05"
+    },
+    {
+      "bytes": 7430960,
+      "map": "mp/ffa4",
+      "member": "maps/mp/ffa4.bsp",
+      "mode": "mp",
+      "sha256": "e03434915b363de24d4e695616b3577d8af969032ce8ea6ca649a50e70d8607d"
+    },
+    {
+      "bytes": 9402608,
+      "map": "mp/ffa5",
+      "member": "maps/mp/ffa5.bsp",
+      "mode": "mp",
+      "sha256": "1c7588718f30566c4d8ded86982dc2092ec7fccad3215f46baba912ac15e4034"
+    },
+    {
+      "bytes": 11003576,
+      "map": "mp/siege_desert",
+      "member": "maps/mp/siege_desert.bsp",
+      "mode": "mp",
+      "sha256": "1df3401c7d57c85d291397a5217da41ce4718f4a0184347e205ca22f262e79b1"
+    },
+    {
+      "bytes": 11127580,
+      "map": "mp/siege_hoth",
+      "member": "maps/mp/siege_hoth.bsp",
+      "mode": "mp",
+      "sha256": "77c245169a6cfc34827817191f1d9356ec40f41e8c655a576127316c6c02ffbc"
+    },
+    {
+      "bytes": 10658028,
+      "map": "mp/siege_korriban",
+      "member": "maps/mp/siege_korriban.bsp",
+      "mode": "mp",
+      "sha256": "9fbc39ab918b38dfa3a46c5bfdb03a24e66fcda90fb21fd3f78b7943c53081a2"
+    },
+    {
+      "bytes": 10833924,
+      "map": "t1_danger",
+      "member": "maps/t1_danger.bsp",
+      "mode": "sp",
+      "sha256": "6a24f3cd86d93766034fd064be480cd3f3e70cd512733c9826ecbc64cc444ca3"
+    },
+    {
+      "bytes": 13503020,
+      "map": "t1_fatal",
+      "member": "maps/t1_fatal.bsp",
+      "mode": "sp",
+      "sha256": "cc70ab3a7e5867bb72cc215430790a3e82078fbf40fb598a2306d4f2a2752de5"
+    },
+    {
+      "bytes": 730168,
+      "map": "t1_inter",
+      "member": "maps/t1_inter.bsp",
+      "mode": "sp",
+      "sha256": "99fbc13b225212ed5d4ab687fcaa3d53c715e014772e02dbf9732f2aa72526b8"
+    },
+    {
+      "bytes": 14293596,
+      "map": "t1_rail",
+      "member": "maps/t1_rail.bsp",
+      "mode": "sp",
+      "sha256": "56d4a5e115592160404ba770366ea6055ed9ae494fc4ff12c776c6c6ef3df5db"
+    },
+    {
+      "bytes": 10203160,
+      "map": "t1_sour",
+      "member": "maps/t1_sour.bsp",
+      "mode": "sp",
+      "sha256": "f73090ab42d074a5cce2b771c15fac7cd1bad534e2615aa9b589e07b410253b9"
+    },
+    {
+      "bytes": 10551572,
+      "map": "t1_surprise",
+      "member": "maps/t1_surprise.bsp",
+      "mode": "sp",
+      "sha256": "f13bb500d627b7fef809df16a69c108209100b0397bee60504c3cbfd02e2526e"
+    },
+    {
+      "bytes": 12371844,
+      "map": "t2_dpred",
+      "member": "maps/t2_dpred.bsp",
+      "mode": "sp",
+      "sha256": "9cd59f4e789d23b5e329ebf1e43f9beb785e56e581d1933bff12efb178ba16e2"
+    },
+    {
+      "bytes": 16977060,
+      "map": "t2_rancor",
+      "member": "maps/t2_rancor.bsp",
+      "mode": "sp",
+      "sha256": "fb05a9542681f168fa2788a09efc0264bea6f95035b940ae28dc773e6f0b80aa"
+    },
+    {
+      "bytes": 12342268,
+      "map": "t2_rogue",
+      "member": "maps/t2_rogue.bsp",
+      "mode": "sp",
+      "sha256": "f99457555d9119591e006b775cf1af22d6fc53b2f1ac39f548eb15e050af201e"
+    },
+    {
+      "bytes": 14157324,
+      "map": "t2_trip",
+      "member": "maps/t2_trip.bsp",
+      "mode": "sp",
+      "sha256": "1427cdb3ebd9061b62376defe0b56728a9b2d5a0cd61b44938fe73f40cb44c24"
+    },
+    {
+      "bytes": 13861188,
+      "map": "t2_wedge",
+      "member": "maps/t2_wedge.bsp",
+      "mode": "sp",
+      "sha256": "9288e95c18d9fa8517041632e8c932be138eebe8e31b698252c86515a567c5a9"
+    },
+    {
+      "bytes": 15817700,
+      "map": "t3_bounty",
+      "member": "maps/t3_bounty.bsp",
+      "mode": "sp",
+      "sha256": "41d07425d8560c5e6dd8086021485646df3d9d04f45546a51b5d0ec8b606c5fa"
+    },
+    {
+      "bytes": 10690544,
+      "map": "t3_byss",
+      "member": "maps/t3_byss.bsp",
+      "mode": "sp",
+      "sha256": "5f548263a1b36fcc823c30a7769e3c8cb4913e395a6022bf390684de5525841d"
+    },
+    {
+      "bytes": 10431564,
+      "map": "t3_hevil",
+      "member": "maps/t3_hevil.bsp",
+      "mode": "sp",
+      "sha256": "fc8c69596123f0919684ead355e5b91088330beda7b5cfe30824f67f612c9bf7"
+    },
+    {
+      "bytes": 13029872,
+      "map": "t3_rift",
+      "member": "maps/t3_rift.bsp",
+      "mode": "sp",
+      "sha256": "4fa3f617d901bca18fb3c016da52de1e335a2e0614fd91907e1ef2a9520eab09"
+    },
+    {
+      "bytes": 12754764,
+      "map": "t3_stamp",
+      "member": "maps/t3_stamp.bsp",
+      "mode": "sp",
+      "sha256": "886680f55a494d9accd5fcd7de70b952962e8d8741169dedf15f3a5f91e62101"
+    },
+    {
+      "bytes": 15512472,
+      "map": "taspir1",
+      "member": "maps/taspir1.bsp",
+      "mode": "sp",
+      "sha256": "42e022cc643416a6687c7cf2596b7f0d4353f0a072b958c224281790e1cfe263"
+    },
+    {
+      "bytes": 18006316,
+      "map": "taspir2",
+      "member": "maps/taspir2.bsp",
+      "mode": "sp",
+      "sha256": "11c2a02368faf274dbcd6cdad30201ecf868564829cb162e1809641c609075ca"
+    },
+    {
+      "bytes": 14290148,
+      "map": "vjun1",
+      "member": "maps/vjun1.bsp",
+      "mode": "sp",
+      "sha256": "d17595a53591676c0d7e3c0ec9463fb0144aa83df2333c904031b914e55b2180"
+    },
+    {
+      "bytes": 13339312,
+      "map": "vjun2",
+      "member": "maps/vjun2.bsp",
+      "mode": "sp",
+      "sha256": "cf81f39198d71a6e5f0ecf9ed7b08382d76397674492934cb07057835c49a343"
+    },
+    {
+      "bytes": 13711492,
+      "map": "vjun3",
+      "member": "maps/vjun3.bsp",
+      "mode": "sp",
+      "sha256": "b64d53773082a5b4abe773b0857803accab9ec1b430996398692c9f0ef256181"
+    },
+    {
+      "bytes": 8153500,
+      "map": "yavin1",
+      "member": "maps/yavin1.bsp",
+      "mode": "sp",
+      "sha256": "d953735df25f95a63f602b0afc2bee456ebd199a47bb1696a7b04e803d163aa3"
+    },
+    {
+      "bytes": 10959860,
+      "map": "yavin1b",
+      "member": "maps/yavin1b.bsp",
+      "mode": "sp",
+      "sha256": "bc1a632f2615d90d43187b16587e6f05eeb48033a7cd8c89057608f170c450c5"
+    },
+    {
+      "bytes": 14463500,
+      "map": "yavin2",
+      "member": "maps/yavin2.bsp",
+      "mode": "sp",
+      "sha256": "419ce33427fb689dacc8445bf2676ed1da3e561c0d43207968b39b3039a1913c"
+    }
+  ],
+  "policy": {
+    "catalogue": {
+      "mask_axis": 32,
+      "max_pieces": 250000,
+      "max_work": 1000000,
+      "threshold": 0.1
+    },
+    "coverage": "Per-ROI observation counts are independent of discovery; accepted-source support counts unique original fitting sample IDs only in accepted ROIs. Neither is source recall or whole-map readiness. ROI overlap is not summed as unique coverage.",
+    "discovery": "Unmodified ASR24 original-grid/static-world fixture ranking: >=500 WU^2, <=256 eligible fixtures, 384 WU radius, 30 degrees, colour cosine >=0.85, fixed 4 WU stand-off; dynamic-map refusal retained",
+    "fit": "ASR24 local128/common-normals/receiver-path; first three ranked candidates having >=3 records; one to three permitted; unchanged admission, fitting, validation, held-out and frozen-removal gates",
+    "historical_source_certified": false,
+    "independent_rois": {
+      "count": 6,
+      "half_extent": 256,
+      "selection": "Original world planar surface vertex centroids + 4 WU signed normal; minimum SHA256(map hash/surface ordinal) seed, then farthest-point sampling with hash tie break; no fixtures, grid RGB, luxel RGB or fit scores"
+    },
+    "inventory": {
+      "archives": [
+        "assets0.pk3",
+        "assets1.pk3",
+        "assets2.pk3",
+        "assets3.pk3"
+      ],
+      "mp": 23,
+      "sp": 34
+    },
+    "limits_seconds": {
+      "catalogue": 180,
+      "discovery": 180,
+      "evaluate": 300,
+      "prepare": 300,
+      "roi": 180,
+      "scan": 240
+    },
+    "parallel_maps": 2,
+    "runtime_publication": false,
+    "schema": "org.openjk.stock-aesthetic-audit-policy.v1",
+    "unknowns": [
+      "Historical lamp count",
+      "Exact historical XYZ",
+      "Absolute SI photometry",
+      "Historical transfer and material response",
+      "Unsupported optical shapes",
+      "MP runtime material semantics",
+      "Uncaptured external model geometry/emission"
+    ]
+  },
+  "tools": {
+    "lightrecon_aesthetic_tool.exe": "186f80851c7aa4a0e874d2ce4f1f8bd5e2d3a8d8de8096268086d0989e5e6593",
+    "lightrecon_bake_forward_tool.exe": "bf47d3882951f2dd7f7d98a22b631d521f96cfe3429d7b1b074091eb8ef33403",
+    "lightrecon_dataset_quality.exe": "f9b299456fb65dc01dda8c96430ca2922717c28b20cc72101c6f17f17b673709",
+    "lightrecon_dataset_roi.exe": "d8279afe6f5c6e26c872b37142517e36b65ddfc5f69a877eea15d2fc9fdd7050",
+    "lightrecon_grid_geometry_tool.exe": "d41498638e816a3b0ede08d41d7d8a2c95a8fd059fdde3a1df29e55385188b91",
+    "lightrecon_solar_audit.exe": "5731ed5365d01d8eda6af4d71719f9c2e6682d7aeee20726bb8f6762d054eaf1"
+  }
+}

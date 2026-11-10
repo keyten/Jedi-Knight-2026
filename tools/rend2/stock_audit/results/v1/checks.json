@@ -1,0 +1,98 @@
+{
+  "calibrated_irradiance": false,
+  "catalogues_rehashed": 45,
+  "current_captures_rehashed": 37,
+  "diagnostic_scripts": {
+    "__init__.py": "f95cd7b08ca139b1a98339ebd69f30bef623b9267cc71c857425ef6dd475b74a",
+    "collect.py": "0c68ddea5d2bdcb20ca169eb9464f904ad218b7d2a9a0412fc87bb4dd8db37ad",
+    "packet.py": "cdeecf02e61aca3fd3702d01ba95819c437e8aafe39a21dbf8b31be4dfb331fa",
+    "response.py": "ceb1eb30750b0152fab4e12a12d4a2580487d8894a6cd8ada81d7088a536eff0",
+    "run.py": "c8d1189419df0982a33423757b9963d339a9455a5ed9f94a0b7102e1da9622c1",
+    "test_audit.py": "3899ac5fd31226bb0d29a50d3fe4019871c9633ac7d5f4394e582de0fdd557a4",
+    "verify.py": "42eeceb9a02df1690ceb458a193d2c99d858d5db58d1ee412f52d76d10c31ad3"
+  },
+  "fitting_regions": [
+    {
+      "disjoint_geometric_blocks": true,
+      "disjoint_sample_ids": true,
+      "map": "mp/duel10",
+      "maximum_original_face_plane_error_world": 0.0,
+      "original_rgb8_rows": 50,
+      "region": "duel10-grid-1"
+    },
+    {
+      "disjoint_geometric_blocks": true,
+      "disjoint_sample_ids": true,
+      "map": "mp/duel10",
+      "maximum_original_face_plane_error_world": 0.0,
+      "original_rgb8_rows": 57,
+      "region": "duel10-grid-2"
+    },
+    {
+      "disjoint_geometric_blocks": true,
+      "disjoint_sample_ids": true,
+      "map": "mp/duel7",
+      "maximum_original_face_plane_error_world": 0.0,
+      "original_rgb8_rows": 65,
+      "region": "duel7-grid-1"
+    },
+    {
+      "disjoint_geometric_blocks": true,
+      "disjoint_sample_ids": true,
+      "map": "mp/duel7",
+      "maximum_original_face_plane_error_world": 0.0,
+      "original_rgb8_rows": 109,
+      "region": "duel7-grid-2"
+    },
+    {
+      "disjoint_geometric_blocks": true,
+      "disjoint_sample_ids": true,
+      "map": "mp/duel7",
+      "maximum_original_face_plane_error_world": 0.0,
+      "original_rgb8_rows": 144,
+      "region": "duel7-grid-3"
+    }
+  ],
+  "historical_core_and_canonical_files_unchanged": 113,
+  "historical_source_certified": false,
+  "implementation_and_tools_unchanged": true,
+  "native_fit_repeats": [
+    {
+      "byte_identical": true,
+      "region": "duel10-grid-1"
+    },
+    {
+      "byte_identical": true,
+      "region": "duel10-grid-2"
+    },
+    {
+      "byte_identical": true,
+      "region": "duel7-grid-1"
+    },
+    {
+      "byte_identical": true,
+      "region": "duel7-grid-2"
+    },
+    {
+      "byte_identical": true,
+      "region": "duel7-grid-3"
+    }
+  ],
+  "native_regressions": {
+    "failed": 0,
+    "passed": 10,
+    "scope": "aesthetic, sparse, occupancy, lightmaps, grid_evidence, shape, bsp_capture, emitter_support, shape_selection, receiver_support",
+    "total_seconds": 16.8
+  },
+  "one_fixture_adapter_prepared_before_scoring": true,
+  "original_bsps_checked": 57,
+  "original_rgb8_rows_checked": 425,
+  "original_source_images_checked": 193,
+  "preserved_asr24_native_results_byte_identical": true,
+  "python_regressions": {
+    "errors": 0,
+    "failures": 0,
+    "passed": 10
+  },
+  "schema": "org.openjk.stock-aesthetic-audit-checks.v1"
+}

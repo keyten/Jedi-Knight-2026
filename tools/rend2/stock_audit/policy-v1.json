@@ -1,0 +1,14 @@
+{
+  "schema": "org.openjk.stock-aesthetic-audit-policy.v1",
+  "inventory": {"sp": 34, "mp": 23, "archives": ["assets0.pk3", "assets1.pk3", "assets2.pk3", "assets3.pk3"]},
+  "catalogue": {"mask_axis": 32, "max_work": 1000000, "max_pieces": 250000, "threshold": 0.1},
+  "discovery": "Unmodified ASR24 original-grid/static-world fixture ranking: >=500 WU^2, <=256 eligible fixtures, 384 WU radius, 30 degrees, colour cosine >=0.85, fixed 4 WU stand-off; dynamic-map refusal retained",
+  "fit": "ASR24 local128/common-normals/receiver-path; first three ranked candidates having >=3 records; one to three permitted; unchanged admission, fitting, validation, held-out and frozen-removal gates",
+  "independent_rois": {"count": 6, "half_extent": 256, "selection": "Original world planar surface vertex centroids + 4 WU signed normal; minimum SHA256(map hash/surface ordinal) seed, then farthest-point sampling with hash tie break; no fixtures, grid RGB, luxel RGB or fit scores"},
+  "limits_seconds": {"catalogue": 180, "discovery": 180, "roi": 180, "scan": 240, "prepare": 300, "evaluate": 300},
+  "parallel_maps": 2,
+  "coverage": "Per-ROI observation counts are independent of discovery; accepted-source support counts unique original fitting sample IDs only in accepted ROIs. Neither is source recall or whole-map readiness. ROI overlap is not summed as unique coverage.",
+  "unknowns": ["Historical lamp count", "Exact historical XYZ", "Absolute SI photometry", "Historical transfer and material response", "Unsupported optical shapes", "MP runtime material semantics", "Uncaptured external model geometry/emission"],
+  "runtime_publication": false,
+  "historical_source_certified": false
+}
