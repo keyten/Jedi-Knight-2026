@@ -1,0 +1,220 @@
+{
+  "assertions_failed": 0,
+  "assertions_passed": 1038,
+  "assistance": "Codex inspection and existing automated checks; no subagents, separate reviewer or new original-target appearance inspection.",
+  "assumptions": "Existing DiffuseIntegral/RelativeIncident, scoped occupancy, fixed points at 4 WU stand-off; conditional NetRadiant encoding, gain 1, relative RGB <=100000 and one shared nuisance RGB <=255. RGB8 is not calibrated irradiance.",
+  "branch": "rend2-unified-wip",
+  "commands": [
+    {
+      "byte_identical_to_AR34": true,
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_aesthetic_tool.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel10\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel10_all.jkobs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-admission-v2.txt",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-held-v2.txt"
+      ],
+      "exit_code": 0,
+      "name": "dummy-admission",
+      "reused_completed_first_invocation": true,
+      "stderr": {
+        "path": "build/ar35-v1/dummy-admission.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "path": "build/ar35-v1/dummy-admission.stdout",
+        "sha256": "d3f81c2a4e68889970402d7821c08adf561c7c2b7f9002fcfb2f6d2053d4167f"
+      },
+      "wall_seconds": null
+    },
+    {
+      "byte_identical_to_AR34": true,
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_aesthetic_tool.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel10\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel10_all.jkobs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-coverage-0.txt",
+        "--coverage"
+      ],
+      "exit_code": 0,
+      "name": "trim-coverage-0",
+      "reused_completed_first_invocation": true,
+      "stderr": {
+        "path": "build/ar35-v1/trim-coverage-0.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "path": "build/ar35-v1/trim-coverage-0.stdout",
+        "sha256": "4b033985709e7be71b65870c355deb3accf15082e323f83a77a88ed0a957da8c"
+      },
+      "wall_seconds": null
+    },
+    {
+      "byte_identical_to_AR34": true,
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_aesthetic_tool.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel10\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel10_all.jkobs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-coverage-1.txt",
+        "--coverage"
+      ],
+      "exit_code": 0,
+      "name": "trim-coverage-1",
+      "reused_completed_first_invocation": true,
+      "stderr": {
+        "path": "build/ar35-v1/trim-coverage-1.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "path": "build/ar35-v1/trim-coverage-1.stdout",
+        "sha256": "8bbef955ffd077b174e53d39fae4729f0ca9a752ccc46ca42e985c38fec04b9b"
+      },
+      "wall_seconds": null
+    },
+    {
+      "byte_identical_to_AR34": true,
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_aesthetic_tool.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel10\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel10_all.jkobs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\joint-coverage.txt",
+        "--coverage"
+      ],
+      "exit_code": 0,
+      "name": "joint-coverage",
+      "reused_completed_first_invocation": true,
+      "stderr": {
+        "path": "build/ar35-v1/joint-coverage.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "path": "build/ar35-v1/joint-coverage.stdout",
+        "sha256": "5a9acd3f55eff78ee9a23948e2af1b7c73c7a1d3b80b8b0c259300267e91527a"
+      },
+      "wall_seconds": null
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK\\build\\toolchain\\w64devkit\\bin\\ctest.exe",
+        "--test-dir",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc",
+        "--output-on-failure",
+        "--timeout",
+        "300",
+        "-R",
+        "^lightrecon_(aesthetic|sparse|occupancy|bake_forward|shape|emitter_support|shape_selection|receiver_support)$"
+      ],
+      "exit_code": 0,
+      "name": "native-regressions",
+      "reused_completed_first_invocation": true,
+      "stderr": {
+        "path": "build/ar35-v1/native-regressions.stderr",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "path": "build/ar35-v1/native-regressions.stdout",
+        "sha256": "f0dcc9f919327c956a1004b14a10b52bb76bb260ac2e365b7764036605a1d2d7"
+      },
+      "wall_seconds": null
+    },
+    {
+      "command": [
+        "C:\\Python38\\python.exe",
+        "-m",
+        "unittest",
+        "tools.rend2.stock_aesthetic.test_protocol",
+        "tools.rend2.stock_audit.test_audit",
+        "-v"
+      ],
+      "exit_code": 0,
+      "name": "stock-protocol-regressions",
+      "reused_completed_first_invocation": true,
+      "stderr": {
+        "path": "build/ar35-v1/stock-protocol-regressions.stderr",
+        "sha256": "a094545c647806cff1486dbc0e895258cccd575c2dede6595c277437ed5f0d6a"
+      },
+      "stdout": {
+        "path": "build/ar35-v1/stock-protocol-regressions.stdout",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "wall_seconds": null
+    }
+  ],
+  "coverage": "No new accepted A/B/C/D coverage. Two visible A candidates retain D/original-data fallback; no B lamp or C asset.",
+  "date": "2026-11-10",
+  "dummy_native_fit_work": 16422,
+  "final_appearance_evaluations": 0,
+  "individual_removal_experiments": 0,
+  "inspected_manifests": [
+    {
+      "path": "tools/rend2/stock_aesthetic/results/v1/manifest.json",
+      "sha256": "3b3fab9dfe4058590d25b633728769234e35358f3e696c4c7f1a75bf896a3cf6"
+    },
+    {
+      "path": "tools/rend2/stock_audit/results/v1/manifest.json",
+      "sha256": "db48b1f513f7cfce6f2bc02e8d6ad9b31ec8c7054d4d8ba8e59766fe285aa346"
+    },
+    {
+      "path": "tools/rend2/aesthetic_relighting/results/ar34-v1/manifest.json",
+      "sha256": "6dc354e07207b07f9614b64238c433082d5089f181afa9084b638ce60b69033f"
+    },
+    {
+      "path": "build/asr25-v1/protocol.json",
+      "sha256": "83698daacae11af605b0352f0147fbb1195124e91f8c401d45d22bf9593dbe7d"
+    }
+  ],
+  "integration_started": false,
+  "integrity_details": {
+    "path": "build/ar35-v1/detailed-checks.json",
+    "sha256": "78fdbb781703f572baf7f2a2567200533be7dce2e0cde3fb29cc2accd952911e"
+  },
+  "integrity_groups": {
+    "AR34_private": 42,
+    "AR34_public": 5,
+    "ASR24_private": 209,
+    "ASR25_core_subset": 113,
+    "ASR25_implementation": 150,
+    "ASR25_native_tools": 6,
+    "accepted_witnesses": 12,
+    "frozen_implementation_protocol": 1,
+    "selected_scope_inputs": 4,
+    "stock_aesthetic/results/v1": 4,
+    "stock_audit/results/v1": 6
+  },
+  "joint_maximum_sum_coefficient_error": 0,
+  "joint_rows": 141,
+  "missing_required_input": "docs/rend2-relighting/contact-plane-diagnosis.md and explicit AR-41 authorization receipt",
+  "native_regression_tests_passed": 8,
+  "next_action": "Complete the existing AR-41 diagnosis and exact bounded authorization; otherwise send this blocked receipt to AR-36. No production code or original-target fitting under FrozenBlocked.",
+  "original_target_fit_cycles": 0,
+  "outcome": "Blocked-MissingDecision/SourceSupport",
+  "policy": {
+    "path": "tools/rend2/aesthetic_relighting/policies/viability-v1.json",
+    "sha256": "96da96c0ccd896bca3751f539b2d8860f4e1d0580f5d947c60c906b5a84a28d0"
+  },
+  "product_gate": "Unknown",
+  "production_implementation_changed": false,
+  "receipt_finalization_failure": {
+    "effect": "All checks/subprocesses completed; no evidence file emitted. Resolve receipt path, reuse preserved outputs without repeating native/tests. Per-process wall times unavailable; ctest log records 16.47 seconds.",
+    "error": "ValueError: relative __file__ does not start with absolute ROOT, at final ref(Path(__file__))",
+    "script": {
+      "path": "build/ar35-v1/inspect-before-receipt-path-fix.py",
+      "sha256": "9575add5be5aa1c49ea53063ad868df857474ecc86546233a4ebfcb4be463273"
+    }
+  },
+  "remote": "git@github.com:keyten/BetterJK.git",
+  "repair_started": false,
+  "revision": "25bd45803c8918b5059a3add56f123ac1f81f4c6",
+  "selected_parameter_replays": 0,
+  "stock_protocol_tests_passed": 10,
+  "task": "AR-35",
+  "task_status": "Blocked",
+  "trim_response_states": {
+    "both_positive": 0,
+    "both_zero": 199,
+    "first_only": 57,
+    "second_only": 64,
+    "unknown": 74
+  },
+  "unavailable_local_configurations": 3,
+  "verification_script": {
+    "path": "build/ar35-v1/inspect.py",
+    "sha256": "4d0d16f4d3f8e6d998cebcb281fda63db69c97a86f85abe343163b552aa5a91a"
+  }
+}

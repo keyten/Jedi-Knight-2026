@@ -1,0 +1,11 @@
+{
+  "files": {
+    "docs/rend2-relighting/pilot-wiring-status.md": "ef139d6ddd672950235c3256c156b9a583acd28d5d87a4b611a9c074f01d7c82",
+    "tools/rend2/aesthetic_relighting/results/ar35-v1/evidence.json": "8894a0e2f9986d7f31ac31d53f201646e2056f9d43290d9f4b5946ac88b12e9c"
+  },
+  "licensed_geometry_redistributed": false,
+  "plan": "Results Log / AR-35; excluded from manifest to avoid self-reference",
+  "policy_sha256": "96da96c0ccd896bca3751f539b2d8860f4e1d0580f5d947c60c906b5a84a28d0",
+  "task": "AR-35",
+  "task_status": "Blocked"
+}
