@@ -1,0 +1,404 @@
+{
+  "acceptance": {
+    "accepted_scope": "conditional two-fixture same-material receiver demonstration only; no complete room, map, historical source count, SI or runtime asset",
+    "motifs": {
+      "brightness_definition": "Mean of encoded RGB channels; all four frozen pairs need absolute original contrast >=8; prediction and original contrast signs must agree in at least 3/4 pairs",
+      "brightness_order_agreement_fraction_min": 0.75,
+      "chromaticity_mean_absolute_sum_max": 0.15,
+      "chromaticity_scope": "Final rows with mean original code >=16; normalize RGB by sum; mean per-row L1 chromaticity error <=0.15; at least four qualifying rows covering both source-positive subsets. Report fixture-neutral motif and observed receiver chroma separately; unavailable metric cannot pass",
+      "contrast_pairs_required_per_source": 2,
+      "controls": {
+        "path": "build/ar34-v1/frozen-control-pairs.json",
+        "sha256": "47a23ebdbb4f0f2a376639cc2087b92567ac9da2e4319af84949cdba087a7a2f"
+      },
+      "maximum_pair_distance_world": 128,
+      "minimum_disjoint_pairs_per_source": 2,
+      "observed_contrast_codes_min": 8,
+      "pairs": "nearest same-chart lit/known-zero pairs selected by geometry, not observed darkness; zero direct response need not mean black total appearance",
+      "shadow_control_median_channel_interval_residual_codes_max": 16,
+      "unavailable_or_unmeasurable_motif": "Non-Go, explicit failed/unavailable gate; do not delete dark controls or alter nuisance"
+    },
+    "numeric": {
+      "all_fold_scores_available": true,
+      "converged": true,
+      "heldout_mse_ratio_strict_max": 0.9,
+      "heldout_robust_ratio_strict_max": 0.95,
+      "maximum_channel_interval_residual_codes_max": 48,
+      "no_power_or_background_upper_bound_hit": true,
+      "per_chart_mse_ratio_max": 1.1,
+      "selected_active_sources": 2,
+      "selected_two_source_mse_ratio_to_best_preregistered_singleton_max": 0.95,
+      "singleton_rule": "Audit already frozen singleton parameters; never choose/refit a source or policy from final scores"
+    },
+    "original_grid": "Retain native known-static/mover-independent counts and consumer256 uncertainty as corroboration; no universal minimum for visibly supported A fixtures in this new protocol. ASR24/25 three-record gate unchanged",
+    "prerequisite": "AR-41 receipt authorizes bounded AR-35, both original named mounts native-admitted with certified side; no guard/tolerance bypass; otherwise Blocked",
+    "removal": {
+      "each_removal_worsens_global_interval_mse": true,
+      "each_source_must_worsen_own_geometry_positive_subset": true,
+      "known_zero_direct_response_must_remain_zero": true,
+      "minimum_final_rows_changing_at_least_one_code_per_source": 4,
+      "parameters_refitted": false,
+      "same_background": true,
+      "tests": [
+        "each source separately",
+        "all sources together"
+      ]
+    },
+    "spatial": {
+      "minimum_positive_rows_per_source": 4,
+      "minimum_signed_normal_bins": 2,
+      "primary_final_blocks": 8,
+      "primary_final_charts": [
+        705,
+        706,
+        707
+      ],
+      "primary_final_rows": 34,
+      "reserve_blocks": 6,
+      "reserve_charts": [
+        706,
+        707
+      ],
+      "reserve_rows": 26,
+      "reserve_scope": "Diagnostic reserve only: no same-chart known-zero pair for housing 988. Not adequate acceptance evidence; no post-final repair fit authorized",
+      "unknown": "Exclude/count unavailable response before folds; preserve known zeros; never predict black for unavailable support"
+    },
+    "validation": "Existing native baseline and all three nonempty subsets; select only on validation with existing slack 1e-4; require selected solution to contain both positive sources",
+    "visual": {
+      "blind": "Compare fixed registered original and hash-ordered on/off variants before seeing numerical scores; record variant mapping and reviewer identity/assistance",
+      "plates": [
+        "registered original/on/individual-off/all-off receiver patches",
+        "fixed XYZ spatial context and normals",
+        "residual and missing-support maps",
+        "source-image and footprint inventory"
+      ],
+      "presentation": "Encoded code values, exposure/gamma 1, identical display conversion; fixed full-chart extents and equal-world-scale context. Grey/hatch missing support; show sample footprints, never fill unmeasured world shading",
+      "ratings": [
+        "fixture attachment",
+        "three-chart brightness/color motif",
+        "shadow separation and controls",
+        "two-source coherence",
+        "visible residuals/unsupported coverage"
+      ],
+      "required": true,
+      "reviewer": "Separate recorded reviewer, human or explicitly disclosed independent review process; not the fitting operator alone; no human review claimed by AR-34",
+      "scale": "0 fail / 1 marginal / 2 pass; every dimension must be 2, no critical artifact; review absence is Unavailable"
+    }
+  },
+  "artifacts": [
+    "input/implementation/native hash freeze before original RGB fitting",
+    "every attempted selection/refusal, stdout/stderr, runtime/work counters in separate units",
+    "source inventory, exact native admission and unit-response matrix",
+    "saved parameters and optimizer-free replay",
+    "train/validation/final scores plus all subset and per-chart diagnostics",
+    "individual/all-source removal and motif controls",
+    "fixed review packet and signed separate review",
+    "AR-36 verdict, pilot-acceptance and high-level plan append"
+  ],
+  "assistance": {
+    "dummy_probe": "Literal zero targets for native admission only; native optimizer executed on dummy zeros; no original observation fit",
+    "human_independent_review_performed": false,
+    "new_original_rgb": "parser discards raw values; no new original fit/final values used or shown",
+    "operator": "Codex assistant inspected public results and licensed original geometry/source-image/old response plates; selected housing grouping and geometry-only fold design",
+    "subagents_used": false
+  },
+  "authorized_next": "AR-41 size-S read-only contact-plane diagnosis; AR-35 only after explicit bounded authorization in that receipt, otherwise AR-36 blocked verdict",
+  "boundaries": [
+    "Preserve historical solver behavior and canonical/storage meanings",
+    "No BSP/lightmap changes, unmotivated lights, GPU/runtime/world shading or double-lighting work",
+    "Unknown geometry is not empty; unavailable predictions are not black",
+    "No automatic roadmap/corpus rollout; no whole-corpus completion probability"
+  ],
+  "branch": "rend2-unified-wip",
+  "completion_revision": "a8cfaa215192dbf7693d1060ef8e8900329a3710",
+  "date": "2026-11-10",
+  "decision": "Blocked-SourceSupport",
+  "exit_decisions": [
+    "Go-Narrow only if every frozen gate passes, authorize only independently selected next regions",
+    "Repair-Wiring once before original-target fit, with causal receipt; after final exposure a new explicit management decision and fresh adequate final evidence are required",
+    "Pivot-Appearance/Background for measured model mismatch; fresh decision/policy before any added capacity",
+    "Assisted-Geometry with explicit original-evidence annotations and fresh final",
+    "Blocked-Inputs/SourceSupport/Review for missing requirements",
+    "Stop-Current-Approach after bounded negative evidence or exhausted work allowance"
+  ],
+  "failure_accounting": [
+    "Initial axial clip missed floor; retained geometry-only correction within the same fixture scope",
+    "128 WU hash folds insufficient; 64 WU hash folds insufficient; stratified 64 WU design chosen before original RGB exposure; all layouts retained",
+    "First dummy probe block-ID collision refused as leakage; corrected SHA-256 IDs retain exact role separation",
+    "Geometry-only coverage initially mislabeled as admission; corrected metadata and retained before-correction artifacts",
+    "Substantive dummy probe refuses both oblique mounts; no real-target acceptance score exists"
+  ],
+  "folds": {
+    "block_size_world": 64,
+    "design": "64 offsets [9,25,41,57]^3; known source-influence block strata; SHA-256 cell ordering; cyclic train/validation/final/reserve; maximize minimum source rows/role then lexical offset",
+    "exact_membership": {
+      "path": "build/ar34-v1/frozen-folds-geometry.json",
+      "sha256": "8d8c1a3dce86bf377296ff8dedd774a464b1310caf8c0ab0df34c73fb961fe54"
+    },
+    "final_or_reserve_original_appearance_opened": false,
+    "footprint_gap": "3 * original planar per-axis footprint radius bound + 1 WU",
+    "independence": "fresh geometry-selected receiver rows/blocks on a development map; unknown bake filtering; no independent-map, blind-human, or statistical-independence claim",
+    "offset_world": [
+      41,
+      9,
+      9
+    ],
+    "old_fitting_blocks_excluded": true,
+    "old_id_overlap": 0,
+    "prior_duel10_fitting_packets": 20,
+    "prior_unique_sample_ids": 439,
+    "roles": {
+      "final": {
+        "blocks": 8,
+        "controls": 21,
+        "positive": [
+          5,
+          8
+        ],
+        "rows": 34,
+        "surfaces": [
+          705,
+          706,
+          707
+        ]
+      },
+      "reserve": {
+        "blocks": 6,
+        "controls": 17,
+        "positive": [
+          5,
+          4
+        ],
+        "rows": 26,
+        "surfaces": [
+          706,
+          707
+        ]
+      },
+      "train": {
+        "blocks": 9,
+        "controls": 28,
+        "positive": [
+          6,
+          6
+        ],
+        "rows": 40,
+        "surfaces": [
+          705,
+          706,
+          707
+        ]
+      },
+      "validation": {
+        "blocks": 8,
+        "controls": 29,
+        "positive": [
+          5,
+          7
+        ],
+        "rows": 41,
+        "surfaces": [
+          705,
+          706,
+          707
+        ]
+      }
+    },
+    "seed": "ar34-duel10-housings-v1",
+    "source_geometry_rows": {
+      "path": "build/ar34-v1/trim-geometry-rows.json",
+      "sha256": "c7c1e066f9d8b42653b8f50bb9aff626ef09698d4550ee432d08ec3aeca8c916"
+    },
+    "target_rgb_used_for_design": false
+  },
+  "implementation_freeze": {
+    "path": "build/asr25-v1/protocol.json",
+    "sha256": "83698daacae11af605b0352f0147fbb1195124e91f8c401d45d22bf9593dbe7d"
+  },
+  "integration_authorized": false,
+  "limits": {
+    "evaluation_cycle_subprocess_wall_seconds_max": 1800,
+    "fit_and_identical_repeat_per_cycle": 1,
+    "integration_engineering_hours_max": 8,
+    "integration_size": "M",
+    "integration_tasks_max": 1,
+    "mandatory_decision_after_budget": true,
+    "maximum_rois": 2,
+    "maximum_visible_fixtures_per_roi": 4,
+    "post_final_repair_fit_authorized": false,
+    "real_target_cycles_max": 1,
+    "repair_engineering_hours_max": 4,
+    "repair_must_precede_original_target_fit": true,
+    "repair_requires_written_cause": true,
+    "repair_size": "M",
+    "repair_tasks_max": 1,
+    "second_roi_authorized": false,
+    "selected_housings": 2,
+    "selected_rois": 1,
+    "subprocess_timeout_seconds": 300,
+    "third_cycle_authorized": false
+  },
+  "model": {
+    "calibrated_irradiance": false,
+    "finite_radius_fields_md3_whole_map_prerequisites": false,
+    "gain": 1,
+    "historical_source_truth": "Unavailable",
+    "huber": 4,
+    "indirect_transport": "not modeled except bounded constant nuisance; not a C asset",
+    "law": "DiffuseIntegral",
+    "material_response": "conditional same-original-material response; no cross-material gain inference",
+    "max_sweeps": 200,
+    "native_fit_max_work": 300000000,
+    "native_sampling_max_work": 16000000,
+    "nuisance": "one shared constant RGB vector",
+    "nuisance_rgb_lower": 0,
+    "nuisance_rgb_upper": 255,
+    "output": "RelativeIncident",
+    "provider": "existing native Shape::Prepare + Block::Evaluate; Aesthetic::FitAndValidate",
+    "relative_loss_tolerance": 0.0001,
+    "source_motion_authorized": false,
+    "source_rgb_lower": 0,
+    "source_rgb_upper": 100000,
+    "transfer": "existing default Bake::NetRadiantProfile; encoded RGB8 interval/saturation comparison; unknown stock recipe and MP/SP material interpretation",
+    "unchanged_native_memory_and_ray_gates": true,
+    "weights": "existing area/block/signed-normal score weights"
+  },
+  "native_tools": {
+    "lightrecon_aesthetic_tool.exe": "186f80851c7aa4a0e874d2ce4f1f8bd5e2d3a8d8de8096268086d0989e5e6593",
+    "lightrecon_bake_forward_tool.exe": "bf47d3882951f2dd7f7d98a22b631d521f96cfe3429d7b1b074091eb8ef33403",
+    "lightrecon_dataset_quality.exe": "f9b299456fb65dc01dda8c96430ca2922717c28b20cc72101c6f17f17b673709",
+    "lightrecon_dataset_roi.exe": "d8279afe6f5c6e26c872b37142517e36b65ddfc5f69a877eea15d2fc9fdd7050",
+    "lightrecon_grid_geometry_tool.exe": "d41498638e816a3b0ede08d41d7d8a2c95a8fd059fdde3a1df29e55385188b91",
+    "lightrecon_solar_audit.exe": "5731ed5365d01d8eda6af4d71719f9c2e6682d7aeee20726bb8f6762d054eaf1"
+  },
+  "preflight": {
+    "eligible_census_rows": 30869,
+    "geometry_response_is_not_admission": true,
+    "geometry_sample_rows": 941,
+    "joint": {
+      "all_available": true,
+      "fit_performed": false,
+      "maximum_sum_coefficient_error": 0,
+      "rows": 141,
+      "target_rgb_supplied": false
+    },
+    "native_mount_admission": "All three local configurations unavailable on dummy-zero admission probe",
+    "roi_geometry": {
+      "both_positive": 18,
+      "both_zero": 604,
+      "first_only": 18,
+      "second_only": 19,
+      "unknown": 282
+    },
+    "source_admission_failure": {
+      "path": "build/ar34-v1/dummy-admission-v2.json",
+      "sha256": "c738291b081197323d40408e6ed0c1da86680b26974c9fa4b8183d307abf4bd5"
+    },
+    "trim_sample_rows": 394,
+    "trim_states": {
+      "both_positive": 0,
+      "both_zero": 199,
+      "first_only": 57,
+      "second_only": 64,
+      "unknown": 74
+    }
+  },
+  "product_gate": "Unknown; no original-target fit or final appearance evaluation",
+  "remote": "git@github.com:keyten/BetterJK.git",
+  "replay": {
+    "load_saved_parameters_without_optimizer": true,
+    "output": "research sidecar preserving source IDs/masks/poses, input/tool/policy hashes, relative RGB, nuisance, folds, predictions, availability and limitations; no new canonical schema",
+    "provider": "same frozen native unit responses and Bake::Encode as fit",
+    "required_byte_identical_fit_repeat": true,
+    "score_tolerance": "max(0.001, 1e-5 * max(1, native MSE))"
+  },
+  "revision": "dff8ea77acc1fc578239af69b17253e3a12b7c9f",
+  "schema": "org.openjk.aesthetic-relighting.viability.v1",
+  "scope": {
+    "bsp_sha256": "6112dfeeb7f224697c3a96794e9c0cb0f05d421c712b64b70c635f11e81de461",
+    "capture_sha256": "ccbb97fa534f5be8c1a318d09b52b481284d63468eb95661ab5a642d4b2b9242",
+    "catalogue": {
+      "path": "build/asr25-v1/catalogues/mp_duel10/catalogue.json",
+      "sha256": "59de1dab510a6ca2fdf0e40176ef7068ce46d2a731f7dfbc72d72a5982134e9e"
+    },
+    "exact_geometry": {
+      "path": "build/ar34-v1/pilot-scope.json",
+      "sha256": "27f0c7e9e43c9a5985abbd06b31a3159fb949462caf99a035d5bf6a5fc0901df"
+    },
+    "fixtures": [
+      {
+        "admission": "Unavailable: Named mounting surface absent at declared contact plane",
+        "id": "duel10-housing-987",
+        "material": "textures/h_evil/light1",
+        "motivation": "A-visible original glow/image/footprint on separate housing; historical bake participation unknown",
+        "original_component_ids": [
+          "39c09e3db08a8731e36cfe0313bb8b0939a98c4fabb54199d0efa8df43bca058",
+          "8417f8075c79fb0f7446f7272813335dedea7d38b020199d439b90b64c15af55"
+        ],
+        "original_world_surface": 987,
+        "representation": "One isotropic point per two-component housing, area-weighted luminous centroid + 4 WU original normal; named mount; no optimized pose"
+      },
+      {
+        "admission": "Unavailable: Named mounting surface absent at declared contact plane",
+        "id": "duel10-housing-988",
+        "material": "textures/h_evil/light1",
+        "motivation": "A-visible original glow/image/footprint on separate housing; historical bake participation unknown",
+        "original_component_ids": [
+          "360453f1f3597294d4e698ce65103d58b79a1307624f60f7b768868d677220c9",
+          "603d439eb4399630fe73d3830b3610866c242795b7a2690c8cfd98506d0e7683"
+        ],
+        "original_world_surface": 988,
+        "representation": "One isotropic point per two-component housing, area-weighted luminous centroid + 4 WU original normal; named mount; no optimized pose"
+      }
+    ],
+    "id": "duel10-oblique-housings-v1",
+    "image": {
+      "alpha_unknown": false,
+      "mask_size": [
+        32,
+        32
+      ],
+      "original_size": [
+        256,
+        128
+      ],
+      "path": "textures/h_evil/light1glow.png",
+      "sha256": "e1ed4cf3951aac58bee56d24fffa02dbfa231d98ab1d91d69622cbb2ed27f874",
+      "source": "assets1.pk3:textures/h_evil/light1glow.png",
+      "status": "decoded",
+      "transfer": "assumed_sRGB_to_relative_linear_RGB"
+    },
+    "input_paths_record": {
+      "path": "build/asr25-v1/maps/mp_duel10/inputs.json",
+      "sha256": "27857df9297d186edffc0846bc112779e6922d365282a129ff602eee9326da89"
+    },
+    "map": "mp/duel10",
+    "mixed_material_floor_and_ledge": "Geometry-only overlap controls; not accepted appearance or calibrated material transfer",
+    "no_whole_room_claim": true,
+    "receiver_material": "textures/wedge/w_windowtrim",
+    "receiver_signed_normals": [
+      "+Y",
+      "-Y"
+    ],
+    "receiver_surfaces": [
+      705,
+      706,
+      707
+    ],
+    "rows": {
+      "path": "build/asr25-v1/rows/mp_duel10.rows.jsonl.gz",
+      "sha256": "40f1be2d02aa524522e94319684aa6aa46178b2c62116f3422f9b39ba1d27621"
+    },
+    "shader": {
+      "sha256": "b917d9dc8bdde5d3292cf400ffad02b6f5b65e5cbd7002d0110823bb09355b2a",
+      "source": "assets1.pk3:shaders/hiddenevil.shader"
+    },
+    "source_metadata": {
+      "path": "build/asr25-v1/rows/mp_duel10.source.json",
+      "sha256": "eca5567455729d821b38af0e828f448e403ce1b5566cb58ed289977a6615d2be"
+    }
+  },
+  "status": "FrozenBlocked",
+  "timezone": "Australia/Sydney",
+  "version": 1
+}

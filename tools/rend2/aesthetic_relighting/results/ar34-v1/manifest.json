@@ -1,0 +1,12 @@
+{
+  "files": {
+    "docs/rend2-relighting/viability-decision.md": "94fc8185881e25163adb2ca51f8e909e19289c82e36faefd2b394d4fd9df2afe",
+    "tools/rend2/aesthetic_relighting/README.md": "f330b692cd15f1e929b05f60e96170a3f93cf5d3a92f64b9c94af2ebf4d3ed5c",
+    "tools/rend2/aesthetic_relighting/policies/viability-v1.json": "96da96c0ccd896bca3751f539b2d8860f4e1d0580f5d947c60c906b5a84a28d0",
+    "tools/rend2/aesthetic_relighting/results/ar34-v1/evidence.json": "6cd5283c1491153f40588ebfeea17aaa3b94bfe9a0b52dafb8056b739de427cf",
+    "tools/rend2/aesthetic_relighting/results/ar34-v1/validation.json": "d049dacdd0bed38a95911c79dc0499984e149bd483c2d4a49f940c96f85756d0"
+  },
+  "licensed_geometry_redistributed": false,
+  "plan": "Results Log / AR-34 contains policy and evidence hashes; plan excluded to avoid a self-referential hash",
+  "schema": "org.openjk.aesthetic-relighting.ar34-manifest.v1"
+}

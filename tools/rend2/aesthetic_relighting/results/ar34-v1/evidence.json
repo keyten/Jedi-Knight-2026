@@ -1,0 +1,305 @@
+{
+  "checks": {
+    "asr24_private_manifest": {
+      "entries": 209,
+      "mismatches": [],
+      "missing": []
+    },
+    "asr25_core": {
+      "checked": 113,
+      "mismatches": []
+    },
+    "asr25_implementation": {
+      "checked": 150,
+      "mismatches": []
+    },
+    "asr25_tools": {
+      "checked": 6,
+      "mismatches": []
+    },
+    "control_pairs_per_source": {
+      "final": {
+        "1": 2,
+        "2": 2
+      },
+      "reserve": {
+        "1": 2
+      }
+    },
+    "dummy_admission_configuration_limitations": [
+      "Named mounting surface absent at declared contact plane",
+      "Named mounting surface absent at declared contact plane",
+      "Named mounting surface absent at declared contact plane"
+    ],
+    "original_bsp_and_source_image_fresh_hash_match": true,
+    "selected_inputs": {
+      "checked": 7,
+      "mismatches": []
+    },
+    "tools/rend2/stock_aesthetic/results/v1": {
+      "checked": 4,
+      "mismatches": []
+    },
+    "tools/rend2/stock_audit/results/v1": {
+      "checked": 6,
+      "mismatches": []
+    }
+  },
+  "completion_revision": "a8cfaa215192dbf7693d1060ef8e8900329a3710",
+  "counts": {
+    "accepted_new_configurations": 0,
+    "dummy_zero_admission_probes": 2,
+    "final_appearance_evaluations": 0,
+    "geometry_selected_scopes": 1,
+    "new_accepted_maps": 0,
+    "original_target_fit_cycles": 0,
+    "primary_final_rows": 34,
+    "repair_reserve_rows": 26
+  },
+  "date": "2026-11-10",
+  "existing_public_manifests": [
+    {
+      "path": "tools/rend2/stock_aesthetic/results/v1/manifest.json",
+      "sha256": "3b3fab9dfe4058590d25b633728769234e35358f3e696c4c7f1a75bf896a3cf6"
+    },
+    {
+      "path": "tools/rend2/stock_audit/results/v1/manifest.json",
+      "sha256": "db48b1f513f7cfce6f2bc02e8d6ad9b31ec8c7054d4d8ba8e59766fe285aa346"
+    }
+  ],
+  "existing_results": {
+    "duel10": {
+      "ablation.json": {
+        "path": "build/asr25-v1/maps/mp_duel10/fit/duel10-grid-2/ablation.json",
+        "sha256": "b7f0073caa98f44ca464bcd4e8d89eae66a8edbe44791c311a773a994d8a327f"
+      },
+      "folds.json": {
+        "path": "build/asr25-v1/maps/mp_duel10/fit/duel10-grid-2/folds.json",
+        "sha256": "670a4d9b0e92f10d7f10e0d33d6e85cf9c1a6051aed28670dce670a4681bd102"
+      },
+      "geometry.png": {
+        "path": "build/asr25-v1/maps/mp_duel10/fit/duel10-grid-2/geometry.png",
+        "sha256": "17361a84e448e48698932b6b6b2a60d2808de83ab0efc832234b5f2cd096fbb1"
+      },
+      "hypothesis.json": {
+        "path": "build/asr25-v1/maps/mp_duel10/fit/duel10-grid-2/hypothesis.json",
+        "sha256": "59081734287e2d7f084cc175116d99c4ee4ecce86fa55727605320494022dcea"
+      },
+      "receiver-response.png": {
+        "path": "build/asr25-v1/maps/mp_duel10/fit/duel10-grid-2/receiver-response.png",
+        "sha256": "8896c02262b5d4fdc24b9ada9137fff8f5b5f26be0a3957c5d0161d295494caf"
+      },
+      "result.json": {
+        "path": "build/asr25-v1/maps/mp_duel10/fit/duel10-grid-2/result.json",
+        "sha256": "c72d343d52d7c8b893f7232fd262f921e421c7a1bb23f2cb2ddd21759c70af70"
+      }
+    },
+    "duel7": {
+      "ablation.json": {
+        "path": "build/asr25-v1/maps/mp_duel7/fit/duel7-grid-3/ablation.json",
+        "sha256": "01d4121b87e4ea7b55330316996fdf61007d63ad122099a8c8e141fdaf44424e"
+      },
+      "folds.json": {
+        "path": "build/asr25-v1/maps/mp_duel7/fit/duel7-grid-3/folds.json",
+        "sha256": "d16a540bef0cf8b9b4c8f4d8374f98f5c13a924af8e3e17ca095009ac46c21d7"
+      },
+      "geometry.png": {
+        "path": "build/asr25-v1/maps/mp_duel7/fit/duel7-grid-3/geometry.png",
+        "sha256": "ea1ca7334bd65026779a611a00bb257ee7898119dba5efc94ce0b9cb610383db"
+      },
+      "hypothesis.json": {
+        "path": "build/asr25-v1/maps/mp_duel7/fit/duel7-grid-3/hypothesis.json",
+        "sha256": "f3c15eea6300011378acd4b0c529285ed479c03127b1142f14f3dda0658c412a"
+      },
+      "receiver-response.png": {
+        "path": "build/asr25-v1/maps/mp_duel7/fit/duel7-grid-3/receiver-response.png",
+        "sha256": "31e434fc5217a2f211cde523662ad9bc0bddaa3f3b6d717e7f5a1f19f7fbd348"
+      },
+      "result.json": {
+        "path": "build/asr25-v1/maps/mp_duel7/fit/duel7-grid-3/result.json",
+        "sha256": "b1f475579816fceb291fdd555ec0d0c0a91dd467829f81d1bfae1d6f63dd54d0"
+      }
+    }
+  },
+  "new_runtime_or_solver_source_changes": false,
+  "old_results_are_development": true,
+  "policy": {
+    "path": "tools/rend2/aesthetic_relighting/policies/viability-v1.json",
+    "sha256": "96da96c0ccd896bca3751f539b2d8860f4e1d0580f5d947c60c906b5a84a28d0"
+  },
+  "revision": "dff8ea77acc1fc578239af69b17253e3a12b7c9f",
+  "schema": "org.openjk.aesthetic-relighting.ar34-evidence.v1",
+  "selected_private_artifacts": {
+    "concurrent-state.json": {
+      "path": "build/ar34-v1/concurrent-state.json",
+      "sha256": "7f216d1718accc004f3d76fe4dfcb9cf90de4423d957a65ebe9dc0c5690fad4c"
+    },
+    "dummy-admission-v2.json": {
+      "path": "build/ar34-v1/dummy-admission-v2.json",
+      "sha256": "c738291b081197323d40408e6ed0c1da86680b26974c9fa4b8183d307abf4bd5"
+    },
+    "dummy-admission-v2.txt": {
+      "path": "build/ar34-v1/dummy-admission-v2.txt",
+      "sha256": "2b0cdbc275da5aa7262c6efaa3f3271de93f5bfa0943911bef7bb23256547e9c"
+    },
+    "dummy-admission.stderr": {
+      "path": "build/ar34-v1/dummy-admission.stderr",
+      "sha256": "e7b96b36ff0008640378def620952b970b43decd80367b94faa9568dcb54ef5b"
+    },
+    "dummy-admission.txt": {
+      "path": "build/ar34-v1/dummy-admission.txt",
+      "sha256": "e55e6416e79214747d6dada527af6384768395f74effee14a7f079c5069ea134"
+    },
+    "dummy-held-v2.txt": {
+      "path": "build/ar34-v1/dummy-held-v2.txt",
+      "sha256": "d24cdc41d555244166d875f4c44400557cee6eeb672bba6432be91a274b9d4f2"
+    },
+    "dummy-held.txt": {
+      "path": "build/ar34-v1/dummy-held.txt",
+      "sha256": "a9ca011d56bad44175657f6c0f1523e8b991febf1ca382fb355f3e36ba559266"
+    },
+    "fold-layouts-64.json": {
+      "path": "build/ar34-v1/fold-layouts-64.json",
+      "sha256": "caa73949d9117111728b1f324e4d3d1e25c41c5d401234b0793e34a2efd46bf0"
+    },
+    "fold-layouts-stratified.json": {
+      "path": "build/ar34-v1/fold-layouts-stratified.json",
+      "sha256": "83308782b15981b0bfcc4aa714221b87ee5727907d04bebe68e678233de03611"
+    },
+    "fold-layouts.json": {
+      "path": "build/ar34-v1/fold-layouts.json",
+      "sha256": "45ad0d06cef621f81aa79f6f4141be4255885d542ab94faa8a88ac5fa2cf1339"
+    },
+    "fold-preflight-64.json": {
+      "path": "build/ar34-v1/fold-preflight-64.json",
+      "sha256": "9e4b94a9e62403bbb0a2b5940a36dc6ed33f3442158aeb227e385ec4e012ac93"
+    },
+    "fold-preflight.json": {
+      "path": "build/ar34-v1/fold-preflight.json",
+      "sha256": "6011664bebe1af00335918523e524c67fc6b2929ac6499c89ab95abdfd975a54"
+    },
+    "frozen-control-pairs.json": {
+      "path": "build/ar34-v1/frozen-control-pairs.json",
+      "sha256": "47a23ebdbb4f0f2a376639cc2087b92567ac9da2e4319af84949cdba087a7a2f"
+    },
+    "frozen-folds-geometry.json": {
+      "path": "build/ar34-v1/frozen-folds-geometry.json",
+      "sha256": "8d8c1a3dce86bf377296ff8dedd774a464b1310caf8c0ab0df34c73fb961fe54"
+    },
+    "geometry.json": {
+      "path": "build/ar34-v1/geometry.json",
+      "sha256": "5b145e1431c49e0fada206d55b450822e923cad987c69eae260223089b590961"
+    },
+    "joint-check.json": {
+      "path": "build/ar34-v1/joint-check.json",
+      "sha256": "8787fb0fedb1a911aaf21eb34e8e017063cc6f0123ab99198a603392bdcd2c9a"
+    },
+    "joint-coverage.json": {
+      "path": "build/ar34-v1/joint-coverage.json",
+      "sha256": "5259eabe844e21878c328d54d4de8d6141a724881acb2cf3675ea5fbe856c1f3"
+    },
+    "joint-coverage.txt": {
+      "path": "build/ar34-v1/joint-coverage.txt",
+      "sha256": "8dc43b0b75f4831f3cfc5c43a2ac0a2541238cf2f51c94c9f64a25d0edcaa779"
+    },
+    "pilot-coverage-0.json": {
+      "path": "build/ar34-v1/pilot-coverage-0.json",
+      "sha256": "d844de6d0dfa8c5eebeb3edd7c98761838929f0acec2a072b5702e90e0905e11"
+    },
+    "pilot-coverage-0.txt": {
+      "path": "build/ar34-v1/pilot-coverage-0.txt",
+      "sha256": "77c169d5435a9461338e30ceb875a6f798914b3e038643049ed8721f5f7cda31"
+    },
+    "pilot-coverage-1.json": {
+      "path": "build/ar34-v1/pilot-coverage-1.json",
+      "sha256": "bc548789bff1c2577cdd64b0d2210b211e414cfbcb3660d40312efdfdf2fef96"
+    },
+    "pilot-coverage-1.txt": {
+      "path": "build/ar34-v1/pilot-coverage-1.txt",
+      "sha256": "243b47fb5f928ccfcf5af54a2aaa1a1a178a1a9f7357aca5711308aff44208bb"
+    },
+    "pilot-geometry-clean.png": {
+      "path": "build/ar34-v1/pilot-geometry-clean.png",
+      "sha256": "9bda9b1461fda1d46ccbeed84b6ae5e73135909ad949ba10f185fe0408bc7679"
+    },
+    "pilot-geometry.json": {
+      "path": "build/ar34-v1/pilot-geometry.json",
+      "sha256": "2900da350fc7e8ccc543cd1ad7e6310e25eda0f512b4a966f4eebd3ec91694de"
+    },
+    "pilot-preflight-before-admission-correction.json": {
+      "path": "build/ar34-v1/pilot-preflight-before-admission-correction.json",
+      "sha256": "230902c8b678e1daa6143d84a25a905c5a629ae2e46263c418eac763e27beb84"
+    },
+    "pilot-preflight.json": {
+      "path": "build/ar34-v1/pilot-preflight.json",
+      "sha256": "cf0f7063987cb8fb5b2c1b7f7974828ff98e3d9652a2ec006179b75a88c77c82"
+    },
+    "pilot-rows.json": {
+      "path": "build/ar34-v1/pilot-rows.json",
+      "sha256": "7007208b1ebbb3e5316a56b81b1cd1d89fb841131e0a96258bb5af54a5fa30f8"
+    },
+    "pilot-scope-before-admission-correction.json": {
+      "path": "build/ar34-v1/pilot-scope-before-admission-correction.json",
+      "sha256": "f0159f52915d7ba443a50a3d07b6a684162bba72d58c3d9b9217e6f7e5d302cc"
+    },
+    "pilot-scope.json": {
+      "path": "build/ar34-v1/pilot-scope.json",
+      "sha256": "27f0c7e9e43c9a5985abbd06b31a3159fb949462caf99a035d5bf6a5fc0901df"
+    },
+    "plan-before-ar34.md": {
+      "path": "build/ar34-v1/plan-before-ar34.md",
+      "sha256": "6be406c0d077105a24e4e1bd18d0d34761e0c00fb389190a54d35f3218fa21b1"
+    },
+    "preexisting-work.json": {
+      "path": "build/ar34-v1/preexisting-work.json",
+      "sha256": "398b43a9e9fdbc1aca1063acd89a50928fd98e37367e32feb58ed17e26ab7c2b"
+    },
+    "preflight-before-admission-correction.py": {
+      "path": "build/ar34-v1/preflight-before-admission-correction.py",
+      "sha256": "a05a297084b3befc4660fe6965ad7249addaaec1d41c2d08972cd2dbc5689aed"
+    },
+    "preflight.py": {
+      "path": "build/ar34-v1/preflight.py",
+      "sha256": "1573cf122d9434bc86d1b2fc9cabb6f6e288b41b216bf8db420c1a49a256fc08"
+    },
+    "scope-before-coverage.json": {
+      "path": "build/ar34-v1/scope-before-coverage.json",
+      "sha256": "b7e274ce9402a7c6d38e230f3be3000d5ad261d7d2bbf22da2d9e90661ec71bd"
+    },
+    "source-image.png": {
+      "path": "build/ar34-v1/source-image.png",
+      "sha256": "2737711941e1c714ef272cb6d7476462b9df7794042eb19a9b2af6aaab8703cc"
+    },
+    "trim-coverage-0.json": {
+      "path": "build/ar34-v1/trim-coverage-0.json",
+      "sha256": "1fd8fea9a1a89d67a798a489c691e766a3d5b03f1a336d053cd468e7d2d77ba7"
+    },
+    "trim-coverage-0.txt": {
+      "path": "build/ar34-v1/trim-coverage-0.txt",
+      "sha256": "8c3eff891d32b3976ccbe3ae13eb75ecc17f7a8167d5002e5e715ad6b99b14c9"
+    },
+    "trim-coverage-1.json": {
+      "path": "build/ar34-v1/trim-coverage-1.json",
+      "sha256": "5bae066e42116028f0eda092e342e5ab43bc31d15c0f25a372be25659511c48e"
+    },
+    "trim-coverage-1.txt": {
+      "path": "build/ar34-v1/trim-coverage-1.txt",
+      "sha256": "18c093ba3a2eb73ac1b778a265151ed0b44072488f6e19b738b15fdda1f245db"
+    },
+    "trim-geometry-rows.json": {
+      "path": "build/ar34-v1/trim-geometry-rows.json",
+      "sha256": "c7c1e066f9d8b42653b8f50bb9aff626ef09698d4550ee432d08ec3aeca8c916"
+    },
+    "trim-preflight.json": {
+      "path": "build/ar34-v1/trim-preflight.json",
+      "sha256": "7ed68a8b344b81ceb2344cd4facf11e53087927a38cff1cba54880b3d1b24130"
+    },
+    "verification.json": {
+      "path": "build/ar34-v1/verification.json",
+      "sha256": "f67ccc9fe0fdaf1fe43330d20ca0875b66e1cfb0aa6f489f5714beef77dc35cc"
+    }
+  },
+  "status": "InvestigationDone_ExperimentBlockedSourceSupport",
+  "tests": "Fresh hash, native unit-response/additivity and dummy admission checks; no CPU regression rerun or new original RGB8 quality measurements claimed",
+  "whole_map_accepted_area": null
+}

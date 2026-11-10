@@ -79,6 +79,8 @@ ASR24/25 использовали exploratory selection; их открытые f
 
 ### 3.2. Короткая обязательная проверка до крупной реализации
 
+**AR-34, 2026-11-10:** [решение и замороженный protocol v1](rend2-relighting/viability-decision.md) завершены с исходом **Blocked-SourceSupport**, а не с принятием multi-fixture участка. ASR25 уже закоммичен в `dff8ea77a`. Следующее действие — **AR-41 (S)**: установить причину отказа named contact plane на двух исходных наклонных светильниках. AR-35 заблокирован до предметного разрешения этого решения; при отрицательном результате AR-36 получает blocked receipt без выдуманного fit. V1 допускает один real-target fit/repeat после admission, одну M-интеграцию и максимум одну M-починку до открытия original final. Резерв не имеет контрольных пар для одного светильника и не разрешает автоматический повтор после final.
+
 1. **AR-34:** сверить существующие доказательства и выбрать один минимальный multi-fixture эксперимент. Не утверждать заново, что первый stock fit отсутствует. Зафиксировать criteria, assistance, исходную модель и причину именно этого эксперимента.
 2. **AR-35:** завершить только недостающую проводку реального участка: фиксированные видимые fixtures → native coefficients → совместный fit → saved parameters → replay и пространственный/визуальный пакет. Если путь уже полностью реализован, проверить его и не переписывать.
 3. **AR-36:** выполнить заранее ограниченный опыт и принять решение **Go / Targeted repair / Pivot model / Assisted route / Blocked / Stop**. Низкий MSE не заменяет визуальную/пространственную достаточность.
@@ -158,9 +160,10 @@ A/B, C и D учитываются отдельно по фиксированн�
 
 | ID | Тип | Размер | Задача | Входные зависимости / условие | Статус |
 |---|---|---|---|---|---|
-| [AR-34](#ar-34) | Управленческая / экспериментальная | S | Rebase viability on ASR24/25 and freeze a minimal proof | —; выполнить первым | Pending |
-| [AR-35](#ar-35) | Исполнительская | M | Complete only the missing multi-fixture pilot wiring | AR-34; reuse прежде новой реализации | Pending |
-| [AR-36](#ar-36) | Управленческая / экспериментальная | M | Decide Go, Repair, Pivot or Stop on a real stock region | AR-35 | Pending |
+| [AR-34](#ar-34) | Управленческая / экспериментальная | S | Rebase viability on ASR24/25 and freeze a minimal proof | —; расследование завершено, Outcome Blocked-SourceSupport | Done |
+| [AR-41](#ar-41) | Управленческая / экспериментальная | S | Diagnose the frozen oblique named-mount refusal | AR-34; только bounded read-only diagnosis | Pending |
+| [AR-35](#ar-35) | Исполнительская | M | Complete only the missing multi-fixture pilot wiring | AR-34, явное предметное разрешение AR-41; reuse прежде новой реализации | Blocked |
+| [AR-36](#ar-36) | Управленческая / экспериментальная | M | Decide Go, Repair, Pivot or Stop on a real stock region | AR-41 / AR-35 receipt, в том числе Blocked; fit не выдумывать | Pending |
 | [AR-01](#ar-01) | Исследовательская | S | Audit the current relighting path and reconcile work in progress | AR-36; только разрешённая ветвь | Pending |
 | [AR-02](#ar-02) | Управленческая / экспериментальная | M | Freeze aesthetic success criteria, A–D outcomes and coverage accounting | AR-01, AR-34 | Pending |
 | [AR-03](#ar-03) | Исследовательская | M | Specify an honest appearance target and material-response model | AR-01 | Pending |
@@ -255,6 +258,48 @@ Required completion and plan update:
 Open docs/rend2-aesthetic-relighting-plan.md and append a high-level result under "AR-34" in Results Log, including date/revision, actual scope and assistance, result, measured evidence and artifact paths/hashes, A/B/C/D and coverage implications, limitations, decision and concrete next action. Update the task's status honestly even when the outcome is Partial, Failed or Blocked. A completed investigation can make a valid negative decision; it cannot turn a failed product gate into Passed. Do not claim measurements that were not performed. Record approved scope/policy/prompt changes in Plan Change Log, with fresh independent final evidence when old final results informed the change.
 ```
 
+<a id="ar-41"></a>
+
+### AR-41 — Diagnose the frozen oblique named-mount refusal
+
+Тип: **Управленческая / экспериментальная**. Размер: **S**.
+
+```text
+Task ID: AR-41
+Task type: Decision / Experiment
+Estimated size: S
+Title: Diagnose the frozen oblique named-mount refusal
+
+Repository and working rules:
+Work in the supplied OpenJK-rend2 checkout for the keyten/Jedi-Knight-2026 project on the active Rend2 branch. Inspect actual HEAD, remote, git status and applicable AGENTS.md before work. Preserve unrelated, concurrent and staged changes. AR-34 inspected dff8ea77acc1fc578239af69b17253e3a12b7c9f, rend2-unified-wip, origin keyten/BetterJK; verify newer work instead of assuming this is still HEAD.
+
+Product objective and boundaries:
+Deliver data-only aesthetic relighting motivated by original visible fixtures and justified nonlocal illumination. A is visibly supported, B independently motivated unseen, C supported illumination without an identified lamp, D unresolved with original-data fallback. Historical type, XYZ, power and exactLight certification do not determine aesthetic eligibility. Preserve historical solver behavior and canonical/storage meanings. Do not change BSP/lightmaps, author unmotivated lamps, implement GPU/runtime/world shading or solve double lighting. Unknown geometry is not empty; unavailable predictions are not black; encoded RGB8 is not calibrated linear irradiance. Keep licensed geometry/XYZ/images private under ignored build/. Record all assumptions and assistance; conditional sources never become historical truth.
+
+Required inputs:
+Read docs/rend2-relighting/viability-decision.md, tools/rend2/aesthetic_relighting/policies/viability-v1.json and tools/rend2/aesthetic_relighting/results/ar34-v1/evidence.json, plus the public ASR24/25 summaries/checks/manifests. Inspect build/ar34-v1/pilot-scope.json, pilot-geometry.json, frozen-folds-geometry.json, joint-coverage.json, dummy-admission-v2.txt, dummy-held-v2.txt and dummy-admission-v2.json. Rehash the original duel10 BSP/capture/catalogue/rows and frozen executables. Read shared/rd-rend2/lightrecon/emitter_support.cpp (FromSurfaces/Check), source orientation/visibility extraction, tools/lightrecon_test/aesthetic_fit.cpp and lightrecon_aesthetic_tool.cpp. Missing required packets are a precise Blocked input, not permission to invent geometry or a replacement experiment. No previous chat or task prompt is required.
+
+Objective:
+Explain why the two original oblique housings on mp/duel10 surfaces 987/988 have available unit responses yet native SourceSupport::Check refuses every local configuration with 'Named mounting surface absent at declared contact plane'. Decide whether one bounded modern-path integration can safely unblock the frozen experiment, or send a precise negative receipt to AR-36.
+
+High-level action plan:
+1. Reproduce the decisive existing dummy-zero admission probe without opening, fitting or scoring original receiver RGB. Distinguish unit-response preparation from actual source admission; retain prior scratch failures and metadata corrections.
+2. Bound inspection to these two named surfaces and their immutable original nearby geometry. Measure original triangle/normal/anchor identities, extraction completeness and contact-plane residuals using existing providers or a private read-only diagnostic. Distinguish absent geometry, genuine unsupported/contact geometry and numerical representation error. Do not present float-normal/double-roundoff mismatch as proved until measured.
+3. Test the causal explanation with exact input identities and appropriate positive/negative oblique and axial controls. No guard removal, guessed epsilon, source relocation, free-point substitution, unknown-space clearing or model-capacity increase is authorized.
+4. Write docs/rend2-relighting/contact-plane-diagnosis.md plus a versioned hash receipt. Choose Authorize-Bounded-AR35 only if the diagnosis specifies a safe existing-provider/modern-adapter proof or repair that preserves historical behavior and storage semantics within one M integration. State exact permitted files/behavior and acceptance controls. If a new numerical contract is required, make that explicit; absence of a justified contract is Blocked, not authorization to invent one.
+5. Otherwise issue Blocked-SourceSupport or a supported Stop/Pivot decision for this frozen scope and route its receipt to AR-36 without demanding a nonexistent original-data fit. Do not search another scope or launch the large roadmap.
+6. Update the plan queue, Results Log and Plan Change Log. Any material change to poses, geometry/response support or acceptance requires a new explicit freeze before original-target exposure; old failures remain immutable. Once final evidence informs a change, require fresh adequate independent final evidence.
+
+Work limits and measurable exit:
+At most two hours of investigation, two original housings and one causal diagnosis receipt. No production implementation is part of AR-41 and it adds no coding allowance. The total following budget remains one M integration (eight engineering hours maximum) and at most one M repair (four hours maximum) before the single original-target fit/repeat and mandatory AR-36 decision. V1's reserve lacks housing 988 control pairs and cannot authorize post-final repair fitting. Each diagnostic subprocess has a 300-second cap. At the limit, publish measured findings and a precise Blocked/Stop outcome; do not extend automatically.
+
+Definition of Done:
+- The exact refusal has a measured causal explanation or a precise retained unresolved-input/contract blocker.
+- The receipt explicitly authorizes a bounded safe AR-35 scope or sends a negative decision to AR-36, with no hypothetical success or original-target score.
+- Original fixture motivation, unknown geometry, historical/canonical behavior, old stock successes and all failures remain intact.
+- Append an AR-41 Results Log entry with date/revision, actual scope/assistance, measurements, artifact hashes, A/B/C/D and coverage implications, limitations, decision and next action; update status honestly and log approved changes. Done investigation does not make an unknown product gate Passed.
+```
+
 <a id="ar-35"></a>
 
 ### AR-35 — Complete only the missing multi-fixture pilot wiring
@@ -281,6 +326,7 @@ Deliver the narrow end-to-end stock-region path required by the frozen viability
 
 Required inputs and inspection:
 Inspect docs/rend2-relighting/viability-decision.md, the frozen viability policy under tools/rend2/aesthetic_relighting/policies/, tools/rend2/stock_aesthetic/run.py and report.py, tools/rend2/stock_audit/packet.py, Aesthetic::FitAndValidate/SelectSparse, native coverage/source support, and the ASR24/25 accepted and failed witnesses.
+Execution gate added by AR-34: protocol v1 is FrozenBlocked. Read docs/rend2-relighting/contact-plane-diagnosis.md and its AR-41 receipt. Proceed only if it explicitly authorizes the exact bounded modern-path integration while preserving historical behavior/storage meanings. Missing or negative authorization keeps AR-35 Blocked. Unit-response availability does not grant named-mount admission. Do not create a guessed contact tolerance or treat the supplied fixtures as free points.
 Use the current versions of named artifacts. A missing required decision/input is a precise blocker, not permission to invent it; complete useful independent inspection. This prompt requires no previous chat or another task prompt.
 
 High-level action plan:
@@ -291,6 +337,7 @@ High-level action plan:
 5. Save actual source parameters, geometry/support references, policy/input identities, conditional limitations and per-receiver predictions. Reload these data without the optimizer to reproduce the score and source-removal response.
 6. Reuse existing report/OBJ/plate generation and add only the contextual views needed to assess combined light motifs, receiver normals, shadows and unexplained regions at fixed presentation settings.
 7. Run meaningful native/stock-protocol regressions and the declared replay checks. Enforce the integration budget; one additional repair requires a written causal decision.
+AR-34 v1 limit: one M integration (eight engineering hours), at most one M repair (four hours) before original-target fitting, then one fit and identical repeat followed by AR-36. Use the exact frozen original receiver IDs; primary final spans three charts/eight blocks. The diagnostic reserve lacks one fixture's shadow-control pairs, so no post-final repair fit is authorized. If admission, controls or review are unavailable, preserve the blocker and send the receipt to AR-36 without inventing a score.
 
 Definition of Done:
 - The selected real-stock ROI can execute the complete existing-model path and produce replayable data plus the frozen review packet, including honest failed/unavailable configurations.
@@ -333,6 +380,7 @@ Determine whether the existing aesthetic reconstruction path produces a coherent
 
 Required inputs and inspection:
 Read the frozen viability protocol/decision, complete stock-region fitted data and replay/review packets, original source/receiver evidence, and ASR24/25 reference results. Required policy and saved-data inputs must exist; do not infer them from this prompt or from another chat.
+AR-34/41 may terminate at source admission before any original-target fit. In that branch, the frozen policy, native refusal and causal diagnosis are the substantive decision inputs: publish a precise Blocked/Stop/Pivot verdict and keep numerical/visual product gates Unknown. Do not demand or fabricate nonexistent fitted data. An unavailable spare control set cannot waive fresh final evidence after a policy change.
 Use the current versions of named artifacts. A missing required decision/input is a precise blocker, not permission to invent it; complete useful independent inspection. This prompt requires no previous chat or another task prompt.
 
 High-level action plan:
@@ -2303,6 +2351,17 @@ Limitations and concrete next action:
 
 **Task status: Superseded. Outcome: Unknown / not executed.** Отложенная задача первого принятия стокового участка заменена ранним обязательным решением. Её исходный промпт сохранён как архив и помечен «Do not execute». Полезные требования — независимая проверка, фиксация неуспехов, ограничения и изменение плана — перенесены в действующий ранний gate. Это организационное изменение не утверждает, что связный multi-fixture участок уже принят.
 
+### AR-34 — Frozen proof; named-source admission blocks execution
+
+- **Date / revision / branch:** 2026-11-10 (Australia/Sydney), inspected `dff8ea77acc1fc578239af69b17253e3a12b7c9f`, completion HEAD `a8cfaa215192dbf7693d1060ef8e8900329a3710`, `rend2-unified-wip`; actual origin `git@github.com:keyten/BetterJK.git`. ASR25 is committed, with no staged changes. Concurrent `new plan` committed only the pre-existing plan/launch documents: its plan text matches the pre-AR-34 snapshot after Git line-ending normalization and launch-note bytes remain unchanged. No commit was created by AR-34.
+- **Task status: Done. Outcome: Blocked-SourceSupport. Product gate: Unknown.** This completed investigation credits exactly two existing conditional stock configurations: preserved duel10/942 and new duel7/1657, not three. It accepts no new light, map or room.
+- **Actual scope / assistance:** Codex inspected current code, public receipts, licensed geometry, source image and old appearance plates; selected two original duel10 housings (987/988), one proxy per housing, and three same-material receiver charts (705/706/707). No subagent or independent human review was used. Original target RGB was discarded during geometry selection and never fitted/scored/viewed; native fitting ran only on literal dummy zeros to test admission.
+- **Measured evidence:** all 4 + 6 public manifest entries, 209 ASR24 private entries, 150 ASR25 implementation files including 113 core/canonical files, six tools and seven selected input identities match. Fresh geometric sampling: 941 rows, 18 both-positive, 37 single-positive, 604 known-zero, 282 unavailable; finer trim sample 394 rows, 57/64 exclusive source responses, 199 known-zero, 74 unavailable. Joint native coefficients on the frozen 141-row subset equal individual sums exactly. Primary final is 34 rows / eight blocks / three charts with 5/8 source-positive rows and two lit/control pairs per housing.
+- **Blocking result:** the stronger native admission probe refuses all three local configurations: `Named mounting surface absent at declared contact plane`. Geometry-only response is not admission. A float-normal/contact-plane precision mismatch is a hypothesis requiring measurement. The 26-row spare fold lacks housing 988 control pairs; it cannot authorize a later repair acceptance. Failed fold designs, the initial axial clip, a scratch block-ID collision and the corrected admission metadata are retained.
+- **Artifacts / hashes:** [decision](rend2-relighting/viability-decision.md), [protocol v1](../tools/rend2/aesthetic_relighting/policies/viability-v1.json), [evidence](../tools/rend2/aesthetic_relighting/results/ar34-v1/evidence.json), [public hash manifest](../tools/rend2/aesthetic_relighting/results/ar34-v1/manifest.json); licensed packet `build/ar34-v1/`. Protocol SHA-256 `96da96c0ccd896bca3751f539b2d8860f4e1d0580f5d947c60c906b5a84a28d0`; evidence SHA-256 `6cd5283c1491153f40588ebfeea17aaa3b94bfe9a0b52dafb8056b739de427cf`. Existing duel10/duel7 native reports retain SHA-256 `c72d343d52d7c8b893f7232fd262f921e421c7a1bb23f2cb2ddd21759c70af70` / `b1f475579816fceb291fdd555ec0d0c0a91dd467829f81d1bfae1d6f63dd54d0`.
+- **A/B/C/D / coverage:** two visibly motivated A candidates have unresolved admission and D/original-data fallback; no new accepted coverage, B lamp or C field is delivered. Known-zero direct transport is not observed darkness. Different-material overlapping floor/ledge appearance remains unavailable; neither the primary subset nor the old chart successes prove a complete room. Unknown geometry/predictions remain unknown, and RGB8 remains conditional encoded appearance.
+- **Decision / next action:** AR-41 (new standalone S decision) must diagnose the exact named-mount refusal. AR-35 is Blocked until a causal receipt explicitly authorizes a safe modern-path integration. Otherwise AR-36 takes the blocked receipt directly. Freeze existing DiffuseIntegral/conditional encoding, gain 1, bounded RGB and one constant nuisance; no finite-radius/MD3/fields/whole-map prerequisite. At most one M integration plus one M repair before one original-target fit/repeat and the mandatory verdict; no post-final repair fit or second ROI is authorized by v1. ASR24/25 numerical thresholds and failures are unchanged; new final evidence is independent receiver support on a development map, not blind map transfer.
+
 ## 8. Журнал изменений плана / Plan Change Log
 
 | Дата | Основание / evidence | Решение | Затронутые задачи / версии | Последствия для проверки |
@@ -2310,6 +2369,9 @@ Limitations and concrete next action:
 | 2026-11-10 | Текущий код и отчёты ASR09–23, рабочая разработка stock_aesthetic | Исходный data-only roadmap: 33 S/M-задачи; современная aesthetic цель отделена от исторической идентификации | AR-01–AR-33; численные политики ещё предстоит утвердить | Ни один исходный frozen benchmark не переписан; новые final gates требуют предварительной фиксации |
 | 2026-11-10, редакция 2 | Запрос пользователя о риске повторить длинный план; ASR24/25 reports, checks и совпадающие public artifact hashes | Признать существующие stock successes; вынести multi-fixture viability в начало, ограничить ремонт и ввести явное Go/Repair/Pivot/Assisted/Blocked/Stop | Добавлены AR-34–AR-40; AR-16 Superseded; изменены приоритеты, зависимости и evidence/reuse inputs исходных промптов | Старые final результаты остаются regression/development evidence; новый protocol и независимая проверка до расширения scope |
 | 2026-11-10, редакция 2 | ASR25: 20 MissingOriginalCapture, 23 DynamicMapUnsupported, 11 CatalogueWorkBudget, 1 CataloguePolygonBudget, 2 CaptureSectionUnsupported; классы пересекаются | Выделить управленческий выбор конкретной ветви и три ограниченные реализации; не повторять общий аудит и не снимать геометрические проверки | AR-37 → по решению AR-38/39/40; AR-24/29/31 используют измеренный corpus baseline | Учитывать восстановленные inputs и разблокированные stages отдельно от принятого relighting; неизвестность не становится успехом |
+| 2026-11-10, AR-34 | Inspected dff8ea77a; completion a8cfaa215 commits only pre-existing plan/launch documents; current ASR24/25 hashes and private packets; duel10 byte-identical | Credit two conditional stock configurations once; freeze one new two-housing/three-chart same-material proof using existing native evaluator | AR-34 Done / Outcome Blocked; viability-v1 and evidence receipt | Old finals remain development/regression; no new original-target fitting or accepted coverage; numerical 10%/5% gates unchanged |
+| 2026-11-10, AR-34 | Geometry-only unit responses available, but native dummy-target SourceSupport::Check refuses both oblique mounts | Add standalone AR-41 (S) causal diagnosis; gate AR-35 on explicit safe authorization; allow AR-36 to decide from a blocked receipt | AR-41 Pending; AR-35 Blocked; dependencies and execution clauses updated | Preserve named-source and unknown-geometry checks; no speculative evaluator/contact tolerance or automatic roadmap rollout |
+| 2026-11-10, AR-34 | Geometry-only 128/64 WU hash designs insufficient; four-role stratified 64 WU design has fresh IDs/blocks; spare lacks housing 988 controls | Explicit new geometry-only fold policy and assistance; primary final 34 rows / three charts / eight blocks; grid diagnostic for new visible A scope, old three-record gate retained for old studies | Viability-v1 only; at most one M integration + one M repair before one fit/repeat and mandatory AR-36 | Bake independence remains conditional; no after-final repair fit, policy retuning or second ROI under v1; any later change informed by final requires a new decision and fresh adequate final evidence |
 
-Управленческие/экспериментальные задачи добавляют сюда изменения. Следующие новые задачи получают ID начиная с AR-41, оценку S/M и полный автономный английский промпт. При замене задачи сохраняются её прежняя запись и ссылка на основание пересмотра.
+Управленческие/экспериментальные задачи добавляют сюда изменения. Следующие новые задачи получают ID начиная с AR-42, оценку S/M и полный автономный английский промпт. При замене задачи сохраняются её прежняя запись и ссылка на основание пересмотра.
 
