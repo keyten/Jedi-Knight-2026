@@ -476,6 +476,18 @@ Disk::Fingerprint Fingerprint(const Request &r)
 	GeometryKey k;
 	k.U(kVersion);
 	k.U(kSchemaVersion);
+	k.U(bool(r.shaderGeometry));
+	if (r.shaderGeometry)
+	{
+		ShaderLights::Catalogue catalogue;
+		ReadContext read;
+		read.maxBytes = r.options.maxBytes;
+		Check(ShaderLights::Extract(*r.shaderGeometry, read, catalogue));
+		Need(catalogue.map.sha256 == r.map.sha256 && catalogue.map.path == r.map.path &&
+			 catalogue.map.bytes == r.map.bytes, Code::InvalidInput,
+			 "Shader source geometry does not match producer map");
+		k.Digest(catalogue.contentKey);
+	}
 	for(const auto&s:r.contextHypotheses)Text(k,s);
 	k.U(r.providerPolicy.hiddenRequired);
 	k.U(r.providerPolicy.solarRequired);
@@ -849,6 +861,16 @@ struct Assembly
 		calibration.method = "Compiler-relative or specified scene-linear gauge; no absolute "
 							 "photometric measurement";
 		asset.calibrations.push_back(calibration);
+		if (r.shaderGeometry)
+		{
+			ShaderLights::Catalogue catalogue;
+			Check(ShaderLights::Extract(*r.shaderGeometry, read, catalogue));
+			Check(ShaderLights::Append(catalogue, asset, chunks, read));
+			for (const auto &e : asset.emitters) ids.used.insert(e.source.id);
+			for (const auto &p : asset.provenanceRecords) ids.used.insert(p.id);
+			for (const auto &c : asset.calibrations) ids.used.insert(c.id);
+			for (const auto &d : asset.datasets) ids.used.insert(d.id);
+		}
 		auto &a = asset.assessment;
 		a.present = false;
 		a.producer = p.producer;
@@ -2639,6 +2661,7 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read, bool a
 		Need(a.assessment.present && a.assessment.structuralValidated &&
 				 a.assessment.payloadsValidated,
 			 Code::InvalidInput, "Producer validation manifest absent/incomplete");
+		Check(ShaderLights::Validate(a, artifact.chunks, read));
 		uint64_t bytes = 0;
 		std::set<Id> descriptors;
 		for (const auto &d : a.datasets)
@@ -2871,6 +2894,8 @@ Error ValidateArtifact(const Artifact &artifact, const ReadContext &read, bool a
 		{
 			if (handled.count(d.id))
 				continue;
+			if (d.encoding == ShaderLights::kEncoding)
+				continue; // validated above, including original surface/primitive equality
 			if (attributionOnly && (d.encoding == "org.openjk.spatial-field" ||
 				d.encoding == "org.openjk.probe-geometry" || d.encoding == "org.openjk.probe-topology" ||
 				d.encoding == "org.openjk.static-shadow-support"))

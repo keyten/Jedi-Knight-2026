@@ -1145,6 +1145,7 @@ static void RunProfile(const O::Sources &s, const O::Dataset &data, const O::Reg
 	DD::PlacementCapture diagnosticCapture(diagnostic,{profile.model.profile.id},64);
 	q.diagnostics=&diagnosticCapture;
 	request.map = s.metadata.map;
+	request.shaderGeometry = s.geometry; // entire original map, including unfitted patches/sky
 	request.fitting = q;
 	request.hidden = hidden;
 	request.solar = solar;

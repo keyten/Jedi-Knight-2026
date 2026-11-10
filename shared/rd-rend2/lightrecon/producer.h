@@ -5,13 +5,14 @@
 #include "candidate_pool.h"
 #include "control.h"
 #include "uncertainty.h"
+#include "shader_lights.h"
 namespace Rend2LightRecon
 {
 namespace Core
 {
 namespace Producer
 {
-constexpr uint32_t kVersion = 9; // ASR17: rederive archived source side from exact named geometry
+constexpr uint32_t kVersion = 10; // preserve complete shader-authored surface sources
 struct PreparedProviders; // opaque immutable provider leases, created only by PrepareModelRequests
 struct ProviderPolicy
 {
@@ -66,6 +67,9 @@ struct Request
 	Disk::Digest validationKey{},
 		heldoutKey{};			   // private partition identities, never withheld colours
 	Disk::Fingerprint fingerprint; // completeness is caller-attested, never guessed here
+	// Original full-map geometry with selected shader MaterialFacts, not the
+	// sanitized fitting mesh/ROI. Independent of the numerical source budget.
+	std::shared_ptr<const SurfaceGeometry> shaderGeometry;
 	Joint::Request fitting;
 	std::vector<Candidates::Provider> providers;
 	std::shared_ptr<const Hidden::Request> hidden;

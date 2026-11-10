@@ -1,0 +1,83 @@
+{
+  "schema": "org.openjk.shader-surface-storage-validation/1",
+  "date": "2026-11-10",
+  "producer_version": 10,
+  "payload_version": 1,
+  "source": "Existing original unstripped JA observation archives; SP material interpretation retained for MP snapshots",
+  "maps": [
+    {
+      "sources": 5,
+      "rectangles": 5,
+      "faces": 5,
+      "patches": 0,
+      "triangles": 0,
+      "reloaded": true,
+      "cache_key": "a9af467259d636e734bffdf3a1b4ef217272e8a4b96716a4cb7c69d78bfbc488",
+      "map": "hoth3"
+    },
+    {
+      "sources": 89,
+      "rectangles": 73,
+      "faces": 89,
+      "patches": 0,
+      "triangles": 0,
+      "reloaded": true,
+      "cache_key": "22a58c0de0baabe0d2c2784116ffd076a003deaccc5c7d464067a4000e7be87a",
+      "map": "taspir2"
+    },
+    {
+      "sources": 140,
+      "rectangles": 132,
+      "faces": 140,
+      "patches": 0,
+      "triangles": 0,
+      "reloaded": true,
+      "cache_key": "df806d7da503ba5ba722e1e9240c47137063373c1d9222e4799b9eb521d46caa",
+      "map": "t2_dpred"
+    },
+    {
+      "sources": 58,
+      "rectangles": 0,
+      "faces": 12,
+      "patches": 46,
+      "triangles": 0,
+      "reloaded": true,
+      "cache_key": "1ba03d946a86155650e553623c0d6ebc23a93fbf53c26a31c043c7c0d2e7042a",
+      "map": "t3_hevil"
+    },
+    {
+      "sources": 202,
+      "rectangles": 192,
+      "faces": 202,
+      "patches": 0,
+      "triangles": 0,
+      "reloaded": true,
+      "cache_key": "2273c2478c457631838be87534193a5b4e454f596a6f1aab185f83f2465f239f",
+      "map": "mp/duel2"
+    }
+  ],
+  "totals": {
+    "maps": 5,
+    "sources": 494,
+    "patches": 46,
+    "rectangles": 402
+  },
+  "tests": {
+    "lightrecon_shader_lights": {
+      "checks": 120,
+      "failures": 0
+    },
+    "lightrecon_producer": "Passed",
+    "lightrecon_disk": "Passed",
+    "lightrecon_persistent": "Passed",
+    "lightrecon_contract": "Passed",
+    "lightrecon_contributions": "Passed",
+    "lightrecon_api": "Passed",
+    "lightrecon_controls": "Passed"
+  },
+  "limitations": [
+    "Data-only source retention; no new renderer consumer or calibrated shader intensity.",
+    "Stock verification covers five available maps, not a new 57-map reconstruction.",
+    "Patch control nets and inline local geometry remain explicit surface payloads."
+  ]
+}

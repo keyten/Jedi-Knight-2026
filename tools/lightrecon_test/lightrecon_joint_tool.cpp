@@ -634,6 +634,7 @@ int main(int argc, char **argv)
 		{
 			P::Request q;
 			q.map = data->Info().map;
+			q.shaderGeometry = source.geometry;
 			q.coverage = coverage;
 			q.metadata.units = data->Info().units;
 			q.metadata.lineage = "controlled/" + Disk::Hex(q.map.sha256);

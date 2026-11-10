@@ -357,6 +357,13 @@ sparse contribution descriptors and field dimensions. Renderer checks build
 
 ## Offline producer publication (S13)
 
+Producer version 10 also retains the complete captured `q3map_surfacelight`
+catalogue in this same asset and `.jklr` store, with shader provenance and original
+surface types/geometry. Exact rectangles use the native rectangle representation;
+other surfaces retain typed geometry payloads. See
+[shader surface storage](rend2-shader-surface-storage.md) for the data contract,
+producer input and replay API.
+
 `Core::Producer::Run` composes existing candidate/solar/Joint/uncertainty/passive-transport stages. It returns an immutable draft artifact only after independent final evaluation and canonical plus payload validation. `Publish` checks the owner generation again and atomically copies the validated asset into the existing Manager. No evaluator/renderer consumer is installed by this operation.
 
 `BuildAssessment` records seven independent readiness dimensions, all source/use admissions, raw/derived/evaluated observation denominators, supported profile hypotheses, private partition identities, calibration assumptions and cached prediction receipts. Unknown metrics are typed unknown/null. Diagnostic-only output may contain no sources and no prediction; it is never evidence of a black map or successful physical recovery.

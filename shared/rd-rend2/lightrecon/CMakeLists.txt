@@ -30,6 +30,7 @@ add_library(rend2_lightrecon_core STATIC
 	joint.cpp joint_support.cpp joint.h
 	uncertainty.cpp uncertainty.h
 	producer.cpp producer.h provider_outcome.h
+	shader_lights.cpp shader_lights.h
 	contributions.cpp contributions.h
 	lightgrid.cpp lightgrid.h
 	surfaces.cpp surfaces.h
