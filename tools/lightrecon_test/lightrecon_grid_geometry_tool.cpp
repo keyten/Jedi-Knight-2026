@@ -137,11 +137,21 @@ int main(int argc, char **argv)
     else { Bounds b = ReadBox(command); if (s.domain) Check(s.domain->ClassifyBox(b,space,work)); }
     std::cout << "{\"space\":\"" << SpaceName(space) << "\",\"boundary\":" << p.boundary << "}" << std::endl;
    }
-   else if (op == "ray")
+   else if (op == "ray" || op == "segment")
    {
     Vec3 a = ReadPoint(command), b = ReadPoint(command); RayResult r;
     SpaceClass span = SpaceClass::Unknown; uint64_t work = 0;
-    if (s.domain) Check(s.domain->ClassifyBox(Span(a,b),span,work));
+    if (s.domain)
+    {
+     if (op == "segment")
+     {
+      // ASR24 adapter: certify the actual convex segment with the existing BSP
+      // support provider. The older ray operation keeps its enclosing-box rule.
+      SpatialSupport support; support.vertices = {a,b}; bool contact = false;
+      Check(s.domain->ClassifySupport(support,span,contact,work));
+     }
+     else Check(s.domain->ClassifyBox(Span(a,b),span,work));
+    }
     if (scene)
     {
      RayQuery q; q.startWorld = a; q.endWorld = b; q.maxWork = 65536;
@@ -151,7 +161,13 @@ int main(int argc, char **argv)
     const bool clear = span == SpaceClass::Free && r.state == VisibilityState::Visible && r.reliability == RayReliability::Geometric && !r.issues;
     std::cout << "{\"static_state\":\"" << (clear ? "clear" : r.state == VisibilityState::Blocked ? "blocked" : "unknown")
      << "\",\"span_space\":\"" << SpaceName(span) << "\",\"issues\":" << r.issues
-     << ",\"dynamic_possible\":" << Dynamic(s,a,b) << "}" << std::endl;
+     << ",\"dynamic_possible\":" << Dynamic(s,a,b)
+     << ",\"opaque_hit_known\":" << (r.state == VisibilityState::Blocked &&
+         r.reliability == RayReliability::Geometric && r.terminalHit.positionKnown &&
+         r.terminalHit.obstacle == ObstacleKind::Opaque)
+     << ",\"hit_surface\":" << r.terminalHit.surface << ",\"hit_position\":";
+    if (r.terminalHit.positionKnown) V(r.terminalHit.positionWorld); else std::cout << "null";
+    std::cout << "}" << std::endl;
    }
    else if (op == "mesh")
    {

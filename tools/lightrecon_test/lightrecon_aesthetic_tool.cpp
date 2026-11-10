@@ -48,7 +48,7 @@ void Q(const std::string &s)
 }
 std::vector<Shape::Observation> Rows(std::istream &in, Shape::Role role,
 									 const std::shared_ptr<const SurfaceGeometry> &geometry,
-									 std::string &material)
+									 std::string &material, bool sameMaterial = true)
 {
 	size_t n = 0;
 	in >> n;
@@ -66,7 +66,7 @@ std::vector<Shape::Observation> Rows(std::istream &in, Shape::Role role,
 		const auto &s = geometry->Surfaces()[surface];
 		if (material.empty())
 			material = s.material;
-		Need(material == s.material, "Aesthetic subset must use one comparable original material");
+		Need(!sameMaterial || material == s.material, "Aesthetic subset must use one comparable original material");
 		a.receiver.sample = a.id;
 		a.receiver.surface = surface + 1;
 		a.receiver.material = 1;
@@ -91,7 +91,7 @@ void ScoreJson(const A::Score &s)
 {
 	std::cout << "{\"available\":" << s.available << ",\"robust\":" << s.robust
 			  << ",\"mse\":" << s.mse << ",\"rows\":" << s.rows << ",\"blocks\":" << s.blocks
-			  << ",\"normal_bins\":" << s.normalBins << '}';
+			  << ",\"normal_bins\":" << s.normalBins << ",\"maximum_error\":" << s.maximumError << '}';
 }
 void SparseJson(const A::SparseReport &s, const A::Request &r)
 {
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 	{
 		Need(argc == 4 || (argc == 6 && std::string(argv[2]) == "--export-region"),
 			 "usage: lightrecon_aesthetic_tool geometry.jkobs train-validation.txt heldout.txt OR "
-			 "archive --export-region surface folder radius");
+			 "archive --export-region surface folder radius OR archive geometry-only.txt --coverage");
 		ReadContext read;
 		read.maxBytes = 128ull * 1024 * 1024;
 		Offline::Options limits;
@@ -207,7 +207,10 @@ int main(int argc, char **argv)
 		r.sampling.maxWork = 16000000;
 		r.options.huber = 4;
 		r.options.maxWork = 300000000;
-		r.options.maxSweeps = 80;
+		r.options.maxSweeps = 200;
+		// Stock appearance targets are RGB8 intervals. Declare a practical relative
+		// robust-loss stopping tolerance; do not imply exact parameter identification.
+		r.options.tolerance = 1e-4;
 		r.targets.domain = A::Domain::ForwardEncodedRgb8;
 		r.targets.material = 1;
 		// Caller explicitly supplies a conditional same-material appearance model.
@@ -224,8 +227,10 @@ int main(int argc, char **argv)
 		std::ifstream in(argv[2]);
 		std::string magic;
 		in >> magic;
+		const bool coverageOnly = magic == "JKASR24-GEOMETRY-ONLY-1";
+		Need(!coverageOnly || std::string(argv[3]) == "--coverage", "Geometry-only output flag required");
 		bool sparse = magic == "JKASR21-SPARSE-ENCODED-ASSUMED-MATERIAL-1";
-		Need(sparse || magic == "JKASR20-ENCODED-ASSUMED-MATERIAL-1",
+		Need(coverageOnly || sparse || magic == "JKASR20-ENCODED-ASSUMED-MATERIAL-1",
 			 "Explicit conditional domain/response protocol required");
 		in >> r.targets.gain;
 		Vec(in, r.options.backgroundUpper);
@@ -240,7 +245,7 @@ int main(int argc, char **argv)
 		}
 		size_t fixtures = 0;
 		in >> fixtures;
-		Need(bool(in) && (sparse ? fixtures <= 128 : fixtures > 0 && fixtures <= 4),
+		Need(bool(in) && (sparse ? fixtures <= 128 : fixtures > 0 && fixtures <= (coverageOnly ? 16u : 4u)),
 			 "Bounded fixture list required (ASR20: 1..4, ASR21: 0..128)");
 		for (size_t i = 0; i < fixtures; ++i)
 		{
@@ -249,8 +254,11 @@ int main(int argc, char **argv)
 			in >> kind >> id;
 			A::Fixture f;
 			Shape::Emitter e;
-			if (kind == "point")
+			if (kind == "point" || kind == "mounted-point")
 			{
+				uint32_t ordinal = 0;
+				if (kind == "mounted-point")
+					in >> ordinal;
 				e.geometry.source.id = id;
 				e.geometry.source.state = HypothesisState::Candidate;
 				Vec(in, e.geometry.position.world);
@@ -262,8 +270,18 @@ int main(int argc, char **argv)
 				e.support.map = source.metadata.map.sha256;
 				e.support.geometry = r.geometry.geometryKey;
 				e.support.provenance = "Explicit supplied fixture point anchor";
+				if (kind == "mounted-point")
+				{
+					// ASR24 adapter only: existing admission verifies the named mount,
+					// projected contact, source side, occupied support and world solids.
+					Check(SourceSupport::FromSurfaces(source.geometry, *visibility, {ordinal},
+													 id, read, e.support));
+					e.support.kind = SourceSupport::Kind::MountedPoint;
+					e.support.maximumStandOffWorld = 8;
+					e.support.provenance += "; ASR24 fixed <=8 WU fixture-local point approximation";
+				}
 			}
-			else if (kind == "surface")
+			else if (kind == "surface" || kind == "surface-mesh")
 			{
 				uint32_t ordinal = 0;
 				in >> ordinal;
@@ -276,6 +294,20 @@ int main(int argc, char **argv)
 				Check(ShapeSelection::Rank(selection, read, ranked));
 				bool found = false;
 				for (const auto &v : ranked.ranked)
+					if (kind == "surface-mesh" && v.kind == EmitterKind::Rectangle &&
+						ranked.original.original.count)
+					{
+						// The existing evaluator integrates this exact triangle lease.
+						// The rectangle fields are only its API frame/bounds, not an
+						// assertion that a nonrectangular face is a rectangle.
+						e = v.emitter;
+						e.support = ranked.original;
+						e.geometry.angular.kind = AngularKind::Lambertian;
+						e.geometry.angular.twoSided = e.support.twoSidedAttested;
+						found = true;
+						break;
+					}
+					else
 					if (v.kind == EmitterKind::Rectangle &&
 						(v.status == ShapeSelection::Status::Supported ||
 						 v.status == ShapeSelection::Status::Approximation))
@@ -316,8 +348,43 @@ int main(int argc, char **argv)
 			r.configurations.push_back(c);
 		}
 		std::string material;
-		auto train = Rows(in, Shape::Role::Training, source.geometry, material),
-			 validation = Rows(in, Shape::Role::Validation, source.geometry, material);
+		auto train = Rows(in, Shape::Role::Training, source.geometry, material, !coverageOnly);
+		if (coverageOnly)
+		{
+			Need(!r.fixtures.empty(), "Coverage adapter requires fixed fixtures");
+			std::shared_ptr<const PointRefine::PlacementProvider> placement;
+			Check(PointRefine::MakePlacement(r.scene, read, placement));
+			r.geometry.visibility = PointRefine::WithOccupancy(r.geometry.visibility, placement);
+			auto receivers = std::make_shared<std::vector<Bake::Receiver>>();
+			for (const auto &row : train)
+				receivers->push_back(row.receiver);
+			std::shared_ptr<const Shape::Block> block;
+			std::vector<Shape::Emitter> emitters;
+			std::vector<Vec3> unit;
+			for (const auto &fixture : r.fixtures)
+			{
+				emitters.push_back(fixture.variants[0]);
+				unit.push_back(Vec3(1, 1, 1));
+			}
+			Check(Shape::Prepare(r.model, emitters,
+				VectorChunk<Bake::Receiver>(receivers, 0, receivers->size()), r.geometry,
+				r.sampling, read, block));
+			std::vector<Shape::Prediction> predictions;
+			Shape::Work work;
+			Check(block->Evaluate(unit, read, predictions, work));
+			std::cout << std::boolalpha << std::setprecision(17) << "{\"rows\":[";
+			for (size_t i = 0; i < predictions.size(); ++i)
+			{
+				const auto &p = predictions[i];
+				std::cout << (i ? "," : "") << "{\"id\":";
+				Q(std::to_string(p.observation));
+				std::cout << ",\"available\":" << p.available << ",\"visibility_issues\":"
+					<< p.visibilityIssues << ",\"coefficient\":" << p.value.x << '}';
+			}
+			std::cout << "],\"geometry_only\":true,\"historical_source_certified\":false}\n";
+			return 0;
+		}
+		auto validation = Rows(in, Shape::Role::Validation, source.geometry, material);
 		std::string extra;
 		Need(!(in >> extra), "Trailing fit fields");
 		A::Experiment experiment;
@@ -381,18 +448,27 @@ int main(int argc, char **argv)
 				std::cout << "{\"fixture\":";
 				Q(std::to_string(s.fixture));
 				std::cout << ",\"state\":\"Candidate\",\"type\":";
-				Q(ShapeSelection::KindName(s.emitter.geometry.kind));
+				Q(s.emitter.support.kind == SourceSupport::Kind::OriginalSurface ?
+					"OriginalSurface" : ShapeSelection::KindName(s.emitter.geometry.kind));
 				std::cout << ",\"emitting_area_world_squared\":"
 						  << s.placement.emittingAreaWorldSquared << ",\"position\":";
 				JsonVec(s.emitter.geometry.position.world);
+				std::cout << ",\"outward\":";
+				JsonVec(s.emitter.support.outward);
+				std::cout << ",\"half_width_world\":" << s.emitter.geometry.geometry.halfWidthWorld
+					<< ",\"half_height_world\":" << s.emitter.geometry.geometry.halfHeightWorld;
 				std::cout << ",\"relative_rgb\":";
 				JsonVec(s.relativePower);
 				std::cout << ",\"power_at_bound\":" << s.atPowerBound
+						  << ",\"placement_conditional\":" << s.placement.conditional
+						  << ",\"source_side_certified\":" << s.placement.sourceSideCertified
 						  << ",\"column_rms\":" << s.columnRms
 						  << ",\"maximum_correlation\":" << s.maximumColumnCorrelation
 						  << ",\"quadrature_difference\":" << s.quadratureDifference
 						  << ",\"placement\":";
 				Q(PointRefine::ConstraintName(s.placement.placement.state));
+				std::cout << ",\"placement_reason\":";
+				Q(s.placement.reason);
 				std::cout << '}';
 			}
 			std::cout << "]}";

@@ -1,0 +1,1149 @@
+{
+  "all_selected_regions_retained": true,
+  "attempts": [
+    {
+      "artifact_hashes": {},
+      "frozen": false,
+      "note": "Aborted before scoring: old catalogue blue-light image came from a PBR pack; regenerated catalogues from assets0-3.",
+      "outcomes": [],
+      "run": "asr24-stock-v1",
+      "selected_regions": [
+        {
+          "map": "hoth2",
+          "name": "hoth2-wall-bank",
+          "original_surfaces": [
+            5863
+          ],
+          "reason": "Source texture identity preflight aborted",
+          "source_fixture_id": "02626b310744926a18139e6a9e8262f017ef46c7143db2777a876edf7b40d959",
+          "status": "NotScored"
+        },
+        {
+          "map": "hoth2",
+          "name": "hoth2-small-ceiling",
+          "original_surfaces": [
+            5879
+          ],
+          "reason": "Source texture identity preflight aborted",
+          "source_fixture_id": "013d1d8bd282221d9ba3c9def3cf0cc17c3b6e66e76782faebc73071a1e4baf9",
+          "status": "NotScored"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-ceiling",
+          "original_surfaces": [
+            10508
+          ],
+          "reason": "Source texture identity preflight aborted",
+          "source_fixture_id": "1239808a0b42476fc7430a7def366e5c999ec0b80bcff5459bd4712a52a8aeb1",
+          "status": "NotScored"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-blue",
+          "original_surfaces": [
+            9394
+          ],
+          "reason": "Source texture identity preflight aborted",
+          "source_fixture_id": "af95eb783d5256d14f51fe7284d4c596edc2134f1765f28d76ea821cfcf27f46",
+          "status": "NotScored"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-large-ceiling",
+          "original_surfaces": [
+            10490
+          ],
+          "reason": "Source texture identity preflight aborted",
+          "source_fixture_id": "087b20e917a6f24167fdd153cbbf14b142452ec42f73a10c0cd6a4bd831d2f1f",
+          "status": "NotScored"
+        }
+      ]
+    },
+    {
+      "artifact_hashes": {
+        "hoth2-wall-bank\\result.json": "eae54109e9bfb0f07467d960b30e07c7cae9ef41f8dd823da32a5fa38c9135ef"
+      },
+      "frozen": true,
+      "note": "Fixed-grid preflight starved most folds; available wall-bank fit lacked supported response.",
+      "outcomes": [
+        {
+          "name": "hoth2-wall-bank",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "hoth2-small-ceiling",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth3-ceiling",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth3-blue",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth3-large-ceiling",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth2-exterior",
+          "reason": "Invalid audit request/map/limit",
+          "status": "Unresolved"
+        }
+      ],
+      "protocol_sha256": "116caad832fc94af3d1182d7763aaab65c5efceebc612ac855c7bdad63fa8af5",
+      "run": "asr24-stock-v2",
+      "selected_regions": [
+        {
+          "map": "hoth2",
+          "name": "hoth2-wall-bank",
+          "original_surfaces": [
+            5863
+          ],
+          "source_fixture_id": "02626b310744926a18139e6a9e8262f017ef46c7143db2777a876edf7b40d959"
+        },
+        {
+          "map": "hoth2",
+          "name": "hoth2-small-ceiling",
+          "original_surfaces": [
+            5879
+          ],
+          "source_fixture_id": "013d1d8bd282221d9ba3c9def3cf0cc17c3b6e66e76782faebc73071a1e4baf9"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-ceiling",
+          "original_surfaces": [
+            10508
+          ],
+          "source_fixture_id": "1239808a0b42476fc7430a7def366e5c999ec0b80bcff5459bd4712a52a8aeb1"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-blue",
+          "original_surfaces": [
+            9394
+          ],
+          "source_fixture_id": "af95eb783d5256d14f51fe7284d4c596edc2134f1765f28d76ea821cfcf27f46"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-large-ceiling",
+          "original_surfaces": [
+            10490
+          ],
+          "source_fixture_id": "087b20e917a6f24167fdd153cbbf14b142452ec42f73a10c0cd6a4bd831d2f1f"
+        }
+      ],
+      "summary_sha256": "bef6a36b2f713790ec01bc35e3a4b20b2851d997500f550309c1feba6b8c62ee"
+    },
+    {
+      "artifact_hashes": {},
+      "frozen": true,
+      "note": "Geometry-only preflight; planar per-axis footprint bounds replace an over-conservative sphere.",
+      "outcomes": [
+        {
+          "name": "hoth2-exterior",
+          "selection": {
+            "known_materials": 7421,
+            "map_sha256": "3fc5d0a469c7246d09cb9d0be4500fc0f9a5923ca9a23fdee51aba9eceb3f71d",
+            "reason": "Geometric sky reach supports an exterior, not a numeric sun fit or historical direction",
+            "selection": "First geometry-only stratified grid origin near a training receiver with actual geometric zenith sky hit; grid RGB/direction ignored",
+            "sky_surfaces": 32,
+            "status": "Unresolved",
+            "tested": 29
+          },
+          "status": "NotScored"
+        },
+        {
+          "name": "hoth2-small-ceiling",
+          "selection": {
+            "available": false,
+            "minimum_fold_rows": 3,
+            "qualified_roi_rows": 1086,
+            "reason": "Insufficient separated same-material folds"
+          },
+          "status": "NotScored"
+        },
+        {
+          "name": "hoth2-wall-bank",
+          "selection": {
+            "available": true,
+            "blocks": {
+              "heldout": 2,
+              "train": 1,
+              "validation": 2
+            },
+            "counts": {
+              "heldout": 16,
+              "train": 8,
+              "validation": 16
+            },
+            "discovery_training_rows": 176,
+            "material": "textures/hoth/floorpanel_02",
+            "qualified_roi_rows": 1090,
+            "selection": "Maximize minimum same-material fold coverage using geometry only; stable-ID cap"
+          },
+          "status": "NotScored"
+        },
+        {
+          "name": "hoth3-blue",
+          "selection": {
+            "available": false,
+            "minimum_fold_rows": 0,
+            "qualified_roi_rows": 3808,
+            "reason": "Insufficient separated same-material folds"
+          },
+          "status": "NotScored"
+        },
+        {
+          "name": "hoth3-ceiling",
+          "selection": {
+            "available": false,
+            "minimum_fold_rows": 1,
+            "qualified_roi_rows": 1017,
+            "reason": "Insufficient separated same-material folds"
+          },
+          "status": "NotScored"
+        },
+        {
+          "name": "hoth3-large-ceiling",
+          "selection": {
+            "available": false,
+            "minimum_fold_rows": 0,
+            "qualified_roi_rows": 3470,
+            "reason": "Insufficient separated same-material folds"
+          },
+          "status": "NotScored"
+        }
+      ],
+      "protocol_sha256": "c828e3c7d4e0687396cf83b97ecf086cf7722d8874b0b4910a38e0482284bd1f",
+      "run": "asr24-stock-v3",
+      "selected_regions": [
+        {
+          "map": "hoth2",
+          "name": "hoth2-wall-bank",
+          "original_surfaces": [
+            5863
+          ],
+          "source_fixture_id": "02626b310744926a18139e6a9e8262f017ef46c7143db2777a876edf7b40d959"
+        },
+        {
+          "map": "hoth2",
+          "name": "hoth2-small-ceiling",
+          "original_surfaces": [
+            5879
+          ],
+          "source_fixture_id": "013d1d8bd282221d9ba3c9def3cf0cc17c3b6e66e76782faebc73071a1e4baf9"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-ceiling",
+          "original_surfaces": [
+            10508
+          ],
+          "source_fixture_id": "1239808a0b42476fc7430a7def366e5c999ec0b80bcff5459bd4712a52a8aeb1"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-blue",
+          "original_surfaces": [
+            9394
+          ],
+          "source_fixture_id": "af95eb783d5256d14f51fe7284d4c596edc2134f1765f28d76ea821cfcf27f46"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-large-ceiling",
+          "original_surfaces": [
+            10490
+          ],
+          "source_fixture_id": "087b20e917a6f24167fdd153cbbf14b142452ec42f73a10c0cd6a4bd831d2f1f"
+        }
+      ]
+    },
+    {
+      "artifact_hashes": {
+        "hoth2-small-ceiling\\result.json": "4a6b256bf976df59471e17c0f81b6f96cf8e25b505dc162f922e217445c8803f",
+        "hoth2-wall-bank\\result.json": "766443b96af05e665a8ac23eecf48d64e6ae996608e8ad119d363ff3116489d4",
+        "hoth3-blue\\result.json": "e1c0b515e47fbb3e898776d867d6dd22c1e5a5e65a53705b7824d615a56c647e",
+        "hoth3-ceiling\\result.json": "5e229ed18defd47592c5a6b695fc75c42bfa0ab8e4ed784e5fc83ad6f40f6e19",
+        "hoth3-large-ceiling\\result.json": "b4cdb0864ca816fadb4c8086d265164c49788b63e31eb4fb7c5bee974602b64c"
+      },
+      "frozen": true,
+      "note": "Finite geometry-only fold-origin design; forward unknowns still invalidate fits.",
+      "outcomes": [
+        {
+          "name": "hoth2-wall-bank",
+          "reason": "Local configurations lack known forward coverage on training or validation",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth2-small-ceiling",
+          "reason": "Local configurations lack known forward coverage on training or validation",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth3-ceiling",
+          "reason": "Local configurations lack known forward coverage on training or validation",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth3-blue",
+          "reason": "Local configurations lack known forward coverage on training or validation",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth3-large-ceiling",
+          "reason": "Local configurations lack known forward coverage on training or validation",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth2-exterior",
+          "reason": "Invalid audit request/map/limit",
+          "status": "Unresolved"
+        }
+      ],
+      "protocol_sha256": "42a2ffdfdd05094af8e016d27af4ce67abdae03572aaec5e2c5d7a826f2fcded",
+      "run": "asr24-stock-v4",
+      "selected_regions": [
+        {
+          "map": "hoth2",
+          "name": "hoth2-wall-bank",
+          "original_surfaces": [
+            5863
+          ],
+          "source_fixture_id": "02626b310744926a18139e6a9e8262f017ef46c7143db2777a876edf7b40d959"
+        },
+        {
+          "map": "hoth2",
+          "name": "hoth2-small-ceiling",
+          "original_surfaces": [
+            5879
+          ],
+          "source_fixture_id": "013d1d8bd282221d9ba3c9def3cf0cc17c3b6e66e76782faebc73071a1e4baf9"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-ceiling",
+          "original_surfaces": [
+            10508
+          ],
+          "source_fixture_id": "1239808a0b42476fc7430a7def366e5c999ec0b80bcff5459bd4712a52a8aeb1"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-blue",
+          "original_surfaces": [
+            9394
+          ],
+          "source_fixture_id": "af95eb783d5256d14f51fe7284d4c596edc2134f1765f28d76ea821cfcf27f46"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-large-ceiling",
+          "original_surfaces": [
+            10490
+          ],
+          "source_fixture_id": "087b20e917a6f24167fdd153cbbf14b142452ec42f73a10c0cd6a4bd831d2f1f"
+        }
+      ],
+      "summary_sha256": "1ed4ea762863f5af7bec648c4e02aa5895f07df11451647a65d1a8b0cb50a4d4"
+    },
+    {
+      "artifact_hashes": {
+        "hoth2-wall-bank\\result.json": "ad9079b7b4977cb639635af92d435285d02961d2545e7782534314b4de3a7428",
+        "hoth3-blue\\result.json": "9732387cc8ae492894db96a6124fe8bb53a7ff0d1a9de33fd24f5bb5be7c2814",
+        "hoth3-ceiling\\result.json": "bf5335e2d7b69f7263fcabf15e71ed1f45f6c64ca56efb61c4f5db9ba27ef23c",
+        "hoth3-large-ceiling\\result.json": "2c8fdd30b639370b0866193e325ce0d400e0e3d386bbf8b4f289fd2bd0af3a47"
+      },
+      "frozen": true,
+      "note": "Early geometry-only adapter omitted scoped occupancy; numerical fitter correctly refused those contributions.",
+      "outcomes": [
+        {
+          "name": "hoth2-wall-bank",
+          "reason": "Local configurations lack known forward coverage on training or validation",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth2-small-ceiling",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth3-ceiling",
+          "reason": "Local configurations lack known forward coverage on training or validation",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth3-blue",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "hoth3-large-ceiling",
+          "reason": "Local configurations lack known forward coverage on training or validation",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth2-exterior",
+          "reason": "Invalid audit request/map/limit",
+          "status": "Unresolved"
+        }
+      ],
+      "protocol_sha256": "d3f3fc04e96ec0fbcb78b0105c9dd9b33d03a80c79c1343b156659eb17f9db49",
+      "run": "asr24-stock-v5",
+      "selected_regions": [
+        {
+          "map": "hoth2",
+          "name": "hoth2-wall-bank",
+          "original_surfaces": [
+            5863
+          ],
+          "source_fixture_id": "02626b310744926a18139e6a9e8262f017ef46c7143db2777a876edf7b40d959"
+        },
+        {
+          "map": "hoth2",
+          "name": "hoth2-small-ceiling",
+          "original_surfaces": [
+            5879
+          ],
+          "source_fixture_id": "013d1d8bd282221d9ba3c9def3cf0cc17c3b6e66e76782faebc73071a1e4baf9"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-ceiling",
+          "original_surfaces": [
+            10508
+          ],
+          "source_fixture_id": "1239808a0b42476fc7430a7def366e5c999ec0b80bcff5459bd4712a52a8aeb1"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-blue",
+          "original_surfaces": [
+            9394
+          ],
+          "source_fixture_id": "af95eb783d5256d14f51fe7284d4c596edc2134f1765f28d76ea821cfcf27f46"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-large-ceiling",
+          "original_surfaces": [
+            10490
+          ],
+          "source_fixture_id": "087b20e917a6f24167fdd153cbbf14b142452ec42f73a10c0cd6a4bd831d2f1f"
+        }
+      ],
+      "summary_sha256": "495fa383982ec53c115271abf020913fc45beb9930a4983d55a1d1e7f609e751"
+    },
+    {
+      "artifact_hashes": {
+        "duel4-white-panel\\result.json": "e4d09c8a011197f0f3da0cd0c89b860ca8bbcb0e97fa2bc8d7a52aa993448545",
+        "duel4-yellow-panel\\result.json": "e0aa3326f84fdc14efef927f9b6a8bb1a9cf78be7d72181c1ba68294c7ada119",
+        "hoth2-wall-bank\\result.json": "aea69b980cdadd78bd5b7b9e4462d676d26ffb78b3c17db666afbf9d0688ac0a",
+        "hoth3-blue\\result.json": "9732387cc8ae492894db96a6124fe8bb53a7ff0d1a9de33fd24f5bb5be7c2814",
+        "hoth3-ceiling\\result.json": "ead2509f4eb82211bf25b9f4e136ab19e8dd5e3678de495ec402f6cdbb98885d",
+        "hoth3-large-ceiling\\result.json": "5922762660b33f05fa859642e5b6c6eb918db848fc44b07235c2724e27106fef"
+      },
+      "frozen": true,
+      "note": "Scoped occupancy retained; original fixture-centred cohort, including failed MP priors.",
+      "outcomes": [
+        {
+          "name": "hoth2-wall-bank",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "hoth2-small-ceiling",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth3-ceiling",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "hoth3-blue",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "hoth3-large-ceiling",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel4-yellow-panel",
+          "reason": "Local configurations lack known forward coverage on training or validation",
+          "status": "Unresolved"
+        },
+        {
+          "name": "duel4-white-panel",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel4-square-light",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        },
+        {
+          "name": "hoth2-exterior",
+          "reason": "Invalid audit request/map/limit",
+          "status": "Unresolved"
+        }
+      ],
+      "protocol_sha256": "0bdef3b9761dbd5e51747a60ab5f255cf79112c5b3e33af55cecd7ef4331a3d6",
+      "run": "asr24-stock-v6",
+      "selected_regions": [
+        {
+          "map": "hoth2",
+          "name": "hoth2-wall-bank",
+          "original_surfaces": [
+            5863
+          ],
+          "source_fixture_id": "02626b310744926a18139e6a9e8262f017ef46c7143db2777a876edf7b40d959"
+        },
+        {
+          "map": "hoth2",
+          "name": "hoth2-small-ceiling",
+          "original_surfaces": [
+            5879
+          ],
+          "source_fixture_id": "013d1d8bd282221d9ba3c9def3cf0cc17c3b6e66e76782faebc73071a1e4baf9"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-ceiling",
+          "original_surfaces": [
+            10508
+          ],
+          "source_fixture_id": "1239808a0b42476fc7430a7def366e5c999ec0b80bcff5459bd4712a52a8aeb1"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-blue",
+          "original_surfaces": [
+            9394
+          ],
+          "source_fixture_id": "af95eb783d5256d14f51fe7284d4c596edc2134f1765f28d76ea821cfcf27f46"
+        },
+        {
+          "map": "hoth3",
+          "name": "hoth3-large-ceiling",
+          "original_surfaces": [
+            10490
+          ],
+          "source_fixture_id": "087b20e917a6f24167fdd153cbbf14b142452ec42f73a10c0cd6a4bd831d2f1f"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-yellow-panel",
+          "original_surfaces": [
+            1035
+          ],
+          "source_fixture_id": "00434bf31f595a6a382872c5425e83528450fcf351f35226e7b0e38b7a154216"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-white-panel",
+          "original_surfaces": [
+            1052
+          ],
+          "source_fixture_id": "b809a4559c84ead5ec04a898d50eb4fffcf1f0005bd7d86187b69935133e7f15"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-square-light",
+          "original_surfaces": [
+            1022
+          ],
+          "source_fixture_id": "009cf3188acf0bcd59e6d54fb7920d05511a24f500e37525d7232181f36506e2"
+        }
+      ],
+      "summary_sha256": "ab9eb1de82ac7453c4752c520197738f6dede7c3385830fbfb112932a0276521"
+    },
+    {
+      "artifact_hashes": {
+        "duel4-grid-1\\result.json": "66ac7df259167d6bba637b6b1218dbd5fec5c666b34433eaef7354f2302e81e6",
+        "duel4-grid-2\\result.json": "e5edb7b94eff84487fb323410e59aeb7b6ce7046d7ed4f368cfb51c1a48b490f",
+        "duel4-grid-3\\result.json": "f52feb3a577cdc1b8c84d7d2c71fab0d37bbb55e2f709615297afb1ab5007066"
+      },
+      "frozen": true,
+      "note": "Grid-guided MP follow-up; an activated point worsens held-out error versus nuisance baseline.",
+      "outcomes": [
+        {
+          "name": "duel4-grid-1",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel4-grid-2",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel4-grid-3",
+          "reason": "Frozen held-out improvement gate failed",
+          "status": "Rejected"
+        }
+      ],
+      "protocol_sha256": "a4cbed8c6a6b738cb24828a576c0ecd647d11aab08e8adbb45f148c4c5123f87",
+      "run": "asr24-stock-v7",
+      "selected_regions": [
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-1",
+          "original_surfaces": [
+            1024
+          ],
+          "source_fixture_id": "e98d3aa13ca88e0b74f4bb7abd6e61009abb76fe508c7d82d84f9161a9f9b06e"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-2",
+          "original_surfaces": [
+            1017
+          ],
+          "source_fixture_id": "af37bf90ff3a49ef3d1947345bb637f24ca1dd47f3d190a29ab9108f3adf68a1"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-3",
+          "original_surfaces": [
+            1024
+          ],
+          "source_fixture_id": "d7b4118545a56c887f56dfa8b44675b533f441ce201ea31553795ddd5fab6f3a"
+        }
+      ],
+      "summary_sha256": "3bc6e3385a5295181bca809ba76596ccd250a9a78cec56ffc5c0266b8926c592"
+    },
+    {
+      "artifact_hashes": {},
+      "frozen": false,
+      "note": "Unscored area preflight: original surfaces have no admissible rectangular bound.",
+      "outcomes": [],
+      "protocol_sha256": "3675f20a9f9af081530698eed9c1683c6440990e4a7f2dc15302e07395f1b342",
+      "run": "asr24-stock-v8",
+      "selected_regions": [
+        {
+          "map": "mp_duel4",
+          "name": "duel4-area-1",
+          "original_surfaces": [
+            1024
+          ],
+          "source_fixture_id": "a63b9ac71780b19f7473c485db76ccefb81ee528b750b78c60461a2cc8d976cc"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-area-2",
+          "original_surfaces": [
+            1017
+          ],
+          "source_fixture_id": "bfec746f187819b8a081f2e879472542bd7fda21088340316e4494ca54201392"
+        }
+      ]
+    },
+    {
+      "artifact_hashes": {
+        "duel4-area-1\\result.json": "4a09f6c522a889316713cbe18c85d12855119d3b49dc939323b899f611f49d08"
+      },
+      "frozen": true,
+      "note": "Exact original-face integration rejected by unrelated source-support geometry; another region lacks folds.",
+      "outcomes": [
+        {
+          "name": "duel4-area-1",
+          "reason": "Local configurations lack known forward coverage on training or validation",
+          "status": "Unresolved"
+        },
+        {
+          "name": "duel4-area-2",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        }
+      ],
+      "protocol_sha256": "e451570a505055f6543a77b4b82f1e8b69d4ef1cc74955fd2b2ba2312527d982",
+      "run": "asr24-stock-v9",
+      "selected_regions": [
+        {
+          "map": "mp_duel4",
+          "name": "duel4-area-1",
+          "original_surfaces": [
+            1024
+          ],
+          "source_fixture_id": "a63b9ac71780b19f7473c485db76ccefb81ee528b750b78c60461a2cc8d976cc"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-area-2",
+          "original_surfaces": [
+            1017
+          ],
+          "source_fixture_id": "bfec746f187819b8a081f2e879472542bd7fda21088340316e4494ca54201392"
+        }
+      ],
+      "summary_sha256": "959efe478bb19f18ee8e46afa0ea6142e35432d51a4b894e2132b6ce188aa72c"
+    },
+    {
+      "artifact_hashes": {
+        "duel4-grid-2\\result.json": "5a286f2365c9404b7d65e830cb4626c32c676842a4d8c68dfa89f08fc46df1f4"
+      },
+      "frozen": true,
+      "note": "Geometry-only common-normal/informative-response design; nuisance-only selection.",
+      "outcomes": [
+        {
+          "name": "duel4-grid-1",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        },
+        {
+          "name": "duel4-grid-2",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel4-grid-3",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        }
+      ],
+      "protocol_sha256": "a4a4545c8328acc62292dc919fb2af486651636bb939e6dd5874ccd4d3295203",
+      "run": "asr24-stock-v10",
+      "selected_regions": [
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-1",
+          "original_surfaces": [
+            1024
+          ],
+          "source_fixture_id": "e98d3aa13ca88e0b74f4bb7abd6e61009abb76fe508c7d82d84f9161a9f9b06e"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-2",
+          "original_surfaces": [
+            1017
+          ],
+          "source_fixture_id": "af37bf90ff3a49ef3d1947345bb637f24ca1dd47f3d190a29ab9108f3adf68a1"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-3",
+          "original_surfaces": [
+            1024
+          ],
+          "source_fixture_id": "d7b4118545a56c887f56dfa8b44675b533f441ce201ea31553795ddd5fab6f3a"
+        }
+      ],
+      "summary_sha256": "09ee3a0859a009d06ea1bc699fe40dc00ea75a132312a90b6d53bf546038493a"
+    },
+    {
+      "artifact_hashes": {
+        "duel4-grid-1\\result.json": "e00c591c09bdbed216e4f9282c92dc4d9f21ecfc96c62f6000c7a07fb28d5a8b",
+        "duel4-grid-2\\result.json": "3d211ed23e41488ab0ed03f0899e8344af73ec1dd719aa6abe24ef378b25981c",
+        "duel4-grid-3\\result.json": "a1700432d653c238aef93746015318d23de0e0adad1cc352b9ed2a01c3183cd5"
+      },
+      "frozen": true,
+      "note": "Existing default relative power cap restored; no positive proof on the same MP regions.",
+      "outcomes": [
+        {
+          "name": "duel4-grid-1",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel4-grid-2",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel4-grid-3",
+          "reason": "Frozen held-out improvement gate failed",
+          "status": "Rejected"
+        }
+      ],
+      "protocol_sha256": "4e92027cba528351dfd89e0eaa172f21173c48b2d6becd2dd127535fa6f9a762",
+      "run": "asr24-stock-v11",
+      "selected_regions": [
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-1",
+          "original_surfaces": [
+            1024
+          ],
+          "source_fixture_id": "e98d3aa13ca88e0b74f4bb7abd6e61009abb76fe508c7d82d84f9161a9f9b06e"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-2",
+          "original_surfaces": [
+            1017
+          ],
+          "source_fixture_id": "af37bf90ff3a49ef3d1947345bb637f24ca1dd47f3d190a29ab9108f3adf68a1"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-3",
+          "original_surfaces": [
+            1024
+          ],
+          "source_fixture_id": "d7b4118545a56c887f56dfa8b44675b533f441ce201ea31553795ddd5fab6f3a"
+        }
+      ],
+      "summary_sha256": "160c82c51b77b511a04679ebd938db64db2277e3c360287dd3ba2bc3b9801339"
+    },
+    {
+      "artifact_hashes": {
+        "duel4-grid-1\\result.json": "1b46921daa7607a93d8a7704667ad6926ad766e114039bce53c84462567755e9",
+        "duel4-grid-2\\result.json": "6be894cf5ba0d9fb163bd1a7535d8f07790e30437b4e1505b8ad78beda6a86bf"
+      },
+      "frozen": true,
+      "note": "Visible component groups enumerated; frozen held-out improvement gate fails.",
+      "outcomes": [
+        {
+          "name": "duel4-grid-1",
+          "reason": "Frozen held-out improvement gate failed",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel4-grid-2",
+          "reason": "Frozen held-out improvement gate failed",
+          "status": "Rejected"
+        }
+      ],
+      "protocol_sha256": "dd2933453fb09babc65c9643f443319402f6bcd63e43ffa62e248aa8489f77bb",
+      "run": "asr24-stock-v12",
+      "selected_regions": [
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-1",
+          "original_surfaces": [
+            1024
+          ],
+          "source_fixture_id": "a63b9ac71780b19f7473c485db76ccefb81ee528b750b78c60461a2cc8d976cc"
+        },
+        {
+          "map": "mp_duel4",
+          "name": "duel4-grid-2",
+          "original_surfaces": [
+            1017
+          ],
+          "source_fixture_id": "bfec746f187819b8a081f2e879472542bd7fda21088340316e4494ca54201392"
+        }
+      ],
+      "summary_sha256": "26d8b7be531abfd4472315637ca47b5fdac7d2221a3589ac4a32cd42b8f941a7"
+    },
+    {
+      "artifact_hashes": {
+        "duel10-grid-1\\result.json": "3885cbd88857b0f981d4ecc8422acfc7455eaf6656d873b172b9547a12eb2f7c",
+        "duel10-grid-2\\result.json": "643bdc3bde7dcf5b2f55066a3c1650e624d7ec1c2c8a514d20a91db54663cd79",
+        "duel10-grid-3\\result.json": "20cd2d0ede980c5ce547d7a016b00d3f2cc3a17913bfedfaebd35574798ebf18"
+      },
+      "frozen": true,
+      "note": "duel10 fixture-centred regions: ASR15 dark-support budget refusal. Independent frozen numerical continuation selects nuisance-only.",
+      "numeric_continuation": {
+        "association_unavailable_does_not_certify_sources": true,
+        "inputs_unchanged": true,
+        "regions": [
+          {
+            "name": "duel10-grid-1",
+            "reason": "Validation selected the nuisance-only baseline",
+            "repeat_identical": true,
+            "selected": -1,
+            "status": "Rejected"
+          },
+          {
+            "name": "duel10-grid-2",
+            "reason": "Validation selected the nuisance-only baseline",
+            "repeat_identical": true,
+            "selected": -1,
+            "status": "Rejected"
+          },
+          {
+            "name": "duel10-grid-3",
+            "reason": "Validation selected the nuisance-only baseline",
+            "repeat_identical": true,
+            "selected": -1,
+            "status": "Rejected"
+          }
+        ]
+      },
+      "outcomes": [
+        {
+          "name": "duel10-grid-1",
+          "reason": "ASR15 dark support limit; select an explicit spatial ROI",
+          "status": "Unresolved"
+        },
+        {
+          "name": "duel10-grid-2",
+          "reason": "ASR15 dark support limit; select an explicit spatial ROI",
+          "status": "Unresolved"
+        },
+        {
+          "name": "duel10-grid-3",
+          "reason": "ASR15 dark support limit; select an explicit spatial ROI",
+          "status": "Unresolved"
+        }
+      ],
+      "protocol_sha256": "c793116ea31dc9a2f4610b8082e65a6393b512affacccfeb2b06649da5154c22",
+      "run": "asr24-stock-v13",
+      "selected_regions": [
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-1",
+          "original_surfaces": [
+            940
+          ],
+          "source_fixture_id": "1cd4f298ba2db82dafb3cbb869921e762f2036f280d1ba84dbd5718b35aaa647"
+        },
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-2",
+          "original_surfaces": [
+            942
+          ],
+          "source_fixture_id": "0138fe7f53ee32b7c6216f22fb9495418754badcf9380b06ba7f9bb1eebe7c0a"
+        },
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-3",
+          "original_surfaces": [
+            938
+          ],
+          "source_fixture_id": "04608eabb3c4676c77f5771f1f040a548d8d1e34eda7ba85c6d490253a648f08"
+        }
+      ],
+      "summary_sha256": "9b18dd449d8ce5c455be2996a8c1296a1e9aa7e5b69dbf3131b53b6b048f649c"
+    },
+    {
+      "artifact_hashes": {
+        "duel10-grid-1\\result.json": "d7302774256b4b12fc67071b58c9f67192042dc184957bd2b91f22e505465c1f",
+        "duel10-grid-2\\result.json": "eb13501f89dadfa13a28e222874fc57c16254146d148d4e8c8a8827df35e76aa",
+        "duel10-grid-3\\result.json": "4026cbb537d0a5961c275b0be76f6e5b833ab2ae82178637143b8a3962b41e5b"
+      },
+      "frozen": true,
+      "note": "Existing ASR21 sparse nearby-fixture fits; nuisance-only selections.",
+      "outcomes": [
+        {
+          "name": "duel10-grid-1",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel10-grid-2",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel10-grid-3",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        }
+      ],
+      "protocol_sha256": "3b89196376bd0f17cf3b82098732915f26b852407218c60c58bd4e89abea4c5f",
+      "run": "asr24-stock-v14",
+      "selected_regions": [
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-1",
+          "original_surfaces": [
+            940
+          ],
+          "source_fixture_id": "1cd4f298ba2db82dafb3cbb869921e762f2036f280d1ba84dbd5718b35aaa647"
+        },
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-2",
+          "original_surfaces": [
+            942
+          ],
+          "source_fixture_id": "0138fe7f53ee32b7c6216f22fb9495418754badcf9380b06ba7f9bb1eebe7c0a"
+        },
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-3",
+          "original_surfaces": [
+            938
+          ],
+          "source_fixture_id": "04608eabb3c4676c77f5771f1f040a548d8d1e34eda7ba85c6d490253a648f08"
+        }
+      ],
+      "summary_sha256": "a4086e997c298a6477c4f5f123095c40da1d8d5b0e08c2fc527d38a8507a908d"
+    },
+    {
+      "artifact_hashes": {
+        "duel10-grid-1\\result.json": "88d33f39b61886ee95652cf40f14344e01f84d1aee6bc4e87651e392e018be36",
+        "duel10-grid-2\\result.json": "e15619e7f4fe9ab9ccac9d633afc4023b47da392e0f9e4951646dd7dbc9fea4e",
+        "duel10-grid-3\\result.json": "595cce4af4210fde04bbde771ad695041c7eca5e96d70d0d801361883aa69a41"
+      },
+      "frozen": true,
+      "note": "Smaller fixture-centred ROIs still missed floor. Apparent small gains are not frozen-source contributions.",
+      "outcomes": [
+        {
+          "name": "duel10-grid-1",
+          "reason": "Frozen held-out improvement gate failed",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel10-grid-2",
+          "reason": "Validation selected the nuisance-only baseline",
+          "status": "Rejected"
+        },
+        {
+          "name": "duel10-grid-3",
+          "reason": "Nonempty supported source gate failed",
+          "status": "Unresolved"
+        }
+      ],
+      "protocol_sha256": "04a857467d758c4defa2adbd7784b108d17d8834d371aec9644db7ddbd4e42aa",
+      "run": "asr24-stock-v15",
+      "selected_regions": [
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-1",
+          "original_surfaces": [
+            940
+          ],
+          "source_fixture_id": "1cd4f298ba2db82dafb3cbb869921e762f2036f280d1ba84dbd5718b35aaa647"
+        },
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-2",
+          "original_surfaces": [
+            942
+          ],
+          "source_fixture_id": "0138fe7f53ee32b7c6216f22fb9495418754badcf9380b06ba7f9bb1eebe7c0a"
+        },
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-3",
+          "original_surfaces": [
+            938
+          ],
+          "source_fixture_id": "04608eabb3c4676c77f5771f1f040a548d8d1e34eda7ba85c6d490253a648f08"
+        }
+      ],
+      "summary_sha256": "ab91e2ded1863b36a4ae879f7546a64a8481d93097e85c2e357d261a4b666ba2"
+    },
+    {
+      "artifact_hashes": {
+        "duel10-grid-1\\result.json": "7f99da66f8a73a0a100471dd041a85505bc71a0b28e78ca40cb02adafc37836d",
+        "duel10-grid-2\\result.json": "4b582843e0bfecb9359c24280ad217745d47965fd48e7fe9152a37c32cf3e619"
+      },
+      "frozen": true,
+      "note": "Native opaque-hit receiver selection finds floor; nonempty source effects, but iteration budget exhausted.",
+      "outcomes": [
+        {
+          "name": "duel10-grid-1",
+          "reason": "Nonempty supported source gate failed",
+          "status": "Unresolved"
+        },
+        {
+          "name": "duel10-grid-2",
+          "reason": "Nonempty supported source gate failed",
+          "status": "Unresolved"
+        },
+        {
+          "name": "duel10-grid-3",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        }
+      ],
+      "protocol_sha256": "2e1839913008576cd9363ad67013716af551e44ea134c39f40eb8bcd5c71d07e",
+      "run": "asr24-stock-v16",
+      "selected_regions": [
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-1",
+          "original_surfaces": [
+            940
+          ],
+          "source_fixture_id": "1cd4f298ba2db82dafb3cbb869921e762f2036f280d1ba84dbd5718b35aaa647"
+        },
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-2",
+          "original_surfaces": [
+            942
+          ],
+          "source_fixture_id": "0138fe7f53ee32b7c6216f22fb9495418754badcf9380b06ba7f9bb1eebe7c0a"
+        },
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-3",
+          "original_surfaces": [
+            938
+          ],
+          "source_fixture_id": "04608eabb3c4676c77f5771f1f040a548d8d1e34eda7ba85c6d490253a648f08"
+        }
+      ],
+      "summary_sha256": "ac2628cbaaeb4ed47080d776a5dfd52e56f0372791c43c9bece08795733c8ed9"
+    },
+    {
+      "artifact_hashes": {
+        "duel10-grid-1\\result.json": "0f0d21855da5ccae2abaa0d4bfba9755419e6be057572c857e17cb1ad3275452",
+        "duel10-grid-2\\result.json": "00703eefe43db9319a8e461e40080f6e7d299a97063b44642e20b5d5b35e63bf"
+      },
+      "frozen": true,
+      "note": "Larger existing numerical budget; tighter stopping tolerance still does not converge. Retained as diagnostic.",
+      "outcomes": [
+        {
+          "name": "duel10-grid-1",
+          "reason": "Nonempty supported source gate failed",
+          "status": "Unresolved"
+        },
+        {
+          "name": "duel10-grid-2",
+          "reason": "Nonempty supported source gate failed",
+          "status": "Unresolved"
+        },
+        {
+          "name": "duel10-grid-3",
+          "reason": "Insufficient separated same-material folds",
+          "status": "Unresolved"
+        }
+      ],
+      "protocol_sha256": "f0163c01f9e3f92b7f6eed11a35f69566828314265b6f627cec24c8b53ca54ed",
+      "run": "asr24-stock-v17",
+      "selected_regions": [
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-1",
+          "original_surfaces": [
+            940
+          ],
+          "source_fixture_id": "1cd4f298ba2db82dafb3cbb869921e762f2036f280d1ba84dbd5718b35aaa647"
+        },
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-2",
+          "original_surfaces": [
+            942
+          ],
+          "source_fixture_id": "0138fe7f53ee32b7c6216f22fb9495418754badcf9380b06ba7f9bb1eebe7c0a"
+        },
+        {
+          "map": "mp_duel10",
+          "name": "duel10-grid-3",
+          "original_surfaces": [
+            938
+          ],
+          "source_fixture_id": "04608eabb3c4676c77f5771f1f040a548d8d1e34eda7ba85c6d490253a648f08"
+        }
+      ],
+      "summary_sha256": "81ea507093605e6da5c312656c8eb4281665e5785d04728bebe5201a1597038f"
+    }
+  ],
+  "exploratory": true,
+  "no_blind_human_or_independent_replicate_claim": true,
+  "schema": "org.openjk.asr24-attempt-history.v1"
+}

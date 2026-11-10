@@ -1,0 +1,59 @@
+{
+  "cpu_regression_tests": {
+    "excluded": "Unchanged long-running lightrecon_point_refine",
+    "failed": 0,
+    "passed": 57
+  },
+  "final_proof_inputs_sources_and_tools_unchanged": true,
+  "geometry_coverage_ignores_rgb": true,
+  "heldout_poison_does_not_change_selection_or_fitted_parameters": true,
+  "historical_core_and_canonical_files_unchanged": 113,
+  "latest_stock_protocol_tests": {
+    "failed": 0,
+    "passed": 5
+  },
+  "latest_targeted_cpu_tests": {
+    "failed": 0,
+    "passed": 7
+  },
+  "original_stock_rows": [
+    {
+      "cohort": "asr24-final-original",
+      "disjoint_original_sample_ids_and_spatial_blocks": true,
+      "map": "hoth2",
+      "maximum_original_face_plane_error_world": 0.0,
+      "original_rgb8_bytes_match": true,
+      "rows_verified": 22
+    },
+    {
+      "cohort": "asr24-final-original",
+      "disjoint_original_sample_ids_and_spatial_blocks": true,
+      "map": "hoth3",
+      "maximum_original_face_plane_error_world": 0.0,
+      "original_rgb8_bytes_match": true,
+      "rows_verified": 257
+    },
+    {
+      "cohort": "asr24-final-original",
+      "disjoint_original_sample_ids_and_spatial_blocks": true,
+      "map": "mp_duel4",
+      "maximum_original_face_plane_error_world": 0.0,
+      "original_rgb8_bytes_match": true,
+      "rows_verified": 112
+    },
+    {
+      "cohort": "asr24-proof-v1",
+      "disjoint_original_sample_ids_and_spatial_blocks": true,
+      "map": "mp_duel10",
+      "maximum_original_face_plane_error_world": 0.0,
+      "original_rgb8_bytes_match": true,
+      "rows_verified": 107
+    }
+  ],
+  "outside_unknown_is_not_empty": true,
+  "python_tests": {
+    "failed": 0,
+    "passed": 34
+  },
+  "receiver_is_actual_native_opaque_hit": true
+}

@@ -1,0 +1,1286 @@
+{
+  "accepted_configurations": 1,
+  "canonical_storage_changed": false,
+  "historical_resolved_meaning_changed": false,
+  "historical_source_certified": false,
+  "regions": [
+    {
+      "association_unavailable_reason": null,
+      "baseline": {
+        "heldout": {
+          "available": 1,
+          "blocks": 1,
+          "maximum_error": 44.8888893127,
+          "mse": 558.986150338,
+          "normal_bins": 1,
+          "robust": 64.7249210079,
+          "rows": 7
+        },
+        "training": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 13.1111106873,
+          "mse": 35.8036930975,
+          "normal_bins": 1,
+          "robust": 13.3255265069,
+          "rows": 7
+        },
+        "validation": {
+          "available": 1,
+          "blocks": 1,
+          "maximum_error": 37.8888893127,
+          "mse": 615.324308569,
+          "normal_bins": 1,
+          "robust": 81.9161224365,
+          "rows": 8
+        }
+      },
+      "cohort": "asr24-final-original",
+      "configurations": [
+        {
+          "available": 1,
+          "background": [
+            34.8823547363,
+            40.444442749,
+            46.1111106873
+          ],
+          "background_at_bound": 0,
+          "converged": 1,
+          "heldout": {
+            "available": 1,
+            "blocks": 1,
+            "maximum_error": 44.8888893127,
+            "mse": 558.986150338,
+            "normal_bins": 1,
+            "robust": 64.7249210079,
+            "rows": 7
+          },
+          "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+          "name": "fixtures-1",
+          "training": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 13.1111106873,
+            "mse": 35.8036930975,
+            "normal_bins": 1,
+            "robust": 13.3255265069,
+            "rows": 7
+          },
+          "validation": {
+            "available": 1,
+            "blocks": 1,
+            "maximum_error": 37.8888893127,
+            "mse": 615.324308569,
+            "normal_bins": 1,
+            "robust": 81.9161224365,
+            "rows": 8
+          }
+        }
+      ],
+      "conservative_associations": 0,
+      "geometry_complete": false,
+      "grid_known_static_supports": 0,
+      "grid_mover_independent_supports": 0,
+      "historical_source_certified": false,
+      "map": "hoth2",
+      "name": "hoth2-wall-bank",
+      "patch_count": 0,
+      "reason": "Validation selected the nuisance-only baseline",
+      "repeat_identical": true,
+      "selected": -1,
+      "selection": {
+        "available": true,
+        "blocks": {
+          "heldout": 1,
+          "train": 2,
+          "validation": 1
+        },
+        "counts": {
+          "heldout": 7,
+          "train": 7,
+          "validation": 8
+        },
+        "discovery_training_rows": 61,
+        "forward_geometry_coverage": {
+          "categories": {
+            "(False, False, 172288)": 242,
+            "(False, False, 172290)": 111,
+            "(False, False, 172292)": 51,
+            "(False, False, 172308)": 1,
+            "(False, False, 172368)": 8,
+            "(False, False, 172372)": 11,
+            "(True, False, 0)": 112,
+            "(True, False, 16)": 5,
+            "(True, False, 20)": 2,
+            "(True, False, 4)": 26,
+            "(True, False, 80)": 23,
+            "(True, False, 84)": 2
+          },
+          "known": 170,
+          "original_rgb_supplied": false,
+          "provider": "Shape::Prepare + Block::Evaluate; fixed unit amplitude",
+          "requested": 594,
+          "unknown_excluded": 424
+        },
+        "geometry_layouts_tested": 202,
+        "informative_counts": {
+          "heldout": 0,
+          "train": 0,
+          "validation": 0
+        },
+        "material": "textures/hoth/floorpanel_02",
+        "normal_bin": null,
+        "partition_offset": [
+          17,
+          145,
+          209
+        ],
+        "qualified_roi_rows": 1090,
+        "selection": "Finite geometry-only offset/material design maximizes minimum fold coverage; stable-ID cap"
+      },
+      "source_removal": {
+        "available": false,
+        "reason": "No validation-selected local configuration"
+      },
+      "status": "Rejected"
+    },
+    {
+      "cohort": "asr24-final-original",
+      "historical_source_certified": false,
+      "map": "hoth2",
+      "name": "hoth2-small-ceiling",
+      "reason": "Insufficient separated same-material folds",
+      "selection": {
+        "available": false,
+        "minimum_fold_rows": 3,
+        "qualified_roi_rows": 1086,
+        "reason": "Insufficient separated same-material folds"
+      },
+      "status": "Unresolved"
+    },
+    {
+      "association_unavailable_reason": null,
+      "baseline": {
+        "heldout": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 52.3519973755,
+          "mse": 1683.21732126,
+          "normal_bins": 2,
+          "robust": 154.201772054,
+          "rows": 8
+        },
+        "training": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 22.3519973755,
+          "mse": 123.031882888,
+          "normal_bins": 2,
+          "robust": 31.6666666667,
+          "rows": 12
+        },
+        "validation": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 55.3519973755,
+          "mse": 1157.07693246,
+          "normal_bins": 1,
+          "robust": 100.79105941,
+          "rows": 15
+        }
+      },
+      "cohort": "asr24-final-original",
+      "configurations": [
+        {
+          "available": 1,
+          "background": [
+            67.7220001221,
+            74.827331543,
+            82.3519973755
+          ],
+          "background_at_bound": 0,
+          "converged": 1,
+          "heldout": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 52.3519973755,
+            "mse": 1683.21732126,
+            "normal_bins": 2,
+            "robust": 154.201772054,
+            "rows": 8
+          },
+          "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+          "name": "fixtures-1",
+          "training": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 22.3519973755,
+            "mse": 123.031882888,
+            "normal_bins": 2,
+            "robust": 31.6666666667,
+            "rows": 12
+          },
+          "validation": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 55.3519973755,
+            "mse": 1157.07693246,
+            "normal_bins": 1,
+            "robust": 100.79105941,
+            "rows": 15
+          }
+        }
+      ],
+      "conservative_associations": 0,
+      "geometry_complete": true,
+      "grid_known_static_supports": 0,
+      "grid_mover_independent_supports": 0,
+      "historical_source_certified": false,
+      "map": "hoth3",
+      "name": "hoth3-ceiling",
+      "patch_count": 0,
+      "reason": "Validation selected the nuisance-only baseline",
+      "repeat_identical": true,
+      "selected": -1,
+      "selection": {
+        "available": true,
+        "blocks": {
+          "heldout": 2,
+          "train": 2,
+          "validation": 2
+        },
+        "counts": {
+          "heldout": 8,
+          "train": 12,
+          "validation": 15
+        },
+        "discovery_training_rows": 71,
+        "forward_geometry_coverage": {
+          "categories": {
+            "(False, False, 139266)": 53,
+            "(False, False, 139268)": 54,
+            "(False, False, 172288)": 21,
+            "(False, False, 172290)": 3,
+            "(False, False, 172292)": 7,
+            "(False, True, 139264)": 234,
+            "(True, False, 0)": 102
+          },
+          "known": 102,
+          "original_rgb_supplied": false,
+          "provider": "Shape::Prepare + Block::Evaluate; fixed unit amplitude",
+          "requested": 474,
+          "unknown_excluded": 372
+        },
+        "geometry_layouts_tested": 160,
+        "informative_counts": {
+          "heldout": 0,
+          "train": 0,
+          "validation": 0
+        },
+        "material": "textures/hoth/floorpanel_02",
+        "normal_bin": null,
+        "partition_offset": [
+          145,
+          81,
+          17
+        ],
+        "qualified_roi_rows": 1017,
+        "selection": "Finite geometry-only offset/material design maximizes minimum fold coverage; stable-ID cap"
+      },
+      "source_removal": {
+        "available": false,
+        "reason": "No validation-selected local configuration"
+      },
+      "status": "Rejected"
+    },
+    {
+      "association_unavailable_reason": null,
+      "baseline": {
+        "heldout": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 24.0555553436,
+          "mse": 171.944405497,
+          "normal_bins": 2,
+          "robust": 39.7815009088,
+          "rows": 16
+        },
+        "training": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 43.0555553436,
+          "mse": 137.409537952,
+          "normal_bins": 1,
+          "robust": 23.8157809003,
+          "rows": 46
+        },
+        "validation": {
+          "available": 1,
+          "blocks": 1,
+          "maximum_error": 24.0555553436,
+          "mse": 164.380916786,
+          "normal_bins": 1,
+          "robust": 34.4829553511,
+          "rows": 20
+        }
+      },
+      "cohort": "asr24-final-original",
+      "configurations": [
+        {
+          "available": 1,
+          "background": [
+            32.9510879517,
+            28.7203578949,
+            25.9444446564
+          ],
+          "background_at_bound": 0,
+          "converged": 1,
+          "heldout": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 24.0555553436,
+            "mse": 171.944405497,
+            "normal_bins": 2,
+            "robust": 39.7815009088,
+            "rows": 16
+          },
+          "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+          "name": "fixtures-1",
+          "training": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 43.0555553436,
+            "mse": 137.409537952,
+            "normal_bins": 1,
+            "robust": 23.8157809003,
+            "rows": 46
+          },
+          "validation": {
+            "available": 1,
+            "blocks": 1,
+            "maximum_error": 24.0555553436,
+            "mse": 164.380916786,
+            "normal_bins": 1,
+            "robust": 34.4829553511,
+            "rows": 20
+          }
+        }
+      ],
+      "conservative_associations": 0,
+      "geometry_complete": false,
+      "grid_known_static_supports": 6,
+      "grid_mover_independent_supports": 0,
+      "historical_source_certified": false,
+      "map": "hoth3",
+      "name": "hoth3-blue",
+      "patch_count": 4,
+      "reason": "Validation selected the nuisance-only baseline",
+      "repeat_identical": true,
+      "selected": -1,
+      "selection": {
+        "available": true,
+        "blocks": {
+          "heldout": 2,
+          "train": 2,
+          "validation": 1
+        },
+        "counts": {
+          "heldout": 16,
+          "train": 46,
+          "validation": 20
+        },
+        "discovery_training_rows": 989,
+        "forward_geometry_coverage": {
+          "categories": {
+            "(False, False, 139266)": 255,
+            "(False, False, 139268)": 32,
+            "(False, False, 139328)": 25,
+            "(False, False, 139332)": 8,
+            "(False, False, 172352)": 22,
+            "(False, False, 172356)": 3,
+            "(True, False, 0)": 241,
+            "(True, False, 4)": 27,
+            "(True, False, 64)": 6
+          },
+          "known": 274,
+          "original_rgb_supplied": false,
+          "provider": "Shape::Prepare + Block::Evaluate; fixed unit amplitude",
+          "requested": 619,
+          "unknown_excluded": 345
+        },
+        "geometry_layouts_tested": 178,
+        "informative_counts": {
+          "heldout": 0,
+          "train": 0,
+          "validation": 0
+        },
+        "material": "textures/hoth/h_basicwall_2",
+        "normal_bin": null,
+        "partition_offset": [
+          17,
+          209,
+          81
+        ],
+        "qualified_roi_rows": 3808,
+        "selection": "Finite geometry-only offset/material design maximizes minimum fold coverage; stable-ID cap"
+      },
+      "source_removal": {
+        "available": false,
+        "reason": "No validation-selected local configuration"
+      },
+      "status": "Rejected"
+    },
+    {
+      "association_unavailable_reason": null,
+      "baseline": {
+        "heldout": {
+          "available": 1,
+          "blocks": 3,
+          "maximum_error": 204.226303101,
+          "mse": 7316.115453,
+          "normal_bins": 1,
+          "robust": 275.030573631,
+          "rows": 48
+        },
+        "training": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 160.226303101,
+          "mse": 7996.95557896,
+          "normal_bins": 1,
+          "robust": 308.81300813,
+          "rows": 48
+        },
+        "validation": {
+          "available": 1,
+          "blocks": 1,
+          "maximum_error": 122.226303101,
+          "mse": 2183.42999566,
+          "normal_bins": 1,
+          "robust": 156.587959408,
+          "rows": 44
+        }
+      },
+      "cohort": "asr24-final-original",
+      "configurations": [
+        {
+          "available": 1,
+          "background": [
+            120.815612793,
+            221.226303101,
+            155.519836426
+          ],
+          "background_at_bound": 0,
+          "converged": 1,
+          "heldout": {
+            "available": 1,
+            "blocks": 3,
+            "maximum_error": 204.226303101,
+            "mse": 7316.115453,
+            "normal_bins": 1,
+            "robust": 275.030573631,
+            "rows": 48
+          },
+          "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+          "name": "fixtures-1",
+          "training": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 160.226303101,
+            "mse": 7996.95557896,
+            "normal_bins": 1,
+            "robust": 308.81300813,
+            "rows": 48
+          },
+          "validation": {
+            "available": 1,
+            "blocks": 1,
+            "maximum_error": 122.226303101,
+            "mse": 2183.42999566,
+            "normal_bins": 1,
+            "robust": 156.587959408,
+            "rows": 44
+          }
+        }
+      ],
+      "conservative_associations": 0,
+      "geometry_complete": true,
+      "grid_known_static_supports": 0,
+      "grid_mover_independent_supports": 0,
+      "historical_source_certified": false,
+      "map": "hoth3",
+      "name": "hoth3-large-ceiling",
+      "patch_count": 0,
+      "reason": "Validation selected the nuisance-only baseline",
+      "repeat_identical": true,
+      "selected": -1,
+      "selection": {
+        "available": true,
+        "blocks": {
+          "heldout": 3,
+          "train": 2,
+          "validation": 1
+        },
+        "counts": {
+          "heldout": 48,
+          "train": 48,
+          "validation": 44
+        },
+        "discovery_training_rows": 700,
+        "forward_geometry_coverage": {
+          "categories": {
+            "(False, False, 139266)": 127,
+            "(False, False, 139268)": 233,
+            "(False, True, 139264)": 341,
+            "(True, False, 0)": 533,
+            "(True, False, 4)": 42
+          },
+          "known": 575,
+          "original_rgb_supplied": false,
+          "provider": "Shape::Prepare + Block::Evaluate; fixed unit amplitude",
+          "requested": 1276,
+          "unknown_excluded": 701
+        },
+        "geometry_layouts_tested": 240,
+        "informative_counts": {
+          "heldout": 0,
+          "train": 0,
+          "validation": 0
+        },
+        "material": "textures/hoth/h_floor",
+        "normal_bin": null,
+        "partition_offset": [
+          81,
+          17,
+          81
+        ],
+        "qualified_roi_rows": 3470,
+        "selection": "Finite geometry-only offset/material design maximizes minimum fold coverage; stable-ID cap"
+      },
+      "source_removal": {
+        "available": false,
+        "reason": "No validation-selected local configuration"
+      },
+      "status": "Rejected"
+    },
+    {
+      "association_unavailable_reason": null,
+      "baseline": {
+        "heldout": {
+          "available": 1,
+          "blocks": 1,
+          "maximum_error": 157.166664124,
+          "mse": 10466.2681477,
+          "normal_bins": 2,
+          "robust": 319.745948562,
+          "rows": 6
+        },
+        "training": {
+          "available": 1,
+          "blocks": 3,
+          "maximum_error": 157.166664124,
+          "mse": 4188.62554296,
+          "normal_bins": 2,
+          "robust": 146.292373294,
+          "rows": 13
+        },
+        "validation": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 161.666664124,
+          "mse": 4431.00604347,
+          "normal_bins": 1,
+          "robust": 199.224581473,
+          "rows": 14
+        }
+      },
+      "cohort": "asr24-final-original",
+      "configurations": [
+        {
+          "available": 0,
+          "background": [
+            0,
+            0,
+            0
+          ],
+          "background_at_bound": 0,
+          "converged": 0,
+          "heldout": {
+            "available": 0,
+            "blocks": 0,
+            "maximum_error": null,
+            "mse": null,
+            "normal_bins": 0,
+            "robust": null,
+            "rows": 0
+          },
+          "limitation": "Occupied source support is not certified outside world solids",
+          "name": "fixtures-1",
+          "training": {
+            "available": 0,
+            "blocks": 0,
+            "maximum_error": null,
+            "mse": null,
+            "normal_bins": 0,
+            "robust": null,
+            "rows": 0
+          },
+          "validation": {
+            "available": 0,
+            "blocks": 0,
+            "maximum_error": null,
+            "mse": null,
+            "normal_bins": 0,
+            "robust": null,
+            "rows": 0
+          }
+        }
+      ],
+      "conservative_associations": 0,
+      "geometry_complete": false,
+      "grid_known_static_supports": 0,
+      "grid_mover_independent_supports": 0,
+      "historical_source_certified": false,
+      "map": "mp_duel4",
+      "name": "duel4-yellow-panel",
+      "patch_count": 0,
+      "reason": "Local configurations lack known forward coverage on training or validation",
+      "repeat_identical": true,
+      "selected": -1,
+      "selection": {
+        "available": true,
+        "blocks": {
+          "heldout": 1,
+          "train": 3,
+          "validation": 2
+        },
+        "counts": {
+          "heldout": 6,
+          "train": 13,
+          "validation": 14
+        },
+        "discovery_training_rows": 174,
+        "forward_geometry_coverage": {
+          "categories": {
+            "(False, False, 12)": 52,
+            "(False, False, 2)": 17,
+            "(False, False, 76)": 1,
+            "(False, False, 8)": 4,
+            "(True, False, 12)": 15,
+            "(True, False, 72)": 52,
+            "(True, False, 76)": 1,
+            "(True, False, 8)": 185
+          },
+          "known": 253,
+          "original_rgb_supplied": false,
+          "provider": "Shape::Prepare + Block::Evaluate; fixed unit amplitude",
+          "requested": 327,
+          "unknown_excluded": 74
+        },
+        "geometry_layouts_tested": 237,
+        "informative_counts": {
+          "heldout": 0,
+          "train": 0,
+          "validation": 0
+        },
+        "material": "textures/imperial/crate_panels",
+        "normal_bin": null,
+        "partition_offset": [
+          17,
+          81,
+          81
+        ],
+        "qualified_roi_rows": 1704,
+        "selection": "Finite geometry-only offset/material design maximizes minimum fold coverage; stable-ID cap"
+      },
+      "source_removal": {
+        "available": false,
+        "reason": "No validation-selected local configuration"
+      },
+      "status": "Unresolved"
+    },
+    {
+      "association_unavailable_reason": null,
+      "baseline": {
+        "heldout": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 140.375160217,
+          "mse": 4447.55824436,
+          "normal_bins": 3,
+          "robust": 225.696026973,
+          "rows": 39
+        },
+        "training": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 140.375160217,
+          "mse": 4877.57391737,
+          "normal_bins": 3,
+          "robust": 187.193798679,
+          "rows": 20
+        },
+        "validation": {
+          "available": 1,
+          "blocks": 1,
+          "maximum_error": 140.375160217,
+          "mse": 977.073327246,
+          "normal_bins": 2,
+          "robust": 57.8624819328,
+          "rows": 20
+        }
+      },
+      "cohort": "asr24-final-original",
+      "configurations": [
+        {
+          "available": 1,
+          "background": [
+            119.166862488,
+            113.624839783,
+            107.278038025
+          ],
+          "background_at_bound": 0,
+          "converged": 1,
+          "heldout": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 140.375160217,
+            "mse": 4447.55836914,
+            "normal_bins": 3,
+            "robust": 225.696034229,
+            "rows": 39
+          },
+          "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+          "name": "fixtures-1",
+          "training": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 140.375160217,
+            "mse": 4877.57404883,
+            "normal_bins": 3,
+            "robust": 187.193798541,
+            "rows": 20
+          },
+          "validation": {
+            "available": 1,
+            "blocks": 1,
+            "maximum_error": 140.375160217,
+            "mse": 977.073283912,
+            "normal_bins": 2,
+            "robust": 57.8624805911,
+            "rows": 20
+          }
+        }
+      ],
+      "conservative_associations": 0,
+      "geometry_complete": false,
+      "grid_known_static_supports": 3,
+      "grid_mover_independent_supports": 3,
+      "historical_source_certified": false,
+      "map": "mp_duel4",
+      "name": "duel4-white-panel",
+      "patch_count": 0,
+      "reason": "Validation selected the nuisance-only baseline",
+      "repeat_identical": true,
+      "selected": -1,
+      "selection": {
+        "available": true,
+        "blocks": {
+          "heldout": 2,
+          "train": 2,
+          "validation": 1
+        },
+        "counts": {
+          "heldout": 39,
+          "train": 20,
+          "validation": 20
+        },
+        "discovery_training_rows": 527,
+        "forward_geometry_coverage": {
+          "categories": {
+            "(False, False, 1028)": 4,
+            "(False, False, 2)": 90,
+            "(False, False, 4)": 115,
+            "(False, False, 64)": 49,
+            "(False, False, 68)": 5,
+            "(True, False, 0)": 77,
+            "(True, False, 1028)": 2,
+            "(True, True, 0)": 519
+          },
+          "known": 598,
+          "original_rgb_supplied": false,
+          "provider": "Shape::Prepare + Block::Evaluate; fixed unit amplitude",
+          "requested": 861,
+          "unknown_excluded": 263
+        },
+        "geometry_layouts_tested": 408,
+        "informative_counts": {
+          "heldout": 39,
+          "train": 20,
+          "validation": 20
+        },
+        "material": "textures/doomgiver/wall9d",
+        "normal_bin": null,
+        "partition_offset": [
+          145,
+          81,
+          209
+        ],
+        "qualified_roi_rows": 2703,
+        "selection": "Finite geometry-only offset/material design maximizes minimum fold coverage; stable-ID cap"
+      },
+      "source_removal": {
+        "available": false,
+        "reason": "No validation-selected local configuration"
+      },
+      "status": "Rejected"
+    },
+    {
+      "cohort": "asr24-final-original",
+      "historical_source_certified": false,
+      "map": "mp_duel4",
+      "name": "duel4-square-light",
+      "reason": "Insufficient separated same-material folds",
+      "selection": {
+        "available": false,
+        "minimum_fold_rows": 1,
+        "qualified_roi_rows": 1447,
+        "reason": "Insufficient separated same-material folds"
+      },
+      "status": "Unresolved"
+    },
+    {
+      "cohort": "asr24-final-original",
+      "historical_source_certified": false,
+      "map": "hoth2",
+      "name": "hoth2-exterior",
+      "reason": "Invalid audit request/map/limit",
+      "status": "Unresolved"
+    },
+    {
+      "association_unavailable_reason": null,
+      "baseline": {
+        "heldout": {
+          "available": 1,
+          "blocks": 1,
+          "maximum_error": 22.5323486328,
+          "mse": 101.81275045,
+          "normal_bins": 1,
+          "robust": 25.9468441625,
+          "rows": 17
+        },
+        "training": {
+          "available": 1,
+          "blocks": 3,
+          "maximum_error": 39.4716796875,
+          "mse": 736.525674376,
+          "normal_bins": 1,
+          "robust": 87.4074073833,
+          "rows": 17
+        },
+        "validation": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 38.4716796875,
+          "mse": 363.222710618,
+          "normal_bins": 1,
+          "robust": 58.6065437972,
+          "rows": 16
+        }
+      },
+      "cohort": "asr24-proof-v1",
+      "configurations": [
+        {
+          "available": 1,
+          "background": [
+            16.3582077026,
+            0,
+            0
+          ],
+          "background_at_bound": 0,
+          "converged": 1,
+          "heldout": {
+            "available": 1,
+            "blocks": 1,
+            "maximum_error": 25.3232727051,
+            "mse": 96.6046543603,
+            "normal_bins": 1,
+            "robust": 24.1217519786,
+            "rows": 17
+          },
+          "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+          "name": "fixtures-1",
+          "training": {
+            "available": 1,
+            "blocks": 3,
+            "maximum_error": 21.8654403687,
+            "mse": 178.241996138,
+            "normal_bins": 1,
+            "robust": 34.0551512859,
+            "rows": 17
+          },
+          "validation": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 17.4822311401,
+            "mse": 136.756685109,
+            "normal_bins": 1,
+            "robust": 33.0659122477,
+            "rows": 16
+          }
+        }
+      ],
+      "conservative_associations": 0,
+      "geometry_complete": true,
+      "grid_known_static_supports": 97,
+      "grid_mover_independent_supports": 97,
+      "historical_source_certified": false,
+      "map": "mp_duel10",
+      "name": "duel10-grid-1",
+      "patch_count": 6,
+      "reason": "Frozen held-out improvement gate failed",
+      "repeat_identical": true,
+      "selected": 0,
+      "selection": {
+        "available": true,
+        "blocks": {
+          "heldout": 1,
+          "train": 3,
+          "validation": 2
+        },
+        "counts": {
+          "heldout": 17,
+          "train": 17,
+          "validation": 16
+        },
+        "discovery_training_rows": 2881,
+        "forward_geometry_coverage": {
+          "categories": {
+            "(True, True, 0)": 173
+          },
+          "known": 173,
+          "original_rgb_supplied": false,
+          "provider": "Shape::Prepare + Block::Evaluate; fixed unit amplitude",
+          "requested": 173,
+          "unknown_excluded": 0
+        },
+        "geometry_layouts_tested": 64,
+        "informative_counts": {
+          "heldout": 17,
+          "train": 17,
+          "validation": 16
+        },
+        "material": "textures/factory/doorpattern",
+        "normal_bin": [
+          2,
+          true
+        ],
+        "partition_offset": [
+          113,
+          17,
+          17
+        ],
+        "qualified_roi_rows": 7407,
+        "selection": "Finite geometry-only offset/material design maximizes minimum fold coverage; stable-ID cap"
+      },
+      "source": {
+        "column_rms": 0.00477704728364,
+        "emitting_area_world_squared": 0,
+        "fixture": "1",
+        "half_height_world": 0,
+        "half_width_world": 0,
+        "maximum_correlation": 0,
+        "outward": [
+          0,
+          0,
+          -1
+        ],
+        "placement": "Free",
+        "placement_conditional": 0,
+        "placement_reason": "Named emitting-side contact; world solid penetration remains forbidden",
+        "power_at_bound": 0,
+        "quadrature_difference": 0,
+        "relative_rgb": [
+          18814.8300781,
+          21098.1191406,
+          18867.7460938
+        ],
+        "source_side_certified": 1,
+        "state": "Candidate",
+        "type": "Point"
+      },
+      "source_removal": {
+        "available": true,
+        "calibrated_irradiance": false,
+        "historical_source_certified": false,
+        "maximum_code_response": 115.1713791,
+        "native_on_mse": 96.6046543603,
+        "native_replay_agrees": true,
+        "on": {
+          "mse": 96.60466876338754,
+          "robust": 24.121757240382056
+        },
+        "original_target_domain": "Encoded RGB8 intervals; saturation censored",
+        "parameters_refitted": false,
+        "rows": 17,
+        "rows_with_at_least_one_code_response": 17,
+        "source_removal_worsens_mse": true,
+        "source_removed": {
+          "mse": 7817.066613533014,
+          "robust": 342.58121479825684
+        }
+      },
+      "sources": [
+        {
+          "column_rms": 0.00477704728364,
+          "emitting_area_world_squared": 0,
+          "fixture": "1",
+          "half_height_world": 0,
+          "half_width_world": 0,
+          "maximum_correlation": 0,
+          "outward": [
+            0,
+            0,
+            -1
+          ],
+          "placement": "Free",
+          "placement_conditional": 0,
+          "placement_reason": "Named emitting-side contact; world solid penetration remains forbidden",
+          "power_at_bound": 0,
+          "quadrature_difference": 0,
+          "relative_rgb": [
+            18814.8300781,
+            21098.1191406,
+            18867.7460938
+          ],
+          "source_side_certified": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "status": "Rejected"
+    },
+    {
+      "association_unavailable_reason": null,
+      "baseline": {
+        "heldout": {
+          "available": 1,
+          "blocks": 1,
+          "maximum_error": 31,
+          "mse": 174.230938107,
+          "normal_bins": 1,
+          "robust": 36.1721127501,
+          "rows": 17
+        },
+        "training": {
+          "available": 1,
+          "blocks": 3,
+          "maximum_error": 47,
+          "mse": 812.311731094,
+          "normal_bins": 1,
+          "robust": 89.2222221931,
+          "rows": 20
+        },
+        "validation": {
+          "available": 1,
+          "blocks": 2,
+          "maximum_error": 36,
+          "mse": 521.689833472,
+          "normal_bins": 1,
+          "robust": 71.9104960997,
+          "rows": 20
+        }
+      },
+      "cohort": "asr24-proof-v1",
+      "configurations": [
+        {
+          "available": 1,
+          "background": [
+            15.9859800339,
+            0,
+            1.71325245901e-05
+          ],
+          "background_at_bound": 0,
+          "converged": 1,
+          "heldout": {
+            "available": 1,
+            "blocks": 1,
+            "maximum_error": 24.7491226196,
+            "mse": 95.075590764,
+            "normal_bins": 1,
+            "robust": 24.1547145954,
+            "rows": 17
+          },
+          "limitation": "Conditional aesthetic hypothesis; arbitrary relative scale; bounded background is not recovered bounce; source truth unavailable; same-material response assumed for encoded appearance, not calibrated irradiance",
+          "name": "fixtures-1",
+          "training": {
+            "available": 1,
+            "blocks": 3,
+            "maximum_error": 28.9137802124,
+            "mse": 282.443054843,
+            "normal_bins": 1,
+            "robust": 46.0541026595,
+            "rows": 20
+          },
+          "validation": {
+            "available": 1,
+            "blocks": 2,
+            "maximum_error": 20.8314666748,
+            "mse": 197.962932859,
+            "normal_bins": 1,
+            "robust": 40.8553630876,
+            "rows": 20
+          }
+        }
+      ],
+      "conservative_associations": 0,
+      "geometry_complete": true,
+      "grid_known_static_supports": 93,
+      "grid_mover_independent_supports": 93,
+      "historical_source_certified": false,
+      "map": "mp_duel10",
+      "name": "duel10-grid-2",
+      "patch_count": 6,
+      "reason": "Visible original fixture + admitted mount + independent grid + frozen held-out improvement",
+      "repeat_identical": true,
+      "selected": 0,
+      "selection": {
+        "available": true,
+        "blocks": {
+          "heldout": 1,
+          "train": 3,
+          "validation": 2
+        },
+        "counts": {
+          "heldout": 17,
+          "train": 20,
+          "validation": 20
+        },
+        "discovery_training_rows": 2894,
+        "forward_geometry_coverage": {
+          "categories": {
+            "(True, True, 0)": 188
+          },
+          "known": 188,
+          "original_rgb_supplied": false,
+          "provider": "Shape::Prepare + Block::Evaluate; fixed unit amplitude",
+          "requested": 188,
+          "unknown_excluded": 0
+        },
+        "geometry_layouts_tested": 64,
+        "informative_counts": {
+          "heldout": 17,
+          "train": 20,
+          "validation": 20
+        },
+        "material": "textures/factory/doorpattern",
+        "normal_bin": [
+          2,
+          true
+        ],
+        "partition_offset": [
+          113,
+          17,
+          17
+        ],
+        "qualified_roi_rows": 7444,
+        "selection": "Finite geometry-only offset/material design maximizes minimum fold coverage; stable-ID cap"
+      },
+      "source": {
+        "column_rms": 0.00483354607615,
+        "emitting_area_world_squared": 0,
+        "fixture": "1",
+        "half_height_world": 0,
+        "half_width_world": 0,
+        "maximum_correlation": 0,
+        "outward": [
+          0,
+          0,
+          -1
+        ],
+        "placement": "Free",
+        "placement_conditional": 0,
+        "placement_reason": "Named emitting-side contact; world solid penetration remains forbidden",
+        "power_at_bound": 0,
+        "quadrature_difference": 0,
+        "relative_rgb": [
+          18653.7382812,
+          20894.5566406,
+          18735.7675781
+        ],
+        "source_side_certified": 1,
+        "state": "Candidate",
+        "type": "Point"
+      },
+      "source_removal": {
+        "available": true,
+        "calibrated_irradiance": false,
+        "historical_source_certified": false,
+        "maximum_code_response": 114.8572388,
+        "native_on_mse": 95.075590764,
+        "native_replay_agrees": true,
+        "on": {
+          "mse": 95.0755986522949,
+          "robust": 24.154717592409693
+        },
+        "original_target_domain": "Encoded RGB8 intervals; saturation censored",
+        "parameters_refitted": false,
+        "rows": 17,
+        "rows_with_at_least_one_code_response": 17,
+        "source_removal_worsens_mse": true,
+        "source_removed": {
+          "mse": 7837.108617605486,
+          "robust": 343.07749551489064
+        }
+      },
+      "sources": [
+        {
+          "column_rms": 0.00483354607615,
+          "emitting_area_world_squared": 0,
+          "fixture": "1",
+          "half_height_world": 0,
+          "half_width_world": 0,
+          "maximum_correlation": 0,
+          "outward": [
+            0,
+            0,
+            -1
+          ],
+          "placement": "Free",
+          "placement_conditional": 0,
+          "placement_reason": "Named emitting-side contact; world solid penetration remains forbidden",
+          "power_at_bound": 0,
+          "quadrature_difference": 0,
+          "relative_rgb": [
+            18653.7382812,
+            20894.5566406,
+            18735.7675781
+          ],
+          "source_side_certified": 1,
+          "state": "Candidate",
+          "type": "Point"
+        }
+      ],
+      "status": "AestheticCandidate"
+    },
+    {
+      "cohort": "asr24-proof-v1",
+      "historical_source_certified": false,
+      "map": "mp_duel10",
+      "name": "duel10-grid-3",
+      "reason": "Insufficient separated same-material folds",
+      "selection": {
+        "available": false,
+        "minimum_fold_rows": 0,
+        "qualified_roi_rows": 8211,
+        "reason": "Insufficient separated same-material folds"
+      },
+      "status": "Unresolved"
+    }
+  ],
+  "required_substantive_gate_met": true,
+  "runtime_changed": false,
+  "schema": "org.openjk.asr24-public-study.v1",
+  "status": "DemonstratedConditionalAestheticConfiguration",
+  "stock_assets_present": true
+}
