@@ -1,0 +1,12 @@
+{
+  "decision": "Blocked-SourceSupport",
+  "files": {
+    "docs/rend2-relighting/contact-plane-diagnosis.md": "6cbf358c9f167fdef4367becbd2deab3480aa309bb2980a516a0f531569e860c",
+    "tools/rend2/aesthetic_relighting/results/ar41-v1/evidence.json": "7c0c5f81b35fd132d63e0ba120ac9c93e692e25e12709cd04a0047b08d09166c",
+    "tools/rend2/aesthetic_relighting/results/ar41-v1/validation.json": "d1c29a6606837d38d2035edbf6c2b187254c64c2619753657fa74e3a6213a594"
+  },
+  "integration_authorized": false,
+  "licensed_geometry_redistributed": false,
+  "plan": "Results Log / AR-41; excluded to avoid self-reference",
+  "schema": "org.openjk.aesthetic-relighting.ar41-manifest.v1"
+}

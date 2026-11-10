@@ -1,0 +1,706 @@
+{
+  "allowed_following_budget": {
+    "currently_authorized_to_spend_integration_budget": false,
+    "integration_hours_max": 8,
+    "integration_tasks_max": 1,
+    "original_target_fit_and_identical_repeat_max": 1,
+    "post_final_repair_fit_authorized": false,
+    "repair_before_original_target_fit": true,
+    "repair_hours_max": 4,
+    "repair_tasks_max": 1,
+    "second_roi_authorized": false
+  },
+  "applicable_agents_md": [],
+  "assistance": "Codex inspection, existing native providers and private C++/Python exact-arithmetic diagnostics; no subagents, separate reviewer or new original-appearance review",
+  "assumptions": [
+    "Existing fixed point per original two-component housing; unchanged 4 WU construction and <=8 WU native stand-off",
+    "Native DiffuseIntegral/RelativeIncident and scoped occupancy unchanged",
+    "Conditional NetRadiant encoded RGB8 model, gain 1, relative source cap 100000, one shared nuisance RGB cap 255 remain frozen",
+    "RGB8 is not calibrated linear irradiance; historical source truth remains unavailable"
+  ],
+  "authorize_bounded_ar35": false,
+  "blocker": {
+    "kind": "MissingJustifiedObliquePlaneWitnessContract",
+    "missing": "A justified, versioned modern-only numerical contact-plane proof with consistent projection/contact/domain/clearance/identity semantics and full downstream safety controls",
+    "new_coding_allowance": 0,
+    "not_a_missing_input_packet": true,
+    "permitted_production_behavior_changes": [],
+    "permitted_production_files": []
+  },
+  "branch": "rend2-unified-wip",
+  "cause": "Both named triangles are present and exactly coplanar; FromSurfaces casts the resolved double normal to binary32; Check applies a double-roundoff plane bound to that altered plane; both triangles fail",
+  "completion_revision": "89a40b0fc027cc5e3e1e1cce5204cc48b526c013",
+  "controls": [
+    {
+      "admissible": true,
+      "contact_error_world": 1.4210854715202004e-13,
+      "name": "axial-positive",
+      "owned_synthetic": true,
+      "rays": 0,
+      "reason": "Named emitting-side contact; world solid penetration remains forbidden",
+      "source_side_certified": true,
+      "state": 0,
+      "work": 7
+    },
+    {
+      "admissible": false,
+      "contact_error_world": 3.694822225952521e-13,
+      "name": "axial-anchor-one-ulp-off-plane",
+      "owned_synthetic": true,
+      "rays": 0,
+      "reason": "Named mounting surface absent at declared contact plane",
+      "source_side_certified": false,
+      "state": 3,
+      "work": 1
+    },
+    {
+      "admissible": true,
+      "contact_error_world": 1.421085452063527e-13,
+      "name": "oblique-equal-components-positive",
+      "owned_synthetic": true,
+      "rays": 0,
+      "reason": "Named emitting-side contact; world solid penetration remains forbidden",
+      "source_side_certified": true,
+      "state": 0,
+      "work": 7
+    },
+    {
+      "admissible": false,
+      "contact_error_world": 1.421085452063527e-13,
+      "name": "oblique-equal-components-anchor-one-ulp-off-plane",
+      "owned_synthetic": true,
+      "rays": 0,
+      "reason": "Named mounting surface absent at declared contact plane",
+      "source_side_certified": false,
+      "state": 3,
+      "work": 3
+    },
+    {
+      "admissible": false,
+      "contact_error_world": 1.4210854760038737e-13,
+      "name": "oblique-one-to-six-planar-reproduction",
+      "owned_synthetic": true,
+      "rays": 0,
+      "reason": "Named mounting surface absent at declared contact plane",
+      "source_side_certified": false,
+      "state": 3,
+      "work": 3
+    },
+    {
+      "admissible": false,
+      "contact_error_world": 1.4210854715202004e-13,
+      "name": "axial-wrong-side",
+      "owned_synthetic": true,
+      "rays": 0,
+      "reason": "Emitting support is behind its mounting side or outside declared fixture stand-off",
+      "source_side_certified": false,
+      "state": 8,
+      "work": 0
+    },
+    {
+      "admissible": false,
+      "contact_error_world": 1.421085452063527e-13,
+      "name": "oblique-wrong-side",
+      "owned_synthetic": true,
+      "rays": 0,
+      "reason": "Emitting support is behind its mounting side or outside declared fixture stand-off",
+      "source_side_certified": false,
+      "state": 8,
+      "work": 0
+    },
+    {
+      "admissible": false,
+      "contact_error_world": 1.421085452063527e-13,
+      "name": "oblique-missing-named-identity",
+      "owned_synthetic": true,
+      "rays": 0,
+      "reason": "Named mounting surface absent at declared contact plane",
+      "source_side_certified": false,
+      "state": 3,
+      "work": 3
+    }
+  ],
+  "coverage": {
+    "A": "Two visibly motivated candidates only",
+    "B": "None authored",
+    "C": "None authored",
+    "D": "Original-data fallback for both unresolved outputs",
+    "new_accepted_configurations": 0,
+    "new_accepted_maps": 0,
+    "new_accepted_receiver_rows": 0,
+    "new_accepted_sources": 0,
+    "old_failures_preserved": true,
+    "old_stock_successes_preserved": true,
+    "whole_map_accepted_area": null
+  },
+  "date": "2026-11-10",
+  "decision": "Blocked-SourceSupport",
+  "dummy_admission": {
+    "original_quality_score": null,
+    "reason": "Named mounting surface absent at declared contact plane",
+    "selected": -1,
+    "unavailable_configurations": 3,
+    "work_units": 16422
+  },
+  "execution_dependencies": [
+    {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\core\\librend2_lightrecon_core.a",
+      "sha256": "69c5e03c7203a4bc7bde318fc8195cd90ffb65c6568a45cb850bccfecfe06159"
+    },
+    {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK\\build\\toolchain\\w64devkit\\bin\\c++.exe",
+      "sha256": "2b04a44bac7caa35292dc3d08a00f1a6e90d5b38aa42164fdf26c026c8377a69"
+    },
+    {
+      "path": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK\\build\\toolchain\\w64devkit\\libexec\\gcc\\x86_64-w64-mingw32\\16.2.0\\cc1plus.exe",
+      "sha256": "8299e0f7876f84e69dcf32eefd758bc586a6ca5648ce3bdc447b55d3e393f5c7"
+    }
+  ],
+  "exposure": {
+    "dummy_zero_targets_verified": true,
+    "loader_limit": "No image values indexed/printed/evaluated by diagnostic; unchanged frozen CLI loads archive buffers; this is controller non-use, not an OS data-isolation guarantee",
+    "original_final_or_reserve_appearance_used": false,
+    "original_receiver_rgb_inspected": false,
+    "original_row_file_decompressed": false,
+    "original_target_fit_cycles": 0,
+    "raw_archive_image_buffers_deserialized_by_existing_loader": true
+  },
+  "frozen_references": [
+    {
+      "path": "tools/rend2/aesthetic_relighting/policies/viability-v1.json",
+      "sha256": "96da96c0ccd896bca3751f539b2d8860f4e1d0580f5d947c60c906b5a84a28d0"
+    },
+    {
+      "path": "tools/rend2/aesthetic_relighting/results/ar34-v1/evidence.json",
+      "sha256": "6cd5283c1491153f40588ebfeea17aaa3b94bfe9a0b52dafb8056b739de427cf"
+    },
+    {
+      "path": "tools/rend2/aesthetic_relighting/results/ar34-v1/manifest.json",
+      "sha256": "6dc354e07207b07f9614b64238c433082d5089f181afa9084b638ce60b69033f"
+    },
+    {
+      "path": "tools/rend2/aesthetic_relighting/results/ar35-v1/evidence.json",
+      "sha256": "8894a0e2f9986d7f31ac31d53f201646e2056f9d43290d9f4b5946ac88b12e9c"
+    },
+    {
+      "path": "tools/rend2/aesthetic_relighting/results/ar35-v1/manifest.json",
+      "sha256": "1166ceed04316987f88f5d735a84a4ec2c82279e290927a4d856355b0a398849"
+    }
+  ],
+  "future_change_rule": "New explicit freeze before any material pose/geometry-response-support/acceptance change and original-target exposure; if final evidence informs a change, require fresh adequate independent final evidence",
+  "geometry_response": {
+    "admission_certified": false,
+    "both_known_zero": 199,
+    "both_positive": 0,
+    "either_unavailable": 74,
+    "first_only": 57,
+    "joint_available": 141,
+    "joint_rows": 141,
+    "maximum_additivity_error": 0,
+    "second_only": 64,
+    "trim_rows": 394
+  },
+  "historical_canonical_storage_changes": false,
+  "initial_git_status": "clean worktree and index",
+  "integration_authorized": false,
+  "integrity": {
+    "asr24_public_manifest_entries": 4,
+    "asr25_implementation_files_unchanged": 150,
+    "asr25_public_manifest_entries": 6,
+    "distinct_path_strings": 217,
+    "file_hash_comparisons": 223,
+    "frozen_executables_unchanged": 6,
+    "mismatches": [],
+    "original_bsp_capture_catalogue_rows_match": true,
+    "original_image_and_parsed_shader_body_match": true
+  },
+  "limitations": [
+    "Immediate refusal diagnosed; full downstream original admission not proved",
+    "OpticalUnknown remains issue mask 16 despite complete mesh extraction",
+    "No original-target fit, replayed selected pilot parameters, removals or independent appearance acceptance",
+    "Reserve lacks housing-988 control pairs; no post-final repair fit",
+    "Archive loader deserializes image buffers; no receiver appearance values used",
+    "Pre-existing static archive was hashed now, not claimed independently pinned by ASR25 executable manifest"
+  ],
+  "measurements": [
+    {
+      "all_downstream_admission_checks_proved": false,
+      "anchor_first_original_vertex_equal": true,
+      "contact_error_world": 1.624448436864759e-11,
+      "double_normal_predicate_passes_all_vertices": true,
+      "exact_projected_point_in_named_union": true,
+      "extraction_complete": true,
+      "float_normal_predicate_passes_no_triangle": true,
+      "maximum_double_plane_residual": 0.0,
+      "maximum_float_plane_residual": 2.384185791015625e-07,
+      "maximum_from_surfaces_native_residual": 0,
+      "named_opaque_exact": true,
+      "named_query_triangles": 2,
+      "normal_quantization_l2": 6.289596039418816e-09,
+      "normalized_float_normal_maximum_residual": 2.3841857821338408e-07,
+      "ordinal": 987,
+      "original_bsp_capture_geometry_equal": true,
+      "original_triangle_count": 2,
+      "query_issues": 16,
+      "query_triangle_count": 11,
+      "residual_to_check_error_ratio": 14676.89424243705,
+      "rounded_projected_point_in_named_union": true,
+      "whole_mount_issues": 16,
+      "whole_mount_named_triangles": 2,
+      "whole_mount_triangle_count": 30
+    },
+    {
+      "all_downstream_admission_checks_proved": false,
+      "anchor_first_original_vertex_equal": true,
+      "contact_error_world": 1.6244664421924223e-11,
+      "double_normal_predicate_passes_all_vertices": true,
+      "exact_projected_point_in_named_union": true,
+      "extraction_complete": true,
+      "float_normal_predicate_passes_no_triangle": true,
+      "maximum_double_plane_residual": 0.0,
+      "maximum_float_plane_residual": 2.384185791015625e-07,
+      "maximum_from_surfaces_native_residual": 0,
+      "named_opaque_exact": true,
+      "named_query_triangles": 2,
+      "normal_quantization_l2": 6.289596039418816e-09,
+      "normalized_float_normal_maximum_residual": 2.3841857821338408e-07,
+      "ordinal": 988,
+      "original_bsp_capture_geometry_equal": true,
+      "original_triangle_count": 2,
+      "query_issues": 16,
+      "query_triangle_count": 11,
+      "residual_to_check_error_ratio": 14676.731566075725,
+      "rounded_projected_point_in_named_union": true,
+      "whole_mount_issues": 16,
+      "whole_mount_named_triangles": 2,
+      "whole_mount_triangle_count": 30
+    }
+  ],
+  "native_regression_suite_rerun": false,
+  "native_replays": [
+    {
+      "byte_identical_to_ar34_stdout": true,
+      "exit_code": 0,
+      "name": "dummy-admission",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "d3f81c2a4e68889970402d7821c08adf561c7c2b7f9002fcfb2f6d2053d4167f",
+      "wall_seconds": 3.1719999999913853
+    },
+    {
+      "byte_identical_to_ar34_stdout": true,
+      "exit_code": 0,
+      "name": "trim-coverage-0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "4b033985709e7be71b65870c355deb3accf15082e323f83a77a88ed0a957da8c",
+      "wall_seconds": 3.01500000001397
+    },
+    {
+      "byte_identical_to_ar34_stdout": true,
+      "exit_code": 0,
+      "name": "trim-coverage-1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8bbef955ffd077b174e53d39fae4729f0ca9a752ccc46ca42e985c38fec04b9b",
+      "wall_seconds": 2.9690000000118744
+    },
+    {
+      "byte_identical_to_ar34_stdout": true,
+      "exit_code": 0,
+      "name": "joint-coverage",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "5a9acd3f55eff78ee9a23948e2af1b7c73c7a1d3b80b8b0c259300267e91527a",
+      "wall_seconds": 4.23499999998603
+    }
+  ],
+  "original_scope": {
+    "acceptance_changed": false,
+    "geometry_changed": false,
+    "housing_count": 2,
+    "map": "mp/duel10",
+    "roi_count": 1,
+    "source_poses_changed": false,
+    "surfaces": [
+      987,
+      988
+    ]
+  },
+  "private_artifacts": [
+    {
+      "path": "build/ar41-v1/audit-before-shader-identity-correction.py",
+      "sha256": "766786a685aa41d6df8f36210f9fce05f0493855b95e2d4ae588ae0dc3c77cf4"
+    },
+    {
+      "path": "build/ar41-v1/audit.py",
+      "sha256": "d6fb9af145463d1dc36be3ece4ecced4486b0a563a4756a835b93fe607ec58ba"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v2.process.json",
+      "sha256": "922ce9608ddcb0893af79a7eb549eee8630d257849e9f373f44bd579ac7b0c2b"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v2.stderr",
+      "sha256": "dc49514cb1122cd82528e09d8ed337e809d0b70700dd7e5bd2f2548598b1e748"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v2.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v3.process.json",
+      "sha256": "4060c08bc3b08319da4074d68f321dde82853dd9bf463702aaba25ac74f24e1e"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v3.stderr",
+      "sha256": "dc49514cb1122cd82528e09d8ed337e809d0b70700dd7e5bd2f2548598b1e748"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v3.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v4.process.json",
+      "sha256": "3368517d8e23014c6fdc5e67822fc313e1b4388d31b2f9d803976d9dfd4aefc7"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v4.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v4.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v5.process.json",
+      "sha256": "5abe5c7580b620afcf5fcdaa01c6af38a508eb6ca79441e4c2de93b4520e7cde"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v5.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v5.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v6.process.json",
+      "sha256": "0deb7628a99b713e8beb00f2b522c7d864834e19abb33ad5470b773ae36633d3"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v6.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic-v6.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic.process.json",
+      "sha256": "4d249d6f123d79b731d8be711d067884594538278958ec1bf9a0b41b04a272c5"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic.stderr",
+      "sha256": "cfae5f7a57fdfed5db1faad3f2682bc9f73d07556030d8bb08f862dc6043e82a"
+    },
+    {
+      "path": "build/ar41-v1/compile-contact-diagnostic.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/compiler-version.process.json",
+      "sha256": "b3f2a3517ac53202d55228d732dabac78b5dd91ab9946e16d6573f1bae57ce5c"
+    },
+    {
+      "path": "build/ar41-v1/compiler-version.stderr",
+      "sha256": "67f90e558fa9646b8e26c44333727fc5f4b5309113972c2a89f5b39646f1b63f"
+    },
+    {
+      "path": "build/ar41-v1/compiler-version.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/contact-diagnostic-v2.process.json",
+      "sha256": "9b57b5cb6da149adda7b2fac8d652da428a539703c2b9b50c443ce7e9c236016"
+    },
+    {
+      "path": "build/ar41-v1/contact-diagnostic-v2.stderr",
+      "sha256": "aafd582109bc7e469510b6dfc7ee41206a27cd47a2bd20a060c4b2a597172915"
+    },
+    {
+      "path": "build/ar41-v1/contact-diagnostic-v2.stdout",
+      "sha256": "e58675caba0be46733fb6faec5df1cff54996dae9ccab5e60398626f82a010f9"
+    },
+    {
+      "path": "build/ar41-v1/contact-diagnostic-v3.process.json",
+      "sha256": "a637ac74167fadf66da3fb9a4f569af976a3a885b088e5dc892fa9f5d22fae73"
+    },
+    {
+      "path": "build/ar41-v1/contact-diagnostic-v3.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/contact-diagnostic-v3.stdout",
+      "sha256": "0a3a0e300dced4539e4e9e92cf0d650acfc7dcfc50f3ba0c6a0fecba285a0b31"
+    },
+    {
+      "path": "build/ar41-v1/contact-diagnostic.process.json",
+      "sha256": "c666c39c0cc2a8533a6e21d254d0e5fc8379d638f77940d726f3d44638218d3c"
+    },
+    {
+      "path": "build/ar41-v1/contact-diagnostic.stderr",
+      "sha256": "b3d8869890785b16adfcef0d33011aaa14a0e7aa801ce5e86a48b8c269edbd3d"
+    },
+    {
+      "path": "build/ar41-v1/contact-diagnostic.stdout",
+      "sha256": "979745d051c699212655304f28cbc3216f8d041dc23009c394abea9b3df61fd9"
+    },
+    {
+      "path": "build/ar41-v1/contact_diagnostic-before-control-id-correction.cpp",
+      "sha256": "3a173a14ecb17f99b9c052854b0e2e494eff52127671e7e18894461a3b841d2c"
+    },
+    {
+      "path": "build/ar41-v1/contact_diagnostic-before-control-map-correction.cpp",
+      "sha256": "998ccd78d025011acd0f8185945678bacdf1ccd69965f94a27cff470f07e3b74"
+    },
+    {
+      "path": "build/ar41-v1/contact_diagnostic-before-name-correction.cpp",
+      "sha256": "dbdec7da8bbadfb0d1714dd9cd999a6ffce67e224cb5db8ebe7b08bb722a1ff3"
+    },
+    {
+      "path": "build/ar41-v1/contact_diagnostic.cpp",
+      "sha256": "05f3d43a08263eb6a8df70d48d1690e00e50e53e7d2c03ebc038beffc083d4b8"
+    },
+    {
+      "path": "build/ar41-v1/contact_diagnostic.exe",
+      "sha256": "7823824263be3a13cbd5f2f55429cb4dc3b565206368aca01b9db6ba262e2673"
+    },
+    {
+      "path": "build/ar41-v1/dummy-admission.process.json",
+      "sha256": "da44d982776c4ed72022437149405291909173c957f1c52347ae3fd605c45642"
+    },
+    {
+      "path": "build/ar41-v1/dummy-admission.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/dummy-admission.stdout",
+      "sha256": "d3f81c2a4e68889970402d7821c08adf561c7c2b7f9002fcfb2f6d2053d4167f"
+    },
+    {
+      "path": "build/ar41-v1/finalize.py",
+      "sha256": "f38a59b02eb138420551b2a1a8f45e0b3f8c4d4affc8c79dfc4bf5a01cacb6e9"
+    },
+    {
+      "path": "build/ar41-v1/input-audit-before-shader-identity-correction.json",
+      "sha256": "e48f00728921a309c49b1888840da5b367a4115630423019d178264c2c928fb9"
+    },
+    {
+      "path": "build/ar41-v1/input-audit.json",
+      "sha256": "85b063039d4b24a988c336f6b7424973eacdb0d836656defde999eed73cf4720"
+    },
+    {
+      "path": "build/ar41-v1/joint-coverage.process.json",
+      "sha256": "782b5f370b811f1eebfc29269f2d5f702995c56451e36c5932fc2dcc4e997c88"
+    },
+    {
+      "path": "build/ar41-v1/joint-coverage.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/joint-coverage.stdout",
+      "sha256": "5a9acd3f55eff78ee9a23948e2af1b7c73c7a1d3b80b8b0c259300267e91527a"
+    },
+    {
+      "path": "build/ar41-v1/measure.py",
+      "sha256": "17fc367d9e88fd7473bf812b535b48ee9fe87606bb0e126d4bb9cd52ea2dfa54"
+    },
+    {
+      "path": "build/ar41-v1/measurements.json",
+      "sha256": "afb1e3fe2b320c0821bfe50c7b5e2f0184bb72a47c02b1f83b23ec17cd6ef998"
+    },
+    {
+      "path": "build/ar41-v1/probe-replay.json",
+      "sha256": "1235bde45e67b2d6346f8a05f602adcf245a5329424aca6990544e60c4a0a97d"
+    },
+    {
+      "path": "build/ar41-v1/scratch-history.json",
+      "sha256": "27f9ab5f3979d4c51d799847811bee912d05e7bbd70a84ec3d99e897da3948ad"
+    },
+    {
+      "path": "build/ar41-v1/trim-coverage-0.process.json",
+      "sha256": "433c1c2b0ab3e9fbf0c136328a6ed983d6078b0a4e56ef39dc96eafd79c013fc"
+    },
+    {
+      "path": "build/ar41-v1/trim-coverage-0.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/trim-coverage-0.stdout",
+      "sha256": "4b033985709e7be71b65870c355deb3accf15082e323f83a77a88ed0a957da8c"
+    },
+    {
+      "path": "build/ar41-v1/trim-coverage-1.process.json",
+      "sha256": "ec5c5f88088e358c0fd290e5df0320eecd00c7807ebc296b6b0a2581569c4831"
+    },
+    {
+      "path": "build/ar41-v1/trim-coverage-1.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar41-v1/trim-coverage-1.stdout",
+      "sha256": "8bbef955ffd077b174e53d39fae4729f0ca9a752ccc46ca42e985c38fec04b9b"
+    },
+    {
+      "path": "build/ar41-v1/validate.py",
+      "sha256": "0580324ec410ed9220c2c69f52647cac0ab6346fcd17d2951f7b6e796dd60f60"
+    }
+  ],
+  "product_gate": "Unknown",
+  "production_source_changes": false,
+  "remote": "git@github.com:keyten/BetterJK.git",
+  "revision": "89a40b0fc027cc5e3e1e1cce5204cc48b526c013",
+  "routing": {
+    "action": "Use measured negative contact receipt to issue bounded Blocked/Stop/Pivot verdict; do not require nonexistent original-data fit",
+    "external_chat_message_sent": false,
+    "next_task": "AR-36",
+    "receipt": "tools/rend2/aesthetic_relighting/results/ar41-v1/evidence.json"
+  },
+  "schema": "org.openjk.aesthetic-relighting.ar41-evidence.v1",
+  "subprocesses": [
+    {
+      "exit_code": 1,
+      "name": "compile-contact-diagnostic-v2",
+      "stderr_sha256": "dc49514cb1122cd82528e09d8ed337e809d0b70700dd7e5bd2f2548598b1e748",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 4.73399999999674
+    },
+    {
+      "exit_code": 1,
+      "name": "compile-contact-diagnostic-v3",
+      "stderr_sha256": "dc49514cb1122cd82528e09d8ed337e809d0b70700dd7e5bd2f2548598b1e748",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 1.6559999999881256
+    },
+    {
+      "exit_code": 0,
+      "name": "compile-contact-diagnostic-v4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 6.312999999994645
+    },
+    {
+      "exit_code": 0,
+      "name": "compile-contact-diagnostic-v5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 6.030999999988126
+    },
+    {
+      "exit_code": 0,
+      "name": "compile-contact-diagnostic-v6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 9.375
+    },
+    {
+      "exit_code": 1,
+      "name": "compile-contact-diagnostic",
+      "stderr_sha256": "cfae5f7a57fdfed5db1faad3f2682bc9f73d07556030d8bb08f862dc6043e82a",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 0.07800000000861473
+    },
+    {
+      "exit_code": 0,
+      "name": "compiler-version",
+      "stderr_sha256": "67f90e558fa9646b8e26c44333727fc5f4b5309113972c2a89f5b39646f1b63f",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 0.030999999988125637
+    },
+    {
+      "exit_code": 1,
+      "name": "contact-diagnostic-v2",
+      "stderr_sha256": "aafd582109bc7e469510b6dfc7ee41206a27cd47a2bd20a060c4b2a597172915",
+      "stdout_sha256": "e58675caba0be46733fb6faec5df1cff54996dae9ccab5e60398626f82a010f9",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 4.14000000001397
+    },
+    {
+      "exit_code": 0,
+      "name": "contact-diagnostic-v3",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "0a3a0e300dced4539e4e9e92cf0d650acfc7dcfc50f3ba0c6a0fecba285a0b31",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 4.328000000008615
+    },
+    {
+      "exit_code": 1,
+      "name": "contact-diagnostic",
+      "stderr_sha256": "b3d8869890785b16adfcef0d33011aaa14a0e7aa801ce5e86a48b8c269edbd3d",
+      "stdout_sha256": "979745d051c699212655304f28cbc3216f8d041dc23009c394abea9b3df61fd9",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 3.75
+    },
+    {
+      "exit_code": 0,
+      "name": "dummy-admission",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "d3f81c2a4e68889970402d7821c08adf561c7c2b7f9002fcfb2f6d2053d4167f",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 3.1719999999913853
+    },
+    {
+      "exit_code": 0,
+      "name": "joint-coverage",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "5a9acd3f55eff78ee9a23948e2af1b7c73c7a1d3b80b8b0c259300267e91527a",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 4.23499999998603
+    },
+    {
+      "exit_code": 0,
+      "name": "trim-coverage-0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "4b033985709e7be71b65870c355deb3accf15082e323f83a77a88ed0a957da8c",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 3.01500000001397
+    },
+    {
+      "exit_code": 0,
+      "name": "trim-coverage-1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8bbef955ffd077b174e53d39fae4729f0ca9a752ccc46ca42e985c38fec04b9b",
+      "timeout": false,
+      "timeout_seconds": 300,
+      "wall_seconds": 2.9690000000118744
+    }
+  ],
+  "support_scope": "Two original named mounts and immutable local extraction only; eight owned numerical controls are not a replacement experiment",
+  "task": "AR-41",
+  "task_status": "Done",
+  "timezone": "Australia/Sydney",
+  "work_limits": {
+    "causal_diagnosis_receipts": 1,
+    "elapsed_seconds_at_receipt": 1371.966381,
+    "investigation_seconds_max": 7200,
+    "original_housings": 2,
+    "subprocess_seconds_max": 300
+  }
+}
