@@ -2,6 +2,8 @@
 
 Дата исходной редакции: **2026-11-10**, Australia/Sydney. Статус: **план работ, не отчёт об успешной реконструкции**.
 
+**Редакция 2 — 2026-11-10:** учтены ASR24/25 и риск повторить длинный инфраструктурный путь без убедительного результата. Первый условный стоковый источник уже продемонстрирован; ближайший рубеж — связный участок с несколькими светильниками и независимой визуальной/пространственной проверкой. **Начинать с AR-34, затем AR-35 и AR-36, а не с последовательного исполнения AR-01–AR-33.** Эти три задачи имеют ограниченный бюджет и обязательное решение Go / Repair / Pivot / Stop. План не является гарантией завершения всего корпуса.
+
 ## 1. Цель и границы продукта
 
 Получить воспроизводимый **data-only** набор современного освещения для оригинальных стоковых карт: визуально мотивированные источники, согласованные с геометрией, цветными световыми пятнами, относительной яркостью, тенями и композицией сцены.
@@ -34,11 +36,11 @@ A/B могут быть пригодны при историческом `exactL
 
 Исходный коммит при подготовке плана: `68585a75e` (ASR23), ветка `rend2-unified-wip`. Предоставленный checkout — `OpenJK-rend2`; записанный remote — `keyten/BetterJK`, хотя проект в заданиях называется `keyten/Jedi-Knight-2026`. Ничего не переименовывать: каждое выполнение записывает фактические revision/branch/remote.
 
-На момент инспекции есть незакоммиченные изменения в `lightrecon_aesthetic_tool.cpp`, `lightrecon_grid_geometry_tool.cpp` и `tools/rend2/stock_aesthetic/` (разработка ASR24). Они содержат полезную сборку опыта на оригинальных картах. **Это рабочее состояние, а не замороженный итог**: сначала сверить его текущие результаты и переиспользовать завершённые части, не перезаписывать параллельную работу.
+При исходной инспекции ASR24 находился в рабочем дереве. **В редакции 2 исходная точка обновлена:** ASR24 закоммичен как `bddf5b376`, пакет ASR25 подготовлен в индексе и содержит проверяемые отчёты/manifest. Публичные артефакты обоих manifest сверены по хешам при этом пересмотре. Их результаты использовать как существующие свидетельства, не реализовывать заново. Точное текущее состояние индекса/коммита всё равно сверять перед исполнением; staged-изменения ASR25 не перезаписывать.
 
 | Возможность | Что уже имеется | Как использовать в этом плане |
 |---|---|---|
-| Оригинальные данные и идентичность | BSP/lightmaps/lightgrid, shader/image/model provenance, `.jkobs`, геометрия, слепые folds, инвентарь стоковых карт | Переиспользовать; не строить второй capture pipeline. Исторический инвентарь — 57 BSP, актуальный знаменатель проверить. |
+| Оригинальные данные и идентичность | Все 57 оригинальных BSP доступны; ASR25 подтвердил только 37 существующих capture-файлов, 45 завершённых каталогов и 210 observation ROI на 35 картах | Старый manifest не доказывает наличие файла. Восстановление входов и ограничений каталогизации — отдельная измеренная ветвь; не строить второй capture pipeline. |
 | Светящиеся BSP-маски | ASR09 уже вычисляет UV-clipped polygon unions и тёмные промежутки | Нужен корректный native bridge, а не повторная реализация извлечения. |
 | Статические MD3 | ASR10/11 уже описывают экземпляры и излучающие области | Подключить при сохранении transform/instance/occlusion uncertainty. |
 | Геометрическая допустимость | ASR17/18 исправили сторону и контакт: 368/620 кандидатов допустимы в фиксированной выборке, 320 условно | Это не 368 реконструированных ламп. Сохранить отрицательные геометрические проверки. |
@@ -46,7 +48,8 @@ A/B могут быть пригодны при историческом `exactL
 | Настройка и отбор | ASR20/21: положительные RGB, fixed gauge, bounded nuisance, sparse selection, независимый held-out | Это база авторитетного fit; не плодить ещё один optimizer в каждом benchmark. |
 | Дополнительный поиск | ASR22: bounded proposal/refit, разделение direct/indirect/solar ambiguity | Подключить к единой современной модели и политике A/B/C/D. |
 | Слепая проверка | ASR23: 14/21 найденных корней и 5 ложных у all-cues; area-off не меняет результат; spot/finite-source случаи остаются проблемой | Сохранить как регрессионные свидетельства, но не превращать исторические source-truth gates в критерии стокового ремастера. |
-| Положительный стоковый результат | Опубликованный ASR20 опыт на mp/duel4 дал нулевой direct response и baseline-only fit; более новая stock_aesthetic работа требует сверки | Первая цель — причинно проверенный настоящий стоковый участок, без бесконечного ожидания идеальной исторической идентификации. |
+| Положительный стоковый результат | ASR24: один принятый условный источник на mp/duel10; ASR25: дополнительный на mp/duel7. Есть геометрическое обоснование, validation/held-out и frozen source removal | Базовая жизнеспособность локального fit подтверждена условно. Не повторять поиск первого ненулевого источника; проверить пространственную/визуальную достаточность и перенос на несколько ламп. |
+| Измеренные ограничения корпуса | ASR25: 20 отсутствующих captures; static-map guard блокирует 23 карты; work budget каталогов — 11; polygon budget — 1; section refusal — 2 | Эти классы пересекаются. Это не 53 доказанных физических неудачи реконструкции: нужен выбор конкретной ветви восстановления входов/локальных гарантий/бюджетов. |
 | Данные/поля | Canonical asset, calibration/provenance/configurations, Fields, Probes, Attribution и disk/chunks уже существуют | Использовать существующие семантики; специфическую aesthetic policy хранить явно, не менять молча старые контракты. |
 
 Важный технический разрыв: `effectiveRadiusWorld` уже есть в canonical geometry, но текущая `Shape::Validate` запрещает его ненулевое значение. `rangeWorld` описан как culling metadata, а не автоматически как художественное затухание. Поэтому фраза «используем стандартную современную физику» требует отдельного решения и реализации **современного** поведения с неизменной исторической веткой.
@@ -56,14 +59,50 @@ A/B могут быть пригодны при историческом `exactL
 - [ASR18](rend2-mounted-admission-asr18.md), [ASR19](rend2-modern-shapes-asr19.md);
 - [ASR20](rend2-aesthetic-fit-asr20.md), [ASR21](rend2-sparse-source-selection-asr21.md), [ASR22](rend2-iterative-discovery-asr22.md);
 - [ASR23](rend2-blind-benchmark-asr23.md) и [численные результаты](../tools/rend2/blind_benchmark/results/v1/tables.md);
+- [ASR24: условный стоковый источник](rend2-stock-aesthetic-asr24.md), [ASR25: полный аудит инвентаря](rend2-stock-discovery-asr25.md), [карты и причины остановки](../tools/rend2/stock_audit/results/v1/maps.md);
 - [BSP fixtures](rend2-bsp-fixtures-asr09.md), [model emission](rend2-model-emission-asr11.md), [association](rend2-fixture-association-asr15.md);
 - [CPU fields](rend2-lighting-field-builder-p01.md), [attribution](rend2-contributions-p06.md).
 
 ## 3. Стратегия и промежуточные результаты
 
+### 3.1. Что именно изменили ASR24 и ASR25
+
+| Свидетельство | Что установлено | Что ещё не установлено |
+|---|---|---|
+| ASR24, mp/duel10, BSP surface 942 | Принят один fixture-associated point-прокси; held-out MSE 174.230938 → 95.075591 (−45.43%), robust loss −33.22%; 93 различных согласующихся grid records; 17/17 held-out receivers меняются при удалении источника | Это один исходный receiver chart, 17 held-out rows в одном блоке; point-прокси с фиксированным 4 WU stand-off, условные transfer/material и фон. Это не реконструированная комната. |
+| ASR25, mp/duel7, BSP surface 1657 | Второй цветной стоковый пример; held-out MSE 1196.505292 → 1000.383821 (−16.39%), robust loss −11.82%; 48 held-out rows в трёх блоках, source removal ухудшает результат | Максимальный остаток ≈177.59 RGB code; только три согласующихся grid records; яркое пятно остаётся необъяснённым. Пригодность всего участка для ремастера не принята. |
+| ASR25, инвентарь | Учтены 57 BSP; завершены пять повторяемых numerical ROI; два bounded one-source результата; per-map статусы 2 AestheticCandidate / 1 NoAcceptedCandidate / 1 NoSupportedCandidate / 53 Blocked | «Две карты с принятым ROI» не означает «две карты реконструированы». SP-успеха и принятой площади whole-map пока нет. |
+
+Итак, утверждение «на стоке вообще нет положительного результата» устарело. Но оно не заменяется утверждением «основная задача решена». Самая рискованная следующая проверка — **несколько реальных ламп, несколько окружающих поверхностей, тени/тёмные зоны и связная световая композиция**, а не ещё один удачный fit одного chart.
+
+ASR24/25 использовали exploratory selection; их открытые final rows теперь служат development/regression evidence для новых решений. Для нового утверждения о переносе нужен заранее зафиксированный свежий геометрический/пространственный scope. Geometry plates и response plates — диагностика, не готовые remaster-скриншоты. Число grid records — corroboration, не вероятность исторического источника и не обязательный универсальный gate A-источника.
+
+### 3.2. Короткая обязательная проверка до крупной реализации
+
+1. **AR-34:** сверить существующие доказательства и выбрать один минимальный multi-fixture эксперимент. Не утверждать заново, что первый stock fit отсутствует. Зафиксировать criteria, assistance, исходную модель и причину именно этого эксперимента.
+2. **AR-35:** завершить только недостающую проводку реального участка: фиксированные видимые fixtures → native coefficients → совместный fit → saved parameters → replay и пространственный/визуальный пакет. Если путь уже полностью реализован, проверить его и не переписывать.
+3. **AR-36:** выполнить заранее ограниченный опыт и принять решение **Go / Targeted repair / Pivot model / Assisted route / Blocked / Stop**. Низкий MSE не заменяет визуальную/пространственную достаточность.
+
+Исходный лимит короткой проверки: не более **двух новых ROI**, до **четырёх независимо мотивированных видимых светильников в ROI**, одна основная M-интеграция и не более одной дополнительной M-починки перед обязательным решением. Это граница доказательства жизнеспособности, не будущий лимит числа источников на карте и не GPU-бюджет. AR-34 должен конкретизировать численные evaluation/work limits до запуска. Расширение лимита — отдельная записанная управленческая задача с причиной, новым измеримым gate и новыми независимыми данными, а не автоматическое продолжение цикла.
+
+Использовать существующую современную модель ASR20/24 как **явно условный диагностический baseline**. Полная реализация finite effective-radius point/spot, C field, MD3, сложных patches и whole-map exporter **не является условием начала** этой проверки. Успех простого point-прокси не закрывает будущие требования к современным формам/near-field; он лишь обосновывает дальнейшую инвестицию.
+
+| Развилка | Обязательная управленческая задача | Результат решения |
+|---|---|---|
+| Достаточно ли текущих ASR24/25 доказательств; какой минимальный новый опыт нужен? | AR-34 | Замороженный viability protocol и ограниченный scope интеграции |
+| Работает ли согласованная multi-light реконструкция; продолжать, чинить или менять модель? | AR-36 | Зафиксированный Go/Repair/Pivot/Assisted/Blocked/Stop, изменение дальнейших промптов при необходимости |
+| Какие corpus blockers устранять первыми и какой ограниченный участок они разблокируют? | AR-37 | Приоритетная ветвь: captures/sections, catalogue limits, local mover safety; измеримый эффект по coverage |
+| Нужна ли новая modern transport/appearance модель после короткой проверки? | AR-04 | Обоснованные final equations/domain, а не обязательная перепись всего evaluator заранее |
+| Отдать свет A/B, солнцу/небу, C или D? | AR-18 | Проверенная capacity/attribution policy |
+| Как честно сохранить модель и пригодность без исторической сертификации? | AR-27 | Совместимый data-only contract |
+| Разрешены ли whole-map/corpus rollout и исключения? | AR-23, AR-26, AR-30, AR-31, AR-32, AR-33 | Отдельные решения о готовности/покрытии; нельзя автоматически масштабировать failed pilot |
+
+### 3.3. Продуктовые рубежи
+
 | Рубеж | Требуемый результат | Что нельзя выдавать за этот результат |
 |---|---|---|
 | **G0 — зафиксирован продукт** | Критерии эстетики, A/B/C/D, современная модель, appearance-domain, gauge, assistance и output semantics | «Решатель сошёлся» или выбор исторического профиля |
+| **Gv — ранняя проверка жизнеспособности** | Замороженная multi-fixture stock-проверка и решение AR-36 на существующем рабочем пути | Переигрывание одного успешного chart, повторная реализация fit, бесконечное добавление инфраструктуры |
 | **G1 — первый участок** | Настоящий стоковый интерьер с несколькими мотивированными источниками, ненулевым откликом, независимой проверкой и сохранёнными данными | Контрольная синтетическая сцена, легальные XYZ или zero-power baseline |
 | **G2 — одна карта** | Согласованная вся карта: комнаты/переходы, shared sources, global/C, количественное покрытие, review и replay | Один удачный ROI или склейка независимо экспонированных комнат |
 | **G3 — половина набора** | Не менее половины зафиксированного инвентаря реально принято по whole-map gates; при 57 картах — минимум 29 | Половина запущенных процессов или 29 карт с единственной успешной комнатой |
@@ -73,7 +112,7 @@ A/B могут быть пригодны при историческом `exactL
 
 A/B, C и D учитываются отдельно по фиксированным областям/площади, значимым помещениям и источникам. Сохранение исходного освещения в D — допустимый честный продуктовый fallback, но не новая реконструкция. Полностью отрендеренная/измеренная геометрия, обработанные карты, принятые карты и площадь принятого relighting — разные показатели. Существующие световые стили/модельные состояния не исчезают из знаменателя.
 
-Рекомендуемый основной путь: основание → современный evaluator и BSP bridge → наблюдаемые receivers → пилот → global/C/selection → whole-map orchestration → одна карта → representative bank → половина → оставшиеся причины отказа → финальный набор. MD3 и локальное уточнение неизвестной геометрии становятся обязательными там, где без них не проходит целевая область. Output contract можно готовить сразу после пилота; он не должен ждать масштабного прогона.
+Актуальный основной путь: **AR-34 → AR-35 → AR-36** → только разрешённые решением узкие доработки/политики → global/C/selection → whole-map orchestration → одна карта → representative bank → половина → конкретные оставшиеся причины отказа → финальный набор. AR-37 выбирает работу с измеренными corpus blockers; восстановление всего корпуса не задерживает опыт на уже доступных MP-картах. MD3 и локальное уточнение неизвестной геометрии обязательны там, где без них не проходит конкретная целевая область. Output contract можно готовить после короткой проверки; он не должен задерживать её диагностический saved-data/replay результат.
 
 ## 4. Типы задач, размер и правила изменения плана
 
@@ -94,7 +133,7 @@ A/B, C и D учитываются отдельно по фиксированн�
 - output contract и exporter/replay;
 - replay/cache orchestration и решения о качестве корпуса.
 
-В текущей редакции **33 задачи: 3 Research, 12 Decision/Experiment, 18 Implementation; 2 размера S и 31 размера M**. Задачи M с повышенным риском — exact native footprint integration, model occlusion, local geometry refinement, C fitting и map reconciliation. При обнаружении необходимости нового большого алгоритма управленческая задача обязана разбить работу на новые S/M tickets **до** исполнения; увеличивать scope незаметно нельзя.
+В редакции 2 **40 записей задач, из них 39 неархивных: 3 Research, 15 Decision/Experiment, 22 Implementation; 4 размера S и 36 размера M**. AR-16 имеет статус Superseded: отложенное первое принятие перенесено в раннюю проверку. Три целевых реализации corpus blockers остаются Deferred до выбора соответствующей ветви. Задачи M с повышенным риском — exact native footprint integration, model occlusion, local geometry refinement, C fitting и map reconciliation. При обнаружении необходимости нового большого алгоритма управленческая задача обязана разбить работу на новые S/M tickets **до** исполнения; увеличивать scope незаметно нельзя.
 
 ### Протокол живого плана
 
@@ -109,8 +148,9 @@ A/B, C и D учитываются отдельно по фиксированн�
 9. Отсутствующий обязательный input/policy обозначать как Blocked с конкретным требуемым артефактом. Не подставлять произвольное решение; независимую часть работы завершить.
 10. Рекомендуемые новые отчёты — `docs/rend2-relighting/`; versioned policies/orchestration — `tools/rend2/aesthetic_relighting/` с переиспользованием существующих модулей. Это не требование создавать второй solver. Licensed stock payloads держать в приватных/ignored выходных каталогах.
 11. Пересмотр направления разрешён только внутри цели Aesthetic Relighting и data-only scope. Управленческая задача не получает разрешения подключать игровой свет, менять карты или возвращать историческую идентификацию как обязательное условие продукта.
+12. **Done у управленческой задачи не означает Go.** Выполненное отрицательное решение, Stop или Blocked не разблокирует длинную цепочку по факту наличия отчёта. Актуальный verdict должен явно называть разрешённый следующий scope/ремонт и ограничения; неразрешённые ветви остаются Deferred. Новый цикл ремонта получает собственный ограниченный gate, а не бесконечный повтор подбора на тех же final данных.
 
-**С чего начать:** AR-01 сверяет текущее состояние и свежую работу stock_aesthetic. Затем AR-02 и AR-03 фиксируют продуктовые критерии и допустимый observation domain; AR-04 выбирает современную модель. После этого можно исполнять конкретные интеграции. Не запускать весь список как независимые задачи одновременно: входные политики и доказательства должны реально существовать.
+**С чего начать:** AR-34 сверяет ASR24/25 и утверждает короткую проверку, AR-35 закрывает только недостающую проводку, AR-36 принимает решение о продолжении/ремонте/смене подхода. AR-01–AR-04 уточняют дальнейшую архитектуру и final model по необходимости; они не являются обязательным многозадачным прологом к новому stock-опыту. Не запускать весь список как независимые задачи: входные политики должны реально существовать, а продолжение — быть разрешено актуальным решением.
 
 ## 5. Очередь задач и зависимости
 
@@ -118,45 +158,409 @@ A/B, C и D учитываются отдельно по фиксированн�
 
 | ID | Тип | Размер | Задача | Входные зависимости / условие | Статус |
 |---|---|---|---|---|---|
-| [AR-01](#ar-01) | Исследовательская | S | Audit the current relighting path and reconcile work in progress | — | Pending |
-| [AR-02](#ar-02) | Управленческая / экспериментальная | M | Freeze aesthetic success criteria, A–D outcomes and coverage accounting | AR-01 | Pending |
+| [AR-34](#ar-34) | Управленческая / экспериментальная | S | Rebase viability on ASR24/25 and freeze a minimal proof | —; выполнить первым | Pending |
+| [AR-35](#ar-35) | Исполнительская | M | Complete only the missing multi-fixture pilot wiring | AR-34; reuse прежде новой реализации | Pending |
+| [AR-36](#ar-36) | Управленческая / экспериментальная | M | Decide Go, Repair, Pivot or Stop on a real stock region | AR-35 | Pending |
+| [AR-01](#ar-01) | Исследовательская | S | Audit the current relighting path and reconcile work in progress | AR-36; только разрешённая ветвь | Pending |
+| [AR-02](#ar-02) | Управленческая / экспериментальная | M | Freeze aesthetic success criteria, A–D outcomes and coverage accounting | AR-01, AR-34 | Pending |
 | [AR-03](#ar-03) | Исследовательская | M | Specify an honest appearance target and material-response model | AR-01 | Pending |
-| [AR-04](#ar-04) | Управленческая / экспериментальная | M | Freeze the modern lighting and appearance policy | AR-02, AR-03 | Pending |
+| [AR-04](#ar-04) | Управленческая / экспериментальная | M | Freeze the modern lighting and appearance policy | AR-02, AR-03, AR-36 | Pending |
 | [AR-05](#ar-05) | Исполнительская | M | Implement finite-size modern point and spot evaluation | AR-04 | Pending |
 | [AR-06](#ar-06) | Исполнительская | M | Complete area, clipped-sheet and tube evaluation parity | AR-04, AR-05 | Pending |
 | [AR-07](#ar-07) | Исполнительская | M | Connect exact BSP luminous footprints to native evaluation | AR-04, AR-06 | Pending |
 | [AR-08](#ar-08) | Исполнительская | M | Connect static model luminous regions without inventing occlusion | AR-07; условно до принятия карты с существенными MD3-светильниками | Pending |
 | [AR-09](#ar-09) | Исполнительская | M | Implement fixture-bounded source poses and emitting-side placement | AR-05, AR-06, AR-07 | Pending |
 | [AR-10](#ar-10) | Исполнительская | M | Resolve local geometry uncertainty where evidence permits | AR-09; по диагностированным блокерам | Pending |
-| [AR-11](#ar-11) | Исполнительская | M | Commission source-to-receiver influence and observable sampling | AR-06, AR-07, AR-09 | Pending |
-| [AR-12](#ar-12) | Управленческая / экспериментальная | M | Freeze a real-stock pilot bank and assistance budget | AR-02, AR-11 | Pending |
+| [AR-11](#ar-11) | Исполнительская | M | Commission source-to-receiver influence and observable sampling | AR-06, AR-07, AR-09, AR-36; только оставшиеся разрывы | Pending |
+| [AR-12](#ar-12) | Управленческая / экспериментальная | M | Freeze an expanded stock pilot bank under the final modern policy | AR-02, AR-11, AR-36; расширенный pilot bank | Pending |
 | [AR-13](#ar-13) | Исполнительская | M | Integrate appearance-guided RGB fitting for fixed fixtures | AR-04, AR-06, AR-11, AR-12 | Pending |
 | [AR-14](#ar-14) | Исполнительская | M | Fit only justified local shape and pose parameters | AR-09, AR-13 | Pending |
 | [AR-15](#ar-15) | Исполнительская | M | Produce offline visual evidence and spatial quality reports | AR-11, AR-13 | Pending |
-| [AR-16](#ar-16) | Управленческая / экспериментальная | M | Accept or reject the first stock region | AR-12, AR-13, AR-14, AR-15 | Pending |
-| [AR-17](#ar-17) | Исследовательская | M | Design scene-wide sunlight and nonlocal illumination handling | AR-16; допустимо раньше для диагностики | Pending |
+| [AR-16](#ar-16) | Управленческая / экспериментальная | M | Accept or reject the first stock region | —; архив отложенного gate, заменён ранним AR-36 | Superseded |
+| [AR-17](#ar-17) | Исследовательская | M | Design scene-wide sunlight and nonlocal illumination handling | AR-36; раньше — только по диагностическому решению | Pending |
 | [AR-18](#ar-18) | Управленческая / экспериментальная | M | Choose global and background model capacity | AR-17, AR-02 | Pending |
 | [AR-19](#ar-19) | Исполнительская | M | Integrate modern sun and sky hypotheses | AR-18 | Pending |
 | [AR-20](#ar-20) | Исполнительская | M | Represent supported nonlocal illumination as category C | AR-18 | Pending |
 | [AR-21](#ar-21) | Исполнительская | M | Unify evidence-aware sparse source selection | AR-13, AR-14, AR-18 | Pending |
 | [AR-22](#ar-22) | Исполнительская | M | Add only motivated category B sources in an iterative loop | AR-19, AR-20, AR-21 | Pending |
 | [AR-23](#ar-23) | Управленческая / экспериментальная | M | Pass a modern aesthetic adversarial validation bank | AR-19, AR-20, AR-21, AR-22 | Pending |
-| [AR-24](#ar-24) | Исполнительская | M | Plan complete map work from original geometry | AR-16, AR-23 | Pending |
+| [AR-24](#ar-24) | Исполнительская | M | Plan complete map work from original geometry | AR-36, AR-23, AR-37 | Pending |
 | [AR-25](#ar-25) | Исполнительская | M | Reconcile shared sources and lighting across map regions | AR-24, AR-21, AR-22 | Pending |
 | [AR-26](#ar-26) | Управленческая / экспериментальная | M | Accept the first complete stock map | AR-08 при необходимости, AR-10 при необходимости, AR-24, AR-25, AR-27, AR-28 | Pending |
-| [AR-27](#ar-27) | Управленческая / экспериментальная | S | Freeze a faithful data-only output contract | AR-02, AR-04, AR-16 | Pending |
+| [AR-27](#ar-27) | Управленческая / экспериментальная | S | Freeze a faithful data-only output contract | AR-02, AR-04, AR-36 | Pending |
 | [AR-28](#ar-28) | Исполнительская | M | Export and replay validated aesthetic reconstruction data | AR-27, AR-13, AR-20 | Pending |
-| [AR-29](#ar-29) | Исполнительская | M | Make corpus processing resumable and dependency-safe | AR-24, AR-25, AR-28 | Pending |
+| [AR-29](#ar-29) | Исполнительская | M | Make corpus processing resumable and dependency-safe | AR-24, AR-25, AR-28, AR-37 | Pending |
 | [AR-30](#ar-30) | Управленческая / экспериментальная | M | Validate transfer to a representative stock-map bank | AR-26, AR-29 | Pending |
-| [AR-31](#ar-31) | Управленческая / экспериментальная | M | Reach the half-corpus acceptance milestone | AR-30 | Pending |
+| [AR-31](#ar-31) | Управленческая / экспериментальная | M | Reach the half-corpus acceptance milestone | AR-30, AR-37; нужные repairs по выбору | Pending |
 | [AR-32](#ar-32) | Управленческая / экспериментальная | M | Resolve the remaining corpus gaps without an endless research loop | AR-31 | Pending |
 | [AR-33](#ar-33) | Управленческая / экспериментальная | M | Accept the complete original-stock relighting dataset | AR-32 и все добавленные обязательные ремонты | Pending |
+| [AR-37](#ar-37) | Управленческая / экспериментальная | S | Choose a measured corpus-blocker branch | AR-34; параллельно, не блокирует доступный pilot | Pending |
+| [AR-38](#ar-38) | Исполнительская | M | Recover original captures and resolve input section refusals | AR-37; только если выбрана эта ветвь | Deferred |
+| [AR-39](#ar-39) | Исполнительская | M | Complete bounded catalogue processing on affected maps | AR-37; только если выбрана эта ветвь | Deferred |
+| [AR-40](#ar-40) | Исполнительская | M | Replace the whole-map dynamic veto with scoped evidence | AR-37; только если выбрана эта ветвь | Deferred |
 
-Ветви AR-27/28 (контракт/экспорт) можно вести после пилота параллельно развитию global/C. AR-08 и AR-10 не обязаны задерживать простой пилот, но их отсутствие учитывается в покрытии. AR-23 проверяет именно современный aesthetic pipeline; ASR23 остаётся неизменённым историческим свидетельством. AR-32 — явная точка изменения направления для последних сложных карт, а не разрешение бесконечно расширять scope.
+Номера AR-24/AR-25 обозначают задачи этого плана, а ASR24/ASR25 — уже выполненные исследования: это разные пространства имён. Архивный AR-16 не выполнять. Ветви AR-27/28 (контракт/экспорт) можно вести после раннего решения параллельно развитию global/C. AR-08 и AR-10 не обязаны задерживать простой пилот, но их отсутствие учитывается в покрытии. AR-23 проверяет именно современный aesthetic pipeline; ASR23 остаётся неизменённым историческим свидетельством. AR-32 — явная точка изменения направления для последних сложных карт, а не разрешение бесконечно расширять scope.
 
 ## 6. Самостоятельные промпты для задач
 
 Каждый блок ниже можно передать отдельному исполнителю без этого чата и без других промптов. План и названные существующие файлы доступны из репозитория. Тип и размер продублированы внутри блока.
+
+<a id="ar-34"></a>
+
+### AR-34 — Rebase viability on ASR24/25 and freeze a minimal proof
+
+Тип: **Управленческая / экспериментальная**. Размер: **S**.
+
+```text
+Task ID: AR-34
+Task type: Decision / Experiment
+Estimated size: S
+Title: Rebase viability on ASR24/25 and freeze a minimal proof
+
+Repository and working rules:
+Work in the supplied OpenJK-rend2 checkout for the keyten/Jedi-Knight-2026 project on the active Rend2 development branch (historically rend2-unified-wip). Inspect current code, git status, relevant AGENTS.md instructions and the actual revision/remote before editing. Preserve unrelated, concurrent and staged changes, including ASR25. Verify and reuse newer completed work.
+
+Product objective:
+Deliver data-only Aesthetic Relighting of original stock maps: visually motivated modern sources attached to actual lamps/screens/BSP/model emission, plus justified nonlocal illumination. A means a visibly supported fixture, B an independently motivated probable unseen source, C supported illumination without an identified lamp, and D unresolved/conflicting evidence with original-data fallback. Historical type, XYZ, power and exactLight certification are not aesthetic eligibility requirements.
+
+Mandatory boundaries:
+Preserve historical solver behavior and existing canonical/storage meanings. Do not modify BSP/lightmaps, author unmotivated lights, implement GPU/runtime consumers or world shading, or solve double lighting. Unknown geometry is not empty and unavailable predictions are not black. Encoded RGB8 is not calibrated linear irradiance. Record modern-model/transfer/gauge assumptions, bounded approximations and assistance. Never promote a conditional lamp or processed map to historical truth or complete reconstruction.
+
+Objective:
+Recognize the existing conditional stock successes and choose the smallest independent multi-fixture experiment that can justify or reject further investment in the current aesthetic reconstruction approach.
+
+Required inputs and inspection:
+Read docs/rend2-stock-aesthetic-asr24.md, docs/rend2-stock-discovery-asr25.md, their public summary/checks/manifest files, tools/rend2/stock_aesthetic/, tools/rend2/stock_audit/, and accessible private geometry/response packets. Inspect actual committed/staged code; ASR25 may already have been committed since this prompt was written.
+Use the current versions of named artifacts. A missing required decision/input is a precise blocker, not permission to invent it; complete useful independent inspection. This prompt requires no previous chat or another task prompt.
+
+High-level action plan:
+1. Verify the existing evidence and report its actual scope: mp/duel10 and mp/duel7 each have one accepted conditional mounted-point configuration. Do not claim there is no stock success or count the preserved duel10 result twice.
+2. Assess spatial/visual sufficiency separately from numeric acceptance: one chart and one held-out block in duel10; a large residual and minimally sufficient grid corroboration in duel7; neither result is a complete room.
+3. Select at most two new original-stock ROI scopes with up to four independently inventoried visible fixtures each. At least one scope must test two or more distinct motivated fixtures and surrounding receiver surfaces beyond a repeat of one fitted chart; preflight their observable influence. Use geometry and visible evidence before opening new fit/final values. Keep the published examples as development/regression baselines, not fresh blind tests.
+4. Freeze an existing-model baseline: modern DiffuseIntegral plus explicitly conditional appearance transfer, fixed gauge and bounded nuisance. Finite-radius implementation, full fields, MD3 and whole-map export are not prerequisites for this diagnostic proof.
+5. Choose geometric coverage, shadow/dark controls, color/brightness motif, multi-source interaction, source-removal and independent visual/spatial acceptance measures before fitting. Specify assistance, new fold/scene independence, work limits and failed-case accounting.
+6. Write docs/rend2-relighting/viability-decision.md and a versioned viability protocol under tools/rend2/aesthetic_relighting/policies/. Bound the next coding effort to one M integration plus at most one M repair before a mandatory decision.
+
+Definition of Done:
+- The decision credits existing stock results, preserves their hashes/limitations, and identifies a specific missing multi-fixture demonstration rather than restarting first-source discovery.
+- The frozen experiment has concrete original inputs, visible-fixture inventory, model assumptions, independent evaluation, artifact requirements and an exit budget.
+- A viable already implemented path is reused; if inputs or required semantics are missing, the result is an explicit Blocked or targeted decision, not speculative infrastructure work.
+- Deliver the complete scoped artifact, verification evidence and the mandatory high-level plan-result append.
+
+Non-goals and things not to do:
+Do not rerun the entire 57-map audit, require a complete new modern evaluator before testing, silently retune the ASR24/25 thresholds, claim a remaster-quality room from one fitted chart, or invent a probability of whole-corpus completion.
+Deliver a concrete evidence-backed decision or the authorized bounded experiment plus its decision. You may rewrite the roadmap, dependencies and future prompts or add tasks within the data-only aesthetic objective. Log every change, preserve prior frozen failures, and give each new task a standalone English prompt, S/M size and a measurable exit condition.
+
+Required completion and plan update:
+Open docs/rend2-aesthetic-relighting-plan.md and append a high-level result under "AR-34" in Results Log, including date/revision, actual scope and assistance, result, measured evidence and artifact paths/hashes, A/B/C/D and coverage implications, limitations, decision and concrete next action. Update the task's status honestly even when the outcome is Partial, Failed or Blocked. A completed investigation can make a valid negative decision; it cannot turn a failed product gate into Passed. Do not claim measurements that were not performed. Record approved scope/policy/prompt changes in Plan Change Log, with fresh independent final evidence when old final results informed the change.
+```
+
+<a id="ar-35"></a>
+
+### AR-35 — Complete only the missing multi-fixture pilot wiring
+
+Тип: **Исполнительская**. Размер: **M**.
+
+```text
+Task ID: AR-35
+Task type: Implementation
+Estimated size: M
+Title: Complete only the missing multi-fixture pilot wiring
+
+Repository and working rules:
+Work in the supplied OpenJK-rend2 checkout for the keyten/Jedi-Knight-2026 project on the active Rend2 development branch (historically rend2-unified-wip). Inspect current code, git status, relevant AGENTS.md instructions and the actual revision/remote before editing. Preserve unrelated, concurrent and staged changes, including ASR25. Verify and reuse newer completed work.
+
+Product objective:
+Deliver data-only Aesthetic Relighting of original stock maps: visually motivated modern sources attached to actual lamps/screens/BSP/model emission, plus justified nonlocal illumination. A means a visibly supported fixture, B an independently motivated probable unseen source, C supported illumination without an identified lamp, and D unresolved/conflicting evidence with original-data fallback. Historical type, XYZ, power and exactLight certification are not aesthetic eligibility requirements.
+
+Mandatory boundaries:
+Preserve historical solver behavior and existing canonical/storage meanings. Do not modify BSP/lightmaps, author unmotivated lights, implement GPU/runtime consumers or world shading, or solve double lighting. Unknown geometry is not empty and unavailable predictions are not black. Encoded RGB8 is not calibrated linear irradiance. Record modern-model/transfer/gauge assumptions, bounded approximations and assistance. Never promote a conditional lamp or processed map to historical truth or complete reconstruction.
+
+Objective:
+Deliver the narrow end-to-end stock-region path required by the frozen viability protocol: visible fixed fixtures, native response, joint RGB fit, saved parameters, replay and a reviewable spatial/visual result.
+
+Required inputs and inspection:
+Inspect docs/rend2-relighting/viability-decision.md, the frozen viability policy under tools/rend2/aesthetic_relighting/policies/, tools/rend2/stock_aesthetic/run.py and report.py, tools/rend2/stock_audit/packet.py, Aesthetic::FitAndValidate/SelectSparse, native coverage/source support, and the ASR24/25 accepted and failed witnesses.
+Use the current versions of named artifacts. A missing required decision/input is a precise blocker, not permission to invent it; complete useful independent inspection. This prompt requires no previous chat or another task prompt.
+
+High-level action plan:
+1. Map each required operation to existing code and reuse it. If the path is already complete, verify it and record no implementation needed rather than creating another fitter or protocol.
+2. Add only the missing cohort/adapter wiring to evaluate up to four independently supplied visible fixtures together on each selected original ROI, preserving source families, individual masks/approximations and fixed fixture-local poses.
+3. Use the same native modern evaluator, occupancy assumptions and appearance/gauge in unit-response preflight, fitting and frozen replay. Distinguish blocked, unavailable, zero and positive response; keep dark/shadow controls.
+4. Freeze original multi-surface receiver support and disjoint folds before target-dependent fitting. Jointly fit allowed RGB and the same bounded nuisance baseline; do not add free positions or backgrounds to force success.
+5. Save actual source parameters, geometry/support references, policy/input identities, conditional limitations and per-receiver predictions. Reload these data without the optimizer to reproduce the score and source-removal response.
+6. Reuse existing report/OBJ/plate generation and add only the contextual views needed to assess combined light motifs, receiver normals, shadows and unexplained regions at fixed presentation settings.
+7. Run meaningful native/stock-protocol regressions and the declared replay checks. Enforce the integration budget; one additional repair requires a written causal decision.
+
+Definition of Done:
+- The selected real-stock ROI can execute the complete existing-model path and produce replayable data plus the frozen review packet, including honest failed/unavailable configurations.
+- All independently supplied fixtures and original receiver scopes remain auditable; known blockers are retained.
+- No disconnected helper, hand-written fitted power or synthetic scene is substituted for the substantive stock experiment.
+- The implementation is complete within its narrow scope; aesthetic acceptance is left to the separate frozen evaluation.
+- Deliver the complete scoped artifact, verification evidence and the mandatory high-level plan-result append.
+
+Non-goals and things not to do:
+Do not implement finite near-field physics, a new renderer, a full-map scheduler, a new storage schema or a new optimizer merely to run this proof. Do not silently convert the exploratory point/stand-off approximation into final production physics.
+Implement the specified mechanism completely through the existing real path with meaningful verification. Do not substitute a loose sketch, disconnected helper, stub or report for the required integration. Reuse already complete operations. If the scoped work exceeds M or its required decision is absent, document the concrete split/blocker; do not silently expand the work or decide a new product policy.
+
+Required completion and plan update:
+Open docs/rend2-aesthetic-relighting-plan.md and append a high-level result under "AR-35" in Results Log, including date/revision, actual scope and assistance, result, measured evidence and artifact paths/hashes, A/B/C/D and coverage implications, limitations, decision and concrete next action. Update the task's status honestly even when the outcome is Partial, Failed or Blocked. A completed investigation can make a valid negative decision; it cannot turn a failed product gate into Passed. Do not claim measurements that were not performed. Do not silently change acceptance criteria or the plan direction; propose a specific decision task if a branch is needed.
+```
+
+<a id="ar-36"></a>
+
+### AR-36 — Decide Go, Repair, Pivot or Stop on a real stock region
+
+Тип: **Управленческая / экспериментальная**. Размер: **M**.
+
+```text
+Task ID: AR-36
+Task type: Decision / Experiment
+Estimated size: M
+Title: Decide Go, Repair, Pivot or Stop on a real stock region
+
+Repository and working rules:
+Work in the supplied OpenJK-rend2 checkout for the keyten/Jedi-Knight-2026 project on the active Rend2 development branch (historically rend2-unified-wip). Inspect current code, git status, relevant AGENTS.md instructions and the actual revision/remote before editing. Preserve unrelated, concurrent and staged changes, including ASR25. Verify and reuse newer completed work.
+
+Product objective:
+Deliver data-only Aesthetic Relighting of original stock maps: visually motivated modern sources attached to actual lamps/screens/BSP/model emission, plus justified nonlocal illumination. A means a visibly supported fixture, B an independently motivated probable unseen source, C supported illumination without an identified lamp, and D unresolved/conflicting evidence with original-data fallback. Historical type, XYZ, power and exactLight certification are not aesthetic eligibility requirements.
+
+Mandatory boundaries:
+Preserve historical solver behavior and existing canonical/storage meanings. Do not modify BSP/lightmaps, author unmotivated lights, implement GPU/runtime consumers or world shading, or solve double lighting. Unknown geometry is not empty and unavailable predictions are not black. Encoded RGB8 is not calibrated linear irradiance. Record modern-model/transfer/gauge assumptions, bounded approximations and assistance. Never promote a conditional lamp or processed map to historical truth or complete reconstruction.
+
+Objective:
+Determine whether the existing aesthetic reconstruction path produces a coherent multi-fixture original-stock result, and explicitly authorize, redirect or stop the next work instead of following the large roadmap automatically.
+
+Required inputs and inspection:
+Read the frozen viability protocol/decision, complete stock-region fitted data and replay/review packets, original source/receiver evidence, and ASR24/25 reference results. Required policy and saved-data inputs must exist; do not infer them from this prompt or from another chat.
+Use the current versions of named artifacts. A missing required decision/input is a precise blocker, not permission to invent it; complete useful independent inspection. This prompt requires no previous chat or another task prompt.
+
+High-level action plan:
+1. Verify that all hypotheses, geometry/assistance, nuisance capacity, validation selection and evaluation limits froze before opening the new final data. Already exposed ASR24/25 rows remain development evidence. A one-source/single-chart repeat cannot satisfy the new multi-fixture gate; record it only as regression or partial evidence.
+2. Evaluate every declared ROI and its dark/shadow controls, source attachments, color motifs, relative brightness, multi-source interactions, nuisance/parameter bounds and unsupported area.
+3. Review spatial/contextual visual output at a fixed declared presentation; a geometric overlay or a successful interval-MSE percentage alone cannot establish convincing room lighting.
+4. Check the loaded saved data and frozen-background source-removal behavior. Do not refit after final scoring or claim unmeasured regions as reconstructed.
+5. Issue one explicit outcome: Go-Narrow for justified expansion to independent regions; Repair-Wiring for a specific bounded defect; Pivot-Appearance/Background for model mismatch; Assisted-Geometry for a disclosed evidence/annotation need; Blocked-Inputs; or Stop-Current-Approach.
+6. For every non-Go branch, name the causal evidence, the exact bounded research/decision/implementation deliverable, its size and a fresh exit test. Add standalone tasks/prompts when needed; do not assign a generic 'improve the solver' task.
+7. Write docs/rend2-relighting/viability-verdict.md and pilot-acceptance.md with numeric/spatial/visual results, all failures, uncertainty, approved next scope and a plan revision. No automatic corpus rollout follows from this verdict.
+
+Definition of Done:
+- A substantive stock result is accepted only if it meets the previously frozen multi-fixture, geometry, appearance and review gates; otherwise the failure is retained with a useful causal decision.
+- The verdict distinguishes existing one-source feasibility, new coherent-region viability, full modern-model adequacy and whole-map readiness.
+- Repairs stay within the fixed short budget; exceeding it requires a new explicit decision before more infrastructure work.
+- The roadmap and future prompts reflect the chosen branch, including a stop or scope reduction when evidence does not support continuation.
+- Deliver the complete scoped artifact, verification evidence and the mandatory high-level plan-result append.
+
+Non-goals and things not to do:
+Do not treat this decision as a promised success, rewrite final criteria after seeing results, iterate on the same final patch indefinitely, classify every failure as missing engineering, or report conditional point-proxy fit as a complete relit map.
+Deliver a concrete evidence-backed decision or the authorized bounded experiment plus its decision. You may rewrite the roadmap, dependencies and future prompts or add tasks within the data-only aesthetic objective. Log every change, preserve prior frozen failures, and give each new task a standalone English prompt, S/M size and a measurable exit condition.
+
+Required completion and plan update:
+Open docs/rend2-aesthetic-relighting-plan.md and append a high-level result under "AR-36" in Results Log, including date/revision, actual scope and assistance, result, measured evidence and artifact paths/hashes, A/B/C/D and coverage implications, limitations, decision and concrete next action. Update the task's status honestly even when the outcome is Partial, Failed or Blocked. A completed investigation can make a valid negative decision; it cannot turn a failed product gate into Passed. Do not claim measurements that were not performed. Record approved scope/policy/prompt changes in Plan Change Log, with fresh independent final evidence when old final results informed the change.
+```
+
+<a id="ar-37"></a>
+
+### AR-37 — Choose a measured corpus-blocker branch
+
+Тип: **Управленческая / экспериментальная**. Размер: **S**.
+
+```text
+Task ID: AR-37
+Task type: Decision / Experiment
+Estimated size: S
+Title: Choose a measured corpus-blocker branch
+
+Repository and working rules:
+Work in the supplied OpenJK-rend2 checkout for the keyten/Jedi-Knight-2026 project on the active Rend2 development branch (historically rend2-unified-wip). Inspect current code, git status, relevant AGENTS.md instructions and the actual revision/remote before editing. Preserve unrelated, concurrent and staged changes, including ASR25. Verify and reuse newer completed work.
+
+Product objective:
+Deliver data-only Aesthetic Relighting of original stock maps: visually motivated modern sources attached to actual lamps/screens/BSP/model emission, plus justified nonlocal illumination. A means a visibly supported fixture, B an independently motivated probable unseen source, C supported illumination without an identified lamp, and D unresolved/conflicting evidence with original-data fallback. Historical type, XYZ, power and exactLight certification are not aesthetic eligibility requirements.
+
+Mandatory boundaries:
+Preserve historical solver behavior and existing canonical/storage meanings. Do not modify BSP/lightmaps, author unmotivated lights, implement GPU/runtime consumers or world shading, or solve double lighting. Unknown geometry is not empty and unavailable predictions are not black. Encoded RGB8 is not calibrated linear irradiance. Record modern-model/transfer/gauge assumptions, bounded approximations and assistance. Never promote a conditional lamp or processed map to historical truth or complete reconstruction.
+
+Objective:
+Prioritize the concrete input/tool limitations measured by the original 57-map audit and authorize only repairs that unlock a specified reconstruction scope.
+
+Required inputs and inspection:
+Inspect docs/rend2-stock-discovery-asr25.md, tools/rend2/stock_audit/results/v1/{maps.json,summary.json,checks.json,protocol.json}, current actual files/native errors, the viability decision and the selected next map bank.
+Use the current versions of named artifacts. A missing required decision/input is a precise blocker, not permission to invent it; complete useful independent inspection. This prompt requires no previous chat or another task prompt.
+
+High-level action plan:
+1. Recheck current file availability and measured causes: 20 missing captures, 23 whole-map dynamic vetoes, 11 catalogue work-budget maps, one polygon-budget map and two native capture-section refusals. Counts overlap; do not sum them as independent failed maps.
+2. Separate missing inputs, controller restrictions and bounded work limits from failed lighting-model evidence. Preserve per-map nulls and rejected fits.
+3. Choose the smallest repair branch needed by the approved next region/map bank: restore original evidence, complete bounded catalogue processing, or support locally justified dynamic-map scopes.
+4. Specify target maps, expected unlocked stage/coverage, required local assumptions, regression witnesses and implementation-size limits. Defer corpus-wide restoration that does not help the immediate pilot.
+5. Write docs/rend2-relighting/corpus-blocker-decision.md with the selected implementation scope and explicit activation/defer/stop decisions.
+6. Revise the task queue and add smaller standalone tasks if capture-section handling, geometry-state reasoning or catalogue representation exceeds one M deliverable.
+
+Definition of Done:
+- Each selected repair has a specific original input/error, an expected measurable stage improvement and a verification/exit condition.
+- Operational blockers are not misreported as evidence that aesthetic relighting is impossible.
+- Available static MP proof work is not delayed by restoration of the entire corpus, and no deferred branch executes without a decision.
+- Deliver the complete scoped artifact, verification evidence and the mandatory high-level plan-result append.
+
+Non-goals and things not to do:
+Do not repeat the all-map audit just to rediscover known counts, treat a capture manifest entry as a present file, remove a geometry guard without equivalent scope checks, or raise all budgets blindly.
+Deliver a concrete evidence-backed decision or the authorized bounded experiment plus its decision. You may rewrite the roadmap, dependencies and future prompts or add tasks within the data-only aesthetic objective. Log every change, preserve prior frozen failures, and give each new task a standalone English prompt, S/M size and a measurable exit condition.
+
+Required completion and plan update:
+Open docs/rend2-aesthetic-relighting-plan.md and append a high-level result under "AR-37" in Results Log, including date/revision, actual scope and assistance, result, measured evidence and artifact paths/hashes, A/B/C/D and coverage implications, limitations, decision and concrete next action. Update the task's status honestly even when the outcome is Partial, Failed or Blocked. A completed investigation can make a valid negative decision; it cannot turn a failed product gate into Passed. Do not claim measurements that were not performed. Record approved scope/policy/prompt changes in Plan Change Log, with fresh independent final evidence when old final results informed the change.
+```
+
+<a id="ar-38"></a>
+
+### AR-38 — Recover original captures and resolve input section refusals
+
+Тип: **Исполнительская**. Размер: **M**.
+
+```text
+Task ID: AR-38
+Task type: Implementation
+Estimated size: M
+Title: Recover original captures and resolve input section refusals
+
+Repository and working rules:
+Work in the supplied OpenJK-rend2 checkout for the keyten/Jedi-Knight-2026 project on the active Rend2 development branch (historically rend2-unified-wip). Inspect current code, git status, relevant AGENTS.md instructions and the actual revision/remote before editing. Preserve unrelated, concurrent and staged changes, including ASR25. Verify and reuse newer completed work.
+
+Product objective:
+Deliver data-only Aesthetic Relighting of original stock maps: visually motivated modern sources attached to actual lamps/screens/BSP/model emission, plus justified nonlocal illumination. A means a visibly supported fixture, B an independently motivated probable unseen source, C supported illumination without an identified lamp, and D unresolved/conflicting evidence with original-data fallback. Historical type, XYZ, power and exactLight certification are not aesthetic eligibility requirements.
+
+Mandatory boundaries:
+Preserve historical solver behavior and existing canonical/storage meanings. Do not modify BSP/lightmaps, author unmotivated lights, implement GPU/runtime consumers or world shading, or solve double lighting. Unknown geometry is not empty and unavailable predictions are not black. Encoded RGB8 is not calibrated linear irradiance. Record modern-model/transfer/gauge assumptions, bounded approximations and assistance. Never promote a conditional lamp or processed map to historical truth or complete reconstruction.
+
+Objective:
+Restore the selected missing original observation inputs and diagnose the selected native section refusals through the existing capture/export/reader workflow, preserving source identity and format semantics.
+
+Required inputs and inspection:
+Inspect docs/rend2-relighting/corpus-blocker-decision.md, ASR25 maps/checks, original assets0–3 BSP hashes, current capture manifests, tools/rend2/datasets/, native dataset export/quality tools and relevant Offline read limits/sections. Only the explicitly selected maps are in scope.
+Activation: Do not start implementation unless docs/rend2-relighting/corpus-blocker-decision.md explicitly selects this branch and its target maps. An inventory blocker count or a completed decision file alone is not authorization for all repair branches. Otherwise retain Deferred and record the missing choice.
+Use the current versions of named artifacts. A missing required decision/input is a precise blocker, not permission to invent it; complete useful independent inspection. This prompt requires no previous chat or another task prompt.
+
+High-level action plan:
+1. Verify original BSP/assets and the actual missing or refused capture paths. Preserve old manifests as historical receipts; do not overwrite a valid input merely because its path changed.
+2. Use the existing capture-only/export workflow to restore or regenerate evidence with original map, shader/material, image and derived-section identities.
+3. For t1_rail/vjun3 or other selected section refusals, diagnose actual header/layout/limit/version behavior and apply a compatible bounded reader/tool fix or regenerate with the supported exporter.
+4. Do not invent observations or treat a refused section as corruption without evidence. Preserve unsupported sections and precise external blockers when recovery is unavailable.
+5. Verify raw RGB bytes, geometry/receiver mapping, section completeness, hashes and native opening against original BSP data; update a current availability manifest distinct from archived receipts.
+6. Demonstrate that recovered inputs reach the approved diagnostic/reconstruction stage and leave numerical acceptance unchanged for previously valid inputs.
+
+Definition of Done:
+- Selected recoverable captures exist and pass native identity/completeness/mapping checks; any irrecoverable input has a specific documented blocker.
+- Section compatibility is fixed or causally resolved without changing canonical storage semantics or silently omitting data.
+- Before/after corpus availability and unlocked stages are reported separately from reconstructed-lighting success.
+- Deliver the complete scoped artifact, verification evidence and the mandatory high-level plan-result append.
+
+Non-goals and things not to do:
+Do not download substitute assets, replace original observations with synthetic lighting, edit BSP/lightmaps, reinterpret unsupported bytes, add a second capture format, or claim a restored file is a relit map.
+Implement the specified mechanism completely through the existing real path with meaningful verification. Do not substitute a loose sketch, disconnected helper, stub or report for the required integration. Reuse already complete operations. If the scoped work exceeds M or its required decision is absent, document the concrete split/blocker; do not silently expand the work or decide a new product policy.
+
+Required completion and plan update:
+Open docs/rend2-aesthetic-relighting-plan.md and append a high-level result under "AR-38" in Results Log, including date/revision, actual scope and assistance, result, measured evidence and artifact paths/hashes, A/B/C/D and coverage implications, limitations, decision and concrete next action. Update the task's status honestly even when the outcome is Partial, Failed or Blocked. A completed investigation can make a valid negative decision; it cannot turn a failed product gate into Passed. Do not claim measurements that were not performed. Do not silently change acceptance criteria or the plan direction; propose a specific decision task if a branch is needed.
+```
+
+<a id="ar-39"></a>
+
+### AR-39 — Complete bounded catalogue processing on affected maps
+
+Тип: **Исполнительская**. Размер: **M**.
+
+```text
+Task ID: AR-39
+Task type: Implementation
+Estimated size: M
+Title: Complete bounded catalogue processing on affected maps
+
+Repository and working rules:
+Work in the supplied OpenJK-rend2 checkout for the keyten/Jedi-Knight-2026 project on the active Rend2 development branch (historically rend2-unified-wip). Inspect current code, git status, relevant AGENTS.md instructions and the actual revision/remote before editing. Preserve unrelated, concurrent and staged changes, including ASR25. Verify and reuse newer completed work.
+
+Product objective:
+Deliver data-only Aesthetic Relighting of original stock maps: visually motivated modern sources attached to actual lamps/screens/BSP/model emission, plus justified nonlocal illumination. A means a visibly supported fixture, B an independently motivated probable unseen source, C supported illumination without an identified lamp, and D unresolved/conflicting evidence with original-data fallback. Historical type, XYZ, power and exactLight certification are not aesthetic eligibility requirements.
+
+Mandatory boundaries:
+Preserve historical solver behavior and existing canonical/storage meanings. Do not modify BSP/lightmaps, author unmotivated lights, implement GPU/runtime consumers or world shading, or solve double lighting. Unknown geometry is not empty and unavailable predictions are not black. Encoded RGB8 is not calibrated linear irradiance. Record modern-model/transfer/gauge assumptions, bounded approximations and assistance. Never promote a conditional lamp or processed map to historical truth or complete reconstruction.
+
+Objective:
+Make the selected original luminous catalogues complete or precisely bounded under a declared deterministic processing strategy, addressing the measured work/polygon limits without changing their geometric meaning.
+
+Required inputs and inspection:
+Inspect the selected scope in docs/rend2-relighting/corpus-blocker-decision.md, ASR25 catalogue failures, tools/rend2/bsp_fixtures/ mask clipping/connectivity/union code, original texture repetition and topology, and existing catalogue identity tests.
+Activation: Do not start implementation unless docs/rend2-relighting/corpus-blocker-decision.md explicitly selects this branch and its target maps. An inventory blocker count or a completed decision file alone is not authorization for all repair branches. Otherwise retain Deferred and record the missing choice.
+Use the current versions of named artifacts. A missing required decision/input is a precise blocker, not permission to invent it; complete useful independent inspection. This prompt requires no previous chat or another task prompt.
+
+High-level action plan:
+1. Profile the actual work and polygon expansion of the selected failed maps before choosing a repair; distinguish repeated UV expansion, connectivity comparisons, union topology and true output size.
+2. Implement the selected bounded spatial indexing, deduplication, deterministic sharding or representation improvement, reusing the existing source geometry/mask semantics.
+3. Preserve cross-shard component connectivity, dark gaps, exact source aliases, area/centroid and global fixture identities. Record every shard, work count and completeness condition.
+4. Retain genuine unsupported optical/topological cases as unknown; no mask-axis reduction, dropped pieces or early output truncation may silently count as complete.
+5. Compare already supported catalogues semantically/bytewise where appropriate and run adversarial repeated/clamped UV, thin-strip, disconnected and boundary-component cases.
+6. Execute the approved difficult-map set and report completed catalogue coverage, remaining blockers, resource measurements and the stages actually unlocked.
+
+Definition of Done:
+- The selected processing mechanism is implemented and integrated, with independently checked area/component semantics and bounded repeatable work.
+- At least the targeted causal failure class has measured before/after evidence; any remaining budget/representation refusal stays explicit and cannot publish a complete-catalogue claim.
+- Catalogue completion is reported as input preparation, not accepted source or map reconstruction.
+- Deliver the complete scoped artifact, verification evidence and the mandatory high-level plan-result append.
+
+Non-goals and things not to do:
+Do not solve the audit by globally increasing limits without profiling, silently simplifying luminous geometry, changing historical extraction results, merging unrelated lamps, or publishing partial shards as a finished catalogue.
+Implement the specified mechanism completely through the existing real path with meaningful verification. Do not substitute a loose sketch, disconnected helper, stub or report for the required integration. Reuse already complete operations. If the scoped work exceeds M or its required decision is absent, document the concrete split/blocker; do not silently expand the work or decide a new product policy.
+
+Required completion and plan update:
+Open docs/rend2-aesthetic-relighting-plan.md and append a high-level result under "AR-39" in Results Log, including date/revision, actual scope and assistance, result, measured evidence and artifact paths/hashes, A/B/C/D and coverage implications, limitations, decision and concrete next action. Update the task's status honestly even when the outcome is Partial, Failed or Blocked. A completed investigation can make a valid negative decision; it cannot turn a failed product gate into Passed. Do not claim measurements that were not performed. Do not silently change acceptance criteria or the plan direction; propose a specific decision task if a branch is needed.
+```
+
+<a id="ar-40"></a>
+
+### AR-40 — Replace the whole-map dynamic veto with scoped evidence
+
+Тип: **Исполнительская**. Размер: **M**.
+
+```text
+Task ID: AR-40
+Task type: Implementation
+Estimated size: M
+Title: Replace the whole-map dynamic veto with scoped evidence
+
+Repository and working rules:
+Work in the supplied OpenJK-rend2 checkout for the keyten/Jedi-Knight-2026 project on the active Rend2 development branch (historically rend2-unified-wip). Inspect current code, git status, relevant AGENTS.md instructions and the actual revision/remote before editing. Preserve unrelated, concurrent and staged changes, including ASR25. Verify and reuse newer completed work.
+
+Product objective:
+Deliver data-only Aesthetic Relighting of original stock maps: visually motivated modern sources attached to actual lamps/screens/BSP/model emission, plus justified nonlocal illumination. A means a visibly supported fixture, B an independently motivated probable unseen source, C supported illumination without an identified lamp, and D unresolved/conflicting evidence with original-data fallback. Historical type, XYZ, power and exactLight certification are not aesthetic eligibility requirements.
+
+Mandatory boundaries:
+Preserve historical solver behavior and existing canonical/storage meanings. Do not modify BSP/lightmaps, author unmotivated lights, implement GPU/runtime consumers or world shading, or solve double lighting. Unknown geometry is not empty and unavailable predictions are not black. Encoded RGB8 is not calibrated linear irradiance. Record modern-model/transfer/gauge assumptions, bounded approximations and assistance. Never promote a conditional lamp or processed map to historical truth or complete reconstruction.
+
+Objective:
+Permit the specifically approved locally supportable regions of maps containing movers to use the existing aesthetic pipeline, while preserving unknown motion/occlusion and required-path safety.
+
+Required inputs and inspection:
+Inspect docs/rend2-relighting/corpus-blocker-decision.md and its chosen local-state proof/assumption contract, tools/rend2/stock_aesthetic/discover.py, the native grid bridge, SourceSupport, PointRefine occupancy, captured model bounds/states and ASR25 DynamicMapUnsupported cases.
+Activation: Do not start implementation unless docs/rend2-relighting/corpus-blocker-decision.md explicitly selects this branch and its target maps. An inventory blocker count or a completed decision file alone is not authorization for all repair branches. Otherwise retain Deferred and record the missing choice.
+Use the current versions of named artifacts. A missing required decision/input is a precise blocker, not permission to invent it; complete useful independent inspection. This prompt requires no previous chat or another task prompt.
+
+High-level action plan:
+1. Separate static-world fixture identity, local source support, receiver paths and mover/state uncertainty instead of rejecting every candidate from any map with dynamic_models metadata.
+2. Implement only the selected evidence-backed local policy using existing BSP, visual geometry and occupancy providers. Unknown travel extents cannot be bounded by captured pose alone.
+3. Require an actual certificate or explicitly approved conditional scene-state hypothesis for every admitted scope. Label conditional assumptions; an assumption is not an independently known-clear ray.
+4. Keep unavailable required paths unavailable and reject independently known solid intersections/unknown optical geometry. Retain the old strict path and historical behavior.
+5. Scope cache/provenance/coverage to the chosen state interpretation and verify moved/unknown-door, far-static-fixture, same-room occlusion and stale-state counterexamples.
+6. Run the approved affected-map regions and report newly examinable support, conditional coverage, unchanged rejections and any remaining physical/input blocker.
+
+Definition of Done:
+- The global controller veto is replaced only where equivalent local evidence/explicit policy exists; required geometry and occupancy checks still decide admission.
+- At least one approved local scope reaches the intended next stage, or the measured lack of the required evidence is explicitly returned to a decision instead of bypassed.
+- Newly processed dynamic-map scopes are not claimed historically bake-correct, unconditionally free or completely reconstructed.
+- Deliver the complete scoped artifact, verification evidence and the mandatory high-level plan-result append.
+
+Non-goals and things not to do:
+Do not remove the dynamic guard unconditionally, use a current AABB as an unknown mover's full travel envelope, ignore doors/models in visibility, mark conditional assumptions as proven empty geometry, or activate runtime lighting.
+Implement the specified mechanism completely through the existing real path with meaningful verification. Do not substitute a loose sketch, disconnected helper, stub or report for the required integration. Reuse already complete operations. If the scoped work exceeds M or its required decision is absent, document the concrete split/blocker; do not silently expand the work or decide a new product policy.
+
+Required completion and plan update:
+Open docs/rend2-aesthetic-relighting-plan.md and append a high-level result under "AR-40" in Results Log, including date/revision, actual scope and assistance, result, measured evidence and artifact paths/hashes, A/B/C/D and coverage implications, limitations, decision and concrete next action. Update the task's status honestly even when the outcome is Partial, Failed or Blocked. A completed investigation can make a valid negative decision; it cannot turn a failed product gate into Passed. Do not claim measurements that were not performed. Do not silently change acceptance criteria or the plan direction; propose a specific decision task if a branch is needed.
+```
 
 <a id="ar-01"></a>
 
@@ -184,6 +588,8 @@ Produce a current, evidence-backed implementation and capability map for data-on
 
 Required inputs and inspection:
 Inspect git status/log, docs/rend2-aesthetic-fit-asr20.md, docs/rend2-sparse-source-selection-asr21.md, docs/rend2-iterative-discovery-asr22.md, docs/rend2-blind-benchmark-asr23.md, tools/rend2/stock_aesthetic/, tools/lightrecon_test/aesthetic_fit.{h,cpp}, aesthetic_sparse.inc, iterative_discovery.{h,cpp}, shared/rd-rend2/lightrecon/{emitter_shape,shape_selection,emitter_support,producer,field_builder,contributions}.*, and the existing fixture catalogues.
+Current evidence update: docs/rend2-stock-aesthetic-asr24.md and docs/rend2-stock-discovery-asr25.md now document substantive one-source stock results and a full inventory audit. Reuse their frozen summaries/checks and current code, including staged changes, instead of repeating a zero-result baseline audit.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -233,6 +639,8 @@ Adopt a measurable product contract for aesthetic relighting that can accept use
 
 Required inputs and inspection:
 Inspect current docs/rend2-relighting/implementation-audit.md if present, docs/rend2-aesthetic-source-baseline-asr01.md, docs/rend2-blind-benchmark-asr23.md, and the current stock_aesthetic policies/results. Evaluate the real repository state rather than assuming any report is final.
+Current evidence update: two bounded one-source stock configurations are accepted under the ASR24/25 conditional policy, but neither map is fully relit. Distinguish the early viability protocol from final whole-map acceptance; original-grid corroboration is not a mandatory universal requirement for every visually motivated A fixture.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -284,6 +692,7 @@ Determine how original encoded lightmaps can guide modern relighting without bei
 
 Required inputs and inspection:
 Read tools/lightrecon_test/aesthetic_fit.{h,cpp}, shared/rd-rend2/lightrecon/{decode,bake_forward,emitter_shape,amplitude_fit}.*, docs/rend2-local-light-evidence-asr08.md, docs/rend2-aesthetic-fit-asr20.md, and current source texture/material capture and calibration contracts.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -334,6 +743,8 @@ Choose one explicit modern source-transport and appearance policy for the religh
 
 Required inputs and inspection:
 Inspect docs/rend2-relighting/appearance-domain-research.md, current acceptance policies, shared/rd-rend2/lightrecon/emitter_shape.*, source-support code, tr_lightrecon_types.h, and small owned emitter fixtures. If a required policy is missing, record the missing artifact instead of guessing its semantics.
+Current evidence update: the existing modern DiffuseIntegral plus conditional forward encoding already supports useful stock fits. Use the real-stock viability decision to justify which model gaps need new implementation; do not require a full evaluator rewrite merely to replay or extend the working baseline.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -385,6 +796,7 @@ Implement the complete modern-only point/spot evaluation specified by the frozen
 
 Required inputs and inspection:
 Inspect the current modern-lighting policy under tools/rend2/aesthetic_relighting/policies/, docs/rend2-relighting/, shared/rd-rend2/lightrecon/emitter_shape.*, tr_lightrecon_types.h, source-support and prepared-block identity code. The current Shape validator rejects nonzero effectiveRadiusWorld; do not mistake the existing field for implemented support.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -435,6 +847,7 @@ Make all supported finite modern sources obey the same frozen energy, visibility
 
 Required inputs and inspection:
 Inspect the frozen modern-lighting policy, Shape::Prepare/EmissionNodes, SourceSupport, existing rectangle/original-union/tube quadrature tests and the aesthetic fitting API. Reuse implemented finite integration rather than replacing it with another solver.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -485,6 +898,8 @@ Use the existing shader/image-clipped BSP emitting polygons as actual native aes
 
 Required inputs and inspection:
 Inspect tools/rend2/bsp_fixtures/catalogue.py and its geometry/mask helpers, tools/rend2/shape_selection/, shared/rd-rend2/lightrecon/{shape_selection,emitter_support,emitter_shape}.*, and current stock_aesthetic adapters. The catalogue already clips RGB mask support; the native bridge is the gap to verify.
+Current evidence update: ASR24/25 use catalogue-derived fixture evidence but accept fixed mounted-point proxies, not exact native clipped area evaluation. Preserve this useful regression path while proving the missing finite-footprint integration.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -535,6 +950,8 @@ Make eligible original static-model luminous fixtures usable as aesthetic source
 
 Required inputs and inspection:
 Inspect tools/rend2/md3_instances/, tools/rend2/model_emission/, docs/rend2-md3-instances-asr10.md, docs/rend2-model-emission-asr11.md, native fixture-footprint adapters, SourceSupport and static visibility interfaces.
+Current evidence update: ASR25 identifies model-source discovery as a specific Hoth gap. Entity model-reference counts are not lamp counts; implement the existing instance/emission bridge only for locally supportable selected cases.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -585,6 +1002,7 @@ Provide admissible modern source poses, size bounds and local stand-off alternat
 
 Required inputs and inspection:
 Inspect SourceSupport, regions_support.cpp, source_orientation.h, modern emitter policies, exact fixture adapters and tools/rend2/stock_aesthetic/. The current stock experiment's fixed outward point offset is an explicit approximation to review, not a universal fixture dimension.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -635,6 +1053,8 @@ Reduce avoidable Unknown source/receiver paths using original local geometry and
 
 Required inputs and inspection:
 Inspect visibility extraction, BSP support predicates, original patch control geometry, receiver_support, ASR17/18 diagnostics and current fixture influence reports. Work only on diagnosed local failure classes.
+Current evidence update: use the fixed ASR25 failure witnesses. A whole-map static-map guard is a separate controller limitation from an actual local Unknown support; do not conflate them or repeat corpus-wide diagnostics.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -685,6 +1105,8 @@ Ensure real fixture hypotheses are compared against geometrically relevant origi
 
 Required inputs and inspection:
 Inspect tools/lightrecon_test/aesthetic_region.h, lightrecon_aesthetic_tool.cpp, tools/rend2/stock_aesthetic/, ASR14/15 patch/association code, native Shape prepared coefficients and original receiver footprints.
+Current evidence update: ASR24 already implemented native outward receiver-hit selection, zero-dummy-RGB unit-response coverage, disjoint folds and a frozen source-removal audit. Reuse them and diagnose only remaining multi-fixture/multi-surface sampling gaps; the old mp/duel4 zero-response study is preserved historical evidence, not a reason to recreate commissioning from scratch.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -711,7 +1133,7 @@ Open docs/rend2-aesthetic-relighting-plan.md. Append a high-level result under "
 
 <a id="ar-12"></a>
 
-### AR-12 — Freeze a real-stock pilot bank and assistance budget
+### AR-12 — Freeze an expanded stock pilot bank under the final modern policy
 
 Тип: **Управленческая / экспериментальная**. Размер: **M**.
 
@@ -719,7 +1141,7 @@ Open docs/rend2-aesthetic-relighting-plan.md. Append a high-level result under "
 Task ID: AR-12
 Task type: Decision / Experiment
 Estimated size: M
-Title: Freeze a real-stock pilot bank and assistance budget
+Title: Freeze an expanded stock pilot bank under the final modern policy
 
 Repository and working rules:
 Work in the supplied OpenJK-rend2 checkout for the keyten/Jedi-Knight-2026 project on the active Rend2 development branch (historically rend2-unified-wip). Inspect current code, git status, relevant AGENTS.md instructions and actual revision/remote before editing. Preserve unrelated and concurrent changes; verify and reuse newer completed work.
@@ -735,6 +1157,8 @@ Choose a small but substantive original-stock pilot with visible, geometrically 
 
 Required inputs and inspection:
 Inspect current tools/rend2/stock_aesthetic/ results, exact fixture catalogues, influence/receiver diagnostics, current acceptance and modern-lighting policies, and original stock captures/assets. Reuse an existing valid pilot instead of starting over.
+Current evidence update: a minimal viability protocol and its go/repair/pivot decision must already exist as named artifacts under docs/rend2-relighting/ or tools/rend2/aesthetic_relighting/policies/. This task expands to a representative pilot bank under the chosen final modern policy; it must not postpone the first stock demonstration or rerun ASR24/25 as newly blind evidence.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -785,6 +1209,8 @@ Fit complete modern fixed-fixture RGB amplitudes under the chosen appearance pol
 
 Required inputs and inspection:
 Inspect the frozen pilot and appearance policies, tools/lightrecon_test/aesthetic_fit.{h,cpp}, aesthetic_sparse.inc, native modern prepared responses and the original receiver snapshots.
+Current evidence update: ASR24/25 demonstrate that the existing fixed-fixture aesthetic RGB fit works on real observations. Preserve those native numerical reports as regressions. Implement only policy/evaluator/material integration gaps justified by the stock viability decision, not a replacement fitter.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -835,6 +1261,7 @@ Extend the fixed-fixture aesthetic fit to supported radius/size, spot axis/cone 
 
 Required inputs and inspection:
 Inspect frozen fixture-local pose bounds, modern-lighting/appearance policies, Aesthetic::Fixture variants, source-support checks, Shape quadrature and the pilot's fixed-geometry baseline.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -885,6 +1312,8 @@ Make aesthetic relighting reviewable through reproducible data-only visual diagn
 
 Required inputs and inspection:
 Inspect tools/rend2/stock_aesthetic/report.py, current geometry plates/OBJ exports, Fields/Attribution diagnostics, original receiver geometry, source-response data and frozen appearance/acceptance policies.
+Current evidence update: reuse stock_aesthetic/report.py, stock_audit/packet.py, geometry plates, hypothesis files and frozen response plates. Their existing geometric/single-chart evidence is not a whole-room relighting preview; add only the spatial/contextual review needed by the selected decision.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -911,7 +1340,7 @@ Open docs/rend2-aesthetic-relighting-plan.md. Append a high-level result under "
 
 <a id="ar-16"></a>
 
-### AR-16 — Accept or reject the first stock region
+### AR-16 — Accept or reject the first stock region (Superseded; архив)
 
 Тип: **Управленческая / экспериментальная**. Размер: **M**.
 
@@ -919,6 +1348,7 @@ Open docs/rend2-aesthetic-relighting-plan.md. Append a high-level result under "
 Task ID: AR-16
 Task type: Decision / Experiment
 Estimated size: M
+Task status: Superseded; archived deferred gate. Do not execute this prompt.
 Title: Accept or reject the first stock region
 
 Repository and working rules:
@@ -985,6 +1415,7 @@ Specify how global sun/sky, source-linked bounce and unexplained lighting distri
 
 Required inputs and inspection:
 Inspect shared/rd-rend2/lightrecon/{sun_fit,indirect,transport_mesh,field_builder,field_basis,probes,contributions}.*, tools/lightrecon_test/iterative_discovery.*, docs/rend2-local-light-evidence-asr08.md, field/appearance reports and the ASR23 false-local-source cases.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1035,6 +1466,7 @@ Freeze a useful but restrained global/background model that reduces false lamps 
 
 Required inputs and inspection:
 Inspect docs/rend2-relighting/nonlocal-lighting-research.md, pilot diagnostics, ASR23 sun/sky and bounce controls, modern/appearance policies and the available native global/field evaluators.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1085,6 +1517,7 @@ Include supported modern sun/sky alternatives in the same aesthetic prediction a
 
 Required inputs and inspection:
 Inspect the frozen nonlocal and modern-lighting policies, Solar/sun_fit, original shader/sky evidence, static visibility, environment/field representations and Aesthetic/Joint adapters.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1135,6 +1568,7 @@ Implement the selected bounded C representation and supported source-linked tran
 
 Required inputs and inspection:
 Inspect the frozen nonlocal/attribution policy, existing Fields::Build/ObservationAppearance, source-linked Indirect evaluation, probe topology, visibility support and canonical conditional-field quantity/calibration contracts.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1185,6 +1619,7 @@ Select a compact, visually motivated set of A/B sources under the authoritative 
 
 Required inputs and inspection:
 Inspect Aesthetic::SelectSparse and aesthetic_sparse.inc, ASR15 association, native fixture adapters, modern/global/C policies and ASR23 duplicates plus finite-source rejection cases.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1235,6 +1670,7 @@ Discover and validate remaining plausible sources after fitting visible fixtures
 
 Required inputs and inspection:
 Inspect tools/lightrecon_test/iterative_discovery.*, Hidden/adaptive/grid proposal modules, frozen attribution/evidence policies, the authoritative modern evaluator and sparse selection results.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1285,6 +1721,7 @@ Decide whether the assembled modern source/field pipeline is ready for whole-map
 
 Required inputs and inspection:
 Inspect the frozen aesthetic acceptance policy, current integrated native pipeline, docs/rend2-blind-benchmark-asr23.md and its untouched receipts, and predeclared stock pilot/companion regions.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1335,6 +1772,8 @@ Create a bounded scene-wide work graph that covers an entire original stock map 
 
 Required inputs and inspection:
 Inspect SceneSchedule/scene_schedule.*, region graphs, original receiver/fixture inventories, current stock_aesthetic orchestration, and the frozen aesthetic map-coverage policy.
+Current evidence update: tools/rend2/stock_audit/ already accounts for all 57 BSPs and measured blockers. Import its census/provenance, then add actual scene work/accepted-area accounting; do not repeat inventory processing and label it whole-map reconstruction.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1385,6 +1824,7 @@ Combine regional fits into one consistent map-level data configuration with stab
 
 Required inputs and inspection:
 Inspect the complete map work graph, authoritative aesthetic fitter, source/fixture lineage, global/C models, source contributions and existing joint/scene orchestration.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1436,6 +1876,7 @@ Accept, partially accept or reject one whole original stock map as a data-only a
 
 Required inputs and inspection:
 Inspect the frozen map acceptance policy, original inventory/census, complete map work graph, consistent fitted configuration, export validator and offline review packet.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1486,6 +1927,7 @@ Choose a complete representation of aesthetic A/B/C/D decisions and modern model
 
 Required inputs and inspection:
 Inspect tr_lightrecon_types.*, lightrecon/{disk,producer,contributions,field_builder,field_codec,shape_selection}.*, current calibration/conditional-field contracts, frozen modern-lighting and coverage policies, and a reviewed fitted region.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1536,6 +1978,7 @@ Implement the complete saved-data path and standalone replay validator for the a
 
 Required inputs and inspection:
 Inspect the frozen aesthetic output schema/decision, existing Producer/disk/chunk/calibration APIs, conditional field codecs, contribution records and complete reviewed fit artifacts.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1586,6 +2029,8 @@ Run and resume original-stock reconstruction jobs reliably across maps with immu
 
 Required inputs and inspection:
 Inspect tools/rend2/all_stock/, current stock_aesthetic and aesthetic_relighting orchestration, scene scheduling, prepared caches, dependency manifests and the validated output/replay contract.
+Current evidence update: reuse the existing two-worker stock_audit controller, frozen policies and per-stage receipts. Its 57-map audit is not a resumable accepted-reconstruction pipeline, and its old capture manifest does not prove current file availability.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1636,6 +2081,8 @@ Determine whether the first-map solution generalizes to stock scenes with differ
 
 Required inputs and inspection:
 Inspect the original map inventory, accepted-map receipts, current failure taxonomy, fixed model/policies and batch runner. Use existing stock coverage reports to choose representative cases before final scoring.
+Current evidence update: ASR25 already provides 210 original-observation ROIs on 35 maps and a failure packet. They are development evidence for designing this bank, not untouched final tests. Preserve the two accepted bounded source examples and all rejected scopes.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1686,6 +2133,7 @@ Establish accepted aesthetic relighting for at least half the frozen original-st
 
 Required inputs and inspection:
 Inspect the frozen original inventory, acceptance policy, representative-map decision, validated batch/export tools and per-map/region results. The historical local inventory has 57 maps; verify the current frozen denominator and override rules.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1736,6 +2184,7 @@ Turn the remaining original-map failures into a finite, prioritized repair progr
 
 Required inputs and inspection:
 Inspect current all-map failure/coverage reports, frozen acceptance and output contracts, rejected visual packets and the implemented original-geometry/material/source adapters.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1786,6 +2235,7 @@ Deliver and audit the final data-only aesthetic relighting dataset for the entir
 
 Required inputs and inspection:
 Inspect the original inventory, final acceptance/assistance policies, all map/region receipts, validated exports, replay tools and every pending/blocked plan item. Use the current actual code and frozen artifact identities.
+Execution authorization: This is a post-viability roadmap item. Read docs/rend2-relighting/viability-verdict.md and the current approved branch before substantive work. Proceed only when that decision explicitly needs this deliverable or authorizes a bounded research/repair scope. A completed negative decision is not Go. If the verdict is absent, Stop, or does not authorize the scope, retain the work as Deferred/Blocked and perform only useful independent read-only inspection; do not launch the large roadmap automatically.
 Use the current versions of named input artifacts. If a required decision/input is absent, record the precise blocker instead of inventing it, and complete useful independent inspection. No previous chat or another task prompt is required.
 
 High-level action plan:
@@ -1838,11 +2288,28 @@ Limitations and concrete next action:
 
 <!-- Append task result entries below. Do not replace prior entries. -->
 
+### PLAN-REVISION-02 — ASR24/25, ранняя жизнеспособность и измеренные blockers
+
+- **Дата / revision:** 2026-11-10; текущий HEAD `bddf5b376`, пакет ASR25 находится в индексе. Область этой записи — пересмотр документа по запросу пользователя, а не новый запуск реконструкции.
+- **Высокоуровневый результат:** ASR24 уже доказал условный ненулевой fixture-associated fit на mp/duel10; ASR25 добавил отдельный цветной пример mp/duel7 и актуальный 57-map аудит. Утверждение исходного плана об отсутствии положительного стокового результата заменено на точное описание двух bounded one-source конфигураций.
+- **Свидетельства:** `docs/rend2-stock-aesthetic-asr24.md`, `docs/rend2-stock-discovery-asr25.md`, их summary/checks/manifest и per-map таблицы. При пересмотре сверены все четыре публичных артефакта ASR24 и шесть файлов manifest ASR25; хеши совпали. Native fitting, visual acceptance и корпусные расчёты заново не выполнялись.
+- **Ограничения:** два принятых ROI не равны двум реконструированным картам; белый пример имеет один held-out блок, жёлтый — высокий остаток и необъяснённое пятно. Оба используют условный point-прокси/stand-off/appearance transfer. Прежние final данные после их использования для планирования считаются development/regression evidence.
+- **Изменение направления:** сначала короткие AR-34/35/36 с ограничением scope и обязательным Go/Repair/Pivot/Assisted/Blocked/Stop; полная смена evaluator, поля и whole-map инфраструктура не являются условием начала. Поздний AR-16 архивирован как Superseded, а не помечен успешно выполненным.
+- **Новые предметные ветви:** AR-37 выбирает, какие ограничения ASR25 реально мешают ближайшему этапу; AR-38/39/40 адресуют captures/sections, catalogue budgets и local mover safety. Они Deferred до соответствующего решения. Отсутствующий input и общий controller veto не выдаются за доказанную неудачу модели освещения.
+- **A/B/C/D и покрытие:** текущие численные конфигурации остаются условными кандидатами AestheticCandidate; whole-map площадь A/B/C/D пока не принята. Все 57 BSP учтены, но доступны только 37 capture-файлов; 53 per-map Blocked не превращаются в нулевой принятый свет. Измеренные blocker counts пересекаются.
+- **Следующее действие:** выполнить AR-34 и зафиксировать минимальный новый multi-fixture viability protocol. Ни AR-34–40, ни оставшиеся исходные задачи этим редактированием не исполнены; шансы полного завершения не объявлены и успех не обещан.
+
+### AR-16 — изменение статуса без выполнения прежнего gate
+
+**Task status: Superseded. Outcome: Unknown / not executed.** Отложенная задача первого принятия стокового участка заменена ранним обязательным решением. Её исходный промпт сохранён как архив и помечен «Do not execute». Полезные требования — независимая проверка, фиксация неуспехов, ограничения и изменение плана — перенесены в действующий ранний gate. Это организационное изменение не утверждает, что связный multi-fixture участок уже принят.
+
 ## 8. Журнал изменений плана / Plan Change Log
 
 | Дата | Основание / evidence | Решение | Затронутые задачи / версии | Последствия для проверки |
 |---|---|---|---|---|
 | 2026-11-10 | Текущий код и отчёты ASR09–23, рабочая разработка stock_aesthetic | Исходный data-only roadmap: 33 S/M-задачи; современная aesthetic цель отделена от исторической идентификации | AR-01–AR-33; численные политики ещё предстоит утвердить | Ни один исходный frozen benchmark не переписан; новые final gates требуют предварительной фиксации |
+| 2026-11-10, редакция 2 | Запрос пользователя о риске повторить длинный план; ASR24/25 reports, checks и совпадающие public artifact hashes | Признать существующие stock successes; вынести multi-fixture viability в начало, ограничить ремонт и ввести явное Go/Repair/Pivot/Assisted/Blocked/Stop | Добавлены AR-34–AR-40; AR-16 Superseded; изменены приоритеты, зависимости и evidence/reuse inputs исходных промптов | Старые final результаты остаются regression/development evidence; новый protocol и независимая проверка до расширения scope |
+| 2026-11-10, редакция 2 | ASR25: 20 MissingOriginalCapture, 23 DynamicMapUnsupported, 11 CatalogueWorkBudget, 1 CataloguePolygonBudget, 2 CaptureSectionUnsupported; классы пересекаются | Выделить управленческий выбор конкретной ветви и три ограниченные реализации; не повторять общий аудит и не снимать геометрические проверки | AR-37 → по решению AR-38/39/40; AR-24/29/31 используют измеренный corpus baseline | Учитывать восстановленные inputs и разблокированные stages отдельно от принятого relighting; неизвестность не становится успехом |
 
-Управленческие/экспериментальные задачи добавляют сюда изменения. Новые задачи получают новые ID начиная с AR-34, оценку S/M и полный автономный английский промпт. При замене задачи сохраняются её прежняя запись и ссылка на основание пересмотра.
+Управленческие/экспериментальные задачи добавляют сюда изменения. Следующие новые задачи получают ID начиная с AR-41, оценку S/M и полный автономный английский промпт. При замене задачи сохраняются её прежняя запись и ссылка на основание пересмотра.
 
