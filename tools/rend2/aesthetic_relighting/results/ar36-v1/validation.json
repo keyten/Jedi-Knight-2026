@@ -1,0 +1,2055 @@
+{
+  "checks": [
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\results\\v1\\attempts.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\results\\v1\\checks.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\results\\v1\\protocol.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\results\\v1\\summary.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\checks.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\maps.csv",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\maps.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\maps.md",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\protocol.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\summary.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\docs\\rend2-relighting\\viability-decision.md",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\README.md",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\policies\\viability-v1.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\results\\ar34-v1\\evidence.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\results\\ar34-v1\\validation.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\docs\\rend2-relighting\\pilot-wiring-status.md",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\results\\ar35-v1\\evidence.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\docs\\rend2-relighting\\contact-plane-diagnosis.md",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\results\\ar41-v1\\evidence.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\results\\ar41-v1\\validation.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\protocol.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\policies\\viability-v1.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\results\\v1\\manifest.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\manifest.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\concurrent-state.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-admission-v2.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-admission-v2.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-admission.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-admission.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-held-v2.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-held.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\fold-layouts-64.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\fold-layouts-stratified.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\fold-layouts.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\fold-preflight-64.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\fold-preflight.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\frozen-control-pairs.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\frozen-folds-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\geometry.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\joint-check.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\joint-coverage.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\joint-coverage.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-coverage-0.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-coverage-0.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-coverage-1.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-coverage-1.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-geometry-clean.png",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-preflight-before-admission-correction.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-preflight.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-rows.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-scope-before-admission-correction.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-scope.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\plan-before-ar34.md",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\preexisting-work.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\preflight-before-admission-correction.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\preflight.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\scope-before-coverage.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\source-image.png",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-coverage-0.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-coverage-0.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-coverage-1.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-coverage-1.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-geometry-rows.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-preflight.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\verification.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\results\\v1\\attempts.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\results\\v1\\checks.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\results\\v1\\protocol.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\results\\v1\\summary.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\checks.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\maps.csv",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\maps.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\maps.md",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\protocol.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\results\\v1\\summary.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\amplitude_fit.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\amplitude_fit.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\bake_forward.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\bake_forward.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\bake_integral.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\bake_math.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\bake_profile.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\bake_trace.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\bake_trace.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\cache.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\cache.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\candidate_pool.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\candidate_pool.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\classification.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\classification.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\contributions.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\contributions.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\control.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\control.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\decode.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\decode.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\dependencies.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\dependencies.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\diagnostics.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\diagnostics.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\diagnostics_capture.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\diagnostics_io.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\diagnostics_report.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\disk.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\disk.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\emission_geometry.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\emission_geometry.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\emitter_shape.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\emitter_shape.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\emitter_support.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\emitter_support.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\evidence.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\evidence.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\field_basis.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\field_basis.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\field_builder.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\field_builder.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\field_codec.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\field_internal.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\field_prepared.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\fit_evidence.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\geometry_key.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\hidden_candidates.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\hidden_candidates.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\indirect.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\indirect.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\input.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\input.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\joint.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\joint.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\joint_support.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\lifecycle.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\lifecycle.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\lightgrid.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\lightgrid.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\lightmaps.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\lightmaps.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\offline.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\offline.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\offline_bsp.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\offline_io.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\persistent.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\persistent.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\photometry.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\photometry.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\point_refine.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\point_refine.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\probe_codec.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\probe_internal.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\probe_values.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\probes.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\probes.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\producer.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\producer.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\provider_outcome.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\receiver_support.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\receiver_support.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\regions.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\regions.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\regions_support.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\sampling.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\sampling.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\scene_schedule.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\scene_schedule.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\session.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\session.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\shadow_cache.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\shadow_cache.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\shadow_cache_codec.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\shadow_cache_internal.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\shadow_cache_prepared.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\shadow_evidence.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\shadow_evidence.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\shape_selection.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\shape_selection.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\source_orientation.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\sun_fit.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\sun_fit.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\surfaces.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\surfaces.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\transport_mesh.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\transport_mesh.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\uncertainty.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\uncertainty.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\visibility.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\lightrecon\\visibility.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\tr_lightrecon_types.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\shared\\rd-rend2\\tr_lightrecon_types.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\lightrecon_test\\aesthetic_fit.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\lightrecon_test\\aesthetic_fit.h",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\lightrecon_test\\aesthetic_sparse.inc",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\lightrecon_test\\lightrecon_aesthetic_tool.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\lightrecon_test\\lightrecon_grid_geometry_tool.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\bsp_fixtures\\catalogue.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\bsp_fixtures\\compiled.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\bsp_fixtures\\inventory.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\bsp_fixtures\\test_catalogue.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\fixture_association\\adapters.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\fixture_association\\associate.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\fixture_association\\controls.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\fixture_association\\evaluate.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\fixture_association\\run.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\fixture_association\\test_associate.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\fixture_association\\verify.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\grid_triangulation\\diagnostic.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\grid_triangulation\\evaluate.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\grid_triangulation\\fixtures.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\grid_triangulation\\test_triangulate.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\grid_triangulation\\triangulate.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\grid_triangulation\\validate.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\lightmap_patches\\evaluate.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\lightmap_patches\\extract.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\lightmap_patches\\fixtures.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\lightmap_patches\\inspect.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\lightmap_patches\\run.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\lightmap_patches\\test_patches.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\lightmap_patches\\verify.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\__init__.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\audit.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\discover.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\report.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\run.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_aesthetic\\test_protocol.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\policy-v1.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\stock_audit\\run.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_aesthetic_tool.exe",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_bake_forward_tool.exe",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_dataset_quality.exe",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_dataset_roi.exe",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_grid_geometry_tool.exe",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_solar_audit.exe",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel10\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel10_all.jkobs",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\catalogues\\mp_duel10\\catalogue.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\rows\\mp_duel10.rows.jsonl.gz",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\rows\\mp_duel10.source.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_aesthetic_tool.exe",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_grid_geometry_tool.exe",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\preflight.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\catalogues\\mp_duel10\\catalogue.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\rows\\mp_duel10.rows.jsonl.gz",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\rows\\mp_duel10.source.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel10\\inputs.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\concurrent-state.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-admission-v2.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-admission-v2.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-admission.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-admission.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-held-v2.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-held.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\fold-layouts-64.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\fold-layouts-stratified.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\fold-layouts.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\fold-preflight-64.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\fold-preflight.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\frozen-control-pairs.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\frozen-folds-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\geometry.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\joint-check.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\joint-coverage.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\joint-coverage.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-coverage-0.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-coverage-0.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-coverage-1.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-coverage-1.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-geometry-clean.png",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-geometry.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-preflight-before-admission-correction.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-preflight.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-rows.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-scope-before-admission-correction.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\pilot-scope.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\plan-before-ar34.md",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\preexisting-work.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\preflight-before-admission-correction.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\preflight.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\scope-before-coverage.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\source-image.png",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-coverage-0.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-coverage-0.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-coverage-1.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-coverage-1.txt",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-geometry-rows.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\trim-preflight.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\verification.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel10\\fit\\duel10-grid-2\\ablation.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel10\\fit\\duel10-grid-2\\folds.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel10\\fit\\duel10-grid-2\\geometry.png",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel10\\fit\\duel10-grid-2\\hypothesis.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel10\\fit\\duel10-grid-2\\receiver-response.png",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel10\\fit\\duel10-grid-2\\result.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel7\\fit\\duel7-grid-3\\ablation.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel7\\fit\\duel7-grid-3\\folds.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel7\\fit\\duel7-grid-3\\geometry.png",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel7\\fit\\duel7-grid-3\\hypothesis.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel7\\fit\\duel7-grid-3\\receiver-response.png",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\asr25-v1\\maps\\mp_duel7\\fit\\duel7-grid-3\\result.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\audit-before-shader-identity-correction.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\audit.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v2.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v2.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v2.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v3.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v3.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v3.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v4.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v4.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v4.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v5.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v5.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v5.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v6.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v6.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic-v6.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compile-contact-diagnostic.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compiler-version.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compiler-version.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\compiler-version.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact-diagnostic-v2.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact-diagnostic-v2.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact-diagnostic-v2.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact-diagnostic-v3.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact-diagnostic-v3.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact-diagnostic-v3.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact-diagnostic.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact-diagnostic.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact-diagnostic.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact_diagnostic-before-control-id-correction.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact_diagnostic-before-control-map-correction.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact_diagnostic-before-name-correction.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact_diagnostic.cpp",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\contact_diagnostic.exe",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\dummy-admission.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\dummy-admission.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\dummy-admission.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\finalize.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\input-audit-before-shader-identity-correction.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\input-audit.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\joint-coverage.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\joint-coverage.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\joint-coverage.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\measure.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\measurements.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\probe-replay.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\scratch-history.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\trim-coverage-0.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\trim-coverage-0.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\trim-coverage-0.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\trim-coverage-1.process.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\trim-coverage-1.stderr",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\trim-coverage-1.stdout",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar41-v1\\validate.py",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\policies\\viability-v1.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\results\\ar34-v1\\evidence.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\results\\ar34-v1\\manifest.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\results\\ar35-v1\\evidence.json",
+      "passed": true
+    },
+    {
+      "name": "input:C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\tools\\rend2\\aesthetic_relighting\\results\\ar35-v1\\manifest.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/attempt-1/dummy-admission.process.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/attempt-1/dummy-admission.stderr",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/attempt-1/dummy-admission.stdout",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/attempt-1/starting-state.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel10-grid-2/encode.txt",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel10-grid-2/source-1.txt",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel10-grid-2-coverage-1.process.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel10-grid-2-coverage-1.stderr",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel10-grid-2-coverage-1.stdout",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel10-grid-2-encode.process.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel10-grid-2-encode.stderr",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel10-grid-2-encode.stdout",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel7-grid-3/encode.txt",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel7-grid-3/source-1.txt",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel7-grid-3-coverage-1.process.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel7-grid-3-coverage-1.stderr",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel7-grid-3-coverage-1.stdout",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel7-grid-3-encode.process.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel7-grid-3-encode.stderr",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/duel7-grid-3-encode.stdout",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/dummy-admission.process.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/dummy-admission.stderr",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/dummy-admission.stdout",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/finalize.py",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/inspect-before-map-key-correction.py",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/inspect.py",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/inspection.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/plan-before-ar36.md",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/plan-change.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/scratch-failure.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/starting-state.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/update_plan.py",
+      "passed": true
+    },
+    {
+      "name": "receipt:build/ar36-v1/validate.py",
+      "passed": true
+    },
+    {
+      "name": "receipt:docs/rend2-relighting/viability-decision.md",
+      "passed": true
+    },
+    {
+      "name": "receipt:docs/rend2-relighting/pilot-wiring-status.md",
+      "passed": true
+    },
+    {
+      "name": "receipt:docs/rend2-relighting/contact-plane-diagnosis.md",
+      "passed": true
+    },
+    {
+      "name": "receipt:tools/rend2/aesthetic_relighting/results/ar34-v1/manifest.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:tools/rend2/aesthetic_relighting/results/ar35-v1/manifest.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:tools/rend2/aesthetic_relighting/results/ar41-v1/manifest.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:tools/rend2/stock_aesthetic/results/v1/manifest.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:tools/rend2/stock_audit/results/v1/manifest.json",
+      "passed": true
+    },
+    {
+      "name": "receipt:tools/rend2/aesthetic_relighting/policies/viability-v1.json",
+      "passed": true
+    },
+    {
+      "name": "done_negative_decision",
+      "passed": true
+    },
+    {
+      "name": "no_product_pass",
+      "passed": true
+    },
+    {
+      "name": "no_production_or_rollout_authorization",
+      "passed": true
+    },
+    {
+      "name": "single_bounded_next_decision",
+      "passed": true
+    },
+    {
+      "name": "no_new_original_fit_or_final",
+      "passed": true
+    },
+    {
+      "name": "admission_refused",
+      "passed": true
+    },
+    {
+      "name": "reserve_not_repair_acceptance",
+      "passed": true
+    },
+    {
+      "name": "no_invented_review",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:saved-replay-input:fit.txt",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:saved-replay-input:folds.json",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:saved-replay-input:held.txt",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:saved-replay-input:result.json",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:original-capture",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:saved-native-tool",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:saved-native-encoder",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:frozen_background",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:native_replay",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:removal_worsens",
+      "passed": true
+    },
+    {
+      "name": "duel10-grid-2:all_heldout_change",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:saved-replay-input:fit.txt",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:saved-replay-input:folds.json",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:saved-replay-input:held.txt",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:saved-replay-input:result.json",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:original-capture",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:saved-native-tool",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:saved-native-encoder",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:frozen_background",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:native_replay",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:removal_worsens",
+      "passed": true
+    },
+    {
+      "name": "duel7-grid-3:all_heldout_change",
+      "passed": true
+    },
+    {
+      "name": "bounded_native:dummy-admission",
+      "passed": true
+    },
+    {
+      "name": "native_stdout:dummy-admission",
+      "passed": true
+    },
+    {
+      "name": "bounded_native:duel10-grid-2-coverage-1",
+      "passed": true
+    },
+    {
+      "name": "native_stdout:duel10-grid-2-coverage-1",
+      "passed": true
+    },
+    {
+      "name": "bounded_native:duel10-grid-2-encode",
+      "passed": true
+    },
+    {
+      "name": "native_stdout:duel10-grid-2-encode",
+      "passed": true
+    },
+    {
+      "name": "bounded_native:duel7-grid-3-coverage-1",
+      "passed": true
+    },
+    {
+      "name": "native_stdout:duel7-grid-3-coverage-1",
+      "passed": true
+    },
+    {
+      "name": "bounded_native:duel7-grid-3-encode",
+      "passed": true
+    },
+    {
+      "name": "native_stdout:duel7-grid-3-encode",
+      "passed": true
+    },
+    {
+      "name": "prior_results_preserved",
+      "passed": true
+    },
+    {
+      "name": "prior_plan_change_rows_preserved",
+      "passed": true
+    },
+    {
+      "name": "42_stable_task_rows",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:1",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:2",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:3",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:4",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:5",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:6",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:7",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:8",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:9",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:10",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:11",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:12",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:13",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:14",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:15",
+      "passed": true
+    },
+    {
+      "name": "ar16_archived",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:17",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:18",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:19",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:20",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:21",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:22",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:23",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:24",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:25",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:26",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:27",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:28",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:29",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:30",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:31",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:32",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:33",
+      "passed": true
+    },
+    {
+      "name": "done_task:34",
+      "passed": true
+    },
+    {
+      "name": "ar35_blocked",
+      "passed": true
+    },
+    {
+      "name": "done_task:36",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:37",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:38",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:39",
+      "passed": true
+    },
+    {
+      "name": "deferred_task:40",
+      "passed": true
+    },
+    {
+      "name": "done_task:41",
+      "passed": true
+    },
+    {
+      "name": "ar42_only_next",
+      "passed": true
+    },
+    {
+      "name": "standalone_ar42_prompt",
+      "passed": true
+    },
+    {
+      "name": "balanced_plan_code_fences",
+      "passed": true
+    },
+    {
+      "name": "high_level_result_pins_evidence",
+      "passed": true
+    },
+    {
+      "name": "decision_and_final_evidence_rule_logged",
+      "passed": true
+    },
+    {
+      "name": "negative_document:viability-verdict.md",
+      "passed": true
+    },
+    {
+      "name": "link:viability-verdict.md:../rend2-aesthetic-relighting-plan.md#ar-42",
+      "passed": true
+    },
+    {
+      "name": "ar42_anchor",
+      "passed": true
+    },
+    {
+      "name": "link:viability-verdict.md:viability-decision.md",
+      "passed": true
+    },
+    {
+      "name": "link:viability-verdict.md:../../tools/rend2/aesthetic_relighting/policies/viability-v1.json",
+      "passed": true
+    },
+    {
+      "name": "link:viability-verdict.md:pilot-wiring-status.md",
+      "passed": true
+    },
+    {
+      "name": "link:viability-verdict.md:contact-plane-diagnosis.md",
+      "passed": true
+    },
+    {
+      "name": "link:viability-verdict.md:pilot-acceptance.md",
+      "passed": true
+    },
+    {
+      "name": "link:viability-verdict.md:../../tools/rend2/aesthetic_relighting/results/ar36-v1/evidence.json",
+      "passed": true
+    },
+    {
+      "name": "declared-validator-output-link:viability-verdict.md:../../tools/rend2/aesthetic_relighting/results/ar36-v1/validation.json",
+      "passed": true
+    },
+    {
+      "name": "declared-validator-output-link:viability-verdict.md:../../tools/rend2/aesthetic_relighting/results/ar36-v1/manifest.json",
+      "passed": true
+    },
+    {
+      "name": "link:viability-verdict.md:../rend2-aesthetic-relighting-plan.md#ar-36",
+      "passed": true
+    },
+    {
+      "name": "negative_document:pilot-acceptance.md",
+      "passed": true
+    },
+    {
+      "name": "link:pilot-acceptance.md:viability-verdict.md",
+      "passed": true
+    },
+    {
+      "name": "link:pilot-acceptance.md:../../tools/rend2/aesthetic_relighting/policies/viability-v1.json",
+      "passed": true
+    },
+    {
+      "name": "link:pilot-acceptance.md:../rend2-stock-aesthetic-asr24.md",
+      "passed": true
+    },
+    {
+      "name": "revision_stable",
+      "passed": true
+    },
+    {
+      "name": "index_still_clean",
+      "passed": true
+    },
+    {
+      "name": "only_plan_existing_tracked_edit",
+      "passed": true
+    },
+    {
+      "name": "licensed_packet_ignored",
+      "passed": true
+    },
+    {
+      "name": "whitespace_clean",
+      "passed": true
+    }
+  ],
+  "evidence_sha256": "817331855bb5a374e63f69185843f383fd82e5eba29465cc0b87e0e731e8a68a",
+  "failed": 0,
+  "native_regression_suite_rerun": false,
+  "original_pilot_quality_measured": false,
+  "passed": 511,
+  "schema": "org.openjk.aesthetic-relighting.ar36-validation.v1",
+  "validator_sha256": "e3fbf34f302f52b6b141084a0967e3c37786b189148c2ddcffa3f3dce69075f8"
+}

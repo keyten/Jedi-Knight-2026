@@ -1,0 +1,585 @@
+{
+  "admission": {
+    "byte_identical_to_ar41": true,
+    "dummy_fitter_work_units": 16422,
+    "fresh": true,
+    "original_quality_score": null,
+    "reason": "Named mounting surface absent at declared contact plane",
+    "selected": -1,
+    "unavailable_configurations": 3
+  },
+  "applicable_agents_md": [],
+  "approved_next": {
+    "deliverable": "docs/rend2-relighting/oblique-support-contract-decision.md plus versioned evidence/manifest",
+    "exit": "Justified numerical plane authority/error/version, complete consumer/key mapping, exact-original/adversarial arithmetic, exact proposed files and full downstream acceptance matrix fitting <=4-hour modern-only repair; otherwise Stop-Current-Approach for this pilot",
+    "hours_max": 2,
+    "no_serial_research_extension": true,
+    "production_coding_authorized": false,
+    "research_decisions_max": 1,
+    "size": "S",
+    "task": "AR-42",
+    "type": "Decision / Experiment"
+  },
+  "assistance": "Codex inspection and automated hash/fold/native replay checks; no subagents or independent reviewer",
+  "assumptions": [
+    "DiffuseIntegral / RelativeIncident; existing scoped native occupancy",
+    "Conditional NetRadiant encoded RGB8 transfer, gain 1; not calibrated linear irradiance",
+    "Relative source RGB [0,100000], one shared constant nuisance RGB [0,255], not C asset",
+    "Huber 4, 200 sweeps, tolerance 1e-4; unchanged weights and native limits",
+    "Same-material point proxy, fixed 4 WU stand-off; stock bake/filtering and MP/SP material semantics uncertain",
+    "No finite-source/cross-material/indirect completeness or historical exact source truth"
+  ],
+  "blocker": {
+    "admitted_fit_saved_parameters_and_review": "Not produced because native admission refuses",
+    "kind": "MissingJustifiedObliquePlaneWitnessContractAndAuthorization",
+    "not_evidence_of_appearance_model_failure": true,
+    "original_stock_inputs_missing": false,
+    "support_admission": "Refused"
+  },
+  "branch": "rend2-unified-wip",
+  "causal_measurements": {
+    "contact_bounds_world": [
+      1.624448436864759e-11,
+      1.6244664421924223e-11
+    ],
+    "downstream_native_admission_proved": false,
+    "exact_original_triangles_present_per_housing": 2,
+    "mechanism": "Both named triangles are present and exactly coplanar; FromSurfaces casts the resolved double normal to binary32; Check applies a double-roundoff plane bound to that altered plane; both triangles fail",
+    "native_diagnostic_rerun": false,
+    "optical_unknown_mask": 16,
+    "residual_world": 2.384185791015625e-07,
+    "reused_hash_verified_ar41": true
+  },
+  "commands": [
+    {
+      "byte_identical_to_reference": true,
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_aesthetic_tool.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel10\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel10_all.jkobs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-admission-v2.txt",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar34-v1\\dummy-held-v2.txt"
+      ],
+      "exit_code": 0,
+      "name": "dummy-admission",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "d3f81c2a4e68889970402d7821c08adf561c7c2b7f9002fcfb2f6d2053d4167f",
+      "timeout_seconds": 300,
+      "wall_seconds": 3.3280000000086147
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_aesthetic_tool.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel10\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel10_all.jkobs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar36-v1\\duel10-grid-2\\source-1.txt",
+        "--coverage"
+      ],
+      "exit_code": 0,
+      "name": "duel10-grid-2-coverage-1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "5213b15b256d6bd5b31ef572fc879f6727e685524dd800bb7c6d4146db451ed1",
+      "timeout_seconds": 300,
+      "wall_seconds": 3.8910000000032596
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_bake_forward_tool.exe",
+        "--encode",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar36-v1\\duel10-grid-2\\encode.txt"
+      ],
+      "exit_code": 0,
+      "name": "duel10-grid-2-encode",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "aea755b80a2dba88a5a35382bf3fed350960a4cc06a0b608e0fbd18a61d35849",
+      "timeout_seconds": 300,
+      "wall_seconds": 0.2659999999741558
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_aesthetic_tool.exe",
+        "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel7\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel7_all.jkobs",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar36-v1\\duel7-grid-3\\source-1.txt",
+        "--coverage"
+      ],
+      "exit_code": 0,
+      "name": "duel7-grid-3-coverage-1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e1d8ddd357c42228351237b192b2388b2f05bf2a08eb3ba2954a863c9c9259ae",
+      "timeout_seconds": 300,
+      "wall_seconds": 2.0940000000118744
+    },
+    {
+      "command": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\s06-gcc\\lightrecon_bake_forward_tool.exe",
+        "--encode",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\ar36-v1\\duel7-grid-3\\encode.txt"
+      ],
+      "exit_code": 0,
+      "name": "duel7-grid-3-encode",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "04c55400beeb3f024df69e9b32a47d34daf924beb058aadef1cec221b5fc3730",
+      "timeout_seconds": 300,
+      "wall_seconds": 0.014999999984866008
+    }
+  ],
+  "control_pairs": {
+    "final": {
+      "1": 2,
+      "2": 2
+    },
+    "reserve": {
+      "1": 2
+    }
+  },
+  "corpus_rollout_authorized": false,
+  "coverage": {
+    "A": "Two visible candidates, no new accepted output",
+    "B": "None authored",
+    "C": "None authored",
+    "D": "Original-data fallback for both pilot outputs",
+    "accepted_area_fraction": null,
+    "completion_probability": null,
+    "new_accepted_area": 0,
+    "new_accepted_maps": 0,
+    "new_accepted_rows": 0,
+    "new_accepted_sources": 0,
+    "old_heldout_rows": 65,
+    "old_unique_fitting_rows": 201,
+    "whole_map_recall": null
+  },
+  "date": "2026-11-10",
+  "decision": "Blocked-Inputs",
+  "failures_retained": [
+    "AR34 floor clip/fold designs/block-ID collision/coverage-admission metadata correction",
+    "AR35 no integration without decision; AR41 now present and negative",
+    "AR41 shader identity/compiler/harness failures and buffer-disclosure correction",
+    "ASR24/25 rejected/unresolved regions and duel7 bright residual",
+    "AR36 private normalized map-key lookup failure, corrected with retained attempt",
+    "Pilot numerical/appearance/replay/review absent; reserve lacks housing988 pairs"
+  ],
+  "folds": {
+    "final": {
+      "blocks": 8,
+      "controls": 21,
+      "positive": [
+        5,
+        8
+      ],
+      "rows": 34,
+      "surfaces": [
+        705,
+        706,
+        707
+      ]
+    },
+    "reserve": {
+      "blocks": 6,
+      "controls": 17,
+      "positive": [
+        5,
+        4
+      ],
+      "rows": 26,
+      "surfaces": [
+        706,
+        707
+      ]
+    },
+    "train": {
+      "blocks": 9,
+      "controls": 28,
+      "positive": [
+        6,
+        6
+      ],
+      "rows": 40,
+      "surfaces": [
+        705,
+        706,
+        707
+      ]
+    },
+    "validation": {
+      "blocks": 8,
+      "controls": 29,
+      "positive": [
+        5,
+        7
+      ],
+      "rows": 41,
+      "surfaces": [
+        705,
+        706,
+        707
+      ]
+    }
+  },
+  "freeze": {
+    "changed": false,
+    "controller_non_use_boundary": "Unchanged Offline loader deserializes archive RGB buffers; no pilot receiver image indexed/displayed/evaluated",
+    "final_informed_change_rule": "Fresh adequate independent final evidence required; v1 reserve inadequate",
+    "old_final_rows": "Development/regression only; ASR25 duel10 duplicates ASR24",
+    "original_pilot_final_or_reserve_appearance_opened": false,
+    "original_pilot_row_file_decompressed": false,
+    "original_target_fit_cycles": 0,
+    "policy": {
+      "path": "tools/rend2/aesthetic_relighting/policies/viability-v1.json",
+      "sha256": "96da96c0ccd896bca3751f539b2d8860f4e1d0580f5d947c60c906b5a84a28d0"
+    },
+    "status": "FrozenBlocked"
+  },
+  "frozen_references": [
+    {
+      "path": "docs/rend2-relighting/viability-decision.md",
+      "sha256": "94fc8185881e25163adb2ca51f8e909e19289c82e36faefd2b394d4fd9df2afe"
+    },
+    {
+      "path": "docs/rend2-relighting/pilot-wiring-status.md",
+      "sha256": "ef139d6ddd672950235c3256c156b9a583acd28d5d87a4b611a9c074f01d7c82"
+    },
+    {
+      "path": "docs/rend2-relighting/contact-plane-diagnosis.md",
+      "sha256": "6cbf358c9f167fdef4367becbd2deab3480aa309bb2980a516a0f531569e860c"
+    },
+    {
+      "path": "tools/rend2/aesthetic_relighting/results/ar34-v1/manifest.json",
+      "sha256": "6dc354e07207b07f9614b64238c433082d5089f181afa9084b638ce60b69033f"
+    },
+    {
+      "path": "tools/rend2/aesthetic_relighting/results/ar35-v1/manifest.json",
+      "sha256": "1166ceed04316987f88f5d735a84a4ec2c82279e290927a4d856355b0a398849"
+    },
+    {
+      "path": "tools/rend2/aesthetic_relighting/results/ar41-v1/manifest.json",
+      "sha256": "226d06119ca6a6aedc7c3caebd7ba9b36efbd23bf5ef897c83ecbdd744c5631a"
+    },
+    {
+      "path": "tools/rend2/stock_aesthetic/results/v1/manifest.json",
+      "sha256": "3b3fab9dfe4058590d25b633728769234e35358f3e696c4c7f1a75bf896a3cf6"
+    },
+    {
+      "path": "tools/rend2/stock_audit/results/v1/manifest.json",
+      "sha256": "db48b1f513f7cfce6f2bc02e8d6ad9b31ec8c7054d4d8ba8e59766fe285aa346"
+    }
+  ],
+  "geometry": {
+    "broader_sample": {
+      "both_positive": 18,
+      "both_zero": 604,
+      "either_unavailable": 282,
+      "first_only": 18,
+      "second_only": 19
+    },
+    "census_rerun": false,
+    "eligible_roi_rows": 30869,
+    "frozen_joint_available_rows": 141,
+    "maximum_sum_coefficient_error": 0,
+    "original_appearance_interaction_measured": false,
+    "reused_hash_verified_ar34_ar41": true,
+    "row_counts_are_area_fractions": false,
+    "sample_rows": 941,
+    "trim_sample": {
+      "both_positive": 0,
+      "both_zero": 199,
+      "either_unavailable": 74,
+      "first_only": 57,
+      "rows": 394,
+      "second_only": 64,
+      "unavailable_row_fraction": 0.18781725888324874
+    }
+  },
+  "historical_canonical_storage_changes": false,
+  "initial_git_status": "",
+  "initial_staged_changes": "",
+  "integration_authorized": false,
+  "integrity": {
+    "ar34_private_artifacts": 42,
+    "ar41_frozen_references": 5,
+    "ar41_private_artifacts": 57,
+    "asr25_implementation_files": 150,
+    "detail": {
+      "path": "build/ar36-v1/inspection.json",
+      "sha256": "22339c11cef07cdd29000e3842bb2f602a8b274d2f690714e6ce098d160d4cea"
+    },
+    "distinct_path_strings": 297,
+    "file_hash_comparisons": 359,
+    "inherited_input_references": 223,
+    "mismatched": 0,
+    "missing": 0,
+    "native_tools": 6,
+    "old_witness_files": 12,
+    "original_bsp_image_shader_body_matched": true,
+    "public_manifest_entries": 20
+  },
+  "native_regression_suite_rerun": false,
+  "new_pilot_original_quality_measured": false,
+  "old_replay_input_verification": "Validator checks saved fit/held/folds/result hashes from ablation receipts, original capture identities and both native-tool hashes for each old witness",
+  "old_saved_parameter_replays": {
+    "duel10-grid-2": {
+      "changed_rows": 17,
+      "maximum_interval_residual": 24.7491226196,
+      "native_on_mse": 95.075590764,
+      "original_baseline": {
+        "available": 1,
+        "blocks": 1,
+        "maximum_error": 31,
+        "mse": 174.230938107,
+        "normal_bins": 1,
+        "robust": 36.1721127501,
+        "rows": 17
+      },
+      "parameters_loaded_from": "hypothesis.json",
+      "parameters_refitted": false,
+      "regression_evidence_only": true,
+      "rows": 17,
+      "same_background": true,
+      "scores": {
+        "off": {
+          "mse": 7837.108617605486,
+          "robust": 343.07749551489064
+        },
+        "on": {
+          "mse": 95.0755986522949,
+          "robust": 24.154717592409693
+        }
+      },
+      "tolerance": 0.001
+    },
+    "duel7-grid-3": {
+      "changed_rows": 48,
+      "maximum_interval_residual": 177.592887878,
+      "native_on_mse": 1000.38382054,
+      "original_baseline": {
+        "available": 1,
+        "blocks": 3,
+        "maximum_error": 184,
+        "mse": 1196.50529247,
+        "normal_bins": 1,
+        "robust": 92.8606302312,
+        "rows": 48
+      },
+      "parameters_loaded_from": "hypothesis.json",
+      "parameters_refitted": false,
+      "regression_evidence_only": true,
+      "rows": 48,
+      "same_background": true,
+      "scores": {
+        "off": {
+          "mse": 3923.1111111111104,
+          "robust": 204.30368198110125
+        },
+        "on": {
+          "mse": 1000.3838112690111,
+          "robust": 81.88348426028467
+        }
+      },
+      "tolerance": 0.0100038382054
+    }
+  },
+  "original_target_fit_authorized": false,
+  "pilot_accepted": false,
+  "pilot_gate_status": {
+    "admission": "Failed prerequisite",
+    "brightness_chroma_shadow_controls": "Unavailable",
+    "convergence_bounds": "Unavailable",
+    "geometry_design": "Verified conditional design",
+    "mse_robust_singleton_per_chart_residual": "Unavailable",
+    "registered_contextual_appearance": "Unavailable",
+    "save_reload_repeat_individual_all_removals": "Unavailable",
+    "separate_blinded_review": "Unavailable",
+    "two_active_sources": "Unavailable"
+  },
+  "private_artifacts": [
+    {
+      "path": "build/ar36-v1/attempt-1/dummy-admission.process.json",
+      "sha256": "7dc303dc2ef9ee286823c996d74764c6f7f8cf4488605f744cb4d1a2fc8692f0"
+    },
+    {
+      "path": "build/ar36-v1/attempt-1/dummy-admission.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar36-v1/attempt-1/dummy-admission.stdout",
+      "sha256": "d3f81c2a4e68889970402d7821c08adf561c7c2b7f9002fcfb2f6d2053d4167f"
+    },
+    {
+      "path": "build/ar36-v1/attempt-1/starting-state.json",
+      "sha256": "34862328d9579433bf9340ba410cc91c4ca7d992e9618dcb8994fac434cacf43"
+    },
+    {
+      "path": "build/ar36-v1/duel10-grid-2/encode.txt",
+      "sha256": "9020c9cb60a3f1930d79c53ed1c0fe3820d7d901720bfb57f71846b448823b5f"
+    },
+    {
+      "path": "build/ar36-v1/duel10-grid-2/source-1.txt",
+      "sha256": "d255492d15ff68e2a60fd7e08bcbc342fea3957062fddcf3026fcc3209836019"
+    },
+    {
+      "path": "build/ar36-v1/duel10-grid-2-coverage-1.process.json",
+      "sha256": "a5970c895323b3167659e37f0f42bd7b8dabf5d7ecd1e7fbcfe8d716f2ab841c"
+    },
+    {
+      "path": "build/ar36-v1/duel10-grid-2-coverage-1.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar36-v1/duel10-grid-2-coverage-1.stdout",
+      "sha256": "5213b15b256d6bd5b31ef572fc879f6727e685524dd800bb7c6d4146db451ed1"
+    },
+    {
+      "path": "build/ar36-v1/duel10-grid-2-encode.process.json",
+      "sha256": "8af3569a8fd2606bc510514c9c8b3238c9d8858dc9d1d4223859c66a692c8b6a"
+    },
+    {
+      "path": "build/ar36-v1/duel10-grid-2-encode.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar36-v1/duel10-grid-2-encode.stdout",
+      "sha256": "aea755b80a2dba88a5a35382bf3fed350960a4cc06a0b608e0fbd18a61d35849"
+    },
+    {
+      "path": "build/ar36-v1/duel7-grid-3/encode.txt",
+      "sha256": "cb070e3547687d10ef5ed53f6cec0c3c0e24e745501416701287ec15317addc8"
+    },
+    {
+      "path": "build/ar36-v1/duel7-grid-3/source-1.txt",
+      "sha256": "5b1082b6ae72ed7071970dbb616d7451e0111a7d0d570ccb8054fee401790ea3"
+    },
+    {
+      "path": "build/ar36-v1/duel7-grid-3-coverage-1.process.json",
+      "sha256": "dfb0cd31a879361c02ab79e5775fd27e03f76cc5e69f83aed6e39a3f7df34720"
+    },
+    {
+      "path": "build/ar36-v1/duel7-grid-3-coverage-1.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar36-v1/duel7-grid-3-coverage-1.stdout",
+      "sha256": "e1d8ddd357c42228351237b192b2388b2f05bf2a08eb3ba2954a863c9c9259ae"
+    },
+    {
+      "path": "build/ar36-v1/duel7-grid-3-encode.process.json",
+      "sha256": "ab45946cd6207cff10a7d557523f563f9bbbec28b7dc5de3e2e2279ffe57b8d3"
+    },
+    {
+      "path": "build/ar36-v1/duel7-grid-3-encode.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar36-v1/duel7-grid-3-encode.stdout",
+      "sha256": "04c55400beeb3f024df69e9b32a47d34daf924beb058aadef1cec221b5fc3730"
+    },
+    {
+      "path": "build/ar36-v1/dummy-admission.process.json",
+      "sha256": "9683495f61e361785b84328ae89da6a243de436bd4f76488825cb2c5a7dc9fcd"
+    },
+    {
+      "path": "build/ar36-v1/dummy-admission.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/ar36-v1/dummy-admission.stdout",
+      "sha256": "d3f81c2a4e68889970402d7821c08adf561c7c2b7f9002fcfb2f6d2053d4167f"
+    },
+    {
+      "path": "build/ar36-v1/finalize.py",
+      "sha256": "b3dd0ba3a7f239320c5d76433339d02f064400ec40749617bd0ec092c8950afa"
+    },
+    {
+      "path": "build/ar36-v1/inspect-before-map-key-correction.py",
+      "sha256": "b5c69502f53b9a3878b3074a137d01001ac7bf45f42bdab4f8591413db704791"
+    },
+    {
+      "path": "build/ar36-v1/inspect.py",
+      "sha256": "35cac1ba6f8b543707fc34577147993c44b3d64f6ce65c7845d1de7068536697"
+    },
+    {
+      "path": "build/ar36-v1/inspection.json",
+      "sha256": "22339c11cef07cdd29000e3842bb2f602a8b274d2f690714e6ce098d160d4cea"
+    },
+    {
+      "path": "build/ar36-v1/plan-before-ar36.md",
+      "sha256": "cea714e593de3f6e2552a8650e92f33cb892ff664c7d215281f0eccae48b3c81"
+    },
+    {
+      "path": "build/ar36-v1/plan-change.json",
+      "sha256": "64dfb9bac41e48fd159274ddb0fb29a3d7184e2201353e1b0ef6e2431c6d8e87"
+    },
+    {
+      "path": "build/ar36-v1/scratch-failure.json",
+      "sha256": "c7a7423757554018e4548464871d9b2cec3eb1e0fa2277284650dd4f583267ac"
+    },
+    {
+      "path": "build/ar36-v1/starting-state.json",
+      "sha256": "34862328d9579433bf9340ba410cc91c4ca7d992e9618dcb8994fac434cacf43"
+    },
+    {
+      "path": "build/ar36-v1/update_plan.py",
+      "sha256": "9f7c3e45152f43f8a0b1d0d443effa6f3e72ad0a4624213b767c80eb0f49f509"
+    },
+    {
+      "path": "build/ar36-v1/validate.py",
+      "sha256": "e3fbf34f302f52b6b141084a0967e3c37786b189148c2ddcffa3f3dce69075f8"
+    }
+  ],
+  "product_gate": "Unknown",
+  "production_source_changes": false,
+  "remote": "git@github.com:keyten/BetterJK.git",
+  "repair_implementation_authorized": false,
+  "retained_prospective_limits": {
+    "budget_exhaustion_measured": false,
+    "integration_hours_max": 8,
+    "integration_tasks_max": 1,
+    "new_implementation_allowance": 0,
+    "post_final_repair_fit_authorized": false,
+    "pre_target_repair_tasks_max": 1,
+    "real_target_fit_and_identical_repeat_max": 1,
+    "repair_hours_max": 4
+  },
+  "revision": "242c7ce17bcd9aa2c74acc843f78dcb6958c75ad",
+  "schema": "org.openjk.aesthetic-relighting.ar36-evidence.v1",
+  "scope": {
+    "changed": false,
+    "housing_count": 2,
+    "housing_surfaces": [
+      987,
+      988
+    ],
+    "id": "duel10-oblique-housings-v1",
+    "luminous_components": 4,
+    "map": "mp/duel10",
+    "pose": "Fixed luminous-union centroid + 4 WU original outward normal; one isotropic point per housing",
+    "receiver_material": "textures/wedge/w_windowtrim",
+    "receiver_surfaces": [
+      705,
+      706,
+      707
+    ],
+    "roi_count": 1
+  },
+  "second_roi_authorized": false,
+  "successful_subprocess_wall_seconds": 9.59399999998277,
+  "task": "AR-36",
+  "task_status": "Done",
+  "timezone": "Australia/Sydney",
+  "timing_excludes": "Initial scratch attempt, inspection, hashing and report preparation",
+  "visual": {
+    "findings": [
+      "duel10 small chart fragment",
+      "duel7 unexplained bright original patch",
+      "Visible source panel grouping/dark separation; geometric context is not room appearance"
+    ],
+    "independent": false,
+    "inspected": [
+      "build/ar34-v1/source-image.png",
+      "build/ar34-v1/pilot-geometry-clean.png",
+      "build/asr25-v1/maps/mp_duel10/fit/duel10-grid-2/receiver-response.png",
+      "build/asr25-v1/maps/mp_duel7/fit/duel7-grid-3/receiver-response.png"
+    ],
+    "new_review_ratings": null,
+    "operator": "Codex",
+    "presentation": "Unmodified existing source/geometry and 1500x710 ASR25 encoded-code response plates; shared scales and grey unmeasured support",
+    "required_new_presentation": "V1 fixed full-chart/extents and equal-world context, exposure/gamma 1, identical conversion, missing-support markers, hash-ordered separate review; absent",
+    "reviewer_identity": null
+  }
+}

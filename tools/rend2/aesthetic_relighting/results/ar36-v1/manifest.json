@@ -1,0 +1,17 @@
+{
+  "approved_next": "AR-42 S <=2 hours, decision only",
+  "decision": "Blocked-Inputs",
+  "files": {
+    "docs/rend2-relighting/pilot-acceptance.md": "1b87fa3808b74d305c8f1aee3e803494ffdfd2e38bc01c64b91a1ad0500add12",
+    "docs/rend2-relighting/viability-verdict.md": "f28fb8275fe75fce5a5ff75b0209a5154e844f1fad3a70ecec3df9f15d49d653",
+    "tools/rend2/aesthetic_relighting/results/ar36-v1/evidence.json": "817331855bb5a374e63f69185843f383fd82e5eba29465cc0b87e0e731e8a68a",
+    "tools/rend2/aesthetic_relighting/results/ar36-v1/validation.json": "a918d3131483175d5307c2abb281244ea690b6d82edfa19fdcbe13f0ae809333"
+  },
+  "integration_authorized": false,
+  "licensed_payload_redistributed": false,
+  "pilot_accepted": false,
+  "plan": "Results Log / AR-36 and Plan Change Log revision 3; excluded to avoid self-reference",
+  "product_gate": "Unknown",
+  "schema": "org.openjk.aesthetic-relighting.ar36-manifest.v1",
+  "task_status": "Done"
+}
