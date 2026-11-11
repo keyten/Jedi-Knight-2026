@@ -222,6 +222,9 @@ Each capture sampled 30 GPU frames per state. SP median main-view time was
 12.172 ms off and 11.395 ms on. Enabled dynamic cascade overlay medians were
 0.200, 0.175 and 0.223 ms. MP median main-view time was 22.496 ms off and
 23.108 ms on, with roughly 0.001 ms per cascade overlay in the static scene.
+Settled MP frames logged three static cascade hits and zero full rebuilds per
+frame. Shadow view front-end and submission were 0.011 and 0.033 ms per frame
+in that MP sample. The SP sample reported 0.211 and 0.380 ms respectively.
 These timings are specific to the two scenes and their capture settings.
 
 On SP `hoth3` with dynamic entities hidden, the original/current disabled
@@ -230,11 +233,25 @@ missing-asset and restore also matched bit for bit inside both executables.
 The initial cross-execution run with dynamic entities froze different player
 poses and animated surfaces and differed by 25112 pixels.
 
+MP `mp/duel4` with physical PBR also matched the original renderer bit for bit
+at all 230400 pixels. The disabled comparison sets `fixedtime 16` on the private
+MP server so animated world materials begin at the same phase across launches.
+Its A/A, independent gate-off, missing-asset and restore controls matched exactly.
+With physical PBR off, the original MP DLL had a recurring one-pixel difference
+of four display codes within the control run. The strict tolerance rejected
+that comparison before testing the C01 DLL.
+
 The older frozen preprocessed GLSL regression baseline already differs on the
 original renderer because it predates shader comparison controls and CSM
 changes. C01 leaves that historical baseline intact. The current driver tests
 compile the live permutations and the gameplay comparison uses the actual
 pre-C01 renderer DLL.
+
+The Release SP and MP renderer builds passed. The seven relevant CPU CTest
+targets, 15 shader/control contract tests, 1039 cache checks and 39 driver
+shader programs passed. GPU readback returned visibility 0 through the wall,
+1 through the doorway and 0 outside shadow coverage. Missing membership and
+coverage preserved the original froxel baseline.
 
 Each scene stores one detached state and uses the existing sun and three CSM
 cascades, with zero additional GPU light slots, textures, samplers or permutations.
