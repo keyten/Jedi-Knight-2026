@@ -36,6 +36,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_postprocess.h"
 #include "iqm.h"
 #include "qgl.h"
+#include "lightrecon/resolved_sun.h"
 #include <vector>
 #include <map>
 #include <unordered_map>
@@ -1507,7 +1508,7 @@ struct SceneBlock
 	vec3_t primaryLightAmbient;
 	int	   globalFogIndex;
 	vec3_t primaryLightColor;
-	float primaryLightRadius;
+	float primaryLightRadius; // C01 flags: 1 canonical, 2 world diffuse, 4 entity diffuse; legacy 0
 	float currentTime;
 	float frameTime;
 	float pad0[2];
@@ -3243,6 +3244,7 @@ typedef struct {
 	float       sunShadowCharacters[MAX_SUN_SHADOW_CHARACTERS][4];	// r_sunShadowModelLayer 2 spheres
 	int         numSunShadowCharacters;
 	int         sunShadowHardMask;	// r_sunShadowModelLayer: cascades whose hard layer has casters
+	Rend2LightRecon::SunLighting::State resolvedSun; // immutable per-scene value, no leases
 	float       sunDir[4];
 	float       sunCol[4];
 	float       sunAmbCol[4];
@@ -6663,7 +6665,7 @@ qboolean R_CloudsEnabled(void);
 qboolean R_CloudShadowsAvailable(void);
 void R_CreateCloudImages(void);
 void R_CreateCloudFBOs(void);
-const char *R_CloudsOffReason(void);
+const char *R_CloudsOffReason(const trRefdef_t *refdef);
 qboolean R_CloudsCaptureLegacy(const trRefEntity_t *ent);
 qboolean RB_CloudsWantSkyView(void);
 void RB_CloudsBeginView(void);
@@ -6686,6 +6688,9 @@ qboolean R_SunVisibleFromPoint(const vec3_t start, const vec3_t sunDir); // tr_l
 // tr_light.cpp: r_entitySunLight
 qboolean R_EntitySunSplitWanted(void);
 void R_CalibrateEntitySun(world_t *world);
+void R_ResolveSceneSun(const refdef_t *fd);
+void R_ClearResolvedSun(void);
+void R_ResolvedSunInfo(void);
 void R_LightReconInfo_f(void);
 void R_LightReconEvidence_f(void);
 void R_LightReconExport_f(void);

@@ -5388,6 +5388,23 @@ void main()
 	reflectance += sunSpecular;
     #endif
 
+    #if defined(USE_PHYSICAL_PBR)
+    // C01: original diffuse already contains direct sun. A P06 exclusion
+    // proof is required before adding any new diffuse, including characters.
+    int sunPolicy = int(u_PrimaryLightRadius + 0.5);
+    #if defined(USE_LIGHT_VECTOR)
+    bool sunDiffuseAllowed = (sunPolicy & 4) != 0;
+    #else
+    bool sunDiffuseAllowed = (sunPolicy & 2) != 0;
+    #endif
+    if ((sunPolicy & 1) != 0 && !sunDiffuseAllowed) {
+        reflectance = sunSpecular;
+        #if defined(USE_SKIN_SSS)
+        sunDiffuse = vec3(0.0);
+        #endif
+    }
+    #endif
+
     #if defined(USE_ENTITY_SUN_SPLIT)
 	if (entitySunSplit)
 	{

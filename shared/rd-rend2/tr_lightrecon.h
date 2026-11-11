@@ -1,4 +1,4 @@
-// Renderer adapter for canonical CPU policy. No lighting integration yet.
+// Renderer adapter for canonical CPU policy and independently gated physical sun.
 #pragma once
 #include "lightrecon/lifecycle.h"
 #include "lightrecon/lightmaps.h"

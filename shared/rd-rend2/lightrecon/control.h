@@ -53,7 +53,7 @@ struct UseSettings
 };
 // The adapter must report true only when its canonical-asset implementation AND
 // all required technology/permutations/resources are actually ready. This never
-// enables physical PBR, Forward+, fog, LTC or IBL. No adapter is installed yet.
+// enables physical PBR, Forward+, fog, LTC or IBL. Actual adapters report their own prerequisites.
 struct FeatureSupport
 {
 	bool available = false;

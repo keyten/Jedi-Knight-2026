@@ -244,3 +244,11 @@ remain unread. Test-only supplied values are not production fallbacks.
 Build with `BuildLightReconTests=ON` or configure `tools/lightrecon_test` alone.
 CTest runs `lightrecon_contract`, `lightrecon_api` and `lightrecon_core`. Both SP/MP
 Rend2 targets link the one CPU archive; runtime lighting still uses the existing paths.
+
+## C01 renderer sun adapter
+
+The independently gated [resolved sun consumer](rend2-resolved-sun-c01.md) now
+implements physical sun admission, scene precedence, supported renderer bindings
+and explicit legacy fallback. Its documented gates and limitations supersede
+earlier statements on this page that all runtime consumers are unimplemented.
+It does not change stock reconstruction availability or certify relative data.

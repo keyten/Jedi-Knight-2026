@@ -4942,7 +4942,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 		}
 
 		// sun shadowmaps
-		if (r_sunlightMode->integer && r_depthPrepass->value && (r_forceSun->integer || tr.sunShadows))
+		if (r_sunlightMode->integer && r_depthPrepass->value && (r_forceSun->integer || tr.sunShadows || refdef->resolvedSun.canonical))
 		{
 			vec3_t lightViewAxis[3];
 			vec3_t lightOrigin;

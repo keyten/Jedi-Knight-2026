@@ -479,9 +479,9 @@ void GatherOptics( const trRefdef_t *refdef, qboolean outside, rainLensInput_t *
 	input->cameraLuma = Luma(total);
 
 	vec3_t keyDir;
-	if ( tr.sunParsed && outside )
+	if ( (tr.sunParsed || refdef->resolvedSun.canonical) && outside )
 	{
-		VectorCopy(tr.sunDirection, keyDir);
+		VectorCopy((refdef->resolvedSun.canonical ? refdef->sunDir : tr.sunDirection), keyDir);
 		VectorCopy(directed, input->keyColor);
 	}
 	else
@@ -944,7 +944,7 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 		input->intensity = LensWater::NominalIntensity(forced);
 		input->exposed = 1.0f;
 		input->facing = Com_Clamp(0.0f, 1.0f, refdef->viewaxis[0][2]);
-		outside = (qboolean)(tr.sunParsed && precipitation.outside);
+		outside = (qboolean)((tr.sunParsed || refdef->resolvedSun.canonical) && precipitation.outside);
 		const vec3_t straightDown = { 0.0f, 0.0f, -1.0f };
 		input->rainFlux = RainFlux(straightDown, refdef->viewaxis, qtrue, input->rainSlant);
 	}
@@ -995,7 +995,7 @@ void R_RainLensInput( const trRefdef_t *refdef, const viewParms_t *viewParms, ra
 	if ( r_rainLensReflection->value <= 0.0f )
 		return;
 
-	if ( !precipitation.current && forced == PROFILE_AUTO && tr.sunParsed )
+	if ( !precipitation.current && forced == PROFILE_AUTO && (tr.sunParsed || refdef->resolvedSun.canonical) )
 	{
 		// no rain: the sun glint still needs to know whether the sky is open
 		outside = precipitation.outside;

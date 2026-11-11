@@ -521,3 +521,13 @@ set_target_properties(lightrecon_appearance_tool PROPERTIES CXX_STANDARD 11 CXX_
 add_executable(lightrecon_diagnostics_tool lightrecon_diagnostics_tool.cpp)
 target_link_libraries(lightrecon_diagnostics_tool rend2_lightrecon_core)
 set_target_properties(lightrecon_diagnostics_tool PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+
+# C01 immutable renderer-sun boundary, using the real Snapshot and P06 algebra.
+add_executable(lightrecon_resolved_sun_test lightrecon_resolved_sun_test.cpp)
+target_link_libraries(lightrecon_resolved_sun_test rend2_lightrecon_core)
+set_target_properties(lightrecon_resolved_sun_test PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+add_test(NAME lightrecon_resolved_sun COMMAND lightrecon_resolved_sun_test)
+
+add_executable(lightrecon_sun_fixture_tool lightrecon_sun_fixture_tool.cpp)
+target_link_libraries(lightrecon_sun_fixture_tool rend2_lightrecon_core)
+set_target_properties(lightrecon_sun_fixture_tool PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

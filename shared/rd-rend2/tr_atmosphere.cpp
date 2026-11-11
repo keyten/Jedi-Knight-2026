@@ -248,6 +248,11 @@ from the sunlit light grid cells)
 */
 static void R_AtmosphereSunColor( const trRefdef_t *refdef, vec3_t out )
 {
+	if (refdef->resolvedSun.canonical)
+	{
+		VectorScale(refdef->sunCol, 1.0f / M_PI, out); // existing atmosphere/cloud boundary multiplies by pi
+		return;
+	}
 	if ( r_forceSun->integer == 2 )
 	{
 		// animated sun (tr_scene.cpp): its own colour
@@ -326,7 +331,7 @@ static const char *R_AtmosphereOffReason( qboolean froxelComposite )
 	if ( !tr.atmosphereCompositeFbo || !tr.atmosphereTransmittanceImage ||
 		!tr.atmosphereTransmittanceShader.program || !tr.atmosphereCompositeShader.program )
 		return "resources unavailable";
-	if ( !tr.sunParsed && !r_forceSun->integer )
+	if ( !tr.sunParsed && !r_forceSun->integer && !backEnd.refdef.resolvedSun.canonical )
 		return "the map has no sun (q3map_sun / sun in a shader); r_forceSun enables it";
 	// the legacy global fog is baked into the surfaces (and the fog cap) before
 	// the composite: the atmosphere would land in front of it
@@ -351,7 +356,8 @@ static void R_AtmosphereBuildParams( const trRefdef_t *refdef, const viewParms_t
 	VectorCopy(refdef->sunDir, p->sunDir);
 	if ( VectorNormalize(p->sunDir) < 1e-4f )
 		VectorSet(p->sunDir, 0.0f, 0.0f, 1.0f);
-	const float sunRadius = DEG2RAD(Com_Clamp(0.05f, 10.0f, r_atmosphereSunSize->value) * 0.5f);
+	const float sunRadius = refdef->resolvedSun.canonical ?
+		(refdef->resolvedSun.angularRadiusKnown ? refdef->resolvedSun.angularRadius : 0.0f) : DEG2RAD(Com_Clamp(0.05f, 10.0f, r_atmosphereSunSize->value) * 0.5f);
 	p->cosSunRadius = cosf(sunRadius);
 
 	p->cameraAltitude = p->groundAltitude + (view->ori.origin[2] - p->groundZ) * p->unitScale * 0.001f;
@@ -401,6 +407,7 @@ static void R_AtmosphereBuildParams( const trRefdef_t *refdef, const viewParms_t
 	// one sun disc: RB_DrawSun owns it with r_drawSun 1, the skybox may have
 	// a painted one in the overlay / blend modes
 	p->drawDisc = (qboolean)(p->skyMode == 2 && !r_drawSun->integer);
+	if (refdef->resolvedSun.canonical && (!refdef->resolvedSun.angularRadiusKnown || refdef->resolvedSun.angularRadius <= 0)) p->drawDisc = qfalse;
 }
 
 static void RB_AtmosphereUniforms( const atmosphereParams_t *p, const viewParms_t *view, float draw,

@@ -43,6 +43,10 @@ def program(name, compute, rgb, shadows, media=False, probe=None, legacy_bits=Fa
     defines = ''.join(f'#define {key} {value}\n' for key, value in re.findall(
         r'^#define\s+(MAX_GPU_\w+|FROXEL_\w+|VOL_PARTICLE_POOL)\s+(\d+)\b', constants, re.M))
     defines += '#define MAX_DLIGHTS 32\n#define M_PI 3.14159265358979323846\n#define USE_FROXEL_FOG\n'
+    compare_ids = re.findall(r'^COMPARE_FEATURE\(\s*(RC_\w+)',
+        (ROOT / 'shared/rd-rend2/tr_compare.inc').read_text(), re.M)
+    defines += ''.join(f'#define {name} {i}\n' for i, name in enumerate(compare_ids))
+
     defines += '#define r_FBufScale vec2(1.0 / 7.0, 1.0 / 5.0)\n'
     if name in ['volumetric_inject', 'volumetric_debug']:
         defines += '#define USE_FROXEL_NOISE\n#define USE_FROXEL_PARTICLES\n'

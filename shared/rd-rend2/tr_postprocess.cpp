@@ -545,7 +545,7 @@ void RB_SunRays(FBO_t *srcFbo, vec4i_t srcBox, FBO_t *dstFbo, vec4i_t dstBox)
 	matrix_t mvp;
 	vec4_t pos, hpos;
 
-	dot = DotProduct(tr.sunDirection, backEnd.viewParms.ori.axis[0]);
+	dot = DotProduct((backEnd.refdef.resolvedSun.canonical ? backEnd.refdef.sunDir : tr.sunDirection), backEnd.viewParms.ori.axis[0]);
 	if (dot < cutoff)
 		return;
 
@@ -563,7 +563,7 @@ void RB_SunRays(FBO_t *srcFbo, vec4i_t srcBox, FBO_t *dstFbo, vec4i_t dstBox)
 
 		dist = backEnd.viewParms.zFar / 1.75;		// div sqrt(3)
 
-		VectorScale( tr.sunDirection, dist, pos );
+		VectorScale( (backEnd.refdef.resolvedSun.canonical ? backEnd.refdef.sunDir : tr.sunDirection), dist, pos );
 	}
 
 	// project sun point

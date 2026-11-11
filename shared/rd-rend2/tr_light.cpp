@@ -157,7 +157,7 @@ static void R_SetupEntityLightingGrid( trRefEntity_t *ent, world_t *world ) {
 	{
 		ent->ambientLight[0] = ent->ambientLight[1] = ent->ambientLight[2] = 255.0f;
 		ent->directedLight[0] = ent->directedLight[1] = ent->directedLight[2] = 255.0f;
-		VectorCopy(tr.sunDirection, ent->lightDir);
+		VectorCopy((tr.refdef.resolvedSun.canonical ? tr.refdef.sunDir : tr.sunDirection), ent->lightDir);
 		return;
 	}
 	if ( ent->e.renderfx & RF_LIGHTING_ORIGIN ) {
@@ -515,6 +515,7 @@ static qboolean R_EntitySunProbe( const vec3_t point, const vec3_t sunDir )
 static void R_SetupEntitySunSplit( const trRefdef_t *refdef, trRefEntity_t *ent, const vec3_t lightOrigin )
 {
 	ent->sunSplit = qfalse;
+	if (refdef->resolvedSun.canonical) return; // preserve baked grid; P06 gates additive diffuse in shader
 	// r_entitySunLightCompare 2: the light grid's merged light (u_EntitySun.w 0)
 	if ( !R_EntitySunSplitWanted() || R_CompareOff(RC_ENTITYSUNSPLIT) || ent == &tr.worldEntity || ent->e.reType != RT_MODEL ||
 		(refdef->rdflags & RDF_NOWORLDMODEL) || !tr.world || !tr.world->lightGridData ||
@@ -631,7 +632,7 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 			ent->ambientLight[2] = tr.identityLight * 150;
 		ent->directedLight[0] = ent->directedLight[1] =
 			ent->directedLight[2] = tr.identityLight * 150;
-		VectorCopy( tr.sunDirection, ent->lightDir );
+		VectorCopy((refdef->resolvedSun.canonical ? refdef->sunDir : tr.sunDirection), ent->lightDir);
 	}
 
 	// only do min lighting when there is no hdr light data
@@ -841,7 +842,7 @@ qboolean RE_GetLighting(const vec3_t origin, vec3_t ambientLight, vec3_t directe
 	if (!tr.world || !tr.world->lightGridData) {
 		ambientLight[0] = ambientLight[1] = ambientLight[2] = 255.0;
 		directedLight[0] = directedLight[1] = directedLight[2] = 255.0;
-		VectorCopy(tr.sunDirection, lightDir);
+		VectorCopy((tr.refdef.resolvedSun.canonical ? tr.refdef.sunDir : tr.sunDirection), lightDir);
 		return qfalse;
 	}
 	memset(&tr_ent, 0, sizeof(tr_ent));

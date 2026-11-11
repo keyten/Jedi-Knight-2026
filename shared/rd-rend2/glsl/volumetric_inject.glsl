@@ -885,6 +885,32 @@ float SunShadow(in vec3 p, in float temporal, out float coverage)
 	#endif
 }
 
+// C01 exact-use admission cannot treat "outside this projection" as lit.
+// Legacy SunShadow retains its historical outside-map convention.
+bool CanonicalSunProjectionSupported(in vec3 p)
+{
+#if defined(USE_SHADOWS2)
+    float viewDepth = dot(p - u_FroxelViewOrigin.xyz, normalize(u_FroxelRayForward.xyz));
+    vec4 clip;
+    if (viewDepth < u_ShadowSplits.x) clip = u_ShadowMvp * vec4(p, 1.0);
+    else if (viewDepth < u_ShadowSplits.y) clip = u_ShadowMvp2 * vec4(p, 1.0);
+    else clip = u_ShadowMvp3 * vec4(p, 1.0);
+    if (abs(clip.w) < 1e-8 || any(greaterThan(abs(clip.xyz), vec3(abs(clip.w))))) return false;
+    // In a blend interval both contributing projections must support the ray.
+    if (u_ShadowBlend.x > 0.0 && abs(viewDepth - u_ShadowSplits.x) <= u_ShadowBlend.x) {
+        vec4 a = u_ShadowMvp * vec4(p, 1.0), b = u_ShadowMvp2 * vec4(p, 1.0);
+        if (abs(a.w) < 1e-8 || abs(b.w) < 1e-8 || any(greaterThan(abs(a.xyz), vec3(abs(a.w)))) ||
+            any(greaterThan(abs(b.xyz), vec3(abs(b.w))))) return false;
+    }
+    if (u_ShadowBlend.y > 0.0 && abs(viewDepth - u_ShadowSplits.y) <= u_ShadowBlend.y) {
+        vec4 a = u_ShadowMvp2 * vec4(p, 1.0), b = u_ShadowMvp3 * vec4(p, 1.0);
+        if (abs(a.w) < 1e-8 || abs(b.w) < 1e-8 || any(greaterThan(abs(a.xyz), vec3(abs(a.w)))) ||
+            any(greaterThan(abs(b.xyz), vec3(abs(b.w))))) return false;
+    }
+#endif
+    return true;
+}
+
 // cube map face lookup of the dynamic light shadow maps, as lightall.glsl
 vec3 FroxelSampleCube(in vec3 v)
 {
@@ -1290,6 +1316,14 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 		// sunlight travels along -sunDirection, towards the camera is -viewDir
 		vec3 viewDir = normalize(p - u_FroxelViewOrigin.xyz);
 		l.sunPhase = FroxelPhases(g, dot(u_FroxelSunDirection.xyz, viewDir));
+        if (u_FroxelSunDirection.w > 1.5) {
+            // P06 proves the original baseline excludes this source. Use only
+            // CSM visibility within its valid coverage; no static average mask.
+            float coverage = 0.0;
+            float shadow = u_FroxelSunColor.w > 0.5 && CanonicalSunProjectionSupported(p) ? SunShadow(p, temporal, coverage) : 0.0;
+            l.sunUnshadowed = u_FroxelSunColor.rgb * coverage;
+            l.sun = l.sunUnshadowed * shadow;
+        } else {
 		vec3 bakedSun = texture(u_VolumetricSunGrid, gridCoord).rgb * u_FroxelDebugParams.w;
 		l.sunUnshadowed = bakedSun;
 		l.sun = bakedSun;
@@ -1307,6 +1341,7 @@ FroxelStaticLight BakedAndSunLight(in vec3 p, in vec3 pc, in float temporal, in 
 			l.sunUnshadowed = mix(bakedSun, u_FroxelSunColor.rgb * sunWeight, coverage);
 
 		}
+        }
 		l.sun *= u_FroxelLightParams.y;
 		l.sunUnshadowed *= u_FroxelLightParams.y;
 #if defined(USE_CLOUD_SHADOWS)

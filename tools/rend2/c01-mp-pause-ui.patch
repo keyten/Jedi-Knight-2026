@@ -1,0 +1,12 @@
+diff --git a/codemp/ui/ui_atoms.c b/codemp/ui/ui_atoms.c
+index b9703a73a..1330d699f 100644
+--- a/codemp/ui/ui_atoms.c
++++ b/codemp/ui/ui_atoms.c
+@@ -63,0 +64,7 @@ static void UI_OpenMenu_f( void ) {
++	// Private C01 validation UI: use the normal local pause cvar without drawing a menu.
++	if (!Q_stricmp(UI_Argv(1), "c01_test_pause") || !Q_stricmp(UI_Argv(1), "c01_test_resume")) {
++		Menus_CloseAll();
++		trap->Key_SetCatcher(trap->Key_GetCatcher() & ~KEYCATCH_UI);
++		trap->Cvar_Set("cl_paused", Q_stricmp(UI_Argv(1), "c01_test_pause") ? "0" : "1");
++		return;
++	}

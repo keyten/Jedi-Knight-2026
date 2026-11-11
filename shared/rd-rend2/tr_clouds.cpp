@@ -137,6 +137,8 @@ static struct
 
 	// shadows
 	qboolean	shadowValid;
+	qboolean shadowSunTracked;
+	vec3_t shadowSunDirection;
 	const world_t *shadowWorld;
 	unsigned	shadowFrame;
 	vec4_t		shadowLookup[2];
@@ -413,6 +415,13 @@ static uint32_t R_CloudsHistoryKey( const cloudParams_t *p )
 	uint32_t h = 0x434c4f44u;
 	for ( size_t i = 0; i < ARRAY_LEN(values); i++ )
 		h = R_CloudsHash(h, values[i]);
+    if (backEnd.refdef.resolvedSun.canonical) {
+        h = R_CloudsHash(h, 1701.0f);
+        for (int c = 0; c < 3; ++c) {
+            h = R_CloudsHash(h, p->sunDir[c]);
+            h = R_CloudsHash(h, p->sunColor[c]);
+        }
+    }
 	return h;
 }
 
@@ -423,7 +432,7 @@ R_CloudsOffReason
 NULL when the clouds can be drawn on this map (front end and back end)
 =================
 */
-const char *R_CloudsOffReason( void )
+const char *R_CloudsOffReason( const trRefdef_t *refdef )
 {
 	if ( !R_CloudsEnabled() )
 		return "r_clouds 0";
@@ -434,7 +443,7 @@ const char *R_CloudsOffReason( void )
 	if ( !s_clouds.resources || !tr.cloudMarchShader.program || !tr.cloudCompositeShader.program ||
 		!tr.atmosphereCompositeFbo )
 		return "resources unavailable (r_clouds is latched: vid_restart after changing it)";
-	if ( !tr.sunParsed && !r_forceSun->integer )
+	if ( !tr.sunParsed && !r_forceSun->integer && !refdef->resolvedSun.canonical )
 		return "the map has no sun (q3map_sun / sun in a shader); r_forceSun enables it";
 	if ( tr.world->skyboxportal && !r_cloudSkyPortal->integer )
 		return "sky portal map: its sky is a scene (r_cloudSkyPortal 1 composites over it)";
@@ -459,7 +468,7 @@ qboolean R_CloudsCaptureLegacy( const trRefEntity_t *ent )
 		return qfalse;
 	if ( tr.viewParms.viewParmType != VPT_MAIN || tr.viewParms.isPortal || tr.viewParms.isSkyPortal )
 		return qfalse;
-	if ( R_CloudsOffReason() )
+	if ( R_CloudsOffReason(&tr.refdef) )
 		return qfalse;
 
 	cloudLegacyLayer_t *layer = &s_clouds.captured;
@@ -502,7 +511,7 @@ static qboolean RB_CloudsMainView( void )
 
 static const char *RB_CloudsOffReason( void )
 {
-	const char *reason = R_CloudsOffReason();
+	const char *reason = R_CloudsOffReason(&backEnd.refdef);
 	if ( !reason && tr.world->globalFog && !RB_VolumetricCompositeActive() )
 		reason = "the map has a global fog and the froxel fog is not composited in this view";
 	if ( reason )
@@ -1009,13 +1018,17 @@ void RB_CloudsBeginView( void )
 	}
 	if ( !RB_CloudsMainView() || s_clouds.shadowFrame == backEndData->realFrameNumber + 1 )
 		return;
-	if ( R_CloudsOffReason() )
+	if ( R_CloudsOffReason(&backEnd.refdef) )
 	{
 		s_clouds.shadowValid = qfalse;
 		return;
 	}
 	const int interval = Com_Clampi(1, 60, r_cloudShadowInterval->integer);
-	if ( s_clouds.shadowValid && s_clouds.shadowWorld == tr.world &&
+	const qboolean trackSun = (qboolean)(backEnd.refdef.resolvedSun.canonical ||
+        (r_lightReconUse->integer && r_lightReconSun->integer));
+    const qboolean sameSun = (qboolean)(trackSun == s_clouds.shadowSunTracked &&
+        (!trackSun || VectorCompare(backEnd.refdef.sunDir, s_clouds.shadowSunDirection)));
+    if ( s_clouds.shadowValid && s_clouds.shadowWorld == tr.world && sameSun &&
 		(backEndData->realFrameNumber % interval) != 0 )
 		return;
 
@@ -1068,6 +1081,8 @@ void RB_CloudsBeginView( void )
 	VectorSet4(s_clouds.shadowLookup[1], params.sunDir[0] / sunZ, params.sunDir[1] / sunZ, strength, 1.0f);
 	s_clouds.shadowValid = qtrue;
 	s_clouds.shadowWorld = tr.world;
+	s_clouds.shadowSunTracked = trackSun;
+	VectorCopy(backEnd.refdef.sunDir, s_clouds.shadowSunDirection);
 	s_clouds.shadowBuilds++;
 }
 
@@ -1165,7 +1180,7 @@ r_cloudInfo: state, parameters, legacy layer, memory
 */
 void R_CloudInfo_f( void )
 {
-	const char *reason = R_CloudsEnabled() ? (tr.world ? R_CloudsOffReason() : "no map loaded") : "r_clouds 0";
+	const char *reason = R_CloudsEnabled() ? (tr.world ? R_CloudsOffReason(&tr.refdef) : "no map loaded") : "r_clouds 0";
 	ri.Printf(PRINT_ALL, "r_clouds %d: %s\n", r_clouds->integer, reason ? reason : "on");
 	if ( !R_CloudsEnabled() )
 		return;

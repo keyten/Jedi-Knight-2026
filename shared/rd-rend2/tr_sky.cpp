@@ -805,10 +805,10 @@ void RB_DrawSun( float scale, shader_t *shader ) {
 	dist = 	backEnd.viewParms.zFar / 1.75;		// div sqrt(3)
 	size = dist * scale;
 
-	VectorScale( tr.sunDirection, dist, origin );
+	VectorScale( (backEnd.refdef.resolvedSun.canonical ? backEnd.refdef.sunDir : tr.sunDirection), dist, origin );
 	VectorAdd( origin, backEnd.viewParms.ori.origin, origin );
-	PerpendicularVector( vec1, tr.sunDirection );
-	CrossProduct( tr.sunDirection, vec1, vec2 );
+	PerpendicularVector( vec1, (backEnd.refdef.resolvedSun.canonical ? backEnd.refdef.sunDir : tr.sunDirection) );
+	CrossProduct( (backEnd.refdef.resolvedSun.canonical ? backEnd.refdef.sunDir : tr.sunDirection), vec1, vec2 );
 
 	VectorScale( vec1, size, vec1 );
 	VectorScale( vec2, size, vec2 );

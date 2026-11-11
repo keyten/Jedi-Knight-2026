@@ -877,6 +877,8 @@ void RE_BeginScene(const refdef_t *fd)
 		tr.refdef.blurFactor = 0.0f;
 	}
 
+	R_ResolveSceneSun(fd);
+
 	// derived info
 
 	tr.refdef.floatTime = tr.refdef.time * 0.001f;

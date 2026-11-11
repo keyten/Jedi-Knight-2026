@@ -2858,7 +2858,13 @@ static void RB_UpdateSceneConstants(gpuFrame_t *frame, const trRefdef_t *refdef)
 	VectorCopy4(refdef->sunDir, sceneBlock.primaryLightOrigin);
 	VectorCopy(refdef->sunAmbCol, sceneBlock.primaryLightAmbient);
 	VectorCopy(refdef->sunCol, sceneBlock.primaryLightColor);
-	if (r_pbrPhysical->integer)
+	if (refdef->resolvedSun.canonical)
+	{
+		// C01: sunCol is already scene illuminance. No second calibration.
+		sceneBlock.primaryLightRadius = 1.0f + (refdef->resolvedSun.worldDiffuse ? 2.0f : 0.0f) +
+			(refdef->resolvedSun.entityDiffuse ? 4.0f : 0.0f);
+	}
+	else if (r_pbrPhysical->integer)
 	{
 		if (r_pbrSunIlluminance->value > 0.0f)
 			R_PBRCanonicalColor(refdef->sunCol, r_pbrSunIlluminance->value,

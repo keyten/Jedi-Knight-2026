@@ -8,7 +8,7 @@ add_library(rend2_lightrecon_core STATIC
 	../tr_lightrecon_api.cpp ../tr_lightrecon_api.h ../tr_lightrecon_manager.h
 	input.cpp input.h session.cpp session.h control.cpp control.h lightmaps.cpp lightmaps.h
 	decode.cpp decode.h
-	photometry.cpp photometry.h
+	photometry.cpp photometry.h resolved_sun.cpp resolved_sun.h
 	field_basis.cpp field_basis.h
 	probes.cpp probes.h probe_internal.h probe_codec.cpp probe_values.cpp
 	field_builder.cpp field_builder.h field_internal.h field_prepared.cpp field_codec.cpp

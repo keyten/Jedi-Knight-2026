@@ -203,3 +203,11 @@ the new control test, test CMake/README and linked architecture documentation.
 The [disabled-rendering regression suite](rend2-reconstruction-regression.md)
 adds versioned preprocessed shader/interface baselines, GPU compilation and
 actual SP A/B/A visual checks for this control boundary.
+
+## C01 renderer sun adapter
+
+The independently gated [resolved sun consumer](rend2-resolved-sun-c01.md) now
+implements physical sun admission, scene precedence, supported renderer bindings
+and explicit legacy fallback. Its documented gates and limitations supersede
+earlier statements on this page that all runtime consumers are unimplemented.
+It does not change stock reconstruction availability or certify relative data.

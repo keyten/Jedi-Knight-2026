@@ -1027,6 +1027,9 @@ def check_lit_programs():
     }
     modes = ['#define SHADOWMAP_MODULATE\n', '#define USE_PRIMARY_LIGHT\n', '#define USE_PRIMARY_LIGHT\n#define USE_SHADOWS2\n',
              '#define SHADOWMAP_MODULATE\n#define USE_SHADOWS2\n#define USE_SSAO\n']
+    from lightrecon_regression import common_header
+    header += '\n'.join(line for line in common_header([]).splitlines()
+                        if line.startswith('#define RC_') or line.startswith('#define R_CompareOriginal')) + '\n'
     count = 0
     for base in bases.values():
         for mode in modes:

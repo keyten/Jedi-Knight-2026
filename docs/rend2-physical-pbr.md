@@ -300,3 +300,11 @@ distance, luminance/chromaticity normalization, degenerate inputs,
 roughness-to-alpha, deterministic map calibration and equality of canonical
 light evaluation independent of transport. Strict legacy shaders compile
 without the physical defines, preserving their prior formulas for regression.
+
+## C01 renderer sun adapter
+
+The independently gated [resolved sun consumer](rend2-resolved-sun-c01.md) now
+implements physical sun admission, scene precedence, supported renderer bindings
+and explicit legacy fallback. Its documented gates and limitations supersede
+earlier statements on this page that all runtime consumers are unimplemented.
+It does not change stock reconstruction availability or certify relative data.

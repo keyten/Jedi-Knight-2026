@@ -86,6 +86,7 @@ LightReconWorldLoad::LightReconWorldLoad(const char* name)
 	: load_(s_reconstructedLighting, name ? name : "",
 		static_cast<Rend2LightRecon::BuildPolicy>(r_lightReconBuild ? r_lightReconBuild->integer : 0))
 {
+	R_ClearResolvedSun();
 	s_dependencyWork = {};
 	s_diagnosticScene.reset();s_diagnosticSelection={};s_diagnosticTicket=0;
 	s_diagnosticRays.reset();
@@ -262,6 +263,7 @@ void R_ClearReconstructedLighting(void)
 	std::vector<Rend2LightRecon::Core::SurfaceLightingObservation>().swap(s_luxelDebug);
 	std::vector<ReconstructionPreviewMarker>().swap(s_reconstructionPreview);
 	s_luxelDebugShader = 0;
+	R_ClearResolvedSun();
 	s_reconstructedLighting.Unload();
 }
 
@@ -803,6 +805,122 @@ void LightReconBspCapture::Missing(int index, bool deluxe, const char* path, boo
 		pairedLightingIndex >= 0 ? static_cast<uint32_t>(pairedLightingIndex) : UINT32_MAX);
 }
 
+namespace {
+Rend2LightRecon::SunLighting::State s_sunCandidate, s_lastSceneSun;
+uint64_t s_sunGeneration = 0;
+bool s_sunResolved = false;
+// Legacy mode 2 can sample the shadow block even in a scene that does not
+// generate CSM. Preserve its pre-consumer values across a live canonical interval.
+// Otherwise disabling a newly enabled sun leaves canonical matrices behind.
+struct LegacySunShadowState {
+    float sunShadowMvp[3][16], sunShadowSplits[3], sunShadowBlendWidths[2];
+    float sunShadowTexelSize[3], sunShadowDepthSpan[3], sunShadowDepthTop;
+} s_legacySunShadows;
+bool s_legacySunShadowsSaved = false;
+void R_CopyLegacySunShadowState(bool save)
+{
+#define SUN_SHADOW_MEMBER(member) \
+    if (save) Com_Memcpy(&s_legacySunShadows.member, &tr.refdef.member, sizeof(tr.refdef.member)); \
+    else Com_Memcpy(&tr.refdef.member, &s_legacySunShadows.member, sizeof(tr.refdef.member));
+    SUN_SHADOW_MEMBER(sunShadowMvp)
+    SUN_SHADOW_MEMBER(sunShadowSplits)
+    SUN_SHADOW_MEMBER(sunShadowBlendWidths)
+    SUN_SHADOW_MEMBER(sunShadowTexelSize)
+    SUN_SHADOW_MEMBER(sunShadowDepthSpan)
+    SUN_SHADOW_MEMBER(sunShadowDepthTop)
+#undef SUN_SHADOW_MEMBER
+}
+const Rend2LightRecon::SunLighting::State& R_SunCandidate(const Rend2LightRecon::Snapshot& snapshot)
+{
+    if (!s_sunResolved || s_sunGeneration != snapshot.Generation()) {
+        s_sunCandidate = Rend2LightRecon::SunLighting::Resolve(snapshot);
+        s_sunGeneration = snapshot.Generation(); s_sunResolved = true;
+    }
+    return s_sunCandidate;
+}
+bool R_CanonicalSunFeature()
+{
+    // These existing latched controls provide the compiled physical/sun variants.
+    // Probe contents have no renderer-bound P06 sun exclusion proof yet.
+    return r_pbrPhysical->integer && r_sunlightMode->integer && r_depthPrepass->integer &&
+        tr.sunShadowArrayImage && tr.sunShadowFbo[0] && tr.sunShadowFbo[1] && tr.sunShadowFbo[2] &&
+        !r_cubeMapping->integer && !r_diffuseIBL->integer &&
+        (r_volumetricFog->integer != 2 || !tr.world || tr.world->volumetricLightMaps[0]);
+}
+}
+void R_ClearResolvedSun(void)
+{
+    s_sunCandidate = {}; s_lastSceneSun = {}; s_sunGeneration = 0; s_sunResolved = false;
+    s_legacySunShadows = {}; s_legacySunShadowsSaved = false;
+}
+void R_ResolveSceneSun(const refdef_t *fd)
+{
+    using namespace Rend2LightRecon;
+    using namespace SunLighting;
+    PolicyInput input;
+    input.master = r_lightReconUse && r_lightReconUse->integer;
+    input.requested = r_lightReconSun && r_lightReconSun->integer;
+    input.physical = r_pbrPhysical->integer != 0;
+    input.adapterReady = R_CanonicalSunFeature();
+    input.world = tr.world && !(fd->rdflags & RDF_NOWORLDMODEL);
+    input.sceneOverride = (fd->rdflags & (RDF_EXTRA | RDF_SUNLIGHT)) == (RDF_EXTRA | RDF_SUNLIGHT);
+    input.forceSun = r_forceSun->integer;
+    // Explicit physical brightness authoring is also authoritative.
+    if (!input.forceSun && r_pbrPhysical->integer && r_pbrSunIlluminance->value > 0) input.forceSun = 1;
+    input.shaderSun = tr.sunParsed != 0;
+    State candidate;
+    if (input.master && input.requested && input.world && !input.sceneOverride && !input.forceSun) {
+        const Snapshot snapshot = R_ReconstructedLighting();
+        candidate = R_SunCandidate(snapshot);
+        if (!R_LightReconConsumer(snapshot, Consumer::Sun).effective) candidate.canonical = false;
+    }
+    State state = Select(candidate, input);
+    if (state.canonical) {
+        Vec3 color;
+        if (SceneIlluminance(state, R_PBRPhysicalToScene(), color)) {
+            VectorSet(tr.refdef.sunDir, state.directionToSun.x, state.directionToSun.y, state.directionToSun.z);
+            VectorSet(tr.refdef.sunCol, color.x, color.y, color.z);
+            // sunAmbCol remains the historical baked-shadow floor, not physical sky.
+        } else {
+            State rejected = state; rejected.canonical = false; rejected.reason = Reason::ScaleMismatch;
+            state = Select(rejected, input);
+        }
+    }
+    if (!state.canonical) {
+        // Retain the historical values byte-for-byte. Never label them lux.
+        state.directionToSun = Vec3(tr.refdef.sunDir[0], tr.refdef.sunDir[1], tr.refdef.sunDir[2]);
+        state.photonDirection = Vec3(-tr.refdef.sunDir[0], -tr.refdef.sunDir[1], -tr.refdef.sunDir[2]);
+        state.illuminanceLux = {};
+    }
+    if (input.world) {
+        if (state.canonical && !s_lastSceneSun.canonical) {
+            R_CopyLegacySunShadowState(true); s_legacySunShadowsSaved = true;
+        } else if (!state.canonical && s_lastSceneSun.canonical && s_legacySunShadowsSaved) {
+            R_CopyLegacySunShadowState(false); s_legacySunShadowsSaved = false;
+        }
+        s_lastSceneSun = state;
+    }
+    tr.refdef.resolvedSun = state;
+}
+void R_ResolvedSunInfo(void)
+{
+    using namespace Rend2LightRecon::SunLighting;
+    const auto& s = s_lastSceneSun;
+    ri.Printf(PRINT_ALL, "resolved-sun canonical=%d policy=%u kind=%s reason=%s sun-query=%s source=%llu provenance=%llu generation=%llu override=%d\n",
+        s.canonical, unsigned(s.policy), KindName(s.kind), ReasonName(s.reason), Rend2LightRecon::StatusName(s.status),
+        (unsigned long long)s.source, (unsigned long long)s.provenance, (unsigned long long)s.generation, s.explicitOverride);
+    ri.Printf(PRINT_ALL, "  rejected-candidate=%s\n", KindName(s.rejectedKind));
+    ri.Printf(PRINT_ALL, "  to-sun %.6f %.6f %.6f lux-rgb %.6g %.6g %.6g confidence=%s%.4f radius=%s%.6g\n",
+        s.directionToSun.x, s.directionToSun.y, s.directionToSun.z, s.illuminanceLux.x, s.illuminanceLux.y, s.illuminanceLux.z,
+        s.confidenceKnown ? "" : "unknown/", s.confidence, s.angularRadiusKnown ? "" : "unknown/", s.angularRadius);
+    ri.Printf(PRINT_ALL, "  feature physical=%d sun-mode=%d depth=%d shadow-cache=%d probes=%d fog-baseline=%d\n",
+        r_pbrPhysical->integer, r_sunlightMode->integer, r_depthPrepass->integer, r_sunShadowCache->integer,
+        (r_cubeMapping->integer || r_diffuseIBL->integer) ? 1 : 0,
+        (r_volumetricFog->integer != 2 || (tr.world && tr.world->volumetricLightMaps[0])) ? 1 : 0);
+    ri.Printf(PRINT_ALL, "  P06 additive world=%d entity=%d fog=%d; absent proof preserves baked baseline; probe composition unsupported\n",
+        s.worldDiffuse, s.entityDiffuse, s.volumetricDirect);
+}
+
 Rend2LightRecon::ConsumerState R_LightReconConsumer(const Rend2LightRecon::Snapshot& snapshot, Rend2LightRecon::Consumer consumer)
 {
 	Rend2LightRecon::UseSettings settings;
@@ -815,11 +933,16 @@ Rend2LightRecon::ConsumerState R_LightReconConsumer(const Rend2LightRecon::Snaps
 	// An existing fog/PBR/Forward+/LTC toggle alone is not an implementation of
 	// canonical consumption. Future adapters must also check their real feature
 	// prerequisites here, without setting any cvar or changing the shared asset.
-	return Rend2LightRecon::EvaluateConsumer(snapshot, settings, consumer, Rend2LightRecon::FeatureSupport());
+	Rend2LightRecon::FeatureSupport feature;
+    if (consumer == Rend2LightRecon::Consumer::Sun && settings.master &&
+        settings.requested[static_cast<size_t>(consumer)])
+        feature.available = R_CanonicalSunFeature() && R_SunCandidate(snapshot).canonical;
+    return Rend2LightRecon::EvaluateConsumer(snapshot, settings, consumer, feature);
 }
 
 void R_LightReconInfo_f(void)
 {
+	R_ResolvedSunInfo();
 	using namespace Rend2LightRecon;
 	const Snapshot snapshot = R_ReconstructedLighting();
 	const auto asset = snapshot.Asset();

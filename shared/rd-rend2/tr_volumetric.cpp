@@ -2223,6 +2223,13 @@ static unsigned int R_VolumetricMediumKey( const trRefdef_t *refdef, qboolean ra
 	key = R_VolumetricHashBytes(key, r_volumetricFogHeightColor->string, strlen(r_volumetricFogHeightColor->string));
 	key = R_VolumetricHashBytes(key, r_volumetricFogHeightExtinction->string, strlen(r_volumetricFogHeightExtinction->string));
 	key = R_VolumetricHashBytes(key, r_volumetricFogNoiseWind->string, strlen(r_volumetricFogNoiseWind->string));
+    if (refdef && refdef->resolvedSun.canonical) {
+        const unsigned marker = 0x433031u;
+        key = R_VolumetricHashBytes(key, &marker, sizeof(marker));
+        key = R_VolumetricHashBytes(key, refdef->sunDir, sizeof(vec3_t));
+        key = R_VolumetricHashBytes(key, refdef->sunCol, sizeof(vec3_t));
+        key = R_VolumetricHashBytes(key, &refdef->resolvedSun.volumetricDirect, sizeof(bool));
+    }
 	// the cloud shadows change the injected sun (not hashed without them: the key stays as before)
 	const int cloudShadows = R_CloudShadowKey();
 	if ( cloudShadows )
@@ -2510,14 +2517,16 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 
 	// sun: realtime with the cascaded shadow maps rendered for this view,
 	// otherwise the baked sun part of the light grid
-	const qboolean splitGrid = (qboolean)(tr.world->volumetricStaticGrid != NULL);
-	const qboolean csm = (qboolean)(splitGrid && (view->flags & VPF_USESUNLIGHT) && tr.sunShadowArrayImage != NULL);
+	const qboolean splitGrid = (qboolean)(!refdef->resolvedSun.canonical && tr.world->volumetricStaticGrid != NULL);
+	const qboolean csm = (qboolean)((splitGrid || refdef->resolvedSun.canonical) && (view->flags & VPF_USESUNLIGHT) && tr.sunShadowArrayImage != NULL);
 	vec3_t sunColor;
-	if ( tr.world->volumetricHasSunCells )
+	if (refdef->resolvedSun.canonical)
+		VectorScale(refdef->sunCol, 1.0f / (4.0f * M_PI), sunColor); // phase below is 4*pi HG
+	else if ( tr.world->volumetricHasSunCells )
 		VectorCopy(tr.world->volumetricSunRadiance, sunColor);
 	else
 		VectorCopy(refdef->sunCol, sunColor);
-	if (r_pbrPhysical->integer)
+	if (r_pbrPhysical->integer && !refdef->resolvedSun.canonical)
 	{
 		if (r_pbrSunIlluminance->value > 0.0f)
 			R_PBRCanonicalColor(refdef->sunCol, r_pbrSunIlluminance->value, sunColor);
@@ -2525,7 +2534,7 @@ void RB_UpdateVolumetricConstants( gpuFrame_t *frame, const trRefdef_t *refdef )
 			VectorScale(sunColor, tr.world->pbrLegacyCalibration, sunColor);
 	}
 	VectorSet4(block.sunColor, sunColor[0], sunColor[1], sunColor[2], csm ? 1.0f : 0.0f);
-	VectorSet4(block.sunDirection, refdef->sunDir[0], refdef->sunDir[1], refdef->sunDir[2], splitGrid ? 1.0f : 0.0f);
+	VectorSet4(block.sunDirection, refdef->sunDir[0], refdef->sunDir[1], refdef->sunDir[2], refdef->resolvedSun.canonical ? (refdef->resolvedSun.volumetricDirect ? 2.0f : -1.0f) : (splitGrid ? 1.0f : 0.0f));
 
 	// light grid, as the legacy fog pass: origin half a cell below, texture
 	// coordinates = (p - origin) * inverseSize / bounds
@@ -3172,6 +3181,7 @@ void RB_VolumetricBuild( void )
 		if ( !tr.world->volumetricStaticGrid && tr.world->volumetricLightMaps[0] )
 			staticGrid = tr.world->volumetricLightMaps[0];
 		image_t *legacyGrid = tr.world->volumetricLightMaps[0] ? tr.world->volumetricLightMaps[0] : tr.blackImage3D;
+		if (backEnd.refdef.resolvedSun.canonical && tr.world->volumetricLightMaps[0]) staticGrid = legacyGrid; // preserve the full original baseline
 
 		GL_BindToTMU(tr.froxelInjectImage[previous], TB_COLORMAP);
 		GL_BindToTMU(tr.froxelNoiseImage, TB_DELUXEMAP);
