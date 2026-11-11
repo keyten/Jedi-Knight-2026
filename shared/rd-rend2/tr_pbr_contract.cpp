@@ -140,7 +140,14 @@ void R_PBRInfo_f(void)
 		r_pbrLegacyRoughness->integer ? "on" : "off",
 		r_brdfEnergyCompensation->integer ? "on" : "off",
 		r_pbrEnergyDebug->integer);
-	if (r_pbrPhysical->integer)
+	if (tr.refdef.resolvedSun.canonical)
+	{
+		const auto& sun = tr.refdef.resolvedSun;
+		const vec3_t lux = {sun.illuminanceLux.x, sun.illuminanceLux.y, sun.illuminanceLux.z};
+		ri.Printf(PRINT_ALL, "  directional sun: %.3f lux (canonical physical source), scene Y %.6g\n",
+			Rend2PBR::Luminance(lux), Rend2PBR::Luminance(tr.refdef.sunCol));
+	}
+	else if (r_pbrPhysical->integer)
 	{
 		const float sunSceneY = Rend2PBR::Luminance(tr.refdef.sunCol) *
 			(tr.world ? tr.world->pbrLegacyCalibration : 1.0f);

@@ -7,7 +7,7 @@ namespace Rend2LightRecon { namespace SunLighting {
 enum class Policy { Fallback, Shader, Forced, Scene, Canonical };
 enum class Kind { Unavailable, LegacyRenderer, AuthoredPhysical, ReconstructedPhysical, ConditionalRelative,
     LegacySceneEquivalent, ApproximateAppearance };
-enum class Reason { Disabled, Missing, Ambiguous, UnknownDirection, UnsupportedPhotometry,
+enum class Reason { Disabled, Missing, NoResolvedSun, Ambiguous, UnknownDirection, UnsupportedPhotometry,
     Unsuitable, Uncertainty, Configuration, PhysicalModeRequired, Worldless, Forced, Scene,
     ScaleMismatch, FeatureUnavailable, Accepted };
 // Value-only: safe in hunk/memset renderer structs and queued/recursive scenes.

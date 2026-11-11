@@ -58,15 +58,42 @@ bool CanCombine(const ReconstructedLightingAsset& a, Id sun, Id calibration, con
 State Resolve(const Snapshot& snapshot) {
     State r; r.generation = snapshot.Generation();
     const auto sun = snapshot.Sun(); r.status = sun.status;
-    if (!sun) {
-        r.reason = sun.status == Status::Ambiguous ? Reason::Ambiguous :
-            sun.status == Status::Unavailable && snapshot.GetCapability(Capability::SunEstimate).records
-                ? Reason::UnknownDirection : Reason::Missing;
-        return r;
-    }
     const auto asset = snapshot.Asset();
     if (!asset) return r;
-    const auto& a = *asset.value; const auto& e = *sun.value.emitter;
+    const auto& a = *asset.value;
+    if (sun.status == Status::Ambiguous) { r.reason = Reason::Ambiguous; return r; }
+    const Id resolvedGroup = sun ? sun.value.emitter->source.hypothesisGroup : 0;
+    size_t unresolved = 0;
+    bool unknownDirection = false;
+    for (const auto& hypothesis : a.suns) {
+        const auto source = snapshot.IdentifySource(hypothesis.emitter);
+        if (!source) continue;
+        const auto emitter = snapshot.GetEmitter(source.value);
+        if (!emitter) continue;
+        const auto& e = *emitter.value;
+        if (e.source.state == HypothesisState::Resolved && !e.frame.known) unknownDirection = true;
+        if (e.source.state != HypothesisState::Candidate ||
+            (resolvedGroup && resolvedGroup == e.source.hypothesisGroup)) continue;
+        ++unresolved;
+        if (e.emission.unit == PhotometricUnit::Relative) r.kind = Kind::ConditionalRelative;
+    }
+    if (unresolved > 1 || (sun && unresolved)) {
+        r.reason = Reason::Ambiguous; r.status = Status::Ambiguous; return r;
+    }
+    if (!sun) {
+        r.reason = unknownDirection ? Reason::UnknownDirection : Reason::NoResolvedSun;
+        if (r.kind == Kind::Unavailable) {
+            for (const auto& field : a.transport) {
+                if (field.quantity == FieldQuantity::ApproximateAppearance &&
+                    field.source.state != HypothesisState::Rejected) {
+                    r.kind = Kind::ApproximateAppearance;
+                    break;
+                }
+            }
+        }
+        return r;
+    }
+    const auto& e = *sun.value.emitter;
     r.source = e.source.id; r.provenance = e.source.provenance; r.calibration = e.emission.calibration;
     r.directionToSun = sun.value.directionToSun; r.photonDirection = e.frame.forward;
     r.confidenceKnown = e.source.evidence.physicalEmitterConfidence.known;
@@ -78,11 +105,11 @@ State Resolve(const Snapshot& snapshot) {
     for (const auto& c : a.calibrations) if (c.id == r.calibration) calibration = &c;
     for (const auto& p : a.provenanceRecords) if (p.id == r.provenance) provenance = &p;
     r.reason = Reason::UnsupportedPhotometry;
-    if (!calibration || calibration->kind == CalibrationKind::UncalibratedRelative ||
-        e.emission.unit != PhotometricUnit::Lux) { r.kind = Kind::ConditionalRelative; return r; }
-    if (calibration->kind == CalibrationKind::LegacySceneEquivalent) {
+    if (calibration && calibration->kind == CalibrationKind::LegacySceneEquivalent) {
         r.kind = Kind::LegacySceneEquivalent; return r;
     }
+    if (!calibration || calibration->kind == CalibrationKind::UncalibratedRelative ||
+        e.emission.unit != PhotometricUnit::Lux) { r.kind = Kind::ConditionalRelative; return r; }
     const bool authored = provenance && (provenance->kind == ProvenanceKind::Authored || provenance->kind == ProvenanceKind::External);
     r.kind = authored ? Kind::AuthoredPhysical : Kind::ReconstructedPhysical;
     r.reason = Reason::Unsuitable;
@@ -155,7 +182,7 @@ bool SceneIlluminance(const State& s, float scale, Vec3& out) {
 const char* ReasonName(Reason r) {
     switch (r) {
 #define SUN_REASON(x) case Reason::x: return #x;
-    SUN_REASON(Disabled) SUN_REASON(Missing) SUN_REASON(Ambiguous) SUN_REASON(UnknownDirection)
+    SUN_REASON(Disabled) SUN_REASON(Missing) SUN_REASON(NoResolvedSun) SUN_REASON(Ambiguous) SUN_REASON(UnknownDirection)
     SUN_REASON(UnsupportedPhotometry) SUN_REASON(Unsuitable) SUN_REASON(Uncertainty)
     SUN_REASON(Configuration) SUN_REASON(PhysicalModeRequired) SUN_REASON(Worldless)
     SUN_REASON(Forced) SUN_REASON(Scene) SUN_REASON(ScaleMismatch) SUN_REASON(FeatureUnavailable) SUN_REASON(Accepted)

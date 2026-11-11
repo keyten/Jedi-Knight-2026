@@ -303,8 +303,8 @@ without the physical defines, preserving their prior formulas for regression.
 
 ## C01 renderer sun adapter
 
-The independently gated [resolved sun consumer](rend2-resolved-sun-c01.md) now
-implements physical sun admission, scene precedence, supported renderer bindings
-and explicit legacy fallback. Its documented gates and limitations supersede
-earlier statements on this page that all runtime consumers are unimplemented.
-It does not change stock reconstruction availability or certify relative data.
+The opt-in C01 adapter converts calibrated directional RGB lux to scene
+illuminance at the physical-PBR boundary and shares it with the supported sun
+passes.
+
+[C01 controls, precedence and validation](rend2-resolved-sun-c01.md)

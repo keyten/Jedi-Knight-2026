@@ -122,6 +122,8 @@ def fragment(name):
 
 def header(defines, size):
     """the parts of GLSL_GetShaderHeader the water program uses"""
+    from lightrecon_regression import common_header
+
     text = ('#version 150 core\n#define M_PI 3.14159265358979323846\n'
             '#define DEFORM_NONE 0\n#define DEFORM_WAVE 1\n#define DEFORM_NORMALS 2\n#define DEFORM_BULGE 3\n'
             '#define DEFORM_BULGE_UNIFORM 4\n#define DEFORM_MOVE 5\n#define DEFORM_PROJECTION_SHADOW 6\n'
@@ -129,6 +131,8 @@ def header(defines, size):
             '#define WF_TRIANGLE 3\n#define WF_SAWTOOTH 4\n#define WF_INVERSE_SAWTOOTH 5\n'
             '#define MAX_G2_BONES 72\n#define MAX_GPU_FOGS 16\n#define MAX_DLIGHTS 32\n'
             f'#define r_FBufScale vec2({size[0]}.0, {size[1]}.0)\n#define USE_ALPHA_TEST\n')
+    text += '\n'.join(line for line in common_header([]).splitlines()
+                      if line.startswith('#define RC_') or line.startswith('#define R_CompareOriginal')) + '\n'
     for d in defines:
         text += '#define ' + d.replace('=', ' ') + '\n'
     text += f'#define WATER_UNIFORM_VEC4S {WATER_VEC4S}\n'

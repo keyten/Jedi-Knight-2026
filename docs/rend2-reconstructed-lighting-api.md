@@ -247,8 +247,7 @@ Rend2 targets link the one CPU archive; runtime lighting still uses the existing
 
 ## C01 renderer sun adapter
 
-The independently gated [resolved sun consumer](rend2-resolved-sun-c01.md) now
-implements physical sun admission, scene precedence, supported renderer bindings
-and explicit legacy fallback. Its documented gates and limitations supersede
-earlier statements on this page that all runtime consumers are unimplemented.
-It does not change stock reconstruction availability or certify relative data.
+C01 consumes the read-only `Snapshot` and keeps a detached sun state in the
+renderer scene. Source admission follows typed photometry and scoped evidence.
+
+[C01 controls, precedence and validation](rend2-resolved-sun-c01.md)

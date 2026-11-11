@@ -39,6 +39,9 @@ def main():
                    r_atmosphere=0, r_clouds=0, r_volumetricFogTemporal=0,
                    r_cubeMapping=0, r_diffuseIBL=0, r_lightReconUse=0, r_lightReconSun=1)
         if a.profile == 'modern': cfg.update(r_sunlightMode=2, r_pbrPhysical=1)
+        if a.mp:
+            # Match shader animation phases across the separate local-server runs.
+            cfg.update(fixedtime=16)
         cmd = R.prepare_scene(a.map)
         if a.world_only:
             cmd += ['r_drawentities 0']
@@ -49,7 +52,7 @@ def main():
         cameras = []
         for label in ['A', 'AA', 'OFF', 'MISSING', 'RESTORE']:
             block = re.search(f'C01_{label}_BEGIN(.*?)C01_{label}_END', text, re.S)
-            if not block or not re.search(r'\d+/\d+/\d+ shaders/batches/surfs \d+ leafs', block[1]):
+            if not block or not R.rendered_world(block[1]):
                 raise ValueError('Missing actual world in ' + version + '/' + label)
             for key in ['cl_paused', 'sv_paused']:
                 if not re.search(key + r'\s*=\s*"1"', block[1]):

@@ -206,8 +206,8 @@ actual SP A/B/A visual checks for this control boundary.
 
 ## C01 renderer sun adapter
 
-The independently gated [resolved sun consumer](rend2-resolved-sun-c01.md) now
-implements physical sun admission, scene precedence, supported renderer bindings
-and explicit legacy fallback. Its documented gates and limitations supersede
-earlier statements on this page that all runtime consumers are unimplemented.
-It does not change stock reconstruction availability or certify relative data.
+C01 enables the directional sun adapter when both `r_lightReconUse` and
+`r_lightReconSun` are 1 and renderer resources and source evidence qualify.
+Both controls default to 0.
+
+[C01 controls, precedence and validation](rend2-resolved-sun-c01.md)

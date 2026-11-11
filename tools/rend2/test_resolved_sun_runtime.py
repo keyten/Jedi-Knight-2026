@@ -67,10 +67,15 @@ def prepare_scene(name):
 
 
 def capture(label):
-    return ['wait 60', f'echo C01_{label}_BEGIN', 'r_lightReconInfo', 'viewpos',
+    return ['wait 60', f'echo C01_{label}_BEGIN', 'r_lightReconInfo', 'r_pbrInfo', 'viewpos',
             'cl_paused', 'sv_paused', 'r_speeds 1', 'wait 3',
             f'screenshot_tga c01-{label.lower()}', 'wait 60', 'r_speeds 0',
             f'echo C01_{label}_END']
+
+
+def rendered_world(block):
+    counters = re.findall(r'\d+/\d+/(\d+) shaders/batches/surfs (\d+) leafs', block)
+    return any(int(surfaces) > 0 and int(leafs) > 0 for surfaces, leafs in counters)
 
 
 def prepare_runtime(a, profile='modern', policy=1):
@@ -126,7 +131,11 @@ def run(a):
     cmds += ['r_forceSun 2', unfreeze, 'wait 60', freeze] + capture('ANIMATED')
     cmds += ['r_forceSun 0', 'vid_restart', 'wait 180'] + capture('RESTART')
     cmds += ['disconnect', 'wait 15', 'echo C01_UNLOAD_BEGIN', 'r_lightReconInfo',
-             'echo C01_UNLOAD_END', 'wait 30', 'echo C01_DONE', 'quit']
+             'echo C01_UNLOAD_END', 'wait 30']
+    next_map = 'mp/duel1' if a.mp else ('hoth3' if a.map == 'hoth2' else 'hoth2')
+    cmds += [f'devmap {next_map}', 'wait 240', 'echo C01_NEXT_MAP_BEGIN',
+             'r_lightReconInfo', 'r_speeds 1', 'wait 3', 'r_speeds 0',
+             'echo C01_NEXT_MAP_END', 'echo C01_DONE', 'quit']
     text = launch(a, runtime, cfg, cmds, 'capture')
     rows = {}
     cameras = {}
@@ -138,7 +147,11 @@ def run(a):
         selected = re.search(r'resolved-sun canonical=(\d+) policy=(\d+) kind=(\w+) reason=(\w+)', block)
         if not selected or selected[1] != ('1' if label in ['B', 'BB', 'RESTART'] else '0'):
             raise ValueError('Incorrect selection ' + label + '\n' + block[:1500])
-        if not re.search(r'\d+/\d+/\d+ shaders/batches/surfs \d+ leafs', block):
+        if label in ['FORCED', 'ANIMATED'] and selected[4] != 'Forced':
+            raise ValueError('Forced sun did not take precedence: ' + label)
+        if selected[1] == '1' and not re.search(r'P06 additive world=0 entity=0 fog=0\b', block):
+            raise ValueError('An unproven additive channel was enabled: ' + label)
+        if not rendered_world(block):
             raise ValueError('Capture does not show a rendered world: ' + label)
         if label != 'RESTART':
             for cvar in ('cl_paused', 'sv_paused'):
@@ -154,6 +167,10 @@ def run(a):
         raise ValueError('Capture camera moved: ' + str(cameras))
     if not re.search(r'C01_UNLOAD_BEGIN.*?lifecycle=Unloaded', text, re.S):
         raise ValueError('World publication survived unload')
+    transitioned = re.search(r'C01_NEXT_MAP_BEGIN(.*?)C01_NEXT_MAP_END', text, re.S)
+    if (not transitioned or not rendered_world(transitioned[1]) or
+            not re.search(r'resolved-sun canonical=0 [^\n]* source=0\b', transitioned[1])):
+        raise ValueError('Stale canonical sun or missing world after map transition')
     images = runtime / 'home/OpenJK/screenshots'
     def path(label): return images / ('c01-' + label.lower() + '.tga')
     for label in ('A', 'AA', 'B', 'BB', 'RESTORE'):
@@ -183,7 +200,8 @@ def run(a):
     result = dict(passed=True, scope='Manually authored controlled sun; no recovered stock lighting',
                   map=a.map, selection=rows, cameras=cameras, comparisons=comparisons,
                   settings=cfg, screenshots=str(images), gpu_timing=timing,
-                  static_depth_checks=len(verification), original_stock_recovery=False)
+                  static_depth_checks=len(verification), next_map=next_map,
+                  original_stock_recovery=False)
     (a.output / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 
@@ -201,6 +219,7 @@ if __name__ == '__main__':
     a = p.parse_args()
     for name in ['installation', 'binaries', 'renderer', 'fixture_tool', 'output']:
         setattr(a, name, getattr(a, name).resolve())
+    if a.mp != a.map.startswith('mp/'): p.error('--mp requires a multiplayer map')
     if a.mp and not (a.sp_binaries and a.mp_test_ui): p.error('--mp needs --sp-binaries and --mp-test-ui')
     if a.mp_test_ui: a.mp_test_ui = a.mp_test_ui.resolve()
     if a.sp_binaries: a.sp_binaries = a.sp_binaries.resolve()

@@ -1247,7 +1247,7 @@ float WaterPhase(float g, float cosTheta)
 
 // The homogeneous liquid along a ray leaving the surface downwards in direction dir, d units long:
 // returns the in-scattered radiance towards the surface, T its transmittance. Half the ambient from
-// above, and the sun (sunLight = pi * color * shadow, 0 without) refracted into the liquid
+// above, and the sun's shadowed normal irradiance refracted into the liquid
 // (sunInLiquid, cosine sunCos), attenuated down to the depth of each point:
 //   sun: integral of sigma albedo L p exp(-sigma t (1 + k)), k = depth gained per unit / sunCos
 vec3 WaterLiquidPath(vec3 dir, float d, vec3 Ng, vec3 sigma, vec3 albedo, float g, vec3 ambientUp,
@@ -2235,6 +2235,17 @@ void main()
 	float g = u_Water[WATER_U_SCATTER].a;
 	vec3 sunDir = normalize(u_PrimaryLightOrigin.xyz);
 	vec3 sunColor = SceneToLinear(u_PrimaryLightColor);
+	vec3 sunIrradiance = M_PI * sunColor;
+	vec3 foamSunRadiance = sunColor;
+#if defined(USE_PHYSICAL_PBR)
+	if ((int(u_PrimaryLightRadius + 0.5) & 1) != 0)
+	{
+		// Canonical sun is already linear normal irradiance in scene units.
+		sunColor = u_PrimaryLightColor;
+		sunIrradiance = sunColor;
+		foamSunRadiance = sunIrradiance / M_PI;
+	}
+#endif
 	float sunShadow = 1.0;
 	bool sun = u_Water[WATER_U_ENVIRONMENT].w > 0.5;
 	if (sun)
@@ -2372,7 +2383,7 @@ void main()
 		if (sun)
 		{
 			vec3 sunT = exp(-sigma * (0.5 * pathLength * max(dot(-Rt, Ng), 0.05) / sunCos));
-			sunIn = M_PI * sunColor * sunShadow * WaterPhase(g, dot(Rt, -sunInLiquid)) * sunT;
+			sunIn = sunIrradiance * sunShadow * WaterPhase(g, dot(Rt, -sunInLiquid)) * sunT;
 		}
 		vec3 Sa = albedo * (0.5 * ambient + sunIn) * (vec3(1.0) - Ta);
 		transmittance = clamp(T * Ta, 0.0, 1.0);
@@ -2492,7 +2503,7 @@ void main()
 		if (into > -0.02)
 			R = normalize(R - Ng * (into + 0.02));
 		vec3 ambientUp = WaterEnvironment(P, Ng, ROUGHNESS_MIPS);
-		vec3 sunLight = sun ? M_PI * sunColor * sunShadow : vec3(0.0);
+		vec3 sunLight = sun ? sunIrradiance * sunShadow : vec3(0.0);
 		float pathScale = u_Water[WATER_U_OPTICS].w;
 		vec3 Tr;
 		reflection = WaterLiquidPath(R, maxPath, Ng, sigma, albedo, g, ambientUp, sunLight, sunInLiquid, sunCos, Tr);
@@ -2543,7 +2554,7 @@ void main()
 	{
 		// seen from inside the liquid: Snell's window (the scene above, refracted) and total internal
 		// reflection of the liquid itself
-		vec3 deep = albedo * (0.5 * ambient + (sun ? M_PI * sunColor * sunShadow * WaterPhase(g, dot(-V, -sunInLiquid)) : vec3(0.0)));
+		vec3 deep = albedo * (0.5 * ambient + (sun ? sunIrradiance * sunShadow * WaterPhase(g, dot(-V, -sunInLiquid)) : vec3(0.0)));
 		reflection = deep;
 		vec3 Rt = refract(-V, N, ior);
 		if (dot(Rt, Rt) > 0.0)
@@ -2580,12 +2591,11 @@ void main()
 	}
 
 	// Foam is a lit, rough diffuse layer in scene light units, never emission:
-	// Lambert response to the same environment and sun as the water (the sun
-	// irradiance is pi * sunColor, as in the in-liquid scattering above).
+	// Lambert response to the same environment and sun as the water.
 	// Bubbles on a thin layer transmit some of the water below where coverage
 	// is partial; the coverage itself comes from the thresholded structure.
 	vec3 foamIrradiance = ambient;
-	if (sun) foamIrradiance += sunColor * clamp(dot(Nwater, sunDir), 0.0, 1.0) * sunShadow;
+	if (sun) foamIrradiance += foamSunRadiance * clamp(dot(Nwater, sunDir), 0.0, 1.0) * sunShadow;
 	vec3 foamColor = vec3(0.80, 0.84, 0.86) * foamIrradiance;
 	vec3 color = (1.0 - W) * transmitted + W * reflection + glint;
 	// Bulk whitewater is lit scattering inside aerated water, not emissive

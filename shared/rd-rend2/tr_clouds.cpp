@@ -1024,10 +1024,9 @@ void RB_CloudsBeginView( void )
 		return;
 	}
 	const int interval = Com_Clampi(1, 60, r_cloudShadowInterval->integer);
-	const qboolean trackSun = (qboolean)(backEnd.refdef.resolvedSun.canonical ||
-        (r_lightReconUse->integer && r_lightReconSun->integer));
-    const qboolean sameSun = (qboolean)(trackSun == s_clouds.shadowSunTracked &&
-        (!trackSun || VectorCompare(backEnd.refdef.sunDir, s_clouds.shadowSunDirection)));
+	const qboolean trackSun = (qboolean)backEnd.refdef.resolvedSun.canonical;
+	const qboolean sameSun = (qboolean)(trackSun == s_clouds.shadowSunTracked &&
+		(!trackSun || VectorCompare(backEnd.refdef.sunDir, s_clouds.shadowSunDirection)));
     if ( s_clouds.shadowValid && s_clouds.shadowWorld == tr.world && sameSun &&
 		(backEndData->realFrameNumber % interval) != 0 )
 		return;

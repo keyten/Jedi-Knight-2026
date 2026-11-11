@@ -1,11 +1,11 @@
-"""C01 actual lightall permutations and froxel missing-membership GPU controls."""
+"""C01 sunlight shader permutations and froxel missing-membership GPU controls."""
 import ctypes as C
 import json
 from pathlib import Path
 import sys
 import lightrecon_regression as R
 import test_volumetric_compute as V
-from test_watersurface_gl import context
+from test_watersurface_gl import context, water_program
 
 
 def wall_doorway():
@@ -74,6 +74,10 @@ def main():
     print('PASS: actual GLSL compile/link', len(cases), 'programs', reflection['driver'])
     window, ctx = context(b'C01 canonical sun fallback controls')
     try:
+        for physical in [False, True]:
+            water = water_program(physical=physical, shadows2=True, froxel=2, snell=True)
+            V.gl('glDeleteProgram', None, V.U)(water)
+        print('PASS: actual water shaders with legacy and physical sunlight')
         black = V.texture(1, 1, 1, [0]*4)
         baked = V.texture(1, 1, 1, [2, 3, 4, 0])
         # A very bright unsupported candidate must not turn an unknown field
