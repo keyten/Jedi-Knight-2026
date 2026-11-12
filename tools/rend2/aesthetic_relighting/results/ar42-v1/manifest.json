@@ -1,0 +1,19 @@
+{
+  "authorize_bounded_repair": false,
+  "decision": "Stop-Current-Approach",
+  "files": {
+    "docs/rend2-relighting/oblique-support-contract-decision.md": "2afde99efcf9a3e6c41c7d261e321992acd24b3d6932b442a7e427b72c513798",
+    "tools/rend2/aesthetic_relighting/results/ar42-v1/evidence.json": "63eee6bf528e89a1c58cd22b501c664875d6b865302e72d8a70ab1381fbdb8fa"
+  },
+  "licensed_coordinates_or_full_diagnostics_redistributed": false,
+  "plan": "AR42 Results Log / Plan Change Log and current route; excluded to avoid self-reference",
+  "private_validation": {
+    "path": "build/ar42-v1/validation.json",
+    "sha256": "2c3179395ff64044152948996552b8f09d31ef0273bba39c850464108c70feee"
+  },
+  "production_file_allowlist": [],
+  "revision": "3026839639331ec7715353d2191ec93e2b011053",
+  "schema": "org.openjk.aesthetic-relighting.ar42-manifest.v1",
+  "task": "AR-42",
+  "task_status": "Done"
+}

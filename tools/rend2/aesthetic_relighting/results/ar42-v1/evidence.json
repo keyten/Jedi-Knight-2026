@@ -1,0 +1,841 @@
+{
+  "adversarial_matrix": [
+    {
+      "case": "axial/equal-component positives",
+      "measured_or_retained": "Exact synthetic determinants; retained AR41 native positives",
+      "unperformed_full_native_exit": "Full side/admission and old axial response/score unchanged"
+    },
+    {
+      "case": "unequal-component oblique / both originals",
+      "measured_or_retained": "Exact BSP unions/projection/positive side; no native rerun",
+      "unperformed_full_native_exit": "Both original singletons and joint fully admitted before explicit new decision"
+    },
+    {
+      "case": "one ULP anchor shifts",
+      "measured_or_retained": "Six exact per original; tangential moves keep plane but break anchor identity",
+      "unperformed_full_native_exit": "Refuse moved declarations including tangent identity mutation"
+    },
+    {
+      "case": "true nonplanarity",
+      "measured_or_retained": "Original second non-shared vertex shifted one binary32 ULP, nonzero determinant",
+      "unperformed_full_native_exit": "Refuse union, no dropped triangles"
+    },
+    {
+      "case": "wrong side",
+      "measured_or_retained": "Exact scalar sign reversal; retain AR41 native negative results",
+      "unperformed_full_native_exit": "Wrong evidence sign/behind support refuses"
+    },
+    {
+      "case": "absent/wrong identities",
+      "measured_or_retained": "BSP ordinal/index/position equality checked; no new mutation native test",
+      "unperformed_full_native_exit": "Reject missing/wrong primitive/surface/map/generation/lease/version"
+    },
+    {
+      "case": "penetration/nearby opaque contact",
+      "measured_or_retained": "Seven owned halfspace records, no intersection/domain replacement",
+      "unperformed_full_native_exit": "Preserve tiny penetration/coplanar overlay refusals; gap is not contact; full SAT/front/brush controls"
+    },
+    {
+      "case": "unknown geometry/optics",
+      "measured_or_retained": "Retained OpticalUnknown 16 and owned unknown-optics exclusion",
+      "unperformed_full_native_exit": "Unknown/Conditional/unavailable remain; no clearance or black substitution"
+    },
+    {
+      "case": "scale/translation",
+      "measured_or_retained": "Five scales, three translations; 2^30 alters binary32 edge",
+      "unperformed_full_native_exit": "Bounded portable domain and extreme/conditioning/conversion controls absent"
+    },
+    {
+      "case": "projection/brush/clearance/cache",
+      "measured_or_retained": "Consumer and dependency map plus exact projection rounding bound",
+      "unperformed_full_native_exit": "Full native admission, stale-key mutation and regressions absent"
+    }
+  ],
+  "allowed_scope": [
+    "AR42 decision/evidence/manifest",
+    "Private ignored mathematical diagnostics and provenance checks",
+    "Living plan current-route/status/results/change-log update"
+  ],
+  "applicable_agents_md": [],
+  "arithmetic": {
+    "is_full_native_admission": false,
+    "labelled_records": 16,
+    "method": "Python Fraction from exact binary32 BSP geometry; rational projection without unit normal",
+    "native_admission_tests": 0,
+    "original": [
+      {
+        "anchor_pin_mismatches": 6,
+        "anchor_ulp_moves": 6,
+        "derived_projection_rounding_bound_world": 3.135661836726328e-05,
+        "exact_bsp_saved_geometry_equal": true,
+        "exact_coplanar_vertex_count": 6,
+        "exact_projection_in_named_union": true,
+        "native_full_admission_measured": false,
+        "nonplanarity_perturbation_exact_nonzero": true,
+        "off_plane_anchor_moves": 4,
+        "ordinal": 987,
+        "positive_standoff_world": 4.000018310402552,
+        "primitive_ids": [
+          "4243427688449",
+          "4243427688450"
+        ],
+        "projection_binary32_signed_distance_world": -2.257676522442956e-05,
+        "surface_id": 988
+      },
+      {
+        "anchor_pin_mismatches": 6,
+        "anchor_ulp_moves": 6,
+        "derived_projection_rounding_bound_world": 3.135661836726328e-05,
+        "exact_bsp_saved_geometry_equal": true,
+        "exact_coplanar_vertex_count": 6,
+        "exact_projection_in_named_union": true,
+        "native_full_admission_measured": false,
+        "nonplanarity_perturbation_exact_nonzero": true,
+        "off_plane_anchor_moves": 4,
+        "ordinal": 988,
+        "positive_standoff_world": 4.000018310402552,
+        "primitive_ids": [
+          "4247722655745",
+          "4247722655746"
+        ],
+        "projection_binary32_signed_distance_world": -2.257676522442956e-05,
+        "surface_id": 989
+      }
+    ],
+    "original_target_fit_calls": 0,
+    "rounding_bound_is_admission_tolerance": false,
+    "transformations": [
+      {
+        "exact_det": "0",
+        "exponent": -100,
+        "name": "power-of-two-scale",
+        "nondegenerate": true,
+        "production_domain_justified": false
+      },
+      {
+        "exact_det": "0",
+        "exponent": -20,
+        "name": "power-of-two-scale",
+        "nondegenerate": true,
+        "production_domain_justified": false
+      },
+      {
+        "exact_det": "0",
+        "exponent": 0,
+        "name": "power-of-two-scale",
+        "nondegenerate": true,
+        "production_domain_justified": false
+      },
+      {
+        "exact_det": "0",
+        "exponent": 20,
+        "name": "power-of-two-scale",
+        "nondegenerate": true,
+        "production_domain_justified": false
+      },
+      {
+        "exact_det": "0",
+        "exponent": 100,
+        "name": "power-of-two-scale",
+        "nondegenerate": true,
+        "production_domain_justified": false
+      },
+      {
+        "edge_delta_preserved": true,
+        "exact_det": "0",
+        "exponent": 10,
+        "name": "binary32-translation",
+        "nondegenerate": true,
+        "production_domain_justified": false
+      },
+      {
+        "edge_delta_preserved": true,
+        "exact_det": "0",
+        "exponent": 24,
+        "name": "binary32-translation",
+        "nondegenerate": true,
+        "production_domain_justified": false
+      },
+      {
+        "edge_delta_preserved": false,
+        "exact_det": "0",
+        "exponent": 30,
+        "name": "binary32-translation",
+        "nondegenerate": true,
+        "production_domain_justified": false
+      }
+    ]
+  },
+  "assistance": "Codex source/evidence inspection and independent private Python rational arithmetic; no native diagnostic/admission rerun, fitter or visual review",
+  "authorize_bounded_repair": false,
+  "branch": "rend2-unified-wip",
+  "candidate_contract": {
+    "authority": "Exact dyadic named original triangle union with separately bound captured orientation/2 records",
+    "four_hour_complete_safe_repair_justified": false,
+    "full_contract_justified": false,
+    "name": "ModernNamedTrianglePlane/1",
+    "numerical_proof": "Fraction determinant/projection exact for measured binary32 values; derived float projection conversion enclosure only; no portable full-consumer domain or cost proof",
+    "side": "Positive signed unnormalized triple product is emitted side; immutable first named vertex is anchor",
+    "status": "Rejected design sketch; no production freeze",
+    "version_stale_key_behavior": "Required new opt-in identity and stale/unsupported rejection described; complete implementation/migration proof absent; legacy keys and semantics unchanged"
+  },
+  "concurrent_commits": [
+    "15df6a396",
+    "d1ad0cb2f",
+    "3026839639331ec7715353d2191ec93e2b011053"
+  ],
+  "consumer_map_document": "docs/rend2-relighting/oblique-support-contract-decision.md",
+  "corpus_rollout_authorized": false,
+  "coverage": {
+    "A": "Two visible candidates, no new accepted output",
+    "B": "None authored",
+    "C": "None authored",
+    "D": "Original-data fallback for both pilot outputs",
+    "accepted_area_fraction": null,
+    "completion_probability": null,
+    "new_accepted_area": 0,
+    "new_accepted_maps": 0,
+    "new_accepted_rows": 0,
+    "new_accepted_sources": 0,
+    "old_heldout_rows": 65,
+    "old_unique_fitting_rows": 201,
+    "whole_map_recall": null
+  },
+  "date": "2026-11-11",
+  "decision": "Stop-Current-Approach",
+  "decision_document": {
+    "path": "docs/rend2-relighting/oblique-support-contract-decision.md",
+    "sha256": "2afde99efcf9a3e6c41c7d261e321992acd24b3d6932b442a7e427b72c513798"
+  },
+  "failure_attempts": {
+    "failures": [
+      {
+        "command": "python build/ar42-v1/audit_inputs.py",
+        "error": "Final integrity assertion failed after writing input-audit.json: one missing frozen capture and two inherited Producer hashes differ from current committed shader-storage work.",
+        "exit_code": 1,
+        "resolution": "Reported as failed integrity; no input replacement, no hash normalization, no native run. Current actual hashes form preservation baseline only.",
+        "retained": [
+          "input-audit-initial.json",
+          "audit_inputs-initial.py"
+        ]
+      },
+      {
+        "command": "python build/ar42-v1/arithmetic.py (attempt 1)",
+        "error": "JSONDecodeError at line 1 column 22291: required contact-diagnostic.stdout ends with an incomplete controls array.",
+        "exit_code": 1,
+        "resolution": "Reuse the already completed and receipt-pinned contact-diagnostic-v3.stdout used by AR-41 measurements; verify original source fields independently against the original BSP. Original failed stdout unchanged.",
+        "retained": [
+          "arithmetic-attempt1.py"
+        ]
+      },
+      {
+        "command": "python build/ar42-v1/finalize.py (attempt 1)",
+        "error": "AttributeError: finalizer assumed controls.pairs role values were nested dictionaries; the frozen packet uses lists.",
+        "exit_code": 1,
+        "resolution": "Correct receipt aggregation to count each original list; no input, policy, arithmetic or native behavior changed. No public receipt was written by the failed attempt.",
+        "retained": [
+          "finalize-attempt1.py"
+        ]
+      }
+    ],
+    "incidental_search_limitations": [
+      "Initial repository-wide AGENTS search reported access-denied optimization-deps directories; targeted ancestor/root/docs/shared/tools searches found no applicable AGENTS.md.",
+      "PowerShell does not expand file wildcard arguments as assumed by several rg calls; corrected searches use directory and -g filters or actual filenames.",
+      "Broad build capture-path listing exceeded display budget; narrowed filename search found two sanitized duel10 copies, both hash-different from the frozen capture."
+    ],
+    "native_admission_or_diagnostic_executables_run": 0,
+    "production_edits": 0,
+    "schema": "org.openjk.ar42.private-attempts.v1"
+  },
+  "geometry": {
+    "component_counts": [
+      2,
+      2
+    ],
+    "control_pair_counts": {
+      "final": 4,
+      "reserve": 2
+    },
+    "coverage_complete": true,
+    "folds": {
+      "final": {
+        "blocks": 8,
+        "controls": 21,
+        "positive": [
+          5,
+          8
+        ],
+        "rows": 34,
+        "surfaces": [
+          705,
+          706,
+          707
+        ]
+      },
+      "reserve": {
+        "blocks": 6,
+        "controls": 17,
+        "positive": [
+          5,
+          4
+        ],
+        "rows": 26,
+        "surfaces": [
+          706,
+          707
+        ]
+      },
+      "train": {
+        "blocks": 9,
+        "controls": 28,
+        "positive": [
+          6,
+          6
+        ],
+        "rows": 40,
+        "surfaces": [
+          705,
+          706,
+          707
+        ]
+      },
+      "validation": {
+        "blocks": 8,
+        "controls": 29,
+        "positive": [
+          5,
+          7
+        ],
+        "rows": 41,
+        "surfaces": [
+          705,
+          706,
+          707
+        ]
+      }
+    },
+    "geometry_triangles": 1770,
+    "issues": 16,
+    "scope": "Separate original housings 987/988, each union of two luminous components; geometry only",
+    "surfaces": [
+      987,
+      988
+    ]
+  },
+  "initial_git_status": " M docs/rend2-aesthetic-relighting-plan.md\n?? docs/rend2-relighting/pilot-acceptance.md\n?? docs/rend2-relighting/viability-verdict.md\n?? tools/rend2/aesthetic_relighting/results/ar36-v1/",
+  "initial_revision": "242c7ce17bcd9aa2c74acc843f78dcb6958c75ad",
+  "initial_staged": "",
+  "input_hashes": [
+    {
+      "expected": null,
+      "group": "required",
+      "path": "docs/rend2-relighting/viability-verdict.md",
+      "sha256": "f28fb8275fe75fce5a5ff75b0209a5154e844f1fad3a70ecec3df9f15d49d653"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "docs/rend2-relighting/pilot-acceptance.md",
+      "sha256": "1b87fa3808b74d305c8f1aee3e803494ffdfd2e38bc01c64b91a1ad0500add12"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "docs/rend2-relighting/viability-decision.md",
+      "sha256": "94fc8185881e25163adb2ca51f8e909e19289c82e36faefd2b394d4fd9df2afe"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "docs/rend2-relighting/contact-plane-diagnosis.md",
+      "sha256": "6cbf358c9f167fdef4367becbd2deab3480aa309bb2980a516a0f531569e860c"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "docs/rend2-relighting/pilot-wiring-status.md",
+      "sha256": "ef139d6ddd672950235c3256c156b9a583acd28d5d87a4b611a9c074f01d7c82"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/aesthetic_relighting/policies/viability-v1.json",
+      "sha256": "96da96c0ccd896bca3751f539b2d8860f4e1d0580f5d947c60c906b5a84a28d0"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/aesthetic_relighting/results/ar34-v1/evidence.json",
+      "sha256": "6cd5283c1491153f40588ebfeea17aaa3b94bfe9a0b52dafb8056b739de427cf"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/aesthetic_relighting/results/ar34-v1/manifest.json",
+      "sha256": "6dc354e07207b07f9614b64238c433082d5089f181afa9084b638ce60b69033f"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/aesthetic_relighting/results/ar35-v1/evidence.json",
+      "sha256": "8894a0e2f9986d7f31ac31d53f201646e2056f9d43290d9f4b5946ac88b12e9c"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/aesthetic_relighting/results/ar35-v1/manifest.json",
+      "sha256": "1166ceed04316987f88f5d735a84a4ec2c82279e290927a4d856355b0a398849"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/aesthetic_relighting/results/ar41-v1/evidence.json",
+      "sha256": "7c0c5f81b35fd132d63e0ba120ac9c93e692e25e12709cd04a0047b08d09166c"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/aesthetic_relighting/results/ar41-v1/manifest.json",
+      "sha256": "226d06119ca6a6aedc7c3caebd7ba9b36efbd23bf5ef897c83ecbdd744c5631a"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/aesthetic_relighting/results/ar36-v1/evidence.json",
+      "sha256": "817331855bb5a374e63f69185843f383fd82e5eba29465cc0b87e0e731e8a68a"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/aesthetic_relighting/results/ar36-v1/manifest.json",
+      "sha256": "a29334ea74b36b8faee9d4ae055771dde3f679cc3c45954d48fe163963e4b5e2"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "build/ar34-v1/pilot-scope.json",
+      "sha256": "27f0c7e9e43c9a5985abbd06b31a3159fb949462caf99a035d5bf6a5fc0901df"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "build/ar34-v1/frozen-folds-geometry.json",
+      "sha256": "8d8c1a3dce86bf377296ff8dedd774a464b1310caf8c0ab0df34c73fb961fe54"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "build/ar34-v1/frozen-control-pairs.json",
+      "sha256": "47a23ebdbb4f0f2a376639cc2087b92567ac9da2e4319af84949cdba087a7a2f"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "build/ar34-v1/pilot-geometry.json",
+      "sha256": "2900da350fc7e8ccc543cd1ad7e6310e25eda0f512b4a966f4eebd3ec91694de"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "build/ar41-v1/measurements.json",
+      "sha256": "afb1e3fe2b320c0821bfe50c7b5e2f0184bb72a47c02b1f83b23ec17cd6ef998"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "build/ar41-v1/input-audit.json",
+      "sha256": "85b063039d4b24a988c336f6b7424973eacdb0d836656defde999eed73cf4720"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "build/ar41-v1/contact-diagnostic.stdout",
+      "sha256": "979745d051c699212655304f28cbc3216f8d041dc23009c394abea9b3df61fd9"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "docs/rend2-stock-aesthetic-asr24.md",
+      "sha256": "6248eebb63b468048bff0e2f81a7e04a3a769293e4bfd14b347b2493a3326873"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "docs/rend2-stock-discovery-asr25.md",
+      "sha256": "ebb8c24ed9aed6bf33e7c1ae061adcaf7e68d60221c3a50a973d489823a4cd9b"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "build/asr25-v1/protocol.json",
+      "sha256": "83698daacae11af605b0352f0147fbb1195124e91f8c401d45d22bf9593dbe7d"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/stock_aesthetic/results/v1/manifest.json",
+      "sha256": "3b3fab9dfe4058590d25b633728769234e35358f3e696c4c7f1a75bf896a3cf6"
+    },
+    {
+      "expected": null,
+      "group": "required",
+      "path": "tools/rend2/stock_audit/results/v1/manifest.json",
+      "sha256": "db48b1f513f7cfce6f2bc02e8d6ad9b31ec8c7054d4d8ba8e59766fe285aa346"
+    }
+  ],
+  "input_integrity": {
+    "all_required_inputs_available": false,
+    "ar42_did_not_synthesize_inputs": true,
+    "archive_members": [
+      {
+        "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets0.pk3",
+        "expected": "6112dfeeb7f224697c3a96794e9c0cb0f05d421c712b64b70c635f11e81de461",
+        "member": "maps/mp/duel10.bsp",
+        "sha256": "6112dfeeb7f224697c3a96794e9c0cb0f05d421c712b64b70c635f11e81de461"
+      },
+      {
+        "archive": "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\lightrecon-evidence-runtime\\final-source\\stock-assets\\base\\assets1.pk3",
+        "expected": "e1ed4cf3951aac58bee56d24fffa02dbfa231d98ab1d91d69622cbb2ed27f874",
+        "member": "textures/h_evil/light1glow.png",
+        "sha256": "e1ed4cf3951aac58bee56d24fffa02dbfa231d98ab1d91d69622cbb2ed27f874"
+      },
+      {
+        "expected": "b917d9dc8bdde5d3292cf400ffad02b6f5b65e5cbd7002d0110823bb09355b2a",
+        "member": "textures/h_evil/light1 parsed shader body",
+        "sha256": "b917d9dc8bdde5d3292cf400ffad02b6f5b65e5cbd7002d0110823bb09355b2a"
+      }
+    ],
+    "asr18_manifest_entries_rechecked": 17,
+    "asr25_implementation_matches": 148,
+    "asr25_implementation_total": 150,
+    "completed_ar41_v3_reused": true,
+    "frozen_tool_matches": 6,
+    "inherited_hash_mismatches": [
+      {
+        "expected": "12f44a12ab154e0de3cfeea8a679e1141bc12ede50df1b574bbb49c3c33808a3",
+        "group": "AR41-input-refs",
+        "path": "shared/rd-rend2/lightrecon/producer.cpp",
+        "sha256": "e29d4ad50702f31c11b0f7260205273e29c737f0527457d02cf5d6316b04a2b2"
+      },
+      {
+        "expected": "34332798433fed4efd482929e19d278f7c2a6ec8bcb84133048a70a79e1a30aa",
+        "group": "AR41-input-refs",
+        "path": "shared/rd-rend2/lightrecon/producer.h",
+        "sha256": "03fbbbc8db5ae74512e8334218e72be2e258d3966aa3fdc3bbb819fb740a6f0b"
+      }
+    ],
+    "initial_distinct_existing_paths": 325,
+    "initial_existing_file_comparisons": 404,
+    "missing": [
+      "C:\\Users\\Keyten\\AppData\\Local\\Temp\\jk-lightrecon-all-stock-20261031\\capture\\mp_duel10\\home\\rend2\\lightrecon\\v1\\observations\\mp_duel10_all.jkobs"
+    ],
+    "missing_frozen_capture_sha256": "ccbb97fa534f5be8c1a318d09b52b481284d63468eb95661ab5a642d4b2b9242",
+    "required_old_stdout_complete": false,
+    "sanitized_copies_sha256": "f511b2c1e3b1046a7a4d2dbf75b3e2514a4da90783553fcc69b6101d7579de2c"
+  },
+  "integration_authorized": false,
+  "native_subprocesses": 0,
+  "new_accepted_area": 0,
+  "new_accepted_maps": 0,
+  "new_accepted_rows": 0,
+  "new_accepted_sources": 0,
+  "old_evidence_only": {
+    "ar41_cause_reused": true,
+    "ar41_native_diagnostic_rerun": false,
+    "asr18_axial_contacts": 3374,
+    "asr18_axial_new_sheets": 328,
+    "asr18_mount_refusals": 17,
+    "asr18_solid_refusals": 59,
+    "asr18_unchanged_unknown": 168,
+    "asr24_asr25_heldout_rows": 65,
+    "asr24_asr25_unique_fitting_rows": 201,
+    "old_scores_rerun": false
+  },
+  "original_pilot_final_or_reserve_target_opened": false,
+  "original_target_fit_authorized": false,
+  "original_target_quality_measured": false,
+  "pilot_accepted": false,
+  "preservation": {
+    "audited_existing_inputs_changed": [],
+    "committed_by_ar42": false,
+    "concurrent_shader_storage_preserved": true,
+    "prior_frozen_failures_and_viability_v1_unchanged": true,
+    "production_files_changed_by_ar42": [],
+    "production_files_rechecked": 233,
+    "staged_by_ar42": false
+  },
+  "private_artifacts": [
+    {
+      "path": "build/ar42-v1/arithmetic-attempt1.py",
+      "sha256": "b828dc9716430509eb5675ba7312c7874245ce86b442702a7c3bebb6f8477804"
+    },
+    {
+      "path": "build/ar42-v1/arithmetic.json",
+      "sha256": "b0361eb5237d1f97398a69ec473011de7a3a504e9dccbe94a7a3dba44defa34f"
+    },
+    {
+      "path": "build/ar42-v1/arithmetic.py",
+      "sha256": "2ecb04ff241af87d2c56aa6c96505a410777469fbce7f0d6f56bd7c3bcec86ce"
+    },
+    {
+      "path": "build/ar42-v1/attempts.json",
+      "sha256": "85202f036f4f4a8d408eb32ca7ec57928d51c41dfcac615415b3484b1227067a"
+    },
+    {
+      "path": "build/ar42-v1/audit_inputs-initial.py",
+      "sha256": "f7b9976f151ba38c63fd350ad5876a6aed70605da79c53ad178ce6ca2fde0352"
+    },
+    {
+      "path": "build/ar42-v1/audit_inputs.py",
+      "sha256": "f7b9976f151ba38c63fd350ad5876a6aed70605da79c53ad178ce6ca2fde0352"
+    },
+    {
+      "path": "build/ar42-v1/consumer-search.txt",
+      "sha256": "4d0396a09810028d7e304edac6f76930e27a0483716ff22182399f94b3c04848"
+    },
+    {
+      "path": "build/ar42-v1/finalize-attempt1.py",
+      "sha256": "8ef7da50cf14e287bff2b0b0198290b79a9ea0a7c1a3b752f06a993a6a948b76"
+    },
+    {
+      "path": "build/ar42-v1/finalize.py",
+      "sha256": "a99134fbd841f69bcd72c0bc09ffa2101900aad37b6bf411e6f1ca3bfe6eac90"
+    },
+    {
+      "path": "build/ar42-v1/geometry-summary.json",
+      "sha256": "9dd95533033cc311d874747d0c0f634a030708049e5621a91328559d69a8a64b"
+    },
+    {
+      "path": "build/ar42-v1/input-audit-initial.json",
+      "sha256": "012cb43f62bf810cea4591e20c668247c1dc2349319ea9bdbe45fa5de162d0ba"
+    },
+    {
+      "path": "build/ar42-v1/input-audit.json",
+      "sha256": "012cb43f62bf810cea4591e20c668247c1dc2349319ea9bdbe45fa5de162d0ba"
+    },
+    {
+      "path": "build/ar42-v1/plan-before-ar42.md",
+      "sha256": "196ae2f017b929357e7e9dfe9b40b5a948c0ad4e148f97b5343b64f65f1410ac"
+    }
+  ],
+  "product_gate": "Unknown",
+  "production_consumer_hashes": [
+    {
+      "path": "shared/rd-rend2/lightrecon/emitter_support.h",
+      "sha256": "11deafece78db0d88c0f9709cf04e2796656aaaf06a4695d52acd15adc2fe34f"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/emitter_support.cpp",
+      "sha256": "5f532ec02d34683e9c6718243285ae0c685e2dec9f937f271d73e8e831f30249"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/source_orientation.h",
+      "sha256": "5d4dfb7b3245cb5a5f6596b25f85c3a5a63c0801aaff18eb94ff2fc2f77fbaf1"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/geometry_key.h",
+      "sha256": "74ec7e33b16ee51a2f9af52f3c3db200808ba3940201c4f49f2eb35af0ad47cd"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/regions.h",
+      "sha256": "cbbcf7b67513cecad571b5a9856f0213b866dfa63078fadd21d179963f99d0cc"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/regions_support.cpp",
+      "sha256": "f1965a70fd1e3b900be46452496bc8347a7dc8d772ce7eedacb21a727ecfc7cd"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/emission_geometry.h",
+      "sha256": "0a5f0355d4f3f400c1ce79910999e030d0b0ffd7395a6748d4debb8ffc15e7a2"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/emission_geometry.cpp",
+      "sha256": "5ea95d301a1682989e99b33bcd49b8062aa26fb8120d26f3d12b80d96bb7afb4"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/visibility.h",
+      "sha256": "79da1345796a4b2f8903e2f392305fc8a82d13dfe0ebd2e22936dcfe97b41847"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/visibility.cpp",
+      "sha256": "f3adee5f49d4f3669b2e0c513d25491318c1f61b0e329c241b43bf950f40d1a3"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/emitter_shape.h",
+      "sha256": "d445aafc56cc1465b49026552d27953030ac1793ba523164cb0c46f4f4cd49e1"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/emitter_shape.cpp",
+      "sha256": "20d15bca86c95523ab7bdc2784a5d44fa67947ad91a0bb8cfc0038ecd7f4d64e"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/shape_selection.cpp",
+      "sha256": "f4054aa7543b1373c6bb5e411d9c7d78abb0b189c61c3937fe0949760a81dfdf"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/producer.h",
+      "sha256": "03fbbbc8db5ae74512e8334218e72be2e258d3966aa3fdc3bbb819fb740a6f0b"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/producer.cpp",
+      "sha256": "e29d4ad50702f31c11b0f7260205273e29c737f0527457d02cf5d6316b04a2b2"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/joint.cpp",
+      "sha256": "7cdb075ff58bc5507b0825b469f1ecdaf04d8d9fb6e73fd38492b96f8bf85fb6"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/shadow_cache.cpp",
+      "sha256": "ca7fc8c8fd263a0d015456b0c21f6a3ade95a7eaa98b4686079ff5cf06f3dedb"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/shadow_cache.h",
+      "sha256": "570f5db0150f2f3257c29698e6121a8f8987dfd3bb659338d5a94372333b7b89"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/shadow_cache_internal.h",
+      "sha256": "31ca5de0acaf4647422a48ef4d1fed75a0ba93f7114f9af6efc22062eebbd83c"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/shadow_cache_codec.cpp",
+      "sha256": "674103e4fbc20fbcebef1e4ceec97fd323869c858e2d97197b34e73a647bb339"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/field_builder.cpp",
+      "sha256": "076b3abb5570a16413be67ec8d9701b6b8a239d1babff1252946da9a14cd5c6f"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/diagnostics.cpp",
+      "sha256": "8c4556c6b99118c82b2c8cbb6a96b37b411929f6d50eaf00a16d330fad1668e1"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/diagnostics_capture.cpp",
+      "sha256": "5dbea9d5cf2a5e4e4fe22940ea86c4843a498acae595b12f9d279f2e2b3b4ecf"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/point_refine.h",
+      "sha256": "9fb72c47e9b0f017d9e26842dd2d63c86cf40bc3677754de1229854caf1fe658"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/point_refine.cpp",
+      "sha256": "641fbde5eb0e992045d3d937d6a4cb0372df10e16ca6a2717eef19256df606b9"
+    },
+    {
+      "path": "tools/lightrecon_test/aesthetic_fit.cpp",
+      "sha256": "3e2944a11281256537bde615297e0ea589cd6cc08a9067405f02460d9a4cbf8b"
+    },
+    {
+      "path": "tools/lightrecon_test/aesthetic_fit.h",
+      "sha256": "e869218b26aecac134bed5c428cf324fdf093e4319653751d2ad8874e3c1e1d1"
+    },
+    {
+      "path": "tools/lightrecon_test/lightrecon_aesthetic_tool.cpp",
+      "sha256": "cba15742a8e4305145422383addc6401d0d2041b3c7f57d990bfac65395fd27e"
+    },
+    {
+      "path": "tools/lightrecon_test/lightrecon_blind_basis_tool.cpp",
+      "sha256": "ec67dc92bfb081ff2f627c7bbd35fbf3ac93ce5d7447ddab14b1e9812609d275"
+    },
+    {
+      "path": "tools/lightrecon_test/lightrecon_joint_tool.cpp",
+      "sha256": "fd3ff673bbe56826582104e4faf42f0e6bbb7d7b59ea50af9a7b14141fcfbbaa"
+    },
+    {
+      "path": "tools/lightrecon_test/mount_audit.h",
+      "sha256": "2d0d9d4e9c01d23ac3d3deddd77487cd906c70eee6f9a761308be66d0680275e"
+    },
+    {
+      "path": "tools/lightrecon_test/mount_diagnosis.h",
+      "sha256": "6c0f8d1be4e8128452334237cacb1ad6ea248cdfc0fbfe4bfbfa7843bc882b1a"
+    }
+  ],
+  "production_file_allowlist": [],
+  "prohibited_scope": [
+    "Production behavior/contract/header edits",
+    "Replacement admission executable",
+    "Original-target fitting/final/reserve RGB indexing or decompression",
+    "New ROI/source relocation/added capacity",
+    "Historical/canonical/storage changes",
+    "BSP/lightmap/runtime/GPU/world shading/double lighting",
+    "Serial research ticket/capture regeneration or substitution/corpus rollout"
+  ],
+  "remote": "git@github.com:keyten/BetterJK.git",
+  "repair_implementation_authorized": false,
+  "repair_prompt": null,
+  "retained_limits": {
+    "ar42_implementation_hours_spent": 0,
+    "changed_response_support_requires_prefit_freeze": true,
+    "final_informed_change_requires_fresh_adequate_independent_final": true,
+    "integration_hours_max": 8,
+    "integration_tasks_max": 1,
+    "memory_ray_per_check_limits_changed": false,
+    "native_fit_work_max": 300000000,
+    "native_sampling_work_max": 16000000,
+    "new_implementation_allowance": 0,
+    "post_final_repair_fit_authorized": false,
+    "pre_target_repair_tasks_max": 1,
+    "repair_hours_max": 4,
+    "v1_reserve_adequate": false
+  },
+  "reviewer": null,
+  "revision": "3026839639331ec7715353d2191ec93e2b011053",
+  "roadmap_status": "Deferred; no follow-on task authorized; stop current pilot",
+  "schema": "org.openjk.aesthetic-relighting.ar42-evidence.v1",
+  "second_roi_authorized": false,
+  "subagents_used": false,
+  "supplemental_input_hashes": [
+    {
+      "path": "docs/rend2-mounted-admission-asr18.md",
+      "sha256": "b06d3114e45d32de848593b427055a918e8d1f3e61358694d810c8923ef6a63e"
+    },
+    {
+      "path": "docs/rend2-source-orientation-asr17.md",
+      "sha256": "d17b0a9ef6aa8bf0ff4083b805a77e1a0f2ab9833504bcb1e2d264266b99c6da"
+    },
+    {
+      "path": "docs/rend2-shader-surface-storage.md",
+      "sha256": "0388d72973b2761db626762c1e233b5b8280f87307229c40c38152a203593ff7"
+    },
+    {
+      "path": "tools/rend2/stock_lights/results/native-storage.json",
+      "sha256": "2d5090bfc10b67e4778bee91afba94456c44c55e859d6d29533b8db781d6a307"
+    },
+    {
+      "path": "build/ar41-v1/contact-diagnostic-v3.stdout",
+      "sha256": "0a3a0e300dced4539e4e9e92cf0d650acfc7dcfc50f3ba0c6a0fecba285a0b31"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/shadow_cache_codec.cpp",
+      "sha256": "674103e4fbc20fbcebef1e4ceec97fd323869c858e2d97197b34e73a647bb339"
+    },
+    {
+      "path": "shared/rd-rend2/lightrecon/shadow_cache_internal.h",
+      "sha256": "31ca5de0acaf4647422a48ef4d1fed75a0ba93f7114f9af6efc22062eebbd83c"
+    },
+    {
+      "path": "tools/rend2/emitter_support/results/asr18-v1/manifest.json",
+      "sha256": "b255ce03fc88e97d6da9deef76e1eb2a3a97b0ed865dea7e615e834dacde3006"
+    }
+  ],
+  "task": "AR-42",
+  "task_status": "Done",
+  "timezone": "Australia/Sydney",
+  "timing": {
+    "cap_met": true,
+    "decision_seconds_max": 7200,
+    "elapsed_seconds_at_receipt": 967.842423,
+    "engineering_repair_duration_measured": false,
+    "initial_hash_audit_wall_seconds": 8.421999999991385,
+    "latest_arithmetic_wall_seconds": 0.12975209999999998,
+    "receipt_utc": "2026-11-10T14:54:00.842423+00:00",
+    "start_utc": "2026-11-10T14:37:53+00:00"
+  },
+  "unresolved_failures": [
+    "Missing exact frozen native capture",
+    "Portable bounded numerical domain/error implementation absent",
+    "Exact witness to existing float projection/SpatialSupport/BSP contact bridge unproved",
+    "Complete opt-in modern routing and semantic/cache migration proof absent",
+    "Full downstream admission, adversarial native results and old axial regression/replay absent",
+    "No justified complete four-hour repair scope"
+  ]
+}
