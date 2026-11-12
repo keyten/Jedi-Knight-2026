@@ -71,7 +71,7 @@ def run_case(a,name,profile,index):
         cg_draw2D=0,cg_drawGun=0,cg_thirdPerson=0,con_notifytime=0)
     config.update({c:0 for c in legacy.CONSUMERS})
     (home/'openjk.cfg').write_text(''.join(f'set {k} "{v}"\n' for k,v in config.items()),encoding='ascii')
-    commands=mp_control.commands(name,legacy.CONSUMERS)
+    commands=mp_control.commands(name,legacy.LIVE_CONSUMERS)
     (home/'autoexec.cfg').write_text('\n'.join(commands)+'\n',encoding='ascii')
     command=[str(process_folder/'openjk.x86_64.exe')]
     for k in ('fs_basepath','fs_homepath','fs_game'):command+=['+set',k,config[k]]
@@ -88,7 +88,8 @@ def run_case(a,name,profile,index):
     text=(home/'qconsole.log').read_text(errors='replace')
     text=re.sub(r'\^[0-9]','',text)
     if child.returncode or 'X19_MP_DONE' not in text:raise ValueError('Incomplete MP run; inspect qconsole.log')
-    scene_control=mp_control.validate_sections(text,name,legacy.validate_consumers)
+    scene_control=mp_control.validate_sections(text,name,
+        lambda section, label, policy: legacy.validate_consumers(section, label, policy, entity_request='0'))
     images=mp_control.validate_images(home/'screenshots',compare,legacy.IMAGE_TOLERANCE)
     errors=re.findall(r'[^\r\n]*(?:GL_INVALID|GL_OUT_OF_MEMORY|GLSL shader (?:compile|link) error|FBO.*incomplete)[^\r\n]*',text)
     value=dict(status='Passed' if not errors and all(x['passed'] for x in images.values()) else 'Failed',

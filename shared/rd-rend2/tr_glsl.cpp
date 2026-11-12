@@ -4135,6 +4135,8 @@ static int GLSL_LoadGPUProgramLightAll(
 				{
 					Q_strcat(name, sizeof(name), "_GRID");
 					Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIGHT_VECTOR\n");
+					if (r_lightReconEntities->integer)
+						Q_strcat(extradefines, sizeof(extradefines), "#define USE_RECON_ENTITY_IRRADIANCE\n");
 					Q_strcat(extradefines, sizeof(extradefines), va("#define ENTITY_GRID_LDR_RANGE %d.0\n", MAXLIGHTMAPS));
 					if (useEntityGrid)
 						Q_strcat(extradefines, sizeof(extradefines), "#define USE_ENTITY_GRID\n");

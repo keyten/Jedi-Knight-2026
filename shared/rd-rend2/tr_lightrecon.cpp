@@ -208,7 +208,9 @@ static void R_LightReconEarlyCache(uint64_t ticket)
 {
 	if(s_reconstructedLighting.Report().policy==Rend2LightRecon::BuildPolicy::Disabled)return;
 	RendererWorldSource source;
-	Rend2LightRecon::NativeWorldCache cache(R_LightReconCacheRoot());
+	Rend2LightRecon::Disk::Persistent::Selection selection;
+	selection.discoverReflectedIrradiance = r_lightReconEntities && r_lightReconEntities->integer;
+	Rend2LightRecon::NativeWorldCache cache(R_LightReconCacheRoot(), selection);
 	s_reconstructedLighting.Preflight(ticket,source,&cache);
 }
 void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapTextures)
@@ -231,7 +233,9 @@ void LightReconWorldLoad::Finish(int surfaces, int gridSamples, int lightmapText
 	facts.surfaces = static_cast<uint64_t>(std::max(0, surfaces));
 	facts.gridSamples = static_cast<uint64_t>(std::max(0, gridSamples));
 	facts.lightmapTextures = static_cast<uint64_t>(std::max(0, lightmapTextures));
-	Rend2LightRecon::NativeWorldCache cache(R_LightReconCacheRoot());
+	Rend2LightRecon::Disk::Persistent::Selection selection;
+	selection.discoverReflectedIrradiance = r_lightReconEntities && r_lightReconEntities->integer;
+	Rend2LightRecon::NativeWorldCache cache(R_LightReconCacheRoot(), selection);
 	load_.Finish(facts, source, &cache);
 	// A completed build/cache hit needs no resident source images. Currently the
 	// renderer has no complete cache key/solver, so BuildRequired keeps a bounded
@@ -926,7 +930,7 @@ Rend2LightRecon::ConsumerState R_LightReconConsumer(const Rend2LightRecon::Snaps
 	Rend2LightRecon::UseSettings settings;
 	settings.master = r_lightReconUse && r_lightReconUse->integer != 0;
 #define LIGHTRECON_CONTROL(name, maximum, description)
-#define LIGHTRECON_CONSUMER(name, kind, description) settings.requested[static_cast<size_t>(Rend2LightRecon::Consumer::kind)] = name && name->integer != 0;
+#define LIGHTRECON_CONSUMER(name, kind, flags, description) settings.requested[static_cast<size_t>(Rend2LightRecon::Consumer::kind)] = name && name->integer != 0;
 #include "tr_lightrecon_cvars.inc"
 #undef LIGHTRECON_CONSUMER
 #undef LIGHTRECON_CONTROL
@@ -937,12 +941,17 @@ Rend2LightRecon::ConsumerState R_LightReconConsumer(const Rend2LightRecon::Snaps
     if (consumer == Rend2LightRecon::Consumer::Sun && settings.master &&
         settings.requested[static_cast<size_t>(consumer)])
         feature.available = R_CanonicalSunFeature() && R_SunCandidate(snapshot).canonical;
+	if (consumer == Rend2LightRecon::Consumer::Entities && settings.master &&
+		settings.requested[static_cast<size_t>(consumer)])
+		feature.available = snapshot.GetCapability(Rend2LightRecon::Capability::ReflectedIrradianceSH).status ==
+			Rend2LightRecon::Status::Ok;
     return Rend2LightRecon::EvaluateConsumer(snapshot, settings, consumer, feature);
 }
 
 void R_LightReconInfo_f(void)
 {
 	R_ResolvedSunInfo();
+	RB_EntityIrradianceInfo();
 	using namespace Rend2LightRecon;
 	const Snapshot snapshot = R_ReconstructedLighting();
 	const auto asset = snapshot.Asset();

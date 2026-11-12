@@ -65,6 +65,12 @@ void Validate(const Model &m, const Emitter &e)
 {
 	Check(SourceSupport::Validate(e.support));
 	const auto &p = e.geometry;
+	if (e.support.mountedPointPlane)
+	{
+		Need(m.law == Law::DiffuseIntegral && m.output == Output::RelativeIncident,
+			 Code::Unavailable, "Named point plane is scoped to modern relative response");
+		Check(SourceSupport::ValidateMountedPoint(e.support, p));
+	}
 	auto kind = p.kind;
 	Need(p.source.id && p.source.state == HypothesisState::Candidate && p.position.known &&
 			 Finite(p.position.world) && Positive(e.rgbAmplitude),
@@ -406,6 +412,7 @@ Error EmissionNodes(const PhysicalEmitter&p,const SourceSupport::Contract&suppor
 	const ReadContext&read,std::vector<EmissionNode>&out)
 {
 	out.clear();try{Cancel(read);
+		Need(!support.mountedPointPlane, Code::Unavailable, "Named point plane is not a field or shadow support");
 		Need(s.areaDivisions&&s.areaDivisions<=32&&s.tubeSides>=4&&s.tubeSides<=64&&s.tubeSegments&&s.tubeSegments<=32,Code::InvalidInput,"Emission quadrature bounds");
 		Emitter e;e.geometry=p;e.geometry.source.state=HypothesisState::Candidate;e.support=support;e.rgbAmplitude=Vec3(1,1,1);Model m;m.law=Law::DiffuseIntegral;Validate(m,e);
 		auto nodes=Nodes(e,s,false);Need(nodes.size()*sizeof(EmissionNode)<=(read.maxBytes?read.maxBytes:32ull<<20),Code::MemoryLimit,"Emission nodes memory");

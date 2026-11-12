@@ -96,10 +96,20 @@ struct Rig
 		input = scene.Input();
 		topology = scene.Build(input);
 	}
-	void Rebuild()
+	void Rebuild(bool regions = false)
 	{
-		input = scene.Input();
+		input = scene.Input(regions);
 		topology = scene.Build(input);
+		if (regions)
+			for (const auto &region : input.regions->Regions())
+			{
+				GeometryRegion record;
+				record.id = region.id;
+				record.provenance = asset.provenance;
+				record.key = "owned-region/" + std::to_string(region.id);
+				record.bounds = region.bounds;
+				asset.regions.push_back(record);
+			}
 	}
 	F::Request Request()
 	{
@@ -568,7 +578,7 @@ int main(int argc, char **argv)
 			  Status::Unsupported);
 		Rig gi;
 		gi.scene.Quad(Vec3(-1, -1, 4), Vec3(-1, 1, 4), Vec3(1, 1, 4), Vec3(1, -1, 4));
-		gi.Rebuild();
+		gi.Rebuild(true);
 		gi.asset.emitters.push_back(
 			Emitter(10, EmitterKind::Point, Vec3(0, 0, 2), Vec3(400, 400, 400)));
 		auto gq = gi.Request();
@@ -590,6 +600,49 @@ int main(int argc, char **argv)
 		auto physicalGI = manager.Acquire().SampleIndirect(iq);
 		CHECK(physicalGI && physicalGI.value.unit == PhotometricUnit::Lux);
 		CHECK(manager.Acquire().SampleIncomingRadiance(rq).status == Status::Unavailable);
+		CHECK(manager.Acquire().SampleReflectedIrradianceSH(iq.positionWorld).status == Status::Unavailable);
+		auto gpuRequest = gq;
+		gpuRequest.options.degree = 2;
+		gpuRequest.options.maximumRelativeAngularRMSE = .25;
+		auto gpuField = Build(gpuRequest);
+		std::shared_ptr<const F::Prepared> gpuEvaluator;
+		Check(F::Prepare(gpuField, ReadContext(), gpuEvaluator));
+		Manager gpuManager;
+		CHECK(gpuManager.Publish(gpuField.asset, Completeness::Partial, gpuEvaluator) == Status::Ok);
+		const auto gpu = gpuManager.Acquire().SampleReflectedIrradianceSH(iq.positionWorld);
+		CHECK(gpu && gpu.value.degree == 2 && gpu.value.region && gpu.value.cell);
+		const auto scalar = gpuManager.Acquire().SampleIndirect(iq);
+		double basis[9]{}, rgb[3]{};
+		CHECK(Angular::BasisInto({{iq.normalWorld.x, iq.normalWorld.y, iq.normalWorld.z}}, 2, basis, 9) ==
+			Angular::Code::Ok);
+		for (int k = 0; k < 9; ++k)
+		{
+			rgb[0] += basis[k] * gpu.value.coefficients[k].x;
+			rgb[1] += basis[k] * gpu.value.coefficients[k].y;
+			rgb[2] += basis[k] * gpu.value.coefficients[k].z;
+		}
+		CHECK(scalar && std::abs(rgb[0] - scalar.value.rgb.x) < 1e-5 &&
+			std::abs(rgb[1] - scalar.value.rgb.y) < 1e-5 && std::abs(rgb[2] - scalar.value.rgb.z) < 1e-5);
+		auto inadmissible = gpuField.asset.transport.back();
+		CHECK(F::SupportsReflectedIrradiance(gpuField.asset, inadmissible));
+		inadmissible.membership.directLocal = FieldMembership::Included;
+		CHECK(!F::SupportsReflectedIrradiance(gpuField.asset, inadmissible));
+		inadmissible = gpuField.asset.transport.back();
+		inadmissible.membership.directSun = FieldMembership::Unknown;
+		CHECK(!F::SupportsReflectedIrradiance(gpuField.asset, inadmissible));
+		inadmissible = gpuField.asset.transport.back();
+		inadmissible.membership.configuration = 100;
+		CHECK(!F::SupportsReflectedIrradiance(gpuField.asset, inadmissible));
+		inadmissible = gpuField.asset.transport.back();
+		inadmissible.membership.profile = "unknown";
+		CHECK(!F::SupportsReflectedIrradiance(gpuField.asset, inadmissible));
+		inadmissible = gpuField.asset.transport.back();
+		inadmissible.source.hypothesisGroup = 50;
+		CHECK(!F::SupportsReflectedIrradiance(gpuField.asset, inadmissible));
+		inadmissible = gpuField.asset.transport.back();
+		inadmissible.unit = PhotometricUnit::Relative;
+		CHECK(!F::SupportsReflectedIrradiance(gpuField.asset, inadmissible));
+		CHECK(gpuManager.Acquire().SampleReflectedIrradianceSH(Vec3(100, 100, 100)).status == Status::Unavailable);
 		// Independent positions and dense area quadrature for the same rho*E0/pi
 		// patch.
 		auto reflector = Emitter(99, EmitterKind::Rectangle, Vec3(0, 0, 4),

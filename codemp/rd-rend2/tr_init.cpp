@@ -155,7 +155,7 @@ cvar_t	*r_volumetricFogLightTile;
 cvar_t	*r_volumetricFogLightCompute;
 cvar_t	*r_volumetricFogStaticScale;
 #define LIGHTRECON_CONTROL(name, maximum, description) cvar_t *name;
-#define LIGHTRECON_CONSUMER(name, kind, description) cvar_t *name;
+#define LIGHTRECON_CONSUMER(name, kind, flags, description) cvar_t *name;
 #include "tr_lightrecon_cvars.inc"
 #undef LIGHTRECON_CONSUMER
 #undef LIGHTRECON_CONTROL

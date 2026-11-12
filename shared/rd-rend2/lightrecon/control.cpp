@@ -53,7 +53,9 @@ Status ConsumerCapability(const Snapshot& snapshot, Consumer consumer)
 	{
 	case Consumer::Fog: case Consumer::Specular: case Consumer::Particles:
 		return snapshot.GetCapability(Capability::IncomingRadianceSampling).status;
-	case Consumer::Entities: case Consumer::Indirect:
+	case Consumer::Entities:
+		return snapshot.GetCapability(Capability::ReflectedIrradianceSH).status;
+	case Consumer::Indirect:
 		return snapshot.GetCapability(Capability::IndirectSampling).status;
 	case Consumer::WorldDiffuse: return EmitterCapability(snapshot, false);
 	case Consumer::Area: return EmitterCapability(snapshot, true);
@@ -140,7 +142,7 @@ const char* ConsumerCvar(Consumer consumer)
 	switch (consumer)
 	{
 #define LIGHTRECON_CONTROL(name, maximum, description)
-#define LIGHTRECON_CONSUMER(name, kind, description) case Consumer::kind: return #name;
+#define LIGHTRECON_CONSUMER(name, kind, flags, description) case Consumer::kind: return #name;
 #include "../tr_lightrecon_cvars.inc"
 #undef LIGHTRECON_CONSUMER
 #undef LIGHTRECON_CONTROL

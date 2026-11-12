@@ -330,10 +330,22 @@ def production_audit():
             if path.name.startswith(('tr_lightrecon_types.', 'tr_lightrecon_api.', 'tr_lightrecon_manager.')):
                 continue
             text = strip_comments(path.read_text(encoding='utf-8', errors='replace'))
+            c04_backend = (
+                (text.find('using namespace Rend2LightRecon;\nconstexpr unsigned kEntityIrradianceCacheSize'),
+                 text.find('static void RB_UpdateEntityLightConstants')),
+                (text.find('static void RB_UpdateEntityConstants'), text.find('static void RB_UpdateGhoul2Constants')),
+            ) if path.name == 'tr_backend.cpp' else ()
             for m in re.finditer(r'\br_lightRecon\w+|\bRend2LightRecon\b|\bR_LightReconConsumer\s*\(|\bR_ReconstructedLighting\s*\(', text):
                 if m[0] in ('r_lightReconInfo', 'r_lightReconLuxels', 'r_lightReconObservations', 'r_lightReconEvidence', 'r_lightReconExport', 'r_lightReconPreview', 'r_lightReconDebug') and path.name == 'tr_init.cpp':
                     continue # diagnostic command registration, not a feature input
                 if shared_emission_utility(relative, text, m.start()):
+                    continue
+                if any(0 <= start <= m.start() < end for start, end in c04_backend):
+                    if m[0] in ('Rend2LightRecon', 'r_lightReconEntities', 'r_lightReconUse', 'R_ReconstructedLighting('):
+                        continue
+                if path.name == 'tr_glsl.cpp' and m[0] == 'r_lightReconEntities' and re.match(
+                        r'r_lightReconEntities->integer\)\s*Q_strcat\([^\n]+USE_RECON_ENTITY_IRRADIANCE',
+                        text[m.start():]):
                     continue
                 line = text[:m.start()].count('\n') + 1
                 failures.append(f'{relative}:{line}: canonical GPU consumer dependency {m[0]}; extend disabled-path coverage before integration')

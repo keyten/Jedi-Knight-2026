@@ -475,6 +475,8 @@ Error Build(const Request &r, const ReadContext &read, Artifact &out)
 			Need(s.source && supports.insert(s.source).second && Emitter(*r.asset, s.source),
 				 Code::InvalidInput, "Duplicate/unknown mounting support");
 			Check(Rend2LightRecon::Core::SourceSupport::Validate(s.geometry));
+			Need(!s.geometry.mountedPointPlane, Code::Unavailable,
+				 "Named point plane is not a shadow cache support");
 		}
 		if (r.previous)
 			Check(Validate(*r.previous, read));

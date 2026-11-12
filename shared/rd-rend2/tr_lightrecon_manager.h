@@ -20,6 +20,7 @@ public:
 	virtual Status AcceptsAsset(const ReconstructedLightingAsset &) const;
 	virtual Status Supports(Capability capability) const;
 	virtual Status Indirect(const ReconstructedLightingAsset&, const IrradianceQuery&, LightingSample&) const;
+	virtual Status ReflectedIrradianceSH(const Vec3&, IrradianceSHSample&) const;
 	virtual Status IncomingRadiance(const ReconstructedLightingAsset&, const RadianceQuery&, LightingSample&) const;
 	virtual Status ConditionalField(const ReconstructedLightingAsset&, const ConditionalFieldQuery&, ConditionalFieldSample&) const;
 	virtual Status RegionAt(const ReconstructedLightingAsset&, const Vec3&, Id&) const;

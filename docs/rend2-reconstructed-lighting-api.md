@@ -27,6 +27,7 @@ dataset locator, allocates graphics resources or changes renderer state.
 | `GetSource`, `GetEmitter`, `GetRegion` | Indexed ID lookup with generation checking |
 | `Quality` | Const source evidence and optional emitter record containing position/intensity uncertainty |
 | `SampleIndirect` | Prepared indirect irradiance for a world point and unit surface normal |
+| `SampleReflectedIrradianceSH` | Prepared L0–L2 RGB coefficients in the canonical world-space real SH basis, in lux. Returns the source, calibration and certified receiver cell/region for the uniquely admitted authored reflected field. |
 | `SampleIncomingRadiance` | Prepared incident radiance for a point and receiver-to-source unit direction |
 | `LookupRegion` | Exact prepared geometry-region classification; no AABB-as-region fallback |
 | `QueryVisibility` | Prepared scalar transmittance along an explicit finite receiver-to-target segment |

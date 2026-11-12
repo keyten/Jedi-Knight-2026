@@ -129,6 +129,8 @@ struct Artifact
 // On failure only work/diagnostic receipts survive; no asset or values are published.
 Error Build(const Request &, const ReadContext &, Artifact &);
 Disk::Digest SourceIdentity(const ReconstructedLightingAsset &);
+// Load-time admission for the reflected-only, authored diffuse adapter.
+bool SupportsReflectedIrradiance(const ReconstructedLightingAsset &, const TransportField &);
 // Actual passive first-bounce spatial lift uses rho*fixed-root E0/pi on
 // original disjoint patch triangles; scalar E1 is never inverted into angular
 // radiance.
@@ -147,6 +149,7 @@ class Prepared final : public CpuEvaluator
 	Status Supports(Capability) const override;
 	Status Indirect(const ReconstructedLightingAsset &, const IrradianceQuery &,
 					LightingSample &) const override;
+	Status ReflectedIrradianceSH(const Vec3 &, IrradianceSHSample &) const override;
 	Status IncomingRadiance(const ReconstructedLightingAsset &, const RadianceQuery &,
 							LightingSample &) const override;
 	Status ConditionalField(const ReconstructedLightingAsset &, const ConditionalFieldQuery &,

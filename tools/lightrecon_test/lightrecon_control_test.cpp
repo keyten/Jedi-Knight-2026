@@ -258,7 +258,7 @@ struct Registration
 	{ CHECK(minimum == 0); CHECK(integral); c->maximum = maximum; }
 };
 #define LIGHTRECON_CONTROL(name, maximum, description) cvar_t *name;
-#define LIGHTRECON_CONSUMER(name, kind, description) cvar_t *name;
+#define LIGHTRECON_CONSUMER(name, kind, flags, description) cvar_t *name;
 #include "../../shared/rd-rend2/tr_lightrecon_cvars.inc"
 #undef LIGHTRECON_CONSUMER
 #undef LIGHTRECON_CONTROL
@@ -289,7 +289,8 @@ void Registrations()
 	{
 		const auto& s = SP::ri.records[i]; const auto& m = MP::ri.records[i];
 		CHECK(s.name == m.name); CHECK(s.value == "0" && m.value == "0");
-		CHECK(s.flags == CVAR_ARCHIVE && m.flags == CVAR_ARCHIVE); CHECK(!(s.flags & CVAR_LATCH));
+		const int flags = CVAR_ARCHIVE | (s.name == "r_lightReconEntities" ? CVAR_LATCH : 0);
+		CHECK(s.flags == flags && m.flags == flags);
 		CHECK(s.maximum == (i == 0 ? 3 : 1) && m.maximum == s.maximum);
 		CHECK(s.description.empty()); CHECK(!m.description.empty());
 		if (i >= 2) CHECK(s.name == ConsumerCvar(static_cast<Consumer>(i - 2)));

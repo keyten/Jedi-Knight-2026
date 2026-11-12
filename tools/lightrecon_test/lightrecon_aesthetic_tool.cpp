@@ -272,13 +272,8 @@ int main(int argc, char **argv)
 				e.support.provenance = "Explicit supplied fixture point anchor";
 				if (kind == "mounted-point")
 				{
-					// ASR24 adapter only: existing admission verifies the named mount,
-					// projected contact, source side, occupied support and world solids.
-					Check(SourceSupport::FromSurfaces(source.geometry, *visibility, {ordinal},
-													 id, read, e.support));
-					e.support.kind = SourceSupport::Kind::MountedPoint;
-					e.support.maximumStandOffWorld = 8;
-					e.support.provenance += "; ASR24 fixed <=8 WU fixture-local point approximation";
+					Check(SourceSupport::FromMountedPointSurface(source.geometry, *visibility, ordinal,
+												 id, e.geometry.position.world, 8, read, e.support));
 				}
 			}
 			else if (kind == "surface" || kind == "surface-mesh")
@@ -469,6 +464,12 @@ int main(int argc, char **argv)
 				Q(PointRefine::ConstraintName(s.placement.placement.state));
 				std::cout << ",\"placement_reason\":";
 				Q(s.placement.reason);
+				if (s.emitter.support.mountedPointPlane)
+				{
+					std::cout << ",\"support_key\":";
+					Q(Disk::Hex(s.placement.key));
+					std::cout << ",\"support_visual_issues\":" << s.placement.visualIssues;
+				}
 				std::cout << '}';
 			}
 			std::cout << "]}";

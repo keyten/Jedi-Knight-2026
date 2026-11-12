@@ -249,7 +249,7 @@ extern cvar_t	*r_volumetricFogLightTile;
 extern cvar_t	*r_volumetricFogLightCompute;
 extern cvar_t	*r_volumetricFogStaticScale;
 #define LIGHTRECON_CONTROL(name, maximum, description) extern cvar_t *name;
-#define LIGHTRECON_CONSUMER(name, kind, description) extern cvar_t *name;
+#define LIGHTRECON_CONSUMER(name, kind, flags, description) extern cvar_t *name;
 #include "tr_lightrecon_cvars.inc"
 #undef LIGHTRECON_CONSUMER
 #undef LIGHTRECON_CONTROL
@@ -1597,6 +1597,8 @@ struct EntityBlock
 	vec4_t gridParams;       // lower Z, inverse height, mode, forced linear
 	vec4_t gridMinimum;      // additive RGB, LDR ambient clamp
 	vec4_t gridScale;        // ambient scale, directed scale, HDR grid, debug
+	// With gridMinimum.w < 0 these same nine slots carry reflected SH.
+	// No extra Entity UBO bytes or texture bindings are needed.
 	vec4_t entitySun;        // r_entitySunLight: sun rgb, 1 = split (0 = legacy light)
 	bool operator == (const EntityBlock &other) const
 	{
@@ -5662,6 +5664,7 @@ LIGHTS
 void R_DlightBmodel( bmodel_t *bmodel, trRefEntity_t *ent );
 void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent );
 void R_UpdateEntityLightGridTextures(world_t *world);
+void RB_EntityIrradianceInfo(void);
 void R_BuildLightGridColorTexture(world_t *world);
 void R_TransformDlights( int count, dlight_t *dl, orientationr_t *ori );
 int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );

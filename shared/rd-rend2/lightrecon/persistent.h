@@ -19,6 +19,7 @@ struct Selection
 {
 	std::vector<Item> fields, visibility;
 	bool contributions = false;
+	bool discoverReflectedIrradiance = false; // world-load opt-in, at most one authored field
 	uint64_t maxPreparedBytes = 128ull << 20;
 };
 struct Work

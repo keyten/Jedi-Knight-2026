@@ -6,6 +6,7 @@
 #include "geometry_key.h"
 #include "source_orientation.h"
 #include <algorithm>
+#include <array>
 #include <set>
 namespace Rend2LightRecon
 {
@@ -14,6 +15,15 @@ namespace Core
 namespace SourceSupport
 {
 using namespace Bake::Detail;
+struct MountedPointPlane
+{
+	static constexpr uint32_t version = 1;
+	std::shared_ptr<const SurfaceGeometry> source;
+	uint32_t ordinal = 0;
+	Id fixture = 0;
+	Vec3 anchor, outward, position;
+	Disk::Digest evidence{};
+};
 namespace
 {
 void Need(bool b, Code c, const char *s)
@@ -40,6 +50,222 @@ bool Mounted(const Contract &c)
 {
 	return c.mountKnown || c.kind == Kind::MountedPoint || c.kind == Kind::MountedSpot ||
 		   c.kind == Kind::OriginalSurface || c.kind == Kind::RecessedRectangle;
+}
+bool Same(Vec3 a, Vec3 b)
+{
+	return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+void Include(Bounds &b, Vec3 p)
+{
+	b.minWorld = Vec3(std::min(b.minWorld.x, p.x), std::min(b.minWorld.y, p.y),
+					 std::min(b.minWorld.z, p.z));
+	b.maxWorld = Vec3(std::max(b.maxWorld.x, p.x), std::max(b.maxWorld.y, p.y),
+					 std::max(b.maxWorld.z, p.z));
+}
+Id OriginalPrimitive(Id surface, size_t triangle)
+{
+	return (surface << 32) | Id(triangle + 1);
+}
+void Spend(const ReadContext &read, uint64_t limit, uint64_t &work)
+{
+	Need(!Cancelled(read), Code::Cancelled, "Source support cancelled");
+	Need(work < limit, Code::WorkLimit, "Named point plane work budget");
+	++work;
+}
+
+// Exact predicates for a bounded dyadic subset of original BSP coordinates.
+// A 512 WU span on the 1/256 lattice gives |edge| <= 2^17, so a cross
+// product has components <= 2^35 and the second cross <= 2^53. Dots
+// against the finer point lattice additionally check their integer range.
+using Int3 = std::array<int64_t, 3>;
+using IntTriangle = std::array<Int3, 3>;
+constexpr int kVertexBits = 8, kPointBits = 24;
+constexpr int64_t kSpan = int64_t(512) << kVertexBits;
+constexpr int64_t kPointFactor = int64_t(1) << (kPointBits - kVertexBits);
+bool Lattice(Vec3 p, int bits, Int3 &out)
+{
+	V v(p);
+	for (unsigned i = 0; i < 3; ++i)
+	{
+		if (!std::isfinite(v[i]) || std::abs(v[i]) > 1048576)
+			return false;
+		double x = std::ldexp(v[i], bits);
+		if (std::trunc(x) != x)
+			return false;
+		out[i] = int64_t(x);
+	}
+	return true;
+}
+Int3 Difference(const Int3 &a, const Int3 &b)
+{
+	return {{a[0] - b[0], a[1] - b[1], a[2] - b[2]}};
+}
+Int3 PointDifference(const Int3 &p, const Int3 &v)
+{
+	return {{p[0] - v[0] * kPointFactor, p[1] - v[1] * kPointFactor,
+			 p[2] - v[2] * kPointFactor}};
+}
+Int3 IntegerCross(const Int3 &a, const Int3 &b)
+{
+	return {{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
+			 a[0] * b[1] - a[1] * b[0]}};
+}
+void Reduce(Int3 &a)
+{
+	int64_t divisor = 0;
+	for (int64_t value : a)
+		for (int64_t b = std::abs(value); b;)
+		{
+			int64_t remainder = divisor % b;
+			divisor = b;
+			b = remainder;
+		}
+	if (divisor > 1)
+		for (auto &value : a)
+			value /= divisor;
+}
+bool IntegerDot(const Int3 &a, const Int3 &b, int64_t &out)
+{
+	int64_t room = std::numeric_limits<int64_t>::max();
+	out = 0;
+	for (unsigned i = 0; i < 3; ++i)
+	{
+		int64_t x = std::abs(a[i]), y = std::abs(b[i]);
+		if (x && y > room / x)
+			return false;
+		room -= x * y;
+		out += a[i] * b[i];
+	}
+	return true;
+}
+bool WithinStandOff(int64_t positiveDot, const Int3 &n, double maximum)
+{
+	static_assert(std::numeric_limits<double>::is_iec559 &&
+				  std::numeric_limits<double>::digits == 53, "Binary64 mount distance bounds");
+	// Compare squared distances with outward rounding. The dot and normal
+	// already have exact integer signs. An inconclusive comparison refuses.
+	double upper = std::ldexp(std::nextafter(double(positiveDot),
+											   std::numeric_limits<double>::infinity()), -kPointBits);
+	double heightSquared = std::nextafter(upper * upper, std::numeric_limits<double>::infinity());
+	double normSquaredLower = 0;
+	for (int64_t component : n)
+	{
+		double x = double(component);
+		normSquaredLower = std::nextafter(normSquaredLower + std::nextafter(x * x, 0.), 0.);
+	}
+	double limitSquared = std::nextafter(maximum * maximum, 0.);
+	return heightSquared <= std::nextafter(limitSquared * normSquaredLower, 0.);
+}
+int64_t EdgeSide(const Int3 &a, const Int3 &b, const Int3 &p, unsigned x, unsigned y)
+{
+	return (b[x] - a[x]) * (p[y] - a[y]) - (b[y] - a[y]) * (p[x] - a[x]);
+}
+bool SeparatesInteriors(const IntTriangle &a, const IntTriangle &b, unsigned x, unsigned y)
+{
+	for (unsigned i = 0; i < 3; ++i)
+	{
+		const auto &v = a[i], &w = a[(i + 1) % 3];
+		bool left = EdgeSide(v, w, a[(i + 2) % 3], x, y) > 0;
+		if (std::all_of(b.begin(), b.end(), [&](const Int3 &p) {
+				int64_t side = EdgeSide(v, w, p, x, y);
+				return left ? side <= 0 : side >= 0;
+			}))
+			return true;
+	}
+	return false;
+}
+
+struct PointProjection
+{
+	PointRefine::Constraint failure;
+	const char *reason;
+};
+PointProjection ProveProjection(const MountedPointPlane &w, double maximumStandOff,
+								uint64_t maxWork, const ReadContext &read, uint64_t &work)
+{
+	using C = PointRefine::Constraint;
+	const auto &s = w.source->Surfaces()[w.ordinal];
+	const PointProjection outsideDomain{C::UnknownGeometry, "Named point mount outside exact lattice domain"};
+	const PointProjection nonplanar{C::UnknownGeometry, "Named point mount is not an exact planar union"};
+	std::array<IntTriangle, 64> triangles;
+	Need(sizeof(triangles) <= read.maxBytes, Code::MemoryLimit, "Named point plane scratch budget");
+	size_t count = s.indices.size() / 3;
+	Int3 point, lo, hi;
+	if (!Lattice(w.position, kPointBits, point) || !Lattice(w.anchor, kVertexBits, lo))
+		return outsideDomain;
+	hi = lo;
+	for (size_t t = 0; t < count; ++t)
+	{
+		Spend(read, maxWork, work);
+		for (unsigned j = 0; j < 3; ++j)
+		{
+			auto &p = triangles[t][j];
+			if (!Lattice(s.vertices[s.indices[3 * t + j]].position, kVertexBits, p))
+				return outsideDomain;
+			for (unsigned k = 0; k < 3; ++k)
+			{
+				lo[k] = std::min(lo[k], p[k]);
+				hi[k] = std::max(hi[k], p[k]);
+				if (hi[k] - lo[k] > kSpan)
+					return outsideDomain;
+			}
+		}
+	}
+	const auto &anchor = triangles[0][0];
+	Int3 n = IntegerCross(Difference(triangles[0][1], anchor), Difference(triangles[0][2], anchor));
+	unsigned axis = 0;
+	for (unsigned k = 1; k < 3; ++k)
+		if (std::abs(n[k]) > std::abs(n[axis]))
+			axis = k;
+	if (!n[axis] || !V(w.outward)[axis])
+		return nonplanar;
+	if ((n[axis] > 0) != (V(w.outward)[axis] > 0))
+		for (auto &component : n)
+			component = -component;
+	Reduce(n);
+	int64_t dot;
+	bool inside = false;
+	for (size_t i = 0; i < count; ++i)
+	{
+		Spend(read, maxWork, work);
+		const auto &t = triangles[i];
+		for (const auto &v : t)
+			if (!IntegerDot(n, Difference(v, anchor), dot) || dot != 0)
+				return nonplanar;
+		unsigned x = (axis + 1) % 3, y = (axis + 2) % 3;
+		int64_t winding = EdgeSide(t[0], t[1], t[2], x, y);
+		if (!winding)
+			return nonplanar;
+		for (size_t j = 0; j < i; ++j)
+		{
+			Spend(read, maxWork, work);
+			if (!SeparatesInteriors(t, triangles[j], x, y) && !SeparatesInteriors(triangles[j], t, x, y))
+				return {C::UnknownGeometry, "Overlapping named point mount triangles"};
+		}
+		bool covered = true;
+		for (unsigned j = 0; j < 3; ++j)
+		{
+			// Cross(n, edge) is tangent to the plane, so evaluating this
+			// edge at p gives the same sign as at its orthogonal projection.
+			Int3 inward = IntegerCross(n, Difference(t[(j + 1) % 3], t[j]));
+			Reduce(inward);
+			if (!IntegerDot(inward, PointDifference(point, t[j]), dot))
+				return outsideDomain;
+			covered &= (winding > 0) == (n[axis] > 0) ? dot >= 0 : dot <= 0;
+		}
+		inside |= covered;
+	}
+	if (!IntegerDot(n, PointDifference(point, anchor), dot))
+		return outsideDomain;
+	if (dot <= 0 || !WithinStandOff(dot, n, maximumStandOff))
+		return {C::Mount, "Named point must be strictly outward within its declared stand-off"};
+	// The existing response path uses the float direction to detect an on-plane
+	// endpoint. Prove that rule cannot be active for the witnessed point.
+	if (Dot(V(w.outward), V(w.position) - V(w.anchor)) <= 0)
+		return {C::Mount, "Named point is too close to distinguish from a contact endpoint"};
+	if (!inside)
+		return {C::Mount, "Point projection lies outside its named fixture"};
+	return {C::Free, nullptr};
 }
 double Round(V p)
 {
@@ -279,6 +505,12 @@ Disk::Digest Key(const Contract &c)
 				k.V(c.original.data[i].world[j]);
 				k.V(c.original.data[i].normal[j]);
 			}
+	if (c.mountedPointPlane)
+	{
+		Text(k, "named-fixed-point-plane");
+		k.U(MountedPointPlane::version);
+		k.Digest(c.mountedPointPlane->evidence);
+	}
 	return k.Finish();
 }
 Error Validate(const Contract &c)
@@ -289,6 +521,16 @@ Error Validate(const Contract &c)
 		c.frontClearanceWorld < 0 || !std::isfinite(c.maximumStandOffWorld) ||
 		c.maximumStandOffWorld < 0)
 		return Failure(Code::InvalidInput, "Invalid source support contract");
+	if (c.mountedPointPlane)
+	{
+		const auto &w = *c.mountedPointPlane;
+		if (c.kind != Kind::MountedPoint || !c.mountKnown || c.twoSidedAttested ||
+			c.frontClearanceWorld != 0 || c.maximumStandOffWorld <= 0 || c.original.count ||
+			!c.triangleSurfaces.empty() || c.fixture != w.fixture || c.surfaces.size() != 1 ||
+			c.surfaces[0] != Id(w.ordinal) + 1 || c.map != w.source->Map().sha256 ||
+			!Same(c.anchorWorld, w.anchor) || !Same(c.outward, w.outward))
+			return Failure(Code::InvalidInput, "Fixed point plane does not match its original witness");
+	}
 	if (c.kind == Kind::LegacyVacuum)
 		return {};
 	if (c.provenance.empty() || c.map == Disk::Digest{} || c.geometry == Disk::Digest{})
@@ -316,9 +558,19 @@ Error Validate(const Contract &c)
 				return Failure(Code::InvalidInput, "Original emission geometry invalid");
 	return {};
 }
+Error ValidateMountedPoint(const Contract &c, const PhysicalEmitter &e)
+{
+	if (c.mountedPointPlane &&
+		(e.kind != EmitterKind::Point || e.angular.kind != AngularKind::Isotropic || e.angular.twoSided ||
+		 !e.position.known || !Same(e.position.world, c.mountedPointPlane->position) ||
+		 e.source.id != c.fixture || (e.geometry.effectiveRadiusWorld.known &&
+									e.geometry.effectiveRadiusWorld.value != 0)))
+		return Failure(Code::InvalidInput, "Named point plane requires its fixed isotropic point");
+	return {};
+}
 Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementProvider &placement,
 			const PhysicalEmitter &before, const PhysicalEmitter &e, const Contract &c,
-			const ReadContext &read, Result &out)
+			const ReadContext &read, Result &out, Admission admission)
 {
 	out = {};
 	out.key = Key(c);
@@ -331,6 +583,15 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 				 scene.geometry->CertificationKey() == placement.GeometryKey() &&
 				 c.map == placement.MapKey() && c.geometry == placement.GeometryKey(),
 			 Code::InvalidState, "Stale source support generation");
+		const auto *witness = c.mountedPointPlane.get();
+		if (witness)
+		{
+			Need(admission == Admission::ModernFixedPoint, Code::Unavailable,
+				 "Named point plane is scoped to modern appearance admission");
+			Need(scene.originalSurfaces == witness->source && scene.geometry->BuiltFrom(witness->source),
+				 Code::InvalidState, "Stale original point mount geometry or orientation lease");
+			Must(ValidateMountedPoint(c, e));
+		}
 		auto reject = [&](PointRefine::Constraint state, const char *reason) {
 			out.reason = reason;
 			out.placement.state = state;
@@ -392,6 +653,15 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 				   "Non-vacuum source motion requires a new swept-support certificate");
 			return {};
 		}
+		if (witness)
+		{
+			auto projected = ProveProjection(*witness, c.maximumStandOffWorld, scene.maxWorkPerCheck, read, out.work);
+			if (projected.reason)
+			{
+				reject(projected.failure, projected.reason);
+				return {};
+			}
+		}
 		auto supports = Supports(e, c);
 		std::vector<std::vector<Vec3>> emission;
 		double scale = 1;
@@ -416,8 +686,8 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 			}
 		}
 		double error = 128 * std::numeric_limits<double>::epsilon() * (1 + scale);
-		out.contactErrorWorld = error;
-		V normal(c.outward);
+		out.contactErrorWorld = witness ? 0 : error;
+	V normal = witness ? V() : V(c.outward);
 		double plane = Dot(normal, V(c.anchorWorld));
 		if (Mounted(c) && rectangle && Dot(normal, V(e.frame.forward)) < 1 - 1e-6)
 		{
@@ -431,7 +701,7 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 				   "Mounted spotlight axis points into its support");
 			return {};
 		}
-		if (Mounted(c) && !tube)
+		if (Mounted(c) && !tube && !witness)
 			for (const auto &polygon : emission)
 				for (auto p : polygon)
 				{
@@ -466,15 +736,55 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 								   std::max(bounds.maxWorld.y, c.anchorWorld.y),
 								   std::max(bounds.maxWorld.z, c.anchorWorld.z));
 		}
+		Bounds queryBounds = bounds;
+		if (witness)
+		{
+			const auto &s = witness->source->Surfaces()[witness->ordinal];
+			for (auto i : s.indices)
+			{
+				Spend(read, scene.maxWorkPerCheck, out.work);
+				Include(queryBounds, s.vertices[i].position);
+			}
+			Need(out.work < scene.maxWorkPerCheck, Code::WorkLimit, "Named point extraction work budget");
+		}
 		LocalGeometry local;
-		Must(scene.geometry->ExtractBox(bounds, read, 4096, scene.maxWorkPerCheck, local));
+		Must(scene.geometry->ExtractBox(queryBounds, read, 4096, scene.maxWorkPerCheck - out.work, local));
 		out.work += local.work;
+		out.visualIssues = local.issues;
 		if (!local.coverageComplete)
 		{
 			reject(PointRefine::Constraint::UnknownGeometry, "Incomplete local visual support");
 			return {};
 		}
+		if (witness)
+		{
+			const auto &s = witness->source->Surfaces()[witness->ordinal];
+			size_t matched = 0;
+			for (const auto &t : local.triangles)
+			{
+				Spend(read, scene.maxWorkPerCheck, out.work);
+				if (t.surface != c.surfaces[0])
+					continue;
+				bool exact = matched < s.indices.size() / 3 &&
+							 t.primitive == OriginalPrimitive(t.surface, matched) &&
+							 t.optical == ObstacleKind::Opaque && t.errorWorld == 0;
+				for (unsigned j = 0; exact && j < 3; ++j)
+					exact = Same(t.geometry.verticesWorld[j], s.vertices[s.indices[3 * matched + j]].position);
+				if (!exact)
+				{
+					reject(PointRefine::Constraint::UnknownGeometry, "Named point mount primitive or optics mismatch");
+					return {};
+				}
+				++matched;
+			}
+			if (matched != s.indices.size() / 3)
+			{
+				reject(PointRefine::Constraint::UnknownGeometry, "Named point mount primitives missing");
+				return {};
+			}
+		}
 		std::vector<const VisibilityTriangle *> mount;
+		if (!witness)
 		for (const auto &t : local.triangles)
 			if (std::find(c.surfaces.begin(), c.surfaces.end(), t.surface) != c.surfaces.end())
 			{
@@ -499,7 +809,7 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 				if (Mounted(c) && onPlane)
 					mount.push_back(&t);
 			}
-		if (Mounted(c) && mount.empty())
+		if (!witness && Mounted(c) && mount.empty())
 		{
 			reject(PointRefine::Constraint::UnknownGeometry,
 				   "Named mounting surface absent at declared contact plane");
@@ -542,7 +852,7 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 		}
 
 		// Check the projected emission footprint against actual named triangles.
-		if (Mounted(c))
+		if (!witness && Mounted(c))
 		{
 			for (size_t i = 0; i < mount.size(); ++i)
 				for (size_t j = i + 1; j < mount.size(); ++j)
@@ -640,7 +950,7 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 			Need(!Cancelled(read), Code::Cancelled, "Source support cancelled");
 			Need(out.work < scene.maxWorkPerCheck, Code::WorkLimit,
 				 "Source support cumulative work");
-			if (Mounted(c))
+			if (!witness && Mounted(c))
 			{
 				s.contactPlaneKnown = true;
 				s.contactNormal = c.outward;
@@ -684,7 +994,24 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 				}
 			}
 
-		for (const auto &t : local.triangles)
+		if (witness)
+		{
+			Need(out.work < scene.maxWorkPerCheck, Code::WorkLimit, "Named point visual work budget");
+			GeometryBoxResult occupied;
+			Must(scene.geometry->OverlapBox(BoundsOf(supports[0]), read, occupied,
+											 scene.maxWorkPerCheck - out.work));
+			out.work += occupied.work;
+			out.visualIssues |= occupied.issues;
+			if (!occupied.coverageComplete || occupied.intersects)
+			{
+				bool unknown = !occupied.coverageComplete ||
+							   (occupied.issues & (OpticalUnknown | UnsupportedGeometry | PatchApproximation));
+				reject(unknown ? PointRefine::Constraint::UnknownGeometry : PointRefine::Constraint::Clearance,
+					   "Occupied point intersects or lacks complete visual geometry");
+				return {};
+			}
+		}
+		else for (const auto &t : local.triangles)
 		{
 			Need(++out.work <= scene.maxWorkPerCheck, Code::WorkLimit,
 				 "Source visual support budget");
@@ -788,11 +1115,12 @@ Error Check(const PointRefine::SceneInput &scene, const PointRefine::PlacementPr
 		Need(out.work <= scene.maxWorkPerCheck, Code::WorkLimit,
 			 "Cumulative occupied-support budget");
 		out.sourceSideCertified = true;
+		out.contact |= witness != nullptr;
 		out.conditional = c.kind == Kind::RecessedRectangle ||
 						  out.placement.state == PointRefine::Constraint::Conditional;
 		if (out.conditional)
 			out.placement.state = PointRefine::Constraint::Conditional;
-		out.reason = Mounted(c)
+		out.reason = witness ? "Exact named point projection; occupied point independently cleared" : Mounted(c)
 						 ? "Named emitting-side contact; world solid penetration remains forbidden"
 						 : "Source-kind occupied support certified";
 		out.placement.assumptions += "; X14: " + c.provenance + "; support=" + Disk::Hex(out.key);
@@ -917,6 +1245,78 @@ Error FromSurfaces(std::shared_ptr<const SurfaceGeometry> g, const StaticVisibil
 	catch (const std::bad_alloc &)
 	{
 		return Failure(Code::MemoryLimit, "Original source support allocation");
+	}
+}
+Error FromMountedPointSurface(std::shared_ptr<const SurfaceGeometry> g, const StaticVisibility &v,
+							  uint32_t ordinal, Id fixture, Vec3 positionWorld, double maximumStandOffWorld,
+							  const ReadContext &read, Contract &out)
+{
+	out = {};
+	Contract c;
+	auto status = FromSurfaces(g, v, {ordinal}, fixture, read, c);
+	if (!status)
+		return status;
+	try
+	{
+		Need(Finite(positionWorld), Code::InvalidInput, "Invalid fixed point position");
+		c.kind = Kind::MountedPoint;
+		c.maximumStandOffWorld = maximumStandOffWorld;
+		c.provenance += maximumStandOffWorld == 8
+							? "; ASR24 fixed <=8 WU fixture-local point approximation"
+							: "; fixed fixture-local point approximation with declared stand-off";
+		bool compatible = true;
+		for (size_t i = 0; i < c.original.count; ++i)
+			for (Vec3 p : c.original.data[i].world)
+				compatible &= Dot(V(c.outward), V(p) - V(c.anchorWorld)) == 0;
+		if (!compatible)
+		{
+			Need(sizeof(MountedPointPlane) <= read.maxBytes, Code::MemoryLimit, "Named point witness budget");
+			const auto &s = g->Surfaces()[ordinal];
+			auto w = std::make_shared<MountedPointPlane>();
+			w->source = std::move(g);
+			w->ordinal = ordinal;
+			w->fixture = fixture;
+			w->anchor = c.anchorWorld;
+			w->outward = c.outward;
+			w->position = positionWorld;
+			// Visibility certification omits captured orientation records. Bind
+			// the original index order, normals, face basis and cull evidence here.
+			GeometryKey key;
+			key.U(SourceOrientation::kVersion);
+			key.U(ordinal);
+			key.V(positionWorld);
+			key.U(unsigned(s.kind));
+			key.U(unsigned(s.materialFacts.cull));
+			key.U(s.materialFacts.available);
+			key.V(s.lightmapBasis[2]);
+			key.U(s.indices.size());
+			for (size_t i = 0; i < s.indices.size(); ++i)
+			{
+				if (i % 3 == 0)
+					key.U(OriginalPrimitive(Id(ordinal) + 1, i / 3));
+				uint32_t index = s.indices[i];
+				key.U(index);
+				key.V(s.vertices[index].position);
+				key.V(s.vertices[index].shadingNormal);
+			}
+			w->evidence = key.Finish();
+			c.mountedPointPlane = std::move(w);
+			c.twoSidedAttested = false;
+			c.original = {};
+			c.triangleSurfaces.clear();
+			c.provenance += "; named fixed point plane/1";
+		}
+		Must(Validate(c));
+		out = std::move(c);
+		return {};
+	}
+	catch (const Error &e)
+	{
+		return e;
+	}
+	catch (const std::bad_alloc &)
+	{
+		return Failure(Code::MemoryLimit, "Named point witness allocation");
 	}
 }
 } // namespace SourceSupport

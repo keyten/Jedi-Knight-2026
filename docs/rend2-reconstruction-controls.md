@@ -19,7 +19,7 @@ descriptions; MP's four-argument API receives the descriptions in that list.
 | `r_lightReconBuild` | Build/load policy below, sampled only at main-world map load/reload |
 | `r_lightReconUse` | Live master for consumption; never requests build/load |
 | `r_lightReconFog` | Prepared `IncomingRadianceSampling` for scattering |
-| `r_lightReconEntities` | Prepared `IndirectSampling` for entities/Ghoul2 |
+| `r_lightReconEntities` | Latched request for prepared `ReflectedIrradianceSH` on model/Ghoul2 diffuse surfaces. See [C04](rend2-entity-irradiance-c04.md). |
 | `r_lightReconSpecular` | Prepared `IncomingRadianceSampling` for specular |
 | `r_lightReconShadows` | Usable physical source and prepared `VisibilityQueries` |
 | `r_lightReconSun` | Unique resolved explicit sun with usable physical emission |
@@ -38,13 +38,11 @@ contains every direct/indirect component. Future direct-source adapters can exte
 their data requirements centrally; they must explicitly handle attribution and
 double counting before mixing with baked lighting.
 
-No new shader permutation, sampler or map-load GPU layout is introduced here,
-so none of these cvars needs `CVAR_LATCH` today. Master and consumer requests
-are live; disabling one does not change other requests or the shared asset.
-Before adding an adapter that requires startup permutations or map resources,
-it must arrange their lifetime/latching and report feature availability only
-when the actual required configuration is ready. These controls never set
-`r_pbrPhysical`, froxel fog, Forward+, LTC, IBL or any other renderer cvar.
+The master and other consumer requests are live. `r_lightReconEntities` uses
+`CVAR_LATCH` because it selects model shader variants and requests selective
+preparation on the next world load. Apply it with `vid_restart`. These controls
+leave `r_pbrPhysical`, froxel fog, Forward+, LTC, IBL and other renderer cvars
+under their own controls.
 
 Changing `r_lightReconBuild` does **not** build, load, unload or replace the
 current asset immediately. Reload/load a map to apply it. `vid_restart` applies
@@ -58,8 +56,9 @@ For immediate consumption shutdown use `r_lightReconUse 0`.
 The renderer uses the synchronous [WorldLighting lifecycle](rend2-reconstruction-lifecycle.md)
 at `RE_LoadWorldMap`, with cache admission, bounded session ownership and complete-only
 publication. `ApplyBuildPolicy(BuildPolicy, Manager&, BuildBackend*)` remains a CPU
-backend helper for other explicit hosts. Neither path consults master or consumer
-requests. An offline host may invoke the same policy
+backend helper for other explicit hosts. The build policy is independent of
+the master switch. The renderer's cache reader uses the latched entity request
+to select the authored field payload at map load. An offline host may invoke the same policy
 with an explicit backend bound to its immutable dataset/revision.
 
 | Value | Behaviour |

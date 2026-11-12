@@ -56,7 +56,7 @@ private:
 // Evaluation capabilities are separate and Unavailable without a CPU evaluator.
 enum class Capability { AssetMetadata, PhysicalEmitters, SunEstimate, SkyEstimate,
 	IndirectField, IncomingRadianceField, GeometryRegions, VisibilityData, SourceContributions,
-	IndirectSampling, IncomingRadianceSampling, RegionLookup, VisibilityQueries, ContributionSampling, SkyVisibilityQueries, ConditionalFieldSampling, StaticShadowSupport, Count };
+	IndirectSampling, IncomingRadianceSampling, RegionLookup, VisibilityQueries, ContributionSampling, SkyVisibilityQueries, ConditionalFieldSampling, StaticShadowSupport, ReflectedIrradianceSH, Count };
 struct CapabilityInfo
 {
 	Status status = Status::Unavailable;
@@ -126,6 +126,15 @@ struct LightingSample
 	Vec3 rgb; // linear Rec.709 D65 RGB, Lux (irradiance), Nits (radiance), or Relative
 	PhotometricUnit unit = PhotometricUnit::Relative;
 	Id calibration = 0; // mandatory; no scene scale or exposure has been applied
+};
+// Cosine-convolved, linear Rec.709 D65 lux in the canonical real world-space SH
+// basis (l*l+l+m, Condon-Shortley). Only calibrated reflected paths are admitted.
+// A cell is a convex, static free-space certificate for successful samples.
+struct IrradianceSHSample
+{
+	Vec3 coefficients[9];
+	unsigned degree = 0;
+	Id source = 0, calibration = 0, cell = 0, region = 0;
 };
 enum class ConditionalQuantity { IncomingRadiance, NormalIrradiance, IrradianceOverPi, LegacyAppearance };
 enum class FieldDomain { PhysicallyAuthored, SceneEquivalent, SourceLinearRelative, LegacyAppearance };
@@ -239,6 +248,7 @@ public:
 	// Physically authored Lux/Nits only. Relative/scene-equivalent fields use the
 	// explicit conditional query; contribution compatibility semantics are separate.
 	Result<LightingSample> SampleIndirect(const IrradianceQuery& query) const;
+	Result<IrradianceSHSample> SampleReflectedIrradianceSH(const Vec3& positionWorld) const;
 	Result<LightingSample> SampleIncomingRadiance(const RadianceQuery& query) const;
 	Result<ConditionalFieldSample> SampleConditionalField(const ConditionalFieldQuery&) const;
 	Result<RegionHandle> LookupRegion(const Vec3& positionWorld) const;

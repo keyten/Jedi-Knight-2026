@@ -21,6 +21,7 @@ from test_ssr_runtime import game_processes
 ROOT = Path(__file__).resolve().parents[2]
 CAMERAS = {'hoth3': (3464, 700, 85, 90), 'hoth2': (1728, -576, 1040, 135)}
 CONSUMERS = re.findall(r'LIGHTRECON_CONSUMER\((\w+),', (ROOT / 'shared/rd-rend2/tr_lightrecon_cvars.inc').read_text())
+LIVE_CONSUMERS = [c for c in CONSUMERS if c != 'r_lightReconEntities']
 # A single display-code step in <=0.001% of this fixed 960x540 frame permits
 # sparse FP16/8-bit rounding, not visible lighting or stochastic saber flicker.
 IMAGE_TOLERANCE = dict(max_delta=1, max_pixels=5, max_mean=1e-5)
@@ -72,7 +73,7 @@ def commands(map_name):
         result += [f'r_forwardPlusSpawnTestLights {count} 384', 'wait 20']
         for label, master, request in [('a', 0, 1), ('b', 1, 0), ('repeat', 0, 1)]:
             tag = f'{layer}_{label}'.upper()
-            result += [f'r_lightReconUse {master}'] + [f'{c} {request}' for c in CONSUMERS]
+            result += [f'r_lightReconUse {master}'] + [f'{c} {request}' for c in LIVE_CONSUMERS]
             result += ['wait 12', f'echo LIGHTRECON_{tag}_BEGIN', 'r_lightReconInfo',
                        'r_pbrPhysical', 'r_forwardPlus', 'r_ltcAreaLights', 'r_volumetricFog', 'r_sunlightMode', 'cl_paused', 'sv_paused', 'viewpos',
                        f'writecam recon_{layer}_{label}', 'glslusage all', f'echo LIGHTRECON_{tag}_END', f'screenshot_tga recon-{layer}-{label}', 'wait 6']
@@ -80,14 +81,15 @@ def commands(map_name):
     return result
 
 
-def validate_consumers(section, label, policy):
+def validate_consumers(section, label, policy, entity_request='1'):
     """An absent/truncated diagnostic must never be mistaken for all-off."""
     rows = re.findall(r'\b(r_lightRecon\w+) requested=(\d+) effective=(\d+) capability=(\w+) feature=(\d+)', section)
     if len(rows) != len(CONSUMERS) or {r[0] for r in rows} != set(CONSUMERS):
         raise AssertionError('Missing or duplicate consumer diagnostics')
     requested, master = ('0', '1') if label == 'B' else ('1', '0')
     capability = 'Disabled' if policy == 0 else 'Missing'
-    if any(r[1:] != (requested, '0', capability, '0') for r in rows):
+    if any(r[1:] != (entity_request if r[0] == 'r_lightReconEntities' else requested,
+                     '0', capability, '0') for r in rows):
         raise AssertionError(f'Unexpected disabled consumer state: {rows}')
     state = re.search(r'lightRecon: [^\n]*use=(\d+)', section)
     if not state or state[1] != master:
@@ -100,9 +102,11 @@ def prepare_runtime(args, runtime, profile, policy):
         raise RuntimeError('Another OpenJK process is running; refusing overlapping validation')
     if runtime.exists():
         raise RuntimeError(f'Use a fresh output directory, preserving prior evidence: {runtime}')
-    base = args.output.resolve() / 'stock-assets/base'
+    shared = getattr(args, 'private_archives', None)
+    base = shared or args.output.resolve() / 'stock-assets/base'
     home = runtime / 'home/OpenJK'
-    base.mkdir(parents=True, exist_ok=True)
+    if shared is None:
+        base.mkdir(parents=True, exist_ok=True)
     home.mkdir(parents=True)
     # Standard SP pause freezes serverTime and animation. timescale=0 does NOT:
     # Com_ModifyMsec scales only nonzero values. A blank non-fullscreen test menu
@@ -125,7 +129,7 @@ def prepare_runtime(args, runtime, profile, policy):
         if not source.is_file():
             raise FileNotFoundError(source)
         target = base / name
-        if not target.exists():
+        if shared is None and not target.exists():
             try:
                 os.link(source, target)
             except OSError:

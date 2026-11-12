@@ -126,10 +126,12 @@ bool Index(detail::SnapshotData& data)
 	Presence(data, Capability::VisibilityData, a.visibility.size());
 	Presence(data, Capability::SourceContributions, a.contributions.size());
 	const Capability queries[] = { Capability::IndirectSampling, Capability::IncomingRadianceSampling,
-		Capability::RegionLookup, Capability::VisibilityQueries, Capability::ContributionSampling, Capability::SkyVisibilityQueries };
+		Capability::RegionLookup, Capability::VisibilityQueries, Capability::ContributionSampling, Capability::SkyVisibilityQueries,
+		Capability::ReflectedIrradianceSH };
 	const Capability metadata[] = { Capability::IndirectField, Capability::IncomingRadianceField,
-		Capability::GeometryRegions, Capability::VisibilityData, Capability::SourceContributions, Capability::VisibilityData };
-	for (size_t i = 0; i < 6; ++i)
+		Capability::GeometryRegions, Capability::VisibilityData, Capability::SourceContributions, Capability::VisibilityData,
+		Capability::IndirectField };
+	for (size_t i = 0; i < sizeof(queries) / sizeof(queries[0]); ++i)
 	{
 		CapabilityInfo& info = data.capabilities[static_cast<size_t>(queries[i])];
 		if (!data.evaluator || !data.capabilities[static_cast<size_t>(metadata[i])].records) continue;
@@ -162,6 +164,7 @@ Status CpuEvaluator::AcceptsAsset(const ReconstructedLightingAsset &) const
 	return Status::Ok;
 }
 Status CpuEvaluator::Indirect(const ReconstructedLightingAsset&, const IrradianceQuery&, LightingSample&) const { return Status::Unavailable; }
+Status CpuEvaluator::ReflectedIrradianceSH(const Vec3&, IrradianceSHSample&) const { return Status::Unavailable; }
 Status CpuEvaluator::IncomingRadiance(const ReconstructedLightingAsset&, const RadianceQuery&, LightingSample&) const { return Status::Unavailable; }
 Status CpuEvaluator::ConditionalField(const ReconstructedLightingAsset&,const ConditionalFieldQuery&,ConditionalFieldSample&)const{return Status::Unavailable;}
 Status CpuEvaluator::RegionAt(const ReconstructedLightingAsset&, const Vec3&, Id&) const { return Status::Unavailable; }
@@ -374,6 +377,31 @@ Result<LightingSample> Snapshot::SampleIndirect(const IrradianceQuery& query) co
 	if (!ValidStatus(r.status) || (r && (!ValidLighting(*data_, r.value, PhotometricUnit::Lux) ||
 		field->source.id != r.value.source || field->unit != r.value.unit || field->calibration != r.value.calibration))) return Failure<LightingSample>(Status::Corrupt);
 	return r ? r : Failure<LightingSample>(r.status);
+}
+Result<IrradianceSHSample> Snapshot::SampleReflectedIrradianceSH(const Vec3& position) const
+{
+	if (!Finite(position)) return Failure<IrradianceSHSample>(Status::InvalidArgument);
+	if (Access() != Status::Ok) return Failure<IrradianceSHSample>(Access());
+	const Status available = EvaluationStatus(*data_, Capability::ReflectedIrradianceSH);
+	if (available != Status::Ok) return Failure<IrradianceSHSample>(available);
+
+	Result<IrradianceSHSample> r;
+	r.status = data_->evaluator->ReflectedIrradianceSH(position, r.value);
+	if (!ValidStatus(r.status)) return Failure<IrradianceSHSample>(Status::Corrupt);
+	if (!r) return Failure<IrradianceSHSample>(r.status);
+	const auto& v = r.value;
+	const auto f = data_->fields.find(v.source);
+	const auto c = data_->calibrations.find(v.calibration);
+	if (v.degree > 2 || !v.cell || !v.region || !data_->regions.count(v.region) ||
+		f == data_->fields.end() || f->second->component != TransportComponent::IndirectIrradiance ||
+		f->second->quantity != FieldQuantity::Irradiance || f->second->unit != PhotometricUnit::Lux ||
+		f->second->source.state != HypothesisState::Resolved || f->second->source.hypothesisGroup ||
+		f->second->calibration != v.calibration || c == data_->calibrations.end() ||
+		c->second->kind != CalibrationKind::PhysicallyAuthored)
+		return Failure<IrradianceSHSample>(Status::Corrupt);
+	for (const auto& coefficient : v.coefficients)
+		if (!Finite(coefficient)) return Failure<IrradianceSHSample>(Status::Corrupt);
+	return r;
 }
 Result<LightingSample> Snapshot::SampleIncomingRadiance(const RadianceQuery& query) const
 {

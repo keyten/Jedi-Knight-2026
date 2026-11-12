@@ -348,7 +348,12 @@ void main()
 	}
 
 	position  = wsPosition.xyz;
-	normal    = normalize(mat3(u_ModelMatrix) * normal);
+	#if defined(USE_RECON_ENTITY_IRRADIANCE)
+	if (u_GridMinimum.w < 0.0 && u_GridScale.x > 0.5)
+		normal = normalize(transpose(inverse(mat3(u_ModelMatrix))) * normal);
+	else
+	#endif
+		normal = normalize(mat3(u_ModelMatrix) * normal);
   #if defined(PER_PIXEL_LIGHTING)
 	tangent   = normalize(mat3(u_ModelMatrix) * tangent);
   #endif
@@ -388,9 +393,16 @@ void main()
 		var_Color = u_VertColor * attr_Color + u_BaseColor;
 
 		#if defined(USE_LIGHT_VECTOR) && defined(USE_FAST_LIGHT)
+			#if defined(USE_RECON_ENTITY_IRRADIANCE)
+			if (u_GridMinimum.w >= 0.0)
+			{
+			#endif
 			float sqrLightDist = dot(L, L);
 			float NL = clamp(dot(normal, L) / sqrt(sqrLightDist), 0.0, 1.0);
 			var_Color.rgb *= u_DirectedLight * NL + u_AmbientLight;
+			#if defined(USE_RECON_ENTITY_IRRADIANCE)
+			}
+			#endif
 		#endif
 	}
 	var_Color *= disintegration;
@@ -565,6 +577,35 @@ uniform vec4 u_LtcScreenParams;
 #endif
 #endif
 uniform sampler2D u_DiffuseMap;
+
+#if defined(USE_RECON_ENTITY_IRRADIANCE)
+vec3 ReflectedEntityLight(vec3 N, float worldZ)
+{
+	// Orthonormal real SH in the CPU field's world basis, l*l+l+m.
+	vec4 sh1 = vec4(0.282094792, -0.488602512 * N.y, 0.488602512 * N.z, -0.488602512 * N.x);
+	vec3 value;
+	if (u_GridMinimum.w < -1.5)
+	{
+		vec3 low = vec3(dot(u_GridAmbient[0], sh1), dot(u_GridAmbient[1], sh1), dot(u_GridAmbient[2], sh1));
+		vec3 mid = vec3(dot(u_GridDirected[0], sh1), dot(u_GridDirected[1], sh1), dot(u_GridDirected[2], sh1));
+		vec3 high = vec3(dot(u_GridDirection[0], sh1), dot(u_GridDirection[1], sh1), dot(u_GridDirection[2], sh1));
+		float height = (worldZ - u_GridParams.x) * u_GridParams.y;
+		value = mix(mid, height < 0.0 ? low : high, min(abs(height), 1.0));
+	}
+	else
+	{
+		value = u_GridAmbient[0].rgb * sh1.x + u_GridAmbient[1].rgb * sh1.y +
+			u_GridAmbient[2].rgb * sh1.z + u_GridDirected[0].rgb * sh1.w +
+			u_GridDirected[1].rgb * (1.092548431 * N.x * N.y) -
+			u_GridDirected[2].rgb * (1.092548431 * N.y * N.z) +
+			u_GridDirection[0].rgb * (0.315391565 * (3.0 * N.z * N.z - 1.0)) -
+			u_GridDirection[1].rgb * (1.092548431 * N.x * N.z) +
+			u_GridDirection[2].rgb * (0.546274215 * (N.x * N.x - N.y * N.y));
+	}
+	// The CPU already applied the Lambertian 1/pi and scene conversion.
+	return max(value, vec3(0.0));
+}
+#endif
 
 #if defined(USE_ENTITY_GRID) && defined(PER_PIXEL_LIGHTING)
 #if defined(USE_ENTITY_GPU_GRID)
@@ -5225,7 +5266,11 @@ void main()
 #if defined(USE_DIFFUSE_IBL) && defined(USE_LIGHT_VECTOR)
 	vec3 probeIrradiance = vec3(0.0);
 	vec3 directionalFactor = vec3(1.0);
+	#if defined(USE_RECON_ENTITY_IRRADIANCE)
+	if (g_DiffuseIBLParams.w > 0.5 && u_GridMinimum.w >= 0.0)
+	#else
 	if (g_DiffuseIBLParams.w > 0.5)
+	#endif
 	{
 		probeIrradiance = max(texture(u_DiffuseIrradianceMap, indirectN).rgb, vec3(0.0));
 		vec3 averageIrradiance = max(texelFetch(u_ProbeAverageMap,
@@ -5244,6 +5289,16 @@ void main()
 	}
 #endif
 
+#if defined(USE_RECON_ENTITY_IRRADIANCE)
+	if (u_GridMinimum.w < 0.0)
+	{
+		// Replace the complete grid diffuse and its synthetic directed specular
+		// lobe. The independently sourced reflection, sun and dynamic passes
+		// retain their original inputs.
+		diffuseAmbientColor = ReflectedEntityLight(N, (u_ViewOrigin - viewDir).z) * var_Color.rgb * AO;
+		lightColor = vec3(0.0);
+	}
+#endif
 	vec3  H  = normalize(L + E);
 	float NL = clamp(dot(N, L), 0.0, 1.0);
 	float LH = clamp(dot(L, H), 0.0, 1.0);
@@ -6015,6 +6070,10 @@ void main()
   #endif
 #else
 	lightColor = var_Color.rgb;
+  #if defined(USE_RECON_ENTITY_IRRADIANCE)
+	if (u_GridMinimum.w < 0.0)
+		lightColor *= ReflectedEntityLight(normalize(var_Normal), var_Position.z);
+  #endif
   #if defined(USE_LIGHTMAP)
 	lightColor *= lightmapColor.rgb;
   #endif

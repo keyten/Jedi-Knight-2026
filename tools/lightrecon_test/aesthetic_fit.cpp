@@ -139,7 +139,8 @@ Columns Prepare(const Request &r, const Rows &rows, Meter &meter,
 			// Each alternative is a static hypothesis with its own admission. This is
 			// not a certificate for physically sweeping a fixture between orientations.
 			auto status = SourceSupport::Check(r.scene, *placement, e.geometry, e.geometry,
-											   e.support, meter.read, column.placement);
+											   e.support, meter.read, column.placement,
+											   SourceSupport::Admission::ModernFixedPoint);
 			Check(status);
 			meter.Tick(column.placement.work, column.placement.rays);
 			if (!PointRefine::Admissible(column.placement.placement))

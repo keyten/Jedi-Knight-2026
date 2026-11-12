@@ -63,6 +63,7 @@ class Prepared final : public CpuEvaluator
 	Digest binding{};
 	std::map<Id, std::shared_ptr<const CpuEvaluator>> fields, shadows;
 	std::shared_ptr<const CpuEvaluator> attribution;
+	const CpuEvaluator *reflectedField = nullptr; // owned by fields
 	Status AcceptsAsset(const ReconstructedLightingAsset &a) const override
 	{
 		Digest d;
@@ -71,6 +72,8 @@ class Prepared final : public CpuEvaluator
 	}
 	Status Supports(Capability c) const override
 	{
+		if (c == Capability::ReflectedIrradianceSH)
+			return reflectedField ? Status::Ok : Status::Unavailable;
 		for (auto &p : fields)
 			if (p.second->Supports(c) == Status::Ok)
 				return Status::Ok;
@@ -92,6 +95,10 @@ class Prepared final : public CpuEvaluator
 		auto p = Field(q.field.id);
 		return p ? p->Indirect(a, q, o)
 				 : (!q.field.id && fields.size() > 1 ? Status::Ambiguous : Status::Unavailable);
+	}
+	Status ReflectedIrradianceSH(const Vec3 &position, IrradianceSHSample &out) const override
+	{
+		return reflectedField ? reflectedField->ReflectedIrradianceSH(position, out) : Status::Unavailable;
 	}
 	Status IncomingRadiance(const ReconstructedLightingAsset &a, const RadianceQuery &q,
 							LightingSample &o) const override
@@ -136,6 +143,44 @@ class Prepared final : public CpuEvaluator
 		return attribution ? attribution->Contribution(a, q, o) : Status::Unavailable;
 	}
 };
+Digest GeometryDigest(const std::string &hex)
+{
+	Digest digest{};
+	if (hex.size() != digest.size() * 2)
+		return {};
+	const std::string digits = "0123456789abcdef";
+	for (size_t i = 0; i < digest.size(); ++i)
+	{
+		const auto hi = digits.find(hex[2 * i]);
+		const auto lo = digits.find(hex[2 * i + 1]);
+		if (hi == std::string::npos || lo == std::string::npos)
+			return {};
+		digest[i] = uint8_t(16 * hi + lo);
+	}
+	return digest;
+}
+
+void DiscoverReflectedField(const ReconstructedLightingAsset &asset, Selection &selection)
+{
+	if (!selection.discoverReflectedIrradiance)
+		return;
+	const TransportField *candidate = nullptr;
+	for (const auto &field : asset.transport)
+		if (Core::Fields::SupportsReflectedIrradiance(asset, field))
+		{
+			if (candidate)
+				return; // no automatic selection between authored alternatives
+			candidate = &field;
+		}
+	if (!candidate)
+		return;
+	const auto geometry = GeometryDigest(candidate->membership.geometry);
+	Need(geometry != Digest{}, Code::Corrupt, "Missing reflected field geometry identity");
+	Item item;
+	item.id = candidate->source.id;
+	item.geometry = geometry;
+	selection.fields.push_back(item);
+}
 bool Derived(const Dataset &d)
 {
 	return d.encoding == "org.openjk.spatial-field" || d.encoding == "org.openjk.probe-geometry" ||
@@ -216,18 +261,31 @@ Error Prepare(const Fingerprint &f, const ReconstructedLightingAsset &a,
 		auto hashed = MetadataDigest(a, p->binding, limits);
 		if (!hashed)
 			return hashed;
-		for (auto i : s.fields)
-		{
-			Core::Fields::Artifact artifact;
-			Check(Core::Fields::Decode(a, chunks, i.id, i.geometry, read, artifact));
-			std::shared_ptr<const Core::Fields::Prepared> field;
-			Check(Core::Fields::Prepare(artifact, read, field));
-			p->fields[i.id] = field;
-		}
 		Digest map{};
 		for (auto &i : f.inputs)
 			if (i.kind == InputKind::Bsp)
 				map = i.sha256;
+		for (auto i : s.fields)
+		{
+			Core::Fields::Artifact artifact;
+			Check(Core::Fields::Decode(a, chunks, i.id, i.geometry, read, artifact));
+			if (s.discoverReflectedIrradiance)
+				Need(map != Digest{} && artifact.topology->MapKey() == map, Code::Corrupt,
+					 "Reflected field topology belongs to a different BSP");
+			std::shared_ptr<const Core::Fields::Prepared> field;
+			Check(Core::Fields::Prepare(artifact, read, field));
+			p->fields[i.id] = field;
+		}
+		for (const auto &field : p->fields)
+			if (field.second->Supports(Capability::ReflectedIrradianceSH) == Status::Ok)
+			{
+				if (p->reflectedField)
+				{
+					p->reflectedField = nullptr;
+					break;
+				}
+				p->reflectedField = field.second.get();
+			}
 		for (auto i : s.visibility)
 		{
 			Core::ShadowCache::Artifact artifact;
@@ -292,7 +350,9 @@ Error Load(const Cache &cache, const Fingerprint &f, const Selection &s, BuildPr
 		w.fileBytes = reader.Size();
 		w.openSeconds =
 			std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
-		auto ids = Closure(a, s);
+		Selection selected = s;
+		DiscoverReflectedField(a, selected);
+		auto ids = Closure(a, selected);
 		std::vector<Chunk> chunks;
 		for (auto &section : index.sections)
 			if (section.type == unsigned(Section::Chunk) && ids.count(section.dataset))
@@ -312,7 +372,7 @@ Error Load(const Cache &cache, const Fingerprint &f, const Selection &s, BuildPr
 				chunks.push_back(std::move(c));
 			}
 		start = std::chrono::steady_clock::now();
-		e = Prepare(f, a, chunks, s, out, w, limits);
+		e = Prepare(f, a, chunks, selected, out, w, limits);
 		w.prepareSeconds =
 			std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
 		return e;
@@ -331,14 +391,16 @@ Error Store(const Cache &cache, const Fingerprint &f, const ReconstructedLightin
 {
 	try
 	{
-		auto ids = Closure(a, s);
-		std::vector<Chunk> selected;
+		Selection selected = s;
+		DiscoverReflectedField(a, selected);
+		auto ids = Closure(a, selected);
+		std::vector<Chunk> selectedChunks;
 		for (auto &c : chunks)
 			if (ids.count(c.dataset))
-				selected.push_back(c);
+				selectedChunks.push_back(c);
 		BuildProduct p;
 		Work w;
-		auto e = Prepare(f, a, selected, s, p, w, limits);
+		auto e = Prepare(f, a, selectedChunks, selected, p, w, limits);
 		if (!e)
 			return e;
 		return cache.Store(f, a, chunks, limits);

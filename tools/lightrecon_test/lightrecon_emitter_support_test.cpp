@@ -138,12 +138,212 @@ struct Cancel : Cancellation
 		return true;
 	}
 };
+void FixedPointPlaneControls()
+{
+	const auto modern = SS::Admission::ModernFixedPoint;
+	auto addPanel = [](World &world, V offset = V()) {
+		world.visual.Quad(offset + V(-6, -6, 1), offset + V(6, -6, -1),
+						  offset + V(6, 6, -1), offset + V(-6, 6, 1));
+	};
+	auto fixed = [](World &world, V position, uint32_t ordinal = 0) {
+		auto e = Emitter(EmitterKind::Point, position);
+		Must(SS::FromMountedPointSurface(world.geometry, *world.scene.geometry, ordinal,
+										e.geometry.source.id, e.geometry.position.world, 8, Read(), e.support));
+		return e;
+	};
+	auto check = [modern](World &world, const Shape::Emitter &e, SS::Result &result) {
+		return SS::Check(world.scene, *world.placement, e.geometry, e.geometry, e.support,
+						 Read(), result, modern);
+	};
+	SS::Result result;
+	World oblique;
+	addPanel(oblique);
+	oblique.Build();
+	auto e = fixed(oblique, V(0, 0, 4));
+	CHECK(e.support.mountedPointPlane != nullptr);
+	Must(check(oblique, e, result));
+	CHECK(P::Admissible(result.placement) && result.sourceSideCertified && result.contact);
+	CHECK(result.contactErrorWorld == 0 && result.rays == 0);
+	CHECK(result.key == SS::Key(e.support));
+
+	SS::Contract existing;
+	Must(SS::FromSurfaces(oblique.geometry, *oblique.scene.geometry, {0}, 71, Read(), existing));
+	existing.kind = SS::Kind::MountedPoint;
+	existing.maximumStandOffWorld = 8;
+	Must(SS::Check(oblique.scene, *oblique.placement, e.geometry, e.geometry, existing, Read(), result));
+	CHECK(result.placement.state == P::Constraint::UnknownGeometry && !result.sourceSideCertified);
+	CHECK(SS::Key(e.support) != SS::Key(existing));
+	CHECK(SS::Check(oblique.scene, *oblique.placement, e.geometry, e.geometry, e.support,
+					Read(), result).code == Code::Unavailable);
+
+	// Closed triangle coverage uses the exact orthogonal projection. This
+	// point projects to the shared diagonal, and the outside point misses.
+	auto diagonal = fixed(oblique, V(.5, 0, 3));
+	Must(check(oblique, diagonal, result));
+	CHECK(result.sourceSideCertified);
+	CHECK(SS::Key(e.support) != SS::Key(diagonal.support));
+	for (V position : {V(0, 0, -4), V(0, 0, 0), V(0, 0, 9), V(0, 7, 4)})
+	{
+		Must(check(oblique, fixed(oblique, position), result));
+		CHECK(result.placement.state == P::Constraint::Mount && !result.sourceSideCertified);
+	}
+
+	for (unsigned axis = 0; axis < 3; ++axis)
+	{
+		for (float sign : {-1.f, 1.f})
+		{
+			auto changed = e;
+			float *components[] = {&changed.support.anchorWorld.x, &changed.support.anchorWorld.y,
+								   &changed.support.anchorWorld.z};
+			*components[axis] = std::nextafter(*components[axis], sign * std::numeric_limits<float>::infinity());
+			CHECK(SS::Key(changed.support) != SS::Key(e.support));
+			CHECK(check(oblique, changed, result).code == Code::InvalidInput);
+		}
+	}
+	auto changed = e;
+	changed.support.surfaces = {2};
+	CHECK(check(oblique, changed, result).code == Code::InvalidInput);
+	changed.support.surfaces.clear();
+	CHECK(check(oblique, changed, result).code == Code::InvalidInput);
+	changed = e;
+	changed.support.geometry = Key("old point geometry");
+	CHECK(check(oblique, changed, result).code == Code::InvalidState);
+	changed = e;
+	changed.geometry.position.world.x = .25f;
+	CHECK(check(oblique, changed, result).code == Code::InvalidInput);
+	changed = e;
+	changed.support.frontClearanceWorld = 1;
+	CHECK(check(oblique, changed, result).code == Code::InvalidInput);
+	changed = e;
+	changed.geometry.angular.twoSided = true;
+	CHECK(check(oblique, changed, result).code == Code::InvalidInput);
+	changed = e;
+	changed.support.outward = (V(e.support.outward) * -1).Float();
+	CHECK(check(oblique, changed, result).code == Code::InvalidInput);
+
+	World changedSideEvidence;
+	addPanel(changedSideEvidence);
+	changedSideEvidence.visual.surfaces[0].vertices[0].shadingNormal.y = .125f;
+	changedSideEvidence.Build();
+	CHECK(changedSideEvidence.scene.geometry->CertificationKey() == oblique.scene.geometry->CertificationKey());
+	auto changedEvidence = fixed(changedSideEvidence, V(0, 0, 4));
+	CHECK(SS::Key(changedEvidence.support) != SS::Key(e.support));
+	CHECK(check(changedSideEvidence, e, result).code == Code::InvalidState);
+
+	World warped;
+	addPanel(warped);
+	warped.visual.surfaces[0].vertices[3].position.z = std::nextafter(1.f, 2.f);
+	warped.Build();
+	CHECK(SS::FromMountedPointSurface(warped.geometry, *warped.scene.geometry, 0, 71,
+									 Vec3(0, 0, 4), 8, Read(), existing).code == Code::Unavailable);
+	World warpedBelowRoundoff;
+	warpedBelowRoundoff.visual.Quad(V(0, -6, 0), V(12, -6, -2), V(12, 6, -2), V(0, 6, 0));
+	warpedBelowRoundoff.visual.surfaces[0].vertices[3].position.z = std::ldexp(1.f, -50);
+	warpedBelowRoundoff.Build();
+	auto tinyWarp = fixed(warpedBelowRoundoff, V(6, 0, 4));
+	CHECK(tinyWarp.support.mountedPointPlane != nullptr);
+	Must(check(warpedBelowRoundoff, tinyWarp, result));
+	CHECK(result.placement.state == P::Constraint::UnknownGeometry && !result.sourceSideCertified);
+	World overlapping;
+	addPanel(overlapping);
+	overlapping.visual.surfaces[0].indices = {0, 1, 2, 0, 1, 2};
+	overlapping.Build();
+	Must(check(overlapping, fixed(overlapping, V(0, 0, 4)), result));
+	CHECK(result.placement.state == P::Constraint::UnknownGeometry && !result.sourceSideCertified);
+	World inSolid;
+	addPanel(inSolid);
+	inSolid.Brush(V(-1, -1, 3), V(1, 1, 5));
+	inSolid.Build();
+	Must(check(inSolid, fixed(inSolid, V(0, 0, 4)), result));
+	CHECK(result.placement.state == P::Constraint::Solid && !result.sourceSideCertified);
+
+	for (uint32_t flags : {0u, uint32_t(MaterialCutout)})
+	{
+		World blocker;
+		addPanel(blocker);
+		blocker.visual.Quad(V(-1, -1, 4), V(1, -1, 4), V(1, 1, 4), V(-1, 1, 4), flags);
+		blocker.Build();
+		Must(check(blocker, fixed(blocker, V(0, 0, 4)), result));
+		CHECK(result.placement.state == (flags ? P::Constraint::UnknownGeometry : P::Constraint::Clearance));
+		CHECK(!result.sourceSideCertified);
+	}
+	World neighboring;
+	addPanel(neighboring);
+	neighboring.visual.Quad(V(-1, -1, 3), V(1, -1, 3), V(1, 1, 3), V(-1, 1, 3), MaterialCutout);
+	neighboring.Build();
+	Must(check(neighboring, fixed(neighboring, V(0, 0, 4)), result));
+	CHECK(result.sourceSideCertified && (result.visualIssues & OpticalUnknown));
+	World unknownMount;
+	addPanel(unknownMount);
+	unknownMount.visual.surfaces[0].materialFacts.signals = MaterialCutout;
+	unknownMount.Build();
+	Must(check(unknownMount, fixed(unknownMount, V(0, 0, 4)), result));
+	CHECK(result.placement.state == P::Constraint::UnknownGeometry && !result.sourceSideCertified);
+	World unknown;
+	addPanel(unknown);
+	unknown.visual.Quad(V(-1, -1, 3), V(1, -1, 3), V(1, 1, 3), V(-1, 1, 3));
+	unknown.visual.surfaces[1].kind = BakedSurfaceKind::Unsupported;
+	unknown.Build();
+	Must(check(unknown, fixed(unknown, V(0, 0, 4)), result));
+	CHECK(result.placement.state == P::Constraint::UnknownGeometry && !result.sourceSideCertified);
+
+	World translated;
+	V offset(4096, 4096, 4096);
+	addPanel(translated, offset);
+	translated.input.worldBounds = Box(offset + V(-20, -20, -8), offset + V(20, 20, 16));
+	translated.Build();
+	Must(check(translated, fixed(translated, offset + V(0, 0, 4)), result));
+	CHECK(result.sourceSideCertified);
+	World oversize;
+	oversize.visual.Quad(V(-6, -300, 1), V(6, -300, -1), V(6, 300, -1), V(-6, 300, 1));
+	oversize.Build();
+	Must(check(oversize, fixed(oversize, V(0, 0, 4)), result));
+	CHECK(result.placement.state == P::Constraint::UnknownGeometry && !result.sourceSideCertified);
+	Must(check(oblique, fixed(oblique, V(std::ldexp(1., -25), 0, 4)), result));
+	CHECK(result.placement.state == P::Constraint::UnknownGeometry && !result.sourceSideCertified);
+
+	for (int slope : {0, 1})
+	{
+		World compatible;
+		compatible.visual.Quad(V(-6, -6, 6 * slope), V(6, -6, -6 * slope),
+							   V(6, 6, -6 * slope), V(-6, 6, 6 * slope));
+		compatible.Build();
+		auto point = fixed(compatible, V(0, 0, 4));
+		CHECK(!point.support.mountedPointPlane);
+		Must(check(compatible, point, result));
+		CHECK(result.sourceSideCertified);
+	}
+
+	Cancel cancel;
+	auto cancelled = Read();
+	cancelled.cancellation = &cancel;
+	CHECK(SS::Check(oblique.scene, *oblique.placement, e.geometry, e.geometry, e.support,
+					cancelled, result, modern).code == Code::Cancelled);
+	auto limited = oblique.scene;
+	limited.maxWorkPerCheck = 1;
+	CHECK(SS::Check(limited, *oblique.placement, e.geometry, e.geometry, e.support,
+					Read(), result, modern).code == Code::WorkLimit);
+	std::vector<Shape::EmissionNode> nodes;
+	CHECK(Shape::EmissionNodes(e.geometry, e.support, {}, Read(), nodes).code == Code::Unavailable);
+	Shape::Model historical;
+	historical.law = Shape::Law::HistoricalBake;
+	historical.units.worldUnitsPerMeter = 1;
+	historical.provenance = "Owned historical-mode refusal for modern named point support";
+	Bake::EvaluationContext context;
+	context.visibility = oblique.scene.geometry;
+	context.geometryKey = oblique.scene.geometry->CertificationKey();
+	auto receivers = std::make_shared<std::vector<Bake::Receiver>>(1);
+	std::shared_ptr<const Shape::Block> block;
+	CHECK(Shape::Prepare(historical, {e}, Lease(receivers), context, {}, Read(), block).code == Code::Unavailable);
+	CHECK(!block);
+}
 int main(int argc, char **argv)
 {
 	uint64_t rays = 0, work = 0;
 	double area = 0, positive = 0, blocked = -1, meshDifference = -1, fitError = -1, heldMse = -1;
 	try
 	{
+		FixedPointPlaneControls();
 		World w;
 		w.Floor();
 		w.Build();

@@ -3,7 +3,9 @@
 #define LIGHTRECON_CONTROL(name, maximum, description) \
 	name = LIGHTRECON_GET(#name, "0", CVAR_ARCHIVE, description); \
 	R_CvarRange(name, 0, maximum, qtrue);
-#define LIGHTRECON_CONSUMER(name, kind, description) LIGHTRECON_CONTROL(name, 1, description)
+#define LIGHTRECON_CONSUMER(name, kind, flags, description) \
+	name = LIGHTRECON_GET(#name, "0", flags, description); \
+	R_CvarRange(name, 0, 1, qtrue);
 #include "tr_lightrecon_cvars.inc"
 #undef LIGHTRECON_CONSUMER
 #undef LIGHTRECON_CONTROL

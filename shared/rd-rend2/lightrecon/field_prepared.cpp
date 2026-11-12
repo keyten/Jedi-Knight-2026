@@ -1,6 +1,8 @@
 // Immutable prepared CPU field queries. No disk, rays, source fitting or GPU work.
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "field_internal.h"
+#include <algorithm>
+#include <cmath>
 namespace Rend2LightRecon
 {
 namespace Core
@@ -15,7 +17,73 @@ struct Prepared::Data
 	Probes::Values values;
 	std::shared_ptr<const ConditionalFieldDescriptor> descriptor;
 	TransportField field;
+	bool reflectedSH = false;
 };
+bool SupportsReflectedIrradiance(const ReconstructedLightingAsset &asset, const TransportField &f)
+{
+	const auto &m = f.membership;
+	const auto authored = [&](Id id) {
+		return std::any_of(asset.provenanceRecords.begin(), asset.provenanceRecords.end(), [id](const Provenance &p) {
+			return p.id == id && p.kind == ProvenanceKind::Authored && !p.observationIssues;
+		});
+	};
+	const auto c = CalibrationAt(asset, f.calibration);
+	// Replace the model's grid diffuse. Keep the renderer's independent direct
+	// lights (including sun), so require explicit exclusion of every direct path.
+	if (f.component != TransportComponent::IndirectIrradiance ||
+		f.quantity != FieldQuantity::Irradiance || f.unit != PhotometricUnit::Lux ||
+		f.source.state != HypothesisState::Resolved || f.source.hypothesisGroup ||
+		f.source.evidence.observationIssues || !authored(f.source.provenance) ||
+		!c || c->kind != CalibrationKind::PhysicallyAuthored || !authored(c->provenance) ||
+		m.version != 2 || m.model != "source-conditioned-field/1" ||
+		m.domain != "generated-probes/irradiance/1" || m.profile != "physical-emission/1" ||
+		m.configuration || m.alternativeGroup || m.style || !m.rootsComplete || m.roots.empty() ||
+		m.colour != ContributionColour::LinearRec709D65 || !m.numericalError.known ||
+		(m.uncertainty & ~uint32_t(AttributionRepresentationError)) ||
+		m.directLocal != FieldMembership::Excluded || m.directSun != FieldMembership::Excluded ||
+		m.directSky != FieldMembership::Excluded || m.legacyAmbient != FieldMembership::Excluded ||
+		m.unresolved != FieldMembership::Excluded || m.reflected != FieldMembership::Included ||
+		!m.reflectionOrderKnown || m.minimumReflectionOrder == 0 || m.reflectionOrders.empty() ||
+		m.reflectionOrders.front() == 0 || m.addition != CompositionRule::Permitted)
+		return false;
+
+	for (const auto &root : m.roots)
+	{
+		const Source *source = nullptr;
+		const Photometry *emission = nullptr;
+		if (root.kind == TransportRootKind::Sky)
+		{
+			for (const auto &sky : asset.environments)
+				if (sky.source.id == root.source)
+				{
+					source = &sky.source;
+					emission = &sky.meanLuminance;
+				}
+		}
+		else if (root.kind == TransportRootKind::Sun || root.kind == TransportRootKind::LocalEmitter)
+		{
+			for (const auto &light : asset.emitters)
+				if (light.source.id == root.source &&
+					(light.kind == EmitterKind::Directional) == (root.kind == TransportRootKind::Sun))
+				{
+					const auto &sigma = light.position.sigmaWorld;
+					if ((sigma.known && sigma.value > 0) || (sigma.bounded && sigma.upper > 0))
+						return false;
+					source = &light.source;
+					emission = &light.emission;
+				}
+		}
+		if (!source || !authored(source->provenance) || source->state != HypothesisState::Resolved ||
+			source->hypothesisGroup || source->evidence.observationIssues ||
+			emission->unit == PhotometricUnit::Relative || emission->calibration != c->id ||
+			!emission->intensity.known || !emission->color.known ||
+			(emission->intensity.bounded && emission->intensity.lower != emission->intensity.upper) ||
+			std::any_of(asset.uncertainty.begin(), asset.uncertainty.end(),
+				[&](const SourceUncertainty &u) { return u.source == root.source; }))
+			return false;
+	}
+	return true;
+}
 namespace
 {
 bool Physical(const Prepared::Data &d)
@@ -99,6 +167,8 @@ Status Prepared::Supports(Capability c) const
 		return Status::Unavailable;
 	if (c == Capability::ConditionalFieldSampling)
 		return Status::Ok;
+	if (c == Capability::ReflectedIrradianceSH)
+		return data_->reflectedSH ? Status::Ok : Status::Unavailable;
 	if (!Physical(*data_))
 		return Status::Unavailable;
 	if (c == Capability::IndirectSampling)
@@ -172,6 +242,33 @@ Status Prepared::IncomingRadiance(const ReconstructedLightingAsset &a, const Rad
 	out.calibration = data_->descriptor->calibration;
 	return Status::Ok;
 }
+Status Prepared::ReflectedIrradianceSH(const Vec3 &position, IrradianceSHSample &out) const
+{
+	if (!data_->reflectedSH)
+		return Status::Unavailable;
+	const auto support = data_->topology->Lookup(position);
+	if (support.status != Status::Ok || !support.region || support.conditional ||
+		(support.issues & ~uint32_t(Probes::ResolutionLimited)))
+		return Status::Unavailable;
+
+	V coefficients[9];
+	for (unsigned j = 0; j < support.count; ++j)
+	{
+		const auto v = ValueAt(data_->values, support.probes[j]);
+		if (!v)
+			return Status::Unavailable;
+		out.degree = std::max(out.degree, v->angular.degree);
+		for (size_t k = 0; k < v->angular.sh.size(); ++k)
+			coefficients[k] = coefficients[k] + VV(v->angular.sh[k]) * support.weights[j];
+	}
+	for (unsigned k = 0; k < 9; ++k)
+		out.coefficients[k] = coefficients[k].Float();
+	out.source = data_->field.source.id;
+	out.calibration = data_->field.calibration;
+	out.cell = support.cell;
+	out.region = support.region;
+	return Status::Ok;
+}
 Error Prepare(const Artifact &a, const ReadContext &read, std::shared_ptr<const Prepared> &out)
 {
 	out.reset();
@@ -229,6 +326,10 @@ Error Prepare(const Artifact &a, const ReadContext &read, std::shared_ptr<const 
 		d->field = *f;
 		d->topology = a.topology;
 		d->descriptor = std::make_shared<const ConditionalFieldDescriptor>(*a.descriptor);
+		d->reflectedSH = Physical(*d) &&
+			d->descriptor->quantity == ConditionalQuantity::NormalIrradiance &&
+			d->descriptor->representationError.known && !a.asset.regions.empty() &&
+			SupportsReflectedIrradiance(a.asset, *f);
 		uint64_t bytes = sizeof(*d);
 		Id last = 0;
 		std::vector<const Probes::Probe *> probeIndex;
@@ -252,6 +353,8 @@ Error Prepare(const Artifact &a, const ReadContext &read, std::shared_ptr<const 
 			Need((a.descriptor->quantity == ConditionalQuantity::IncomingRadiance) ==
 					 (v.angular.quantity == Angular::Quantity::IncomingRadiance),
 				 Code::InvalidInput, "Radiance/irradiance codec mismatch");
+			if (!v.angular.present || v.angular.degree > 2 || !v.angular.sg.empty())
+				d->reflectedSH = false;
 			bytes += sizeof(v) + v.angular.sh.size() * sizeof(Angular::V) +
 					 v.angular.sg.size() * sizeof(Angular::Lobe);
 		}

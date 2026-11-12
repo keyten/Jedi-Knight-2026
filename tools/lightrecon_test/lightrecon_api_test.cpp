@@ -276,7 +276,7 @@ void PreparedCpuBoundaryAndNoReadAllocations()
 {
 	Manager m; auto a = Fixture(); auto backend = std::make_shared<PreparedValues>();
 	// P05 adds explicit static shadow support after P01 conditional field sampling.
-	CHECK(m.Publish(a, Completeness::Ready, backend) == Status::Ok); CHECK(backend->supportsCalls == 8);
+	CHECK(m.Publish(a, Completeness::Ready, backend) == Status::Ok); CHECK(backend->supportsCalls == 9);
 	auto s = m.Acquire(); CHECK(s.GetCapability(Capability::IndirectSampling).status == Status::Ok);
 	CHECK(s.SampleIndirect(Irradiance()).value.rgb.y == 2.0f && backend->lastNormal.z == 1.0f);
 	CHECK(s.SampleIncomingRadiance(Radiance()).value.unit == PhotometricUnit::Nits && backend->lastDirection.y == 1.0f);
@@ -296,7 +296,7 @@ void PreparedCpuBoundaryAndNoReadAllocations()
 		CHECK(s.QueryVisibility(Visibility())); CHECK(s.SampleContribution(Contribution(s))); CHECK(s.LookupRegion(Vec3()));
 		CHECK(s.QuerySkyVisibility(SkyVisibility()));
 	}
-	countAllocations = false; CHECK(allocations == 0); CHECK(backend->supportsCalls == 8);
+	countAllocations = false; CHECK(allocations == 0); CHECK(backend->supportsCalls == 9);
 	backend = std::make_shared<PreparedValues>(); backend->support = Status::Unsupported;
 	CHECK(m.Publish(a, Completeness::Partial, backend) == Status::Ok);
 	CHECK(m.Acquire().SampleIndirect(Irradiance()).status == Status::Unsupported); CHECK(backend->queryCalls == 0);

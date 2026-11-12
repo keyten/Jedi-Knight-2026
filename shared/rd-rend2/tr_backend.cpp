@@ -21,9 +21,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 #include "tr_local.h"
 #include "tr_allocator.h"
+#include "tr_lightrecon.h"
+#include "tr_pbr_contract.h"
 #include "glext.h"
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <vector>
 
 // r_shadowStats: backend phases of point light cube face commands
@@ -3047,6 +3050,153 @@ static void RB_UpdateFogsConstants(gpuFrame_t *frame)
 		frame, &fogsBlock, sizeof(fogsBlock));
 }
 
+namespace {
+using namespace Rend2LightRecon;
+constexpr unsigned kEntityIrradianceCacheSize = 256;
+struct EntityIrradianceCache
+{
+	uint64_t generation = 0;
+	vec3_t origin{};
+	float spacing = 0;
+	Status status = Status::Unavailable;
+	int count = 0;
+	// Unscaled coefficients, either nine RGB SH values or three RGB L1 samples.
+	vec4_t coefficients[9]{};
+};
+EntityIrradianceCache s_entityIrradiance[kEntityIrradianceCacheSize];
+struct EntityIrradianceStats
+{
+	uint64_t generation = 0;
+	int queries = 0, cacheHits = 0, root = 0, body = 0, fallback = 0;
+	double microseconds = 0;
+};
+EntityIrradianceStats s_entityIrradianceStats;
+
+void RB_PackReflectedIrradiance(EntityIrradianceCache &entry, const Snapshot &snapshot)
+{
+	auto &stats = s_entityIrradianceStats;
+	const Vec3 origin(entry.origin[0], entry.origin[1], entry.origin[2]);
+	++stats.queries;
+	const auto centre = snapshot.SampleReflectedIrradianceSH(origin);
+	entry.status = centre.status;
+	if (!centre)
+		return;
+	if (entry.spacing > 0 && centre.value.degree <= 1)
+	{
+		Vec3 p = origin;
+		p.z -= entry.spacing;
+		const auto lower = snapshot.SampleReflectedIrradianceSH(p);
+		p.z = origin.z + entry.spacing;
+		const auto upper = snapshot.SampleReflectedIrradianceSH(p);
+		stats.queries += 2;
+		// Same convex free-space cell: blending these anchors cannot cross a
+		// wall, even when rooms share a region through a distant open door.
+		if (lower && upper && lower.value.degree <= 1 && upper.value.degree <= 1 &&
+			lower.value.cell == centre.value.cell && upper.value.cell == centre.value.cell &&
+			lower.value.region == centre.value.region && upper.value.region == centre.value.region)
+		{
+			const IrradianceSHSample *body[] = { &lower.value, &centre.value, &upper.value };
+			for (int i = 0; i < 3; ++i)
+				for (int k = 0; k < 4; ++k)
+				{
+					const auto &c = body[i]->coefficients[k];
+					entry.coefficients[i * 3 + 0][k] = c.x;
+					entry.coefficients[i * 3 + 1][k] = c.y;
+					entry.coefficients[i * 3 + 2][k] = c.z;
+				}
+			entry.count = 3;
+			return;
+		}
+	}
+	for (int k = 0; k < 9; ++k)
+	{
+		const auto &c = centre.value.coefficients[k];
+		VectorSet(entry.coefficients[k], c.x, c.y, c.z);
+	}
+	entry.count = 1;
+}
+
+void RB_UpdateEntityIrradiance(EntityBlock &block, const trRefEntity_t &entity,
+	const Snapshot &snapshot, unsigned entityIndex)
+{
+	if (entity.e.reType != RT_MODEL || entity.e.renderfx & (RF_VOLUMETRIC | RF_NODEPTH) ||
+		(!entity.e.ghoul2 && R_GetModelByHandle(entity.e.hModel)->type == MOD_BRUSH))
+		return;
+	// A parsed sun can be inseparable from the historical grid on a fast or
+	// modulation-only path. Keep that path unless it has a separate sun term.
+	if (tr.sunParsed && !entity.sunSplit && (r_sunlightMode->integer != 2 ||
+		(!r_normalMapping->integer && !r_specularMapping->integer)))
+	{
+		++s_entityIrradianceStats.fallback;
+		return;
+	}
+	if (entity.e.nonNormalizedAxes)
+	{
+		vec3_t cross;
+		CrossProduct(entity.e.axis[0], entity.e.axis[1], cross);
+		const float det = DotProduct(cross, entity.e.axis[2]);
+		if (!std::isfinite(det) || fabsf(det) < 1e-8f)
+			return;
+	}
+	const auto start = std::chrono::steady_clock::now();
+	const float *origin = entity.e.renderfx & RF_LIGHTING_ORIGIN ? entity.e.lightingOrigin : entity.e.origin;
+	const float spacing = entity.e.ghoul2 ?
+		Com_Clamp(4.0f, 20.0f, 0.35f * entity.e.radius * R_MaxEntityAxisScale(&entity)) : 0.0f;
+	auto &entry = s_entityIrradiance[entityIndex % kEntityIrradianceCacheSize];
+	auto &stats = s_entityIrradianceStats;
+	if (entry.generation == snapshot.Generation() && VectorCompare(entry.origin, origin) &&
+		entry.spacing == spacing)
+		++stats.cacheHits;
+	else
+	{
+		entry = {};
+		entry.generation = snapshot.Generation();
+		VectorCopy(origin, entry.origin);
+		entry.spacing = spacing;
+		RB_PackReflectedIrradiance(entry, snapshot);
+	}
+	if (entry.status == Status::Ok)
+	{
+		// Lambertian reflected radiance E/pi. Legacy uses the documented
+		// fixed scene conversion, independent of the stock grid's transfer.
+		const float scale = (r_pbrPhysical->integer ? R_PBRPhysicalToScene() :
+			Rend2PBR::kDefaultPhysicalToScene) / float(M_PI);
+		for (int i = 0; i < 3; ++i)
+		{
+			VectorScale4(entry.coefficients[i], scale, block.gridAmbient[i]);
+			VectorScale4(entry.coefficients[i + 3], scale, block.gridDirected[i]);
+			VectorScale4(entry.coefficients[i + 6], scale, block.gridDirection[i]);
+		}
+		block.gridMinimum[3] = entry.count == 3 ? -2.0f : -1.0f;
+		block.gridScale[0] = entity.e.nonNormalizedAxes ? 1.0f : 0.0f;
+		if (entry.count == 3)
+		{
+			block.gridParams[0] = origin[2];
+			block.gridParams[1] = 1.0f / spacing;
+			++stats.body;
+		}
+		else
+			++stats.root;
+	}
+	else
+		++stats.fallback;
+	stats.microseconds += std::chrono::duration<double, std::micro>(
+		std::chrono::steady_clock::now() - start).count();
+}
+} // namespace
+
+void RB_EntityIrradianceInfo(void)
+{
+	const auto &s = s_entityIrradianceStats;
+	const auto snapshot = R_ReconstructedLighting();
+	const bool current = s.generation && s.generation == snapshot.Generation() &&
+		r_lightReconUse->integer && r_lightReconEntities->integer;
+	const auto stats = current ? s : EntityIrradianceStats{};
+	ri.Printf(PRINT_ALL, "entity-irradiance generation=%llu queries=%d hits=%d root=%d body=%d fallback=%d cpu=%.2fus cache=%u bytes ubo-extra=0\n",
+		static_cast<unsigned long long>(stats.generation), stats.queries, stats.cacheHits,
+		stats.root, stats.body, stats.fallback, stats.microseconds, unsigned(sizeof(s_entityIrradiance)));
+}
+
 static void RB_UpdateEntityLightConstants(
 	EntityBlock& entityBlock,
 	const trRefEntity_t *refEntity)
@@ -3080,7 +3230,8 @@ static void RB_UpdateEntityLightConstants(
 		VectorScale(refEntity->sunSplitLight, normalizeFactor, entityBlock.entitySun);
 		entityBlock.entitySun[3] = 1.0f;
 	}
-	if (r_entityLightGrid->integer == 0 && r_entityLightGridDebug->integer == 0)
+	if (entityBlock.gridMinimum[3] < 0.0f ||
+		(r_entityLightGrid->integer == 0 && r_entityLightGridDebug->integer == 0))
 		return;
 
 	// r_entityLightGridCompare 2: one grid sample per model, without vid_restart
@@ -3351,6 +3502,17 @@ static void RB_UpdateEntityConstants(
 	gpuFrame_t *frame, const trRefdef_t *refdef)
 {
 	R_UpdateEntityLightGridTextures(tr.world);
+	Rend2LightRecon::Snapshot irradiance;
+	if (r_lightReconUse->integer && r_lightReconEntities->integer && tr.world &&
+		!(refdef->rdflags & RDF_NOWORLDMODEL) && !r_fullbright->integer &&
+		!refdef->doLAGoggles && !r_entityLightGridDebug->integer &&
+		(!refdef->resolvedSun.canonical || refdef->resolvedSun.entityDiffuse))
+		irradiance = R_ReconstructedLighting();
+	const bool useIrradiance = irradiance.GetCapability(Rend2LightRecon::Capability::ReflectedIrradianceSH).status ==
+		Rend2LightRecon::Status::Ok;
+	s_entityIrradianceStats = {};
+	if (useIrradiance)
+		s_entityIrradianceStats.generation = irradiance.Generation();
 	memset(tr.entityUboOffsets, 0, sizeof(tr.entityUboOffsets));
 	memset(tr.previousEntityUboOffsets, 0, sizeof(tr.previousEntityUboOffsets));
 
@@ -3381,6 +3543,8 @@ static void RB_UpdateEntityConstants(
 		R_SetupEntityLighting(refdef, ent);
 
 		EntityBlock entityBlock = {};
+		if (useIrradiance)
+			RB_UpdateEntityIrradiance(entityBlock, *ent, irradiance, i);
 		RB_UpdateEntityLightConstants(entityBlock, ent);
 		RB_UpdateEntityMatrixConstants(entityBlock, ent);
 		RB_UpdateEntityModelConstants(entityBlock, ent);
