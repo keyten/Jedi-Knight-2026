@@ -66,6 +66,7 @@ public:
 	float mPhysicalizationStrength = 1.0f;
 	bool PhysicalizationEnabled(const char* effect) const;
 	void WaterfallMistScales(const char* effect, float& radius, float& density) const;
+	void AddParticleSpriteToScene(miniRefEntity_t& sprite, const char* mediumEffect, bool usesAlpha);
 	bool PhysicalizationDebug() const;
 	bool PhysicalizationComposite() const;
 	bool PhysicalizationAdaptive() const;

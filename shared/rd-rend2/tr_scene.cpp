@@ -906,6 +906,7 @@ void RE_BeginScene(const refdef_t *fd)
 	// r_foliageInteraction: the character colliders of this scene (and the
 	// r_foliageInteractionDebug 1 capsules)
 	R_FoliageInteractionBeginScene(fd);
+	R_WaterfallSprayToScene(fd);
 	R_WaterBodiesDebugDraw(fd);
 	R_LuxelDebugDraw(fd);
 

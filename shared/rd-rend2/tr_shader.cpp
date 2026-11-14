@@ -6236,6 +6236,30 @@ static void CreateInternalShaders( void ) {
 	stages[0].bundle[0].image[0] = tr.whiteImage;
 	stages[0].stateBits = GLS_DEPTH_CLAMP;
 	tr.volumetricFogCapShader = FinishShader();
+
+	// Diameter and streak length are set by the ballistic sprite; a rounded
+	// alpha mask keeps the individual quads soft at subpixel distances.
+	byte droplet[16][16][4];
+	for (int y = 0; y < 16; ++y) for (int x = 0; x < 16; ++x)
+	{
+		const float s = (x + 0.5f) / 8.0f - 1.0f;
+		const float t = (y + 0.5f) / 8.0f - 1.0f;
+		const float alpha = Com_Clamp(0.0f, 1.0f, (1.0f - s * s - t * t) * 1.55f);
+		droplet[y][x][0] = droplet[y][x][1] = droplet[y][x][2] = 255;
+		droplet[y][x][3] = (byte)(alpha * 255.0f);
+	}
+	ClearGlobalShader();
+	Q_strncpyz(shader.name, "<waterfall droplet>", sizeof(shader.name));
+	Com_Memcpy(shader.lightmapIndex, lightmapsNone, sizeof(shader.lightmapIndex));
+	shader.sort = SS_UNDERWATER;
+	shader.cullType = CT_TWO_SIDED;
+	stages[0].bundle[0].image[0] = R_CreateImage("*waterfallDroplet", (byte *)droplet, 16, 16,
+		IMGTYPE_COLORALPHA, IMGFLAG_CLAMPTOEDGE | IMGFLAG_NO_COMPRESSION | IMGFLAG_NOLIGHTSCALE, GL_RGBA8);
+	stages[0].rgbGen = CGEN_EXACT_VERTEX;
+	stages[0].alphaGen = AGEN_VERTEX;
+	stages[0].stateBits = GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA;
+	stages[0].active = qtrue;
+	tr.waterfallDropletShader = FinishShader();
 }
 
 static void CreateExternalShaders( void ) {

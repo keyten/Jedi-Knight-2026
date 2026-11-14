@@ -515,6 +515,9 @@ struct waterfallImpactSource_t
 	int waterfallBodyId = 0;
 	int poolBodyId = 0;
 	vec3_t origin = {};
+	vec3_t across = {}, outflow = {};
+	vec3_t sprayColor = { 0.7f, 0.74f, 0.78f };
+	float halfWidth = 0.0f;
 	float radius = 0.0f;
 	float strength = 1.0f;
 	int originType = WFIMPACT_CLASSIFIED_BOTTOM;
@@ -1345,6 +1348,43 @@ static void R_WaterFoamInject(waterBody_t& body, const vec3_t position,
 	}
 }
 
+// A short, broken band where the sheet turns into surface flow. The foam
+// field handles transport and decay after it leaves this footprint.
+static void R_WaterfallFoamInject(waterBody_t& body, const waterfallImpactSource_t& source, int now)
+{
+	waterFoamState_t& foam = body.foam;
+	const float scale = r_waterfallImpactRadius->value;
+	const float cellSize = MAX(foam.texelX, foam.texelY);
+	const float halfWidth = MAX(1.5f * cellSize, source.halfWidth * scale);
+	const float halfLength = MAX(1.6f * cellSize, 0.50f * source.radius * scale);
+	vec3_t center;
+	VectorMA(source.origin, halfLength * 0.54f, source.outflow, center);
+	const float boundsX = fabsf(source.across[0]) * halfWidth + fabsf(source.outflow[0]) * halfLength;
+	const float boundsY = fabsf(source.across[1]) * halfWidth + fabsf(source.outflow[1]) * halfLength;
+	const int x0 = MAX(0, (int)floorf((center[0] - boundsX - body.bounds[0][0]) / foam.texelX));
+	const int x1 = MIN(foam.width - 1, (int)floorf((center[0] + boundsX - body.bounds[0][0]) / foam.texelX));
+	const int y0 = MAX(0, (int)floorf((center[1] - boundsY - body.bounds[0][1]) / foam.texelY));
+	const int y1 = MIN(foam.height - 1, (int)floorf((center[1] + boundsY - body.bounds[0][1]) / foam.texelY));
+	const float phase = (now % 31000) * (6.2831853f / 31000.0f) + source.waterfallBodyId * 2.43f;
+	const float strength = source.strength * r_waterfallImpactFoam->value;
+	for (int y = y0; y <= y1; ++y) for (int x = x0; x <= x1; ++x)
+	{
+		const size_t i = (size_t)y * foam.width + x;
+		if (!foam.mask[i]) continue;
+		const float dx = body.bounds[0][0] + (x + 0.5f) * foam.texelX - center[0];
+		const float dy = body.bounds[0][1] + (y + 0.5f) * foam.texelY - center[1];
+		const float across = (dx * source.across[0] + dy * source.across[1]) / halfWidth;
+		const float along = (dx * source.outflow[0] + dy * source.outflow[1]) / halfLength;
+		const float streak = 0.66f + 0.22f * sinf(across * 16.0f + phase * 10.0f + along * 1.4f) +
+			0.12f * sinf(across * 31.0f - phase * 15.0f);
+		const float edge = 1.0f - across * across - along * along / streak;
+		if (edge <= 0.0f) continue;
+		const int value = (int)(255.0f * Com_Clamp(0.0f, 1.0f, strength * edge * (0.48f + 0.70f * streak)));
+		foam.source[i * 4] = (byte)MAX((int)foam.source[i * 4], value);
+		foam.sourceDirty = true;
+	}
+}
+
 void RB_WaterContactUniforms(vec4_t *contact, int vec4Count)
 {
 	if (!contact || vec4Count <= 0) return;
@@ -1871,10 +1911,85 @@ static void R_WaterFlowImpactSlaps(int now)
 	}
 }
 
-static float R_WaterfallImpactRandom(waterfallImpactSource_t& source)
+static float R_WaterfallImpactRandom(unsigned& seed)
 {
-	source.randomState = source.randomState * 1664525u + 1013904223u;
-	return (float)(source.randomState & 0x00ffffffu) / 16777216.0f;
+	seed = seed * 1664525u + 1013904223u;
+	return (float)(seed & 0x00ffffffu) / 16777216.0f;
+}
+
+void R_WaterfallSprayToScene(const refdef_t *fd)
+{
+	if (!r_waterfall->integer || !r_waterfallMist->integer || !r_waterfallImpact->integer ||
+		R_CompareOff(RC_WATERFALL) || !tr.waterfallDropletShader || !tr.world ||
+		s_water.world != tr.world || (fd->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL | RDF_HYPERSPACE))) return;
+
+	// Stable trajectories require no particle allocations, RNG state, or catch-up
+	// when a source leaves the view. All visible droplets share one material.
+	constexpr int maxQuads = 64;
+	polyVert_t verts[maxQuads][4];
+	int count = 0;
+	const unsigned now = (unsigned)MAX(fd->time, 0);
+	const int period = 540;
+	const float reach = 1350.0f;
+	const float gravity = 440.0f;
+	for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
+	{
+		if (count >= maxQuads) break;
+		if (source.poolBodyId <= 0 || source.strength <= 0.0f) continue;
+		vec3_t toSource;
+		VectorSubtract(source.origin, fd->vieworg, toSource);
+		const float distance2 = VectorLengthSquared(toSource);
+		if (distance2 > reach * reach || DotProduct(toSource, fd->viewaxis[0]) < -source.radius) continue;
+		const float distanceFade = Com_Clamp(0.0f, 1.0f, (reach * reach - distance2) / (reach * reach * 0.60f));
+		const float detail = Com_Clamp(0.0f, 1.0f, (1050.0f * 1050.0f - distance2) / (620000.0f));
+		const int droplets = source.halfWidth > 100.0f ? 14 : 9;
+		for (int i = 0; i < droplets && count < maxQuads; ++i)
+		{
+			const float detailFade = Com_Clamp(0.0f, 1.0f, 5.0f + detail * (droplets - 5) - i);
+			if (detailFade <= 0.0f) break;
+			const unsigned staggered = now + (unsigned)i * 137u + (unsigned)source.waterfallBodyId * 211u;
+			const float age = (staggered % period) * 0.001f;
+			unsigned seed = (staggered / period) * 9781u + (unsigned)source.waterfallBodyId * 1327u + (unsigned)i * 31337u;
+			const float across = R_WaterfallImpactRandom(seed) * 2.0f - 1.0f;
+			const float lateralSpeed = (R_WaterfallImpactRandom(seed) - 0.5f) * 82.0f;
+			const float outSpeed = 48.0f + R_WaterfallImpactRandom(seed) * 98.0f;
+			const float lift = (77.0f + R_WaterfallImpactRandom(seed) * 70.0f) * MIN(source.strength, 1.25f);
+			vec3_t position, velocity;
+			VectorMA(source.origin, across * source.halfWidth * 0.84f + lateralSpeed * age, source.across, position);
+			VectorMA(position, 9.0f + outSpeed * age, source.outflow, position);
+			position[2] += 4.0f + (lift - 0.5f * gravity * age) * age;
+			const float height = position[2] - source.origin[2];
+			if (height < 2.0f) continue;
+			VectorScale(source.outflow, outSpeed, velocity);
+			VectorMA(velocity, lateralSpeed, source.across, velocity);
+			velocity[2] = lift - gravity * age;
+			const float alpha = 0.73f * distanceFade * detailFade * MIN(1.0f, height / 12.0f) *
+				MIN(1.0f, (0.54f - age) / 0.09f);
+			const float radius = 0.76f + 1.24f * R_WaterfallImpactRandom(seed);
+			const float u = DotProduct(velocity, fd->viewaxis[1]), v = DotProduct(velocity, fd->viewaxis[2]);
+			const float speed = sqrtf(u * u + v * v);
+			const float sinAngle = speed > 1.0e-3f ? u / speed : 0.0f;
+			const float cosAngle = speed > 1.0e-3f ? v / speed : 1.0f;
+			vec3_t side, up;
+			VectorScale(fd->viewaxis[1], radius * cosAngle, side);
+			VectorMA(side, -radius * sinAngle, fd->viewaxis[2], side);
+			VectorScale(fd->viewaxis[1], radius * sinAngle, up);
+			VectorMA(up, radius * cosAngle, fd->viewaxis[2], up);
+			VectorScale(up, 1.25f + MIN(2.5f, speed * 0.014f), up);
+			polyVert_t *quad = verts[count++];
+			for (int corner = 0; corner < 4; ++corner)
+			{
+				const bool right = corner == 1 || corner == 2;
+				const bool top = corner < 2;
+				VectorMA(position, right ? 1.0f : -1.0f, side, quad[corner].xyz);
+				VectorMA(quad[corner].xyz, top ? 1.0f : -1.0f, up, quad[corner].xyz);
+				VectorSet2(quad[corner].st, right ? 1.0f : 0.0f, top ? 0.0f : 1.0f);
+				for (int c = 0; c < 3; ++c) quad[corner].modulate[c] = (byte)(source.sprayColor[c] * 255.0f);
+				quad[corner].modulate[3] = (byte)(alpha * 255.0f);
+			}
+		}
+	}
+	if (count) RE_AddPolyToScene(tr.waterfallDropletShader->index, 4, verts[0], count);
 }
 
 static bool R_WaterfallImpactTargetsBody(const waterBody_t *body)
@@ -1897,7 +2012,7 @@ static void R_WaterfallImpactInteraction(int now, float dt)
 		if (source.poolBodyId <= 0 || source.poolBodyId > (int)s_water.bodies.size()) continue;
 		waterBody_t& pool = s_water.bodies[source.poolBodyId - 1];
 		if (!pool.interaction.image) continue;
-		const float radius = source.radius * r_waterfallImpactRadius->value;
+		const float radius = MIN(source.radius, source.halfWidth * 1.25f) * r_waterfallImpactRadius->value;
 		const float impulse = source.strength * r_waterfallImpactImpulse->value;
 		if (impulse > 0.0f)
 			R_WaterInteractionStamp(pool, source.origin, radius, -impulse * dt,
@@ -1906,18 +2021,17 @@ static void R_WaterfallImpactInteraction(int now, float dt)
 		const float turbulence = source.strength * r_waterfallImpactTurbulence->value;
 		if (turbulence <= 0.0f) continue;
 		if (!source.nextSecondaryTime)
-			source.nextSecondaryTime = now + 50 + (int)(R_WaterfallImpactRandom(source) * 120.0f);
+			source.nextSecondaryTime = now + 50 + (int)(R_WaterfallImpactRandom(source.randomState) * 120.0f);
 		if (now < source.nextSecondaryTime) continue;
-		const float angle = R_WaterfallImpactRandom(source) * 6.2831853f;
-		const float reach = sqrtf(R_WaterfallImpactRandom(source)) * radius * 0.78f;
-		vec3_t position, direction = { cosf(angle), sinf(angle), 0.0f };
-		VectorMA(source.origin, reach, direction, position);
-		position[2] = source.origin[2];
-		const float secondaryRadius = radius * (0.16f + 0.24f * R_WaterfallImpactRandom(source));
-		const float secondary = turbulence * (0.06f + 0.16f * R_WaterfallImpactRandom(source));
+		const float crossOffset = (2.0f * R_WaterfallImpactRandom(source.randomState) - 1.0f) * source.halfWidth;
+		vec3_t position;
+		VectorMA(source.origin, crossOffset * r_waterfallImpactRadius->value, source.across, position);
+		VectorMA(position, radius * R_WaterfallImpactRandom(source.randomState) * 0.55f, source.outflow, position);
+		const float secondaryRadius = radius * (0.16f + 0.24f * R_WaterfallImpactRandom(source.randomState));
+		const float secondary = turbulence * (0.06f + 0.16f * R_WaterfallImpactRandom(source.randomState));
 		R_WaterInteractionStamp(pool, position, secondaryRadius, -secondary,
-			0.12f * r_waterfallImpactFoam->value, direction, false);
-		source.nextSecondaryTime = now + 70 + (int)(R_WaterfallImpactRandom(source) * 180.0f);
+			0.04f * r_waterfallImpactFoam->value, source.outflow, false);
+		source.nextSecondaryTime = now + 70 + (int)(R_WaterfallImpactRandom(source.randomState) * 180.0f);
 	}
 }
 
@@ -2458,10 +2572,7 @@ static void RB_WaterFoamUpdate(void)
 			if (source.poolBodyId <= 0 || source.poolBodyId > (int)s_water.bodies.size()) continue;
 			waterBody_t& pool = s_water.bodies[source.poolBodyId - 1];
 			if (!R_WaterFoamAllocate(pool)) continue;
-			R_WaterFoamInject(pool, source.origin,
-				source.radius * r_waterfallImpactRadius->value,
-				0.9f * source.strength * r_waterfallImpactFoam->value,
-				WATERFOAMSOURCE_WATERFALL);
+			R_WaterfallFoamInject(pool, source, now);
 		}
 	}
 
@@ -4238,6 +4349,12 @@ void R_WaterfallEmittersFinalize(world_t *world)
 		source.waterfallBodyId = fall.id;
 		source.radius = rule && rule->radius > 0.0f ? rule->radius :
 			Com_Clamp(72.0f, 384.0f, fall.impactWidth * 0.45f);
+		source.halfWidth = MIN(source.radius, MAX(20.0f, 0.53f * fall.impactWidth));
+		VectorSet(source.outflow, fall.fallDirection[0], fall.fallDirection[1], 0.0f);
+		if (VectorLengthSquared(source.outflow) < 0.01f)
+			VectorSet(source.outflow, fall.planeNormal[0], fall.planeNormal[1], 0.0f);
+		VectorNormalize(source.outflow);
+		VectorSet(source.across, -source.outflow[1], source.outflow[0], 0.0f);
 		source.strength = fall.waterfallValues.impact;
 		if (rule && rule->hasOrigin)
 		{
@@ -4292,6 +4409,12 @@ void R_WaterfallEmittersFinalize(world_t *world)
 		}
 		source.poolBodyId = bestPool->id;
 		VectorCopy(bestOrigin, source.origin);
+		vec3_t lightOrigin, ambient, directed, lightDir;
+		VectorMA(source.origin, 24.0f, source.outflow, lightOrigin);
+		lightOrigin[2] += 30.0f;
+		if (R_LightForPoint(lightOrigin, ambient, directed, lightDir, world))
+			for (int c = 0; c < 3; ++c)
+				source.sprayColor[c] = Com_Clamp(0.25f, 0.95f, (ambient[c] + 0.55f * directed[c]) / 255.0f);
 		source.randomState = (unsigned)fall.id * 747796405u + (unsigned)bestPool->id * 2891336453u + 1u;
 		s_water.waterfallImpacts.push_back(source);
 	};

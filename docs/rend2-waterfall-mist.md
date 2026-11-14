@@ -68,9 +68,12 @@ All additions are off by default.
 
 The stock `env/waterfall_mist.efx` fingerprint already has the reviewed
 physicalization `Mist` profile. `r_waterfallMist 1` opts that one exact stock
-effect into physicalization without enabling unrelated legacy FX. The normal
-`r_volumetricFog 2`, depth-prepass and volumetric-particle requirements still
-apply.
+effect into physicalization and reduces its additive sprite intensity to
+preserve detail against the receiving water. The volume uses the stronger
+waterfall-specific optical depth with `r_volumetricFog 2`, depth prepass and
+`r_volumetricParticles 1`. Use `fx_physicalizationDebug 1` to verify the
+matched profile and `r_volparticles` to inspect the upload counts. Surface
+foam and the stock `wake` sprites belong to the water surface.
 
 ## Stock-map overlay
 
@@ -78,9 +81,9 @@ The installed-asset audit found waterfall sheets only in `t3_hevil`, `yavin1`
 and `yavin1b`. `yavin1` and `yavin1b` already have spatially associated
 waterfall FX, so their sidecars declare `ExistingFx`. `t3_hevil` has eight
 classified strips and no nearby FX; its overlay preserves the complete stock
-entity lump and appends eight reserved-bit `env/waterfall_mist` runners at the
-audited impact points. Those runners are discarded at map spawn while the
-master cvar is zero.
+entity lump and appends eight reserved-bit `env/waterfall_mist` runners just
+above the receiving water and in front of their sheets. Those runners are
+discarded at map spawn while the master cvar is zero.
 
 Build the non-destructive PK3:
 

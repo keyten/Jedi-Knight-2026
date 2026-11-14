@@ -90,7 +90,25 @@ void SFxHelper::WaterfallMistScales(const char* effect, float& radius, float& de
 	if (!FX_IsWaterfallMist(effect) || !waterfallMist || !waterfallMist->integer) return;
 	radius *= waterfallMistRadius ? waterfallMistRadius->value : 1.0f;
 	density *= (waterfallMistDensity ? waterfallMistDensity->value : 1.0f) *
-		(waterfallMistBalance ? waterfallMistBalance->value : 0.65f);
+		(waterfallMistBalance ? waterfallMistBalance->value : 0.65f) * 3.0f;
+}
+
+void SFxHelper::AddParticleSpriteToScene(miniRefEntity_t& sprite, const char* mediumEffect, bool usesAlpha)
+{
+	if (waterfallMist && waterfallMist->integer && FX_IsWaterfallMist(mediumEffect))
+	{
+		// Leave headroom for lit mist and spray where the additive sprites overlap.
+		miniRefEntity_t mist = sprite;
+		if (usesAlpha)
+			mist.shaderRGBA[3] = (byte)(mist.shaderRGBA[3] * 0.30f);
+		else
+			for (int c = 0; c < 3; ++c) mist.shaderRGBA[c] = (byte)(mist.shaderRGBA[c] * 0.30f);
+
+		AddFxToScene(&mist);
+		return;
+	}
+
+	AddFxToScene(&sprite);
 }
 
 bool SFxHelper::PhysicalizationDebug() const { return fx_physicalizationDebug && fx_physicalizationDebug->integer != 0; }

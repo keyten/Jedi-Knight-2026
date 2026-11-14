@@ -135,7 +135,7 @@ void CParticle::Draw(void)
 		// Add our refEntity to the scene
 		VectorCopy( mOrigin1, mRefEnt.origin );
 
-		theFxHelper.AddFxToScene(&mRefEnt);
+		theFxHelper.AddParticleSpriteToScene(mRefEnt, mVolMedia ? mVolume.autoEffect : nullptr, (mFlags & FX_USE_ALPHA) != 0);
 		DrawVolumetricMedia();
 	}
 	drawnFx++;
