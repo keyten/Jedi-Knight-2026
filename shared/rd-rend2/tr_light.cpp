@@ -719,16 +719,16 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 R_LightForPoint
 =================
 */
-int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir )
+int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir, world_t *world )
 {
 	trRefEntity_t ent;
 
-	if ( tr.world->lightGridData == NULL )
-	  return qfalse;
+	if (!world || !world->lightGridData)
+		return qfalse;
 
 	Com_Memset(&ent, 0, sizeof(ent));
 	VectorCopy( point, ent.e.origin );
-	R_SetupEntityLightingGrid( &ent, tr.world );
+	R_SetupEntityLightingGrid( &ent, world );
 	VectorCopy(ent.ambientLight, ambientLight);
 	VectorCopy(ent.directedLight, directedLight);
 	VectorCopy(ent.lightDir, lightDir);
@@ -736,6 +736,10 @@ int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, ve
 	return qtrue;
 }
 
+int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir )
+{
+	return R_LightForPoint(point, ambientLight, directedLight, lightDir, tr.world);
+}
 
 int R_LightDirForPoint( vec3_t point, vec3_t lightDir, vec3_t normal, world_t *world )
 {

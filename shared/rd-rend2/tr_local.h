@@ -5668,6 +5668,7 @@ void RB_EntityIrradianceInfo(void);
 void R_BuildLightGridColorTexture(world_t *world);
 void R_TransformDlights( int count, dlight_t *dl, orientationr_t *ori );
 int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
+int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir, world_t *world );
 int R_LightDirForPoint( vec3_t point, vec3_t lightDir, vec3_t normal, world_t *world );
 int R_DLightsForPoint(const vec3_t point, const float radius);
 int R_DLightsForEntity(trRefEntity_t *ent, const vec3_t point, const float radius);

@@ -107,16 +107,25 @@ bounds have real gaps.
 
 The vertex program creates a low-frequency coherent sheet and downstream-
 increasing medium breakup, displaced only along the authored sheet normal.
-The fragment program adds two advected tangent-space detail scales plus the
-legacy stage detail. It computes a stable 0..1 coordinate from each body's own
-top and bottom projections.
+The fragment program advects two scales of the packed foam pattern through
+the sheet. A travel coordinate derived from the top and bottom projections
+speeds up and stretches the pattern as it falls. Local slope, downstream
+distance, and the profile control how much of the surface turns to froth.
+The stock patches use their authored across-sheet UV and the moving foam
+pattern to erode the sides of the flow. Derivative-based filtering keeps the
+irregular contour sharp. Three light-grid samples per sheet ground the diffuse
+foam in the level lighting. The foam is non-emissive.
 
-Refraction samples the existing pre-tonemap scene color/depth and keeps the
-foreground rejection logic, but absorption/scattering path length is the
-profile thickness field divided by refracted-ray cosine—not depth to the wall.
-The sheet is two-sided air -> water -> air. SSR/environment reflection is
-attenuated and roughened. Aeration grows downstream and blends toward lit,
-rough scattering; it never writes glow/emission.
+This follows the layered foam and normal distortion in the
+[CryEngine waterfall shader](https://www.cryengine.com/docs/static/engines/cryengine-3/categories/1114113/pages/11240839)
+and the procedural slope and flow masking shown in
+[Diablo IV's water rendering talk](https://media.gdcvault.com/gdc2024/Slides/GDC%2Bslide%2Bpresentations/Aikman_Aaron_H2O_in_H3LL.pdf).
+
+Refraction samples the existing pre-tonemap scene and is strongest in the
+clear gaps. A displaced waterfall lookup uses a single depth check for
+foreground rejection. The absorption path is the profile thickness divided
+by the refracted-ray cosine. The sheet is two-sided, with attenuated,
+roughened reflection.
 
 When `r_waterfall 0`, no surface gets the waterfall key, the dedicated draw is
 not queued, and the original four shader stages execute unchanged. Modern
@@ -134,24 +143,23 @@ BSP.
 The heavy path divides the body's normalized top-to-impact projection into
 continuous regimes inside the existing pass:
 
-- the top retains a coherent, mostly clear sheet and low displacement;
-- the middle ramps turbulence and partial lit bulk whitewater;
-- the lower sheet increases breakup, rough scattering and a broken foam mask;
-- the impact band feeds the existing impact-pool persistent foam, spray and
-  mist paths.
+- A coherent lip with low displacement gives way to streaks of whitewater
+  where the slope steepens.
+- In the middle and lower sections, dense foam covers most of the sheet.
+  The advected pattern leaves clear gaps and varies the brightness of the
+  dense patches.
+- The base connects to the existing impact-pool foam, spray and mist paths.
 
 The masks use `dot(worldPosition, fallDirection)` normalized by each body's
-audited top/bottom projections; they do not assume world Z. Whitewater is
-bounded below full coverage and remains non-emissive, so the dam never becomes
-one opaque white card. Persistent foam stays in its body-local field on the
-receiving horizontal pool. The falling sheet uses an advected broken source
-mask rather than allocating another large simulation texture.
+audited top/bottom projections. Persistent foam at the base stays in its
+body-local field on the receiving horizontal pool. The falling sheet reuses
+the mipmapped foam texture, with no extra pass or simulation buffer.
 
 Fragment quality is selected from both camera distance and the aggregate
 screen coverage of visible strips sharing the profile. Low uses one normal
-octave, disables waterfall SSR and uses straight scene refraction; medium uses
-two octaves, half refraction quality and simplified foam/spray breakup; high
-uses all three detail samples and full rejection/refraction.
+sample and one foam sample, with straight transmission and no waterfall SSR.
+Medium and high can sample the second foam scale and enable refracted
+lookups through the clear gaps. High subdivides the mesh more finely.
 `r_waterfallQuality` caps the automatic result.
 
 ## Controls and diagnostics

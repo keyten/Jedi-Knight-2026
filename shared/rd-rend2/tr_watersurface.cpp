@@ -436,7 +436,9 @@ struct waterBody_t
 	const char *waterfallDecision = "legacy fallback";
 	waterfallProfile_t waterfallValues = s_waterfallProfiles[WFPROFILE_MEDIUM];
 	float fallMin = 0.0f, fallMax = 1.0f;
+	vec2_t fallAcrossUV = {};
 	vec3_t fallDirection = { 0, 0, -1 }, impactCenter = {};
+	vec3_t fallIrradiance = {};
 	float impactWidth = 0.0f;
 	float viewCoverage = 1.0f, viewDistance = 0.0f;
 };
@@ -3725,6 +3727,26 @@ static void R_WaterResolveWaterfall(waterBody_t& body)
 	VectorAdd(body.bounds[0], body.bounds[1], body.impactCenter); VectorScale(body.impactCenter, 0.5f, body.impactCenter);
 	VectorMA(body.impactCenter, body.fallMax - DotProduct(body.impactCenter, body.fallDirection), body.fallDirection, body.impactCenter);
 	body.impactWidth = acrossMax - acrossMin;
+	// The audited stock patches have monotonic S across the sheet. Normalize
+	// their individual ranges so the foam can break up at the real side edges.
+	VectorSet2(body.fallAcrossUV, 0.0f, 0.0f);
+	if (body.shaders.count("textures/h_evil/wfall") && body.surfaces.size() == 1)
+	{
+		const msurface_t& surface = s_water.world->surfaces[body.surfaces.front()];
+		if (surface.data && *surface.data == SF_GRID)
+		{
+			const srfBspSurface_t *patch = (const srfBspSurface_t *)surface.data;
+			float low = 1.0e30f, high = -1.0e30f;
+			for (int i = 0; i < patch->numVerts; ++i)
+			{
+				const float s = patch->verts[i].st[0];
+				low = MIN(low, s);
+				high = MAX(high, s);
+			}
+			if (high - low > 1.0e-4f)
+				VectorSet2(body.fallAcrossUV, low, 1.0f / (high - low));
+		}
+	}
 }
 
 static void R_WaterApplyWaterfallBodyKeys(waterBody_t& body)
@@ -4294,9 +4316,29 @@ void R_WaterfallEmittersFinalize(world_t *world)
 
 	std::vector<refFogVolume_t> fog;
 	std::vector<lensWaterEmitter_t> lens;
-	for (const waterBody_t& body : s_water.bodies)
+	for (waterBody_t& body : s_water.bodies)
 	{
 		if (!body.waterfall) continue;
+		// Use the level's baked light grid for the bubbly, diffuse part of the
+		// sheet. Take a small average along the visible side of the fall.
+		vec3_t center;
+		VectorAdd(body.bounds[0], body.bounds[1], center);
+		VectorScale(center, 0.5f, center);
+		VectorMA(center, body.planeDist - DotProduct(center, body.planeNormal), body.planeNormal, center);
+		for (float height : { -0.30f, 0.0f, 0.30f })
+		{
+			vec3_t sample, ambient, directed, direction;
+			VectorMA(center, (body.fallMax - body.fallMin) * height, body.fallDirection, sample);
+			VectorMA(sample, 24.0f, body.planeNormal, sample);
+			if (R_LightForPoint(sample, ambient, directed, direction, world))
+			{
+				for (int c = 0; c < 3; ++c)
+				{
+					const float light = (ambient[c] + 0.45f * directed[c]) / 255.0f;
+					body.fallIrradiance[c] += (float)sRGBtoRGB(MAX(light, 0.0f)) / 3.0f;
+				}
+			}
+		}
 		bool matched = false, existingFx = false;
 		for (const waterfallEmitterRule_t& rule : s_water.waterfallEmitterRules)
 			if (R_WaterfallRuleMatches(rule.selector, body)) { matched = true; existingFx |= rule.existingFx; }
@@ -6679,19 +6721,16 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		body ? (float)body->waterfallProfile : 0.0f);
 	// Per-profile coverage is shared by disconnected stock strips (the dam has
 	// eight real BSP gaps), so they retain one coherent quality decision without
-	// merging geometry or adding transparent passes.  z gates refraction/SSR;
-	// w simplifies high-frequency foam/spray breakup at distance.
-	VectorSet4(water[WATER_U_WATERFALL + 5], waterfallProfileStrength, waterfallLod,
+	// merging geometry or adding transparent passes. z gates refraction/SSR.
+	// x/w normalize the stock patch's authored across-sheet UV.
+	VectorSet4(water[WATER_U_WATERFALL + 5], waterfall ? body->fallAcrossUV[0] : 0.0f, waterfallLod,
 		waterfallLod < 0.34f ? 0.0f : (waterfallLod < 0.67f ? 0.5f : 1.0f),
-		waterfallLod < 0.34f ? 0.35f : (waterfallLod < 0.67f ? 0.7f : 1.0f));
+		waterfall ? body->fallAcrossUV[1] : 0.0f);
 	if (waterfall)
 	{
-		// Falling-sheet motion is intrinsic to the dedicated waterfall path.  It
-		// must not depend on the optional horizontal-water flow visualization.
-		VectorSet4(water[WATER_U_FLOW], body->fallDirection[0] * waterfallProfile.flowSpeed,
-			body->fallDirection[1] * waterfallProfile.flowSpeed,
-			body->fallDirection[2] * waterfallProfile.flowSpeed, 1.0f);
-		water[WATER_U_FLOW + 1][0] = waterfallProfile.flowSpeed;
+		// The falling sheet has its own flow slot. Reuse the horizontal flow
+		// slot as a linear-light probe for the foam on waterfall draws.
+		VectorSet4(water[WATER_U_FLOW], body->fallIrradiance[0], body->fallIrradiance[1], body->fallIrradiance[2], 0.0f);
 		water[WATER_U_SURFACE][1] = MAX(water[WATER_U_SURFACE][1], 0.34f);
 		water[WATER_U_SURFACE][3] = Com_Clamp(0.0f, 4.0f, r_waterfallRefraction->value);
 		water[WATER_U_OPTICS][0] *= 0.28f;
