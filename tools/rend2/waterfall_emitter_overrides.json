@@ -1,5 +1,9 @@
 {
   "t3_hevil": {
+    "ReflectionProbes": [
+      { "Name": "West spillway", "Position": [-448, -1344, -1112], "Radius": 950, "WaterfallOnly": 1 },
+      { "Name": "East spillway", "Position": [1472, -1344, -1112], "Radius": 950, "WaterfallOnly": 1 }
+    ],
     "WaterfallEmitters": [
       {
         "Selector": { "Shader": "textures/h_evil/wfall" },
@@ -28,6 +32,10 @@
     ]
   },
   "yavin1b": {
+    "ReflectionProbes": [
+      { "Name": "South falls", "Position": [-194, -4368, 584], "Radius": 740, "WaterfallOnly": 1 },
+      { "Name": "North falls", "Position": [-1104, 2768, 700], "Radius": 740, "WaterfallOnly": 1 }
+    ],
     "WaterfallEmitters": [
       {
         "Selector": { "Shader": "textures/h_evil/wfall" },

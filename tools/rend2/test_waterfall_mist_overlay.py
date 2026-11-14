@@ -23,7 +23,13 @@ def main(argv):
             path = f'cubemaps/{map_name}/env.json'
             merged = json.loads(archive.read(path))
             original = json.loads(files.read(path).decode('utf-8-sig')) if path in files.files else {}
+            probes = mist.get(map_name, {}).get("ReflectionProbes", [])
+            if probes:
+                assert all(probe["WaterfallOnly"] == 1 for probe in probes)
+                assert merged["Cubemaps"] == original.get("Cubemaps", []) + probes
             for key, value in original.items():
+                if key == "Cubemaps" and probes:
+                    continue
                 assert merged[key] == value, f'{path}: existing {key} changed'
             for key, value in additions.items():
                 assert merged[key] == value, f'{path}: missing authored {key}'

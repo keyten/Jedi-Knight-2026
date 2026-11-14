@@ -46,6 +46,9 @@ def main(argv):
                 if key in environment:
                     raise ValueError(f'{path} already defines {key}; merge manually')
                 environment[key] = value
+            probes = waterfall_manifest.get(map_name, {}).get("ReflectionProbes", [])
+            if probes:
+                environment.setdefault("Cubemaps", []).extend(probes)
             output.writestr(path, json.dumps(environment, indent=2) + '\n')
         for map_name, block in sorted(waterfall_manifest.items()):
             sidecar = {"WaterfallEmitters": block["WaterfallEmitters"]}

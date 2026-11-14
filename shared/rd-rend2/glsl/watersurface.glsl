@@ -982,6 +982,7 @@ uniform sampler2D u_WaterFlowField;      // r_waterFlowField: velocity / body sp
 uniform vec4 u_WaterFlowParams[2];
 uniform sampler2D u_EnvBrdfMap;
 uniform samplerCube u_CubeMap;
+uniform samplerCube u_WaterfallCubeMap;
 uniform vec4 u_CubeMapInfo;
 #if defined(USE_SHADOWS2)
 uniform sampler2DArray u_ShadowMap;
@@ -1035,6 +1036,7 @@ out vec4 out_SSRNormal; // reflection prepass: receiver-to-hit vector and validi
 #define WATER_FLAG_ENVBRDF	512
 #define WATER_FLAG_CAMERA_LIQUID	1024	// the view origin is in a liquid brush (R_LiquidPointClass)
 #define WATER_FLAG_PREPASS_CULL	2048	// r_waterSSROptimize: the prepass drops occluded water before shading
+#define WATER_FLAG_WATERFALL_CUBEMAP	4096
 
 int g_flags;
 
@@ -2341,8 +2343,23 @@ void main()
 		float below = dot(R, Ng);
 		if (below < 0.02)
 			R = normalize(R + Ng * (0.02 - below));
-		vec3 env = WaterEnvironment(P, R, roughness * ROUGHNESS_MIPS);
-		debugSource = WaterFlag(WATER_FLAG_CUBEMAP) ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
+		bool localFallProbe = WaterFlag(WATER_FLAG_WATERFALL_CUBEMAP);
+		vec3 env;
+		if (localFallProbe)
+		{
+			// Use the probe's direction directly. Parallax shifts across these
+			// tall sheets can bend large features along the edge of the fall.
+			env = SceneToLinear(textureLod(u_WaterfallCubeMap, R, roughness * ROUGHNESS_MIPS).rgb);
+			// Restore the physical Fresnel weight for the clear part of the
+			// sheet. The whitewater and surface foam attenuate it below.
+			W = mix(W, FresnelDielectric(NV, 1.0 / ior), 1.0 - whitewater);
+			debugSource = vec3(0.0, 1.0, 0.0);
+		}
+		else
+		{
+			env = WaterEnvironment(P, R, roughness * ROUGHNESS_MIPS);
+			debugSource = WaterFlag(WATER_FLAG_CUBEMAP) ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
+		}
 #if defined(USE_SSR)
 		if (WaterFlag(WATER_FLAG_SSR) && u_Water[WATER_U_OPTICS].y > 0.0)
 		{

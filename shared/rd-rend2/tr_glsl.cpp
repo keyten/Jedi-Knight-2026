@@ -492,6 +492,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterFlowFieldParams",	GLSL_VEC4, 1 },
 	{ "u_WaterFlowParams",	GLSL_VEC4, 2 },
 	{ "u_WaterFoamPattern",	GLSL_INT, 1 },
+	{ "u_WaterfallCubeMap",	GLSL_INT, 1 },
 	{ "u_WaterPass", GLSL_VEC4, 1 },
 	{ "u_WaterTess", GLSL_VEC4, 1 },
 	{ "u_WaterTessRange", GLSL_VEC4, 1 },
@@ -3866,6 +3867,7 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		GLSL_SetUniformInt(sp, UNIFORM_WATERPREVINTERACTIONMAP, 24);
 		// units 16/17 are free in the water program (entity grid units are lightall only)
 		GLSL_SetUniformInt(sp, UNIFORM_WATERFOAMPATTERNMAP, 16);
+		GLSL_SetUniformInt(sp, UNIFORM_WATERFALLCUBEMAP, TB_WATERFALL_CUBEMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERFLOWFIELDMAP, 17);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERRAINMAP, TB_WATERRAIN);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERGLOWMAP, 9);

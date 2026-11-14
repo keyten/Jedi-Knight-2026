@@ -798,7 +798,7 @@ int R_DLightsForEntity(trRefEntity_t *ent, const vec3_t point, const float radiu
 	return ent->dlightCacheBits;
 }
 
-int R_CubemapForPoint( const vec3_t point )
+int R_CubemapForPoint( const vec3_t point, bool waterfallOnly )
 {
 	int cubemapIndex = -1;
 
@@ -809,11 +809,16 @@ int R_CubemapForPoint( const vec3_t point )
 
 		for (i = 0; i < MIN(tr.numCubemaps, MAX_RUNTIME_CUBEMAPS); i++)
 		{
+			const cubemap_t& probe = tr.cubemaps[i];
+			if (probe.waterfallOnly != waterfallOnly)
+				continue;
 			vec3_t diff;
 			float length;
 
-			VectorSubtract(point, tr.cubemaps[i].origin, diff);
+			VectorSubtract(point, probe.origin, diff);
 			length = DotProduct(diff, diff);
+			if (waterfallOnly && length > probe.parallaxRadius * probe.parallaxRadius)
+				continue;
 
 			if (shortest > length)
 			{

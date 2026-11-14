@@ -3438,6 +3438,8 @@ void R_LoadEnvironmentJson(world_t *world, qboolean cubemaps)
 		keyValueJson = JSON_ObjectGetNamedValue(cubemapJson, bufferEnd, "Radius");
 		if (keyValueJson)
 			cubemap->parallaxRadius = JSON_ValueGetFloat(keyValueJson, bufferEnd);
+		keyValueJson = JSON_ObjectGetNamedValue(cubemapJson, bufferEnd, "WaterfallOnly");
+		cubemap->waterfallOnly = keyValueJson && JSON_ValueGetInt(keyValueJson, bufferEnd) == 1;
 	}
 
 	ri.FS_FreeFile(buffer.v);
@@ -3505,6 +3507,7 @@ void R_LoadCubemapEntities(const char *cubemapEntityName)
 			Q_strncpyz(cubemap->name, name, MAX_QPATH);
 			VectorCopy(origin, cubemap->origin);
 			cubemap->parallaxRadius = parallaxRadius;
+			cubemap->waterfallOnly = false;
 			cubemap->image = nullptr;
 			numCubemaps++;
 		}
@@ -3600,6 +3603,10 @@ static void R_RenderAllCubemaps()
 		int maxCubemaps = MIN(tr.numCubemaps, MAX_RUNTIME_CUBEMAPS);
 		for (int i = 0; i < maxCubemaps; i++)
 		{
+			const bool waterfallOnly = tr.cubemaps[i].waterfallOnly;
+			if (waterfallOnly && (!r_waterfall->integer || !r_waterfallEnvironmentReflection->integer ||
+				!r_cubeMapping->integer || bounce))
+				continue;
 			const auto facesStart = std::chrono::steady_clock::now();
 			for (int j = 0; j < 6; j++)
 			{
@@ -3611,7 +3618,7 @@ static void R_RenderAllCubemaps()
 			const auto convolveStart = std::chrono::steady_clock::now();
 			R_AddConvolveCubemapCmd(&tr.cubemaps[i], i,
 				r_cubeMapping->integer ? qtrue : qfalse,
-				(r_diffuseIBL->integer && k == lastBounce) ? qtrue : qfalse);
+				(!waterfallOnly && r_diffuseIBL->integer && k == lastBounce) ? qtrue : qfalse);
 			R_IssuePendingRenderCommands();
 			if (profile) {
 				convolveUs += std::chrono::duration_cast<std::chrono::microseconds>(
@@ -3621,9 +3628,8 @@ static void R_RenderAllCubemaps()
 		}
 	}
 	if (profile)
-		ri.Printf(PRINT_ALL, "[map load] cubemap probes: %d probes x %d passes (%d renders), faces %lld ms, convolve/flush %lld ms\n",
-			MIN(tr.numCubemaps, MAX_RUNTIME_CUBEMAPS), lastBounce + 1,
-			renderedProbes, facesUs / 1000, convolveUs / 1000);
+		ri.Printf(PRINT_ALL, "[map load] cubemap probes: %d renders over %d passes, faces %lld ms, convolve/flush %lld ms\n",
+			renderedProbes, lastBounce + 1, facesUs / 1000, convolveUs / 1000);
 }
 
 

@@ -6800,6 +6800,21 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	const bool cubemap = r_cubeMapping->integer && !(backEnd.viewParms.flags & VPF_NOCUBEMAPS) &&
 		cubemapIndex > 0 && cubemapIndex <= tr.numCubemaps && tr.cubemaps[cubemapIndex - 1].image;
 	if (cubemap) flags |= 1;
+	const cubemap_t *waterfallProbe = nullptr;
+	if (waterfall && r_waterfallEnvironmentReflection->integer && r_cubeMapping->integer &&
+		!(backEnd.viewParms.flags & VPF_NOCUBEMAPS))
+	{
+		vec3_t center;
+		VectorAdd(body->bounds[0], body->bounds[1], center);
+		VectorScale(center, 0.5f, center);
+		const int probe = R_CubemapForPoint(center, true);
+		if (probe > 0 && tr.cubemaps[probe - 1].image)
+		{
+			waterfallProbe = &tr.cubemaps[probe - 1];
+			flags |= 4096;
+			water[WATER_U_OPTICS][0] = Com_Clamp(0.0f, 4.0f, r_waterSurfaceReflection->value);
+		}
+	}
 	if ((key >> 8) & WATERSURF_FOG_MEDIUM) flags |= 32;
 	if (liquidClass == LIQUID_SLIME) flags |= 64;
 	if ((key >> 8) & WATERSURF_OVERRIDE) flags |= 128;
@@ -6899,6 +6914,8 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		TB_WATERFOAM);
 	samplers.AddStaticImage(tr.waterGlowImage, 9);
 	if (tr.envBrdfImage) samplers.AddStaticImage(tr.envBrdfImage, 3);
+	if (waterfallProbe)
+		samplers.AddStaticImage(waterfallProbe->image, TB_WATERFALL_CUBEMAP);
 	if (cubemap)
 	{
 		const cubemap_t *cm = &tr.cubemaps[cubemapIndex - 1];

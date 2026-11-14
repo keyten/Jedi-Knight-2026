@@ -127,6 +127,16 @@ foreground rejection. The absorption path is the profile thickness divided
 by the refracted-ray cosine. The sheet is two-sided, with attenuated,
 roughened reflection.
 
+With `r_waterfallEnvironmentReflection 1` and `r_cubeMapping 1`, the
+specular term can use the nearest waterfall probe within its radius. Set
+`WaterfallOnly: 1` on a `Cubemaps` entry in `cubemaps/<map>/env.json`.
+These probes are captured once at map load when all three controls are
+enabled. After capture, the toggle takes effect during play. The shader samples
+the prefiltered cubemap in the perturbed reflection direction with a mip
+level based on roughness. The lit foam reduces the visible reflection.
+The project overlay supplies local probes for both groups of dam spillways
+on `t3_hevil` and both falls on `yavin1b`.
+
 When `r_waterfall 0`, no surface gets the waterfall key, the dedicated draw is
 not queued, and the original four shader stages execute unchanged. Modern
 horizontal water and generic distortion selection are separate.
@@ -170,6 +180,7 @@ lookups through the clear gaps. High subdivides the mesh more finely.
 | `r_waterfallQuality 0..2` | profile/render quality |
 | `r_waterfallGeometry 0/1` | render-only subdivision; latched |
 | `r_waterfallRefraction 0..4` | sheet refraction scale |
+| `r_waterfallEnvironmentReflection 0/1` | use local waterfall cubemaps, default `0` |
 | `r_waterfallWhitewater 0..4` | aeration/whitewater scale |
 | `r_waterfallSmallStrength 0..4` | small-profile breakup, whitewater and spray strength |
 | `r_waterfallMediumStrength 0..4` | medium-profile breakup, whitewater and spray strength |

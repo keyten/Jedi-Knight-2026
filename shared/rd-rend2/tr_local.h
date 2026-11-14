@@ -345,6 +345,7 @@ extern cvar_t	*r_volumetricLavaAnisotropy;
 extern cvar_t	*r_waterSurface;
 extern cvar_t *r_waterfall, *r_waterfallQuality, *r_waterfallGeometry;
 extern cvar_t *r_waterfallRefraction, *r_waterfallWhitewater, *r_waterfallDebug;
+extern cvar_t *r_waterfallEnvironmentReflection;
 extern cvar_t *r_waterfallSmallStrength, *r_waterfallMediumStrength, *r_waterfallHeavyStrength;
 extern cvar_t *r_waterfallMist, *r_waterfallMistDensity, *r_waterfallMistRadius;
 extern cvar_t *r_waterfallMistBalance, *r_waterfallMistLens, *r_waterfallMistDebug;
@@ -1076,6 +1077,7 @@ typedef struct cubemap_s {
 	char name[MAX_QPATH];
 	vec3_t origin;
 	float parallaxRadius;
+	bool waterfallOnly;
 	image_t *image;
 	image_t *diffuseIrradianceImage;
 } cubemap_t;
@@ -1930,6 +1932,7 @@ enum
 	TB_WATERFOAM         = 18,
 	TB_WATERFOAMSOURCE   = 19,
 	TB_WATERRAIN         = 20,
+	TB_WATERFALL_CUBEMAP = 8, // shadow array unit is free in the water surface program
 
 	// spot light cookies (tr_lightcookie.cpp): one 2D array, a layer per
 	// cookie, of lightall and volumetric_inject. Needs
@@ -3094,6 +3097,7 @@ typedef enum
 	UNIFORM_WATERFLOWFIELDPARAMS,	// solver/foam: field enabled, body flow speed (u/s), unused, unused
 	UNIFORM_WATERFLOWPARAMS,	// vec4[2] water surface: flow field / wall impact / foam pattern controls
 	UNIFORM_WATERFOAMPATTERNMAP,	// water surface: procedural tiling foam structure
+	UNIFORM_WATERFALLCUBEMAP,
 	UNIFORM_WATERPASS,            // reflection prepass / resolved reflection / temporal weight
 	UNIFORM_WATERTESS,            // r_waterTessellation: level scale, max level, forced level, cull extent
 	UNIFORM_WATERTESSRANGE,       // r_waterTessMinEdge, r_waterTessLodDistance
@@ -5672,7 +5676,7 @@ int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, ve
 int R_LightDirForPoint( vec3_t point, vec3_t lightDir, vec3_t normal, world_t *world );
 int R_DLightsForPoint(const vec3_t point, const float radius);
 int R_DLightsForEntity(trRefEntity_t *ent, const vec3_t point, const float radius);
-int R_CubemapForPoint( const vec3_t point );
+int R_CubemapForPoint( const vec3_t point, bool waterfallOnly = false );
 int R_CubemapForEntity(trRefEntity_t *ent, const vec3_t point);
 #ifdef REND2_SP
 qboolean RE_GetLighting(const vec3_t origin, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir);

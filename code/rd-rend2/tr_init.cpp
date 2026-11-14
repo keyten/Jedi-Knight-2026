@@ -211,6 +211,7 @@ cvar_t	*r_volumetricLavaAnisotropy;
 cvar_t	*r_waterSurface;
 cvar_t *r_waterfall, *r_waterfallQuality, *r_waterfallGeometry;
 cvar_t *r_waterfallRefraction, *r_waterfallWhitewater, *r_waterfallDebug;
+cvar_t *r_waterfallEnvironmentReflection;
 cvar_t *r_waterfallSmallStrength, *r_waterfallMediumStrength, *r_waterfallHeavyStrength;
 cvar_t *r_waterfallMist, *r_waterfallMistDensity, *r_waterfallMistRadius;
 cvar_t *r_waterfallMistBalance, *r_waterfallMistLens, *r_waterfallMistDebug;
@@ -3113,6 +3114,7 @@ void R_Register( void )
 	r_waterfallQuality = R_Cvar("r_waterfallQuality", "1", CVAR_ARCHIVE, "Waterfall coherent breakup quality: 0 low, 1 medium, 2 high");
 	r_waterfallGeometry = R_Cvar("r_waterfallGeometry", "1", CVAR_ARCHIVE | CVAR_LATCH, "Render-only waterfall subdivision; BSP collision is unchanged; vid_restart");
 	r_waterfallRefraction = R_Cvar("r_waterfallRefraction", "1", CVAR_ARCHIVE, "Waterfall thin-sheet refraction strength");
+	r_waterfallEnvironmentReflection = R_Cvar("r_waterfallEnvironmentReflection", "0", CVAR_ARCHIVE, "Local reflections on modern waterfalls; requires r_cubeMapping 1, enable before loading the map to capture probes");
 	r_waterfallWhitewater = R_Cvar("r_waterfallWhitewater", "1", CVAR_ARCHIVE, "Waterfall aeration and lit whitewater scale");
 	r_waterfallSmallStrength = R_Cvar("r_waterfallSmallStrength", "1", CVAR_ARCHIVE, "Small waterfall profile breakup, whitewater and spray strength");
 	r_waterfallMediumStrength = R_Cvar("r_waterfallMediumStrength", "1", CVAR_ARCHIVE, "Medium waterfall profile breakup, whitewater and spray strength");
@@ -3134,6 +3136,7 @@ void R_Register( void )
 	R_CvarRange(r_waterfallQuality, 0, 2, qtrue);
 	R_CvarRange(r_waterfallGeometry, 0, 1, qtrue);
 	R_CvarRange(r_waterfallRefraction, 0.0f, 4.0f, qfalse);
+	R_CvarRange(r_waterfallEnvironmentReflection, 0, 1, qtrue);
 	R_CvarRange(r_waterfallWhitewater, 0.0f, 4.0f, qfalse);
 	R_CvarRange(r_waterfallSmallStrength, 0.0f, 4.0f, qfalse);
 	R_CvarRange(r_waterfallMediumStrength, 0.0f, 4.0f, qfalse);
