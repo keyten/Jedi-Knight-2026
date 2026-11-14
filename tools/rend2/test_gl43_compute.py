@@ -355,7 +355,7 @@ def froxel_case(prog, slices, tile, seed):
 
 # ---------------------------------------------------------------- water contacts
 
-def water_case(prog):
+def water_case(prog, flow=(80.0, 120.0), velocity=0.0):
     W, H = 320, 240
     origin = np.array([20.0, -260.0, 110.0])
     target = np.array([0.0, 0.0, -10.0])
@@ -407,6 +407,7 @@ def water_case(prog):
             px, py = bmin + (np.array([gx, gy]) + 0.5) * texel
             wet[gy, gx] = px * px + py * py < 170 ** 2
     band, strength = 8.0, 1.0
+    time = 1.25
     n, plane_dist = np.array([0.0, 0.0, 1.0]), 0.0
 
     # CPU port (RB_WaterIntersectionInject), float32 depth values as uploaded
@@ -452,7 +453,13 @@ def water_case(prog):
             normal_conf = min(max((vertical - 0.15) / 0.55, 0), 1)
             depth_conf = 1 - min(max(max(np.linalg.norm(dx), np.linalg.norm(dy)) / (band * 8), 0), 1)
             band_conf = 1 - min(max(abs(sd) / band, 0), 1)
-            source = band_conf * normal_conf * depth_conf * strength
+            incident = abs(np.dot(flow, normal[:2]))
+            activity = max(np.clip((incident - 18.0) / 90.0, 0.0, 0.65),
+                           np.clip((abs(velocity) - 2.0) / 16.0, 0.0, 0.70))
+            patch = (0.5 + 0.25 * math.sin(wp[0] * 0.11 + wp[1] * 0.073 - time * 2.7) +
+                     0.25 * math.sin(wp[0] * -0.057 + wp[1] * 0.13 + time * 1.9))
+            breakup = np.clip((patch - 0.40) / 0.38, 0.0, 1.0)
+            source = band_conf * normal_conf * depth_conf * strength * activity * breakup
             if source > 0.01:
                 expected[gy, gx] = min(source, 1.0)
 
@@ -469,6 +476,7 @@ def water_case(prog):
 
     depth_tex = tex2d(0x8CAC, 0x1902, 0x1406, W, H, np.ascontiguousarray(depth))
     state = np.zeros((sim_h, sim_w, 4), dtype=np.float32)
+    state[..., 1] = velocity
     state[..., 3] = np.where(wet, 0.0, -1.0)
     state_tex = tex2d(0x881A, 0x1908, 0x1406, sim_w, sim_h, state)
     out_tex = tex2d(0x822D, 0x1903, 0x1406, sim_w, sim_h, np.full((sim_h, sim_w), 7.0, dtype=np.float32))
@@ -482,7 +490,8 @@ def water_case(prog):
     slot = 3
     uniform_vec4s(prog, 'u_WaterIntersection', [
         (*bmin, texel, texel), (*n, plane_dist), (0, 0, W, H), (0, 0, W, H), (W, H, band, strength),
-        (p[0], p[5], p[8], p[9]), (p[10], p[14], slot, 0), (*origin, 0), (*forward, 0), (*left, 0), (*up, 0)])
+        (p[0], p[5], p[8], p[9]), (p[10], p[14], slot, 0),
+        (*origin, flow[0]), (*forward, flow[1]), (*left, 0), (*up, time)])
     hits = ssbo(bytes(32 * 4), 0)
     gl('glBindImageTexture', None, U, U, I, U, I, U, U)(0, out_tex, 0, 0, 0, 0x88B9, 0x822D)
     gl('glDispatchCompute', None, U, U, U)((sim_w + 7) // 8, (sim_h + 7) // 8, 1)
@@ -499,7 +508,10 @@ def water_case(prog):
     strict = diff[(expected > 0.02) | (out > 0.02)]
     assert strict.size == 0 or strict.max() < 3e-3, strict.max()
     contacts = int(np.count_nonzero(expected))
-    assert contacts >= 8, f'scene produced only {contacts} contact cells'
+    if max(abs(v) for v in flow) <= 18.0 and abs(velocity) <= 2.0:
+        assert contacts == 0 and not np.any(out), 'quiet contact produced foam'
+    else:
+        assert contacts >= 8, f'scene produced only {contacts} contact cells'
     # the hit buffer holds the float source, the image its R16F rounding
     assert abs(hit_values[slot] - out.max()) < 1e-3 and abs(hit_values[slot] - expected.max()) < 3e-3, \
         (hit_values[slot], out.max(), expected.max())
@@ -662,6 +674,9 @@ def main():
         water = compute_program('water_intersection')
         contacts, peak = water_case(water)
         print(f'water_intersection: {contacts} contact cells, peak source {peak:.3f}, hit buffer matches')
+        for flow, velocity in [((0.0, 0.0), 0.0), ((10.0, 10.0), 0.0), ((0.0, 0.0), 12.0)]:
+            contacts, peak = water_case(water, flow, velocity)
+            print(f'water_intersection flow={flow}, wave velocity={velocity}: {contacts} contact cells, peak {peak:.3f}')
         consumers_case()
         print('water_interaction_field / water_foam_field: contact map consumed only when flagged')
         print('PASS')

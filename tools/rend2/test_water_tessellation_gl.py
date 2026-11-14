@@ -343,9 +343,9 @@ def check_shore(rig):
     coarse, _ = draw(rig, tess_prog, u_tess, grid(lo[0], lo[1], hi[0], hi[1], 800.0, shore=shore), True)
     mask = (fine[..., 3] > 0.0) & (coarse[..., 3] > 0.0)
     distance_error = np.abs(fine[..., 0] - coarse[..., 0])[mask]
-    # natural boundary, profile shore 0: mix(0.15, 1, smoothstep(0, 0.35 width, d))
+    # natural boundary, profile shore 0: mix(0.48, 1, smoothstep(0, 0.35 width, d))
     x = np.clip(coarse[..., 0] / (96.0 * 0.35), 0.0, 1.0)
-    analytic = 0.15 + 0.85 * x * x * (3.0 - 2.0 * x)
+    analytic = 0.48 + 0.52 * x * x * (3.0 - 2.0 * x)
     exact_error = np.abs(coarse[..., 1] - analytic)[mask]
     err = np.abs(fine[..., 1] - coarse[..., 1])[mask]
     ok = check('shore of an 800-unit base triangle: exact interpolated distance, per-pixel attenuation, as the '

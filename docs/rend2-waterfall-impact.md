@@ -22,9 +22,11 @@ surface is found, that source stays inactive. Add a map-specific
 
 ## Response
 
-At each fixed interaction step the source applies a compact downward velocity
-kick at its center. Irregular secondary kicks are distributed across the foot
-of the sheet. The ordinary local ripple field supplies the propagated waves.
+At each fixed interaction step the source applies a small downward acceleration
+to a compact core. Uneven packets of water periodically raise a crest outside
+that core, distributed across the foot of the sheet. Their footprints cover
+several interaction texels. The ordinary body solver carries the outgoing waves
+downstream and reflects them at its masked banks.
 The persistent foam field receives a broken band oriented across the sheet and
 extended in the direction of the falling water. The existing flow and decay
 carry the foam away from the contact. Where a pool has no authored flow, the

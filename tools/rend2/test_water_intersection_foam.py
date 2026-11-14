@@ -20,7 +20,7 @@ def main() -> None:
     require("shared/rd-rend2/glsl/watersurface.glsl", (
         "float WaterIntersectionFoam",
         "bandConfidence * normalConfidence * depthConfidence",
-        "intersectionMask * u_Water[WATER_U_INTERSECTION_FOAM].z * u_Water[WATER_U_GEOMETRY_FOAM].w",
+        "intersectionMask * contactPattern * u_Water[WATER_U_INTERSECTION_FOAM].z",
         "interactionField.b * u_Water[WATER_U_GEOMETRY_FOAM].w + intersectionFoam",
         "u_Water[WATER_U_INTERSECTION_FOAM].w > 0.5",
     ))

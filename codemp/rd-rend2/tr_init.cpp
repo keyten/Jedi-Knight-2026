@@ -3223,10 +3223,10 @@ void R_Register( void )
 	r_offscreenPresent = R_Cvar("r_offscreenPresent", "0", CVAR_LATCH, "Render the frame into an offscreen buffer and copy it to the window at swap, so screenshots work from a hidden window (scripted tests); requires vid_restart");
 	r_waterTessellation = R_Cvar("r_waterTessellation", "0", CVAR_ARCHIVE | CVAR_LATCH, "Distance-adaptive GPU tessellation of the r_waterGeometry mesh (GL 4.3, r_gl43); coarser base mesh, requires vid_restart");
 	R_CvarRange(r_waterTessellation, 0, 1, qtrue);
-	r_waterTessPixels = R_Cvar("r_waterTessPixels", "96", CVAR_ARCHIVE, "Target tessellated water edge length in pixels (smaller is denser and slower; waves too short for the mesh stay in shading)");
+	r_waterTessPixels = R_Cvar("r_waterTessPixels", "48", CVAR_ARCHIVE, "Target tessellated water edge length in pixels (smaller is denser and slower; waves too short for the mesh stay in shading)");
 	R_CvarRange(r_waterTessPixels, 2, 128, qfalse);
 	r_waterTessMinEdge = R_Cvar("r_waterTessMinEdge", "0", CVAR_ARCHIVE, "Shortest tessellated water edge in world units: 64 = never finer than the static r_waterGeometry mesh, 0 = only r_waterTessMax limits the detail near the camera");
-	r_waterTessLodDistance = R_Cvar("r_waterTessLodDistance", "0", CVAR_ARCHIVE, "Distance from the camera (world units) with the finest water tessellation; beyond it edges grow by r_waterTessPixels");
+	r_waterTessLodDistance = R_Cvar("r_waterTessLodDistance", "192", CVAR_ARCHIVE, "Distance from the camera (world units) with the finest water tessellation; beyond it edges grow by r_waterTessPixels");
 	r_waterTessMax = R_Cvar("r_waterTessMax", "16", CVAR_ARCHIVE | CVAR_LATCH, "Maximum water tessellation level (8, 16, 32): the base mesh is that much coarser; requires vid_restart");
 	R_CvarRange(r_waterTessMax, 2, 64, qtrue);
 	r_waterTessForce = R_Cvar("r_waterTessForce", "0", CVAR_CHEAT, "Water tessellation level for every edge (0: by distance), for tests");
