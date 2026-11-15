@@ -116,7 +116,9 @@ void main()
 	// flow running into a wall (r_waterFlowImpact)
 	breaking += u_WaterFoamSources.w * field.a * field.a * 6.0;
 
-	float rate = u_WaterFoamSources.x + source.r + source.g + source.b * 0.75 + breaking;
+	// The falling column entrains enough bubbles to form a dense boil. The
+	// bounded source image stores the drop-dependent footprint, not coverage.
+	float rate = u_WaterFoamSources.x + source.r * 5.0 + source.g + source.b * 0.75 + breaking;
 	// Analytic breakup keeps steady sources from painting solid rectangles.
 	// Stable in body UV, it changes slowly enough to advect.
 	float breakup = mix(0.72, 1.0,

@@ -520,6 +520,8 @@ struct waterfallImpactSource_t
 	float halfWidth = 0.0f;
 	float radius = 0.0f;
 	float strength = 1.0f;
+	float dropHeight = 0.0f;
+	float foamEnergy = 1.0f;
 	int originType = WFIMPACT_CLASSIFIED_BOTTOM;
 	unsigned randomState = 1;
 	int nextSecondaryTime = 0;
@@ -1348,17 +1350,23 @@ static void R_WaterFoamInject(waterBody_t& body, const vec3_t position,
 	}
 }
 
-// A short, broken band where the sheet turns into surface flow. The foam
-// field handles transport and decay after it leaves this footprint.
+// Entrained air resurfaces downstream of the falling column. The drop and
+// sheet width set the extent of that broad source; the existing field then
+// transports and decays the bubbles without allocating extra geometry.
 static void R_WaterfallFoamInject(waterBody_t& body, const waterfallImpactSource_t& source, int now)
 {
 	waterFoamState_t& foam = body.foam;
 	const float scale = r_waterfallImpactRadius->value;
 	const float cellSize = MAX(foam.texelX, foam.texelY);
-	const float halfWidth = MAX(1.5f * cellSize, source.halfWidth * scale);
-	const float halfLength = MAX(1.6f * cellSize, 0.50f * source.radius * scale);
+	const float reach = Com_Clamp(160.0f, 900.0f,
+		source.radius * (1.0f + 0.60f * source.foamEnergy) + source.dropHeight * 0.18f) * scale;
+	const float back = MAX(1.6f * cellSize, source.radius * 0.32f * scale);
+	const float width = MAX(1.5f * cellSize,
+		(source.halfWidth + MIN(160.0f, source.dropHeight * 0.055f)) * scale);
+	const float halfLength = 0.5f * (reach + back);
+	const float halfWidth = width + reach * 0.16f;
 	vec3_t center;
-	VectorMA(source.origin, halfLength * 0.54f, source.outflow, center);
+	VectorMA(source.origin, 0.5f * (reach - back), source.outflow, center);
 	const float boundsX = fabsf(source.across[0]) * halfWidth + fabsf(source.outflow[0]) * halfLength;
 	const float boundsY = fabsf(source.across[1]) * halfWidth + fabsf(source.outflow[1]) * halfLength;
 	const int x0 = MAX(0, (int)floorf((center[0] - boundsX - body.bounds[0][0]) / foam.texelX));
@@ -1366,20 +1374,31 @@ static void R_WaterfallFoamInject(waterBody_t& body, const waterfallImpactSource
 	const int y0 = MAX(0, (int)floorf((center[1] - boundsY - body.bounds[0][1]) / foam.texelY));
 	const int y1 = MIN(foam.height - 1, (int)floorf((center[1] + boundsY - body.bounds[0][1]) / foam.texelY));
 	const float phase = (now % 31000) * (6.2831853f / 31000.0f) + source.waterfallBodyId * 2.43f;
-	const float strength = source.strength * r_waterfallImpactFoam->value;
+	const float strength = source.strength * source.foamEnergy * r_waterfallImpactFoam->value;
 	for (int y = y0; y <= y1; ++y) for (int x = x0; x <= x1; ++x)
 	{
 		const size_t i = (size_t)y * foam.width + x;
 		if (!foam.mask[i]) continue;
-		const float dx = body.bounds[0][0] + (x + 0.5f) * foam.texelX - center[0];
-		const float dy = body.bounds[0][1] + (y + 0.5f) * foam.texelY - center[1];
-		const float across = (dx * source.across[0] + dy * source.across[1]) / halfWidth;
-		const float along = (dx * source.outflow[0] + dy * source.outflow[1]) / halfLength;
-		const float streak = 0.66f + 0.22f * sinf(across * 16.0f + phase * 10.0f + along * 1.4f) +
-			0.12f * sinf(across * 31.0f - phase * 15.0f);
-		const float edge = 1.0f - across * across - along * along / streak;
+		const float dx = body.bounds[0][0] + (x + 0.5f) * foam.texelX - source.origin[0];
+		const float dy = body.bounds[0][1] + (y + 0.5f) * foam.texelY - source.origin[1];
+		const float along = dx * source.outflow[0] + dy * source.outflow[1];
+		if (along <= -back || along >= reach) continue;
+		const float downstream = MAX(along, 0.0f) / reach;
+		const float meander = sinf(along * 0.015f - phase * 4.0f) * width * 0.18f * downstream;
+		const float across = (dx * source.across[0] + dy * source.across[1] - meander) /
+			(width + MAX(along, 0.0f) * 0.16f);
+		const float streak = 0.80f + 0.12f * sinf(across * 11.0f + phase * 8.0f + downstream * 7.0f) +
+			0.08f * sinf(across * 23.0f - phase * 11.0f);
+		const float edge = 1.0f - across * across / streak;
 		if (edge <= 0.0f) continue;
-		const int value = (int)(255.0f * Com_Clamp(0.0f, 1.0f, strength * edge * (0.48f + 0.70f * streak)));
+		const float head = Com_Clamp(0.0f, 1.0f, (along + back) / back);
+		const float end = Com_Clamp(0.0f, 1.0f, (1.0f - downstream) * 4.0f);
+		const float density = strength * edge * edge * head * end * expf(-2.2f * downstream);
+		// Modulate after saturation so a strong tall fall still contains
+		// moving boil pockets instead of flattening into a solid source slab.
+		const float boil = 0.55f + 0.28f * sinf(along * 0.045f - phase * 8.0f + across * 12.0f) +
+			0.17f * sinf(along * 0.023f + phase * 5.0f - across * 9.0f);
+		const int value = (int)(255.0f * Com_Clamp(0.0f, 1.0f, density) * boil);
 		foam.source[i * 4] = (byte)MAX((int)foam.source[i * 4], value);
 		foam.sourceDirty = true;
 	}
@@ -2567,7 +2586,8 @@ static void RB_WaterFoamUpdate(void)
 		}
 		s_water.pendingImpulses.clear();
 	}
-	if (r_waterfallImpact && r_waterfallImpact->integer && r_waterfallImpactFoam->value > 0.0f)
+	if (r_waterfall->integer && !R_CompareOff(RC_WATERFALL) &&
+		r_waterfallImpact && r_waterfallImpact->integer && r_waterfallImpactFoam->value > 0.0f)
 	{
 		for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
 		{
@@ -4411,6 +4431,10 @@ void R_WaterfallEmittersFinalize(world_t *world)
 		}
 		source.poolBodyId = bestPool->id;
 		VectorCopy(bestOrigin, source.origin);
+		// This is a visual entrainment proxy: discharge is not available from
+		// stock BSP sheets. Keep the response bounded for exceptionally tall maps.
+		source.dropHeight = MAX(0.0f, fall.bounds[1][2] - source.origin[2]);
+		source.foamEnergy = sqrtf(Com_Clamp(0.25f, 8.0f, source.dropHeight / 512.0f));
 		vec3_t lightOrigin, ambient, directed, lightDir;
 		VectorMA(source.origin, 24.0f, source.outflow, lightOrigin);
 		lightOrigin[2] += 30.0f;
@@ -4687,9 +4711,9 @@ void R_Waterfalls_f(void)
 			body.fallMin, body.fallMax, body.impactCenter[0], body.impactCenter[1], body.impactCenter[2], body.impactWidth);
 	}
 	for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
-		ri.Printf(PRINT_ALL, "  impact sheet %d -> pool %d at (%g %g %g), radius %.1f, strength %.2f [%s]%s\n",
+		ri.Printf(PRINT_ALL, "  impact sheet %d -> pool %d at (%g %g %g), radius %.1f, strength %.2f, drop %.1f, foam energy %.2f [%s]%s\n",
 			source.waterfallBodyId, source.poolBodyId, source.origin[0], source.origin[1], source.origin[2],
-			source.radius, source.strength, s_waterfallImpactOrigins[source.originType],
+			source.radius, source.strength, source.dropHeight, source.foamEnergy, s_waterfallImpactOrigins[source.originType],
 			source.poolBodyId ? "" : " UNRESOLVED: explicit WaterfallEmitter required");
 }
 
@@ -6839,7 +6863,17 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	const float coverageLod = Com_Clamp(0.0f, 1.0f, (profileCoverage - 0.008f) / 0.16f);
 	const float requestedLod = r_waterfallQuality->integer <= 0 ? 0.32f :
 		(r_waterfallQuality->integer >= 2 ? 1.0f : 0.68f);
-	const float waterfallLod = MIN(requestedLod, MAX(distanceLod, coverageLod));
+	float waterfallLod = MIN(requestedLod, MAX(distanceLod, coverageLod));
+	// Tall spillways are normally seen from the upper walkway. Keep the
+	// whole draw coherent and cheap even when the nearby lip fills the view.
+	if (waterfall && r_waterfallQuality->integer < 2 && body->fallMax - body->fallMin > 1024.0f &&
+		backEnd.viewParms.ori.origin[2] - body->impactCenter[2] > 768.0f)
+		waterfallLod = MIN(waterfallLod, 0.32f);
+	bool impactContact = false;
+	if (waterfall && r_waterfallImpact->integer && r_waterfallImpactFoam->value > 0.0f && R_WaterFoamResourcesEnabled())
+		for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
+			if (source.waterfallBodyId == body->id && source.poolBodyId > 0 &&
+				s_water.bodies[source.poolBodyId - 1].foam.active) { impactContact = true; break; }
 	VectorSet4(water[WATER_U_WATERFALL], waterfall ? 1.0f : 0.0f, (float)r_waterfallQuality->integer,
 		(float)r_waterfallDebug->integer, waterfallProfile.thickness);
 	VectorSet4(water[WATER_U_WATERFALL + 1], body ? body->fallDirection[0] : 0.0f, body ? body->fallDirection[1] : 0.0f,
@@ -6850,7 +6884,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		waterfallProfile.normalScale * waterfallProfileStrength,
 		waterfallProfile.aeration * waterfallProfileStrength * Com_Clamp(0.0f, 4.0f, r_waterfallWhitewater->value));
 	VectorSet4(water[WATER_U_WATERFALL + 4], waterfallProfile.opacity, waterfallProfile.spray * waterfallProfileStrength,
-		waterfallProfile.impact * waterfallProfileStrength,
+		impactContact ? waterfallProfile.impact * waterfallProfileStrength : 0.0f,
 		body ? (float)body->waterfallProfile : 0.0f);
 	// Per-profile coverage is shared by disconnected stock strips (the dam has
 	// eight real BSP gaps), so they retain one coherent quality decision without

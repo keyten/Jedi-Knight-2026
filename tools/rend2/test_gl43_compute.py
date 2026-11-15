@@ -639,6 +639,29 @@ def consumers_case():
             else:
                 assert outs[2.0][y, x] == 0.0, (x, y, outs[2.0][y, x])
     assert np.all(outs[0.0] == 0.0), 'foam read the contact map at scale 0'
+
+    # A sustained falling column must form a dense boil in its footprint,
+    # while quiet water stays clear and old bubbles decay after it stops.
+    fall_source = np.zeros((m, m, 4))
+    fall_source[8:24, 8:24, 0] = 1.0
+    fall_tex = float_texture(m, m, fall_source)
+    state = foam_state.copy()
+    for frame in range(60):
+        state_tex = float_texture(m, m, state)
+        state = render(foam, m, m, {'u_WaterFoamMap': state_tex,
+                                  'u_WaterFoamSourceMap': fall_tex if frame < 30 else small_tex,
+                                  'u_WaterFoamInteraction': zero_tex, 'u_WaterFlowField': zero_tex,
+                                  'u_WaterFoamIntersectionMap': zero_tex},
+                       dict(vec4s, u_WaterFoamParams=(1 / 30, 0.55, 0, 0),
+                            u_WaterFoamFlow=(0, 0, frame / 30, 0),
+                            u_WaterFoamIntersectionParams=(0, 0, 0, 0)))
+        gl('glDeleteTextures', None, I, C.POINTER(U))(1, C.byref(state_tex))
+        assert state[0, 0, 0] == 0.0, 'a local fall foamed unrelated quiet water'
+        if frame == 29:
+            peak = float(state[..., 0].max())
+            assert 0.60 < peak < 0.95, ('fall never formed a dense, bounded boil', peak)
+    assert 0.0 < state[..., 0].max() < peak * 0.8, 'foam failed to decay after the fall stopped'
+    gl('glDeleteTextures', None, I, C.POINTER(U))(1, C.byref(fall_tex))
     gl('glDeleteProgram', None, U)(foam)
     for tex in (contact_tex, garbage_tex, zero_tex, foam_tex, small_tex):
         gl('glDeleteTextures', None, I, C.POINTER(U))(1, C.byref(tex))

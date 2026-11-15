@@ -1924,7 +1924,8 @@ void main()
 		// by about two texels of low-frequency noise so iso-lines of a bilinear
 		// patch never show the grid as square foam edges.
 		vec2 foamWarp = texture(u_WaterFoamPattern, var_BasePosition.xy * (1.0 / 384.0)).ba - 0.5;
-		vec2 foamUV = bodyUV + foamWarp * 4.0 * u_Water[WATER_U_FOAM].zw * u_Water[WATER_U_BODY_MAPPING].zw;
+		float foamWarpScale = mix(4.0, 0.8, smoothstep(700.0, 1800.0, cameraDistance));
+		vec2 foamUV = bodyUV + foamWarp * foamWarpScale * u_Water[WATER_U_FOAM].zw * u_Water[WATER_U_BODY_MAPPING].zw;
 		foamSample = texture(u_WaterFoamMap, clamp(foamUV, vec2(0.0), vec2(1.0)));
 		// Foam pattern coordinates travel with the water: the same two phases as
 		// the normal bands under a flow field, a plain scroll under uniform flow.
@@ -1997,8 +1998,13 @@ void main()
 		persistentFoam = waterfallFoamSource;
 	}
 	else
-		persistentFoam = mix(WaterFoamCoverage(foamStructure1, persistentFoam, foamSharp1),
+	{
+		float detailedFoam = mix(WaterFoamCoverage(foamStructure1, persistentFoam, foamSharp1),
 			WaterFoamCoverage(foamStructure0, persistentFoam, foamSharp0), foamPhaseWeight);
+		// Distant bubbles become a broad coverage signal instead of a fine net.
+		persistentFoam = mix(detailedFoam, clamp((persistentFoam - 0.12) * 1.4, 0.0, 1.0),
+			smoothstep(700.0, 1800.0, cameraDistance));
+	}
 	vec3 interactionGradient = vec3(interactionWorldSlope, 0.0);
 	float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
 	// Local disturbances reflect at walls; only the ambient macro waves are
@@ -2706,6 +2712,14 @@ void main()
 	vec3 foamIrradiance = ambient;
 	if (sun) foamIrradiance += foamSunRadiance * clamp(dot(Nwater, sunDir), 0.0, 1.0) * sunShadow;
 	vec3 foamColor = vec3(0.80, 0.84, 0.86) * foamIrradiance;
+	if (!waterfall)
+	{
+		// Dense foam keeps diffuse brightness variation even where coverage
+		// reaches one. Reuse the existing bubble pattern and coarse density.
+		float foamMottle = mix(mix(foamStructure1, foamStructure0, foamPhaseWeight),
+			foamSample.r, smoothstep(700.0, 1800.0, cameraDistance));
+		foamColor *= mix(0.72, 1.12, smoothstep(0.18, 0.78, foamMottle));
+	}
 	// The overlap skirt closes the bank gap below the surface. Its foot
 	// transmits the ground instead of reflecting a bright strip of the sky.
 	W *= clamp(1.0 - var_GeometrySkirt, 0.0, 1.0);
@@ -2723,6 +2737,9 @@ void main()
 			sheetLight += foamSunRadiance * (0.22 + 0.57 * abs(dot(Ng, sunDir))) * sunShadow;
 		float brightness = mix(0.62, 1.28, smoothstep(0.19, 0.76, 0.48 * waterfallNoise + 0.52 * waterfallFilaments));
 		vec3 sheetFoam = sheetLight * vec3(0.93, 0.97, 0.99) * brightness;
+		// The irregular lower regime joins the same lit foam as the pool.
+		sheetFoam = mix(sheetFoam, foamColor, clamp(waterfallImpact *
+			(0.8 + 0.4 * waterfallNoise), 0.0, 1.0));
 		color = mix(color, sheetLight * vec3(0.62, 0.72, 0.77), whitewater * 0.82);
 		color = mix(color, sheetFoam, persistentFoam * 0.96);
 		color = mix(SceneToLinear(sceneHere.rgb), color, waterfallEdge);
