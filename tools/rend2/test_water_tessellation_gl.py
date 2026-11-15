@@ -66,7 +66,7 @@ def tess_program(control=None, **kw):
         tcs = control(tcs)
     prog = T.compile_program([(T.GL_VERTEX, vs), (GL_TESS_CONTROL, tcs), (GL_TESS_EVALUATION, tes),
                               (T.GL_FRAGMENT, fs)], 'watersurface_TESS ' + repr(kw),
-                             attributes=('attr_Position', 'attr_Normal', 'attr_TexCoord0', 'attr_TexCoord1'))
+                             attributes=('attr_Position', 'attr_Normal', 'attr_TexCoord0', 'attr_TexCoord1', 'attr_TexCoord2'))
     gl('glUseProgram', None, U)(prog)
     for sampler, unit in T.UNITS.items():
         loc = T.uloc(prog, sampler)
@@ -99,7 +99,8 @@ def max_edge(cell):
 
 class TessRig(T.Rig):
     def set_mesh(self, mesh, patches):
-        self.water_vao, self.water_count = T.vertex_buffer(mesh, (3, 3, 2, 2))
+        layout = (3, 3, 2, 2, 2) if mesh.shape[1] == 12 else (3, 3, 2, 2)
+        self.water_vao, self.water_count = T.vertex_buffer(mesh, layout)
         self.water_mode = GL_PATCHES if patches else GL_TRIANGLES
 
 
@@ -167,8 +168,56 @@ def check_permutations():
         count += 1
     prog = T.water_program(motion=True, deform=True)
     gl('glDeleteProgram', None, U)(prog)
+    for options in [dict(baked=True), dict(baked=True, deform=True, ssr=True, hiz=True, snell=True,
+                                           motion=True, froxel=2, cubemap=True)]:
+        prog = tess_program(**options)
+        gl('glDeleteProgram', None, U)(prog)
+        count += 1
     return check(f'{count} tessellated water permutations and the untessellated program compile and link in GL 4.3',
                  True)
+
+
+def check_baked_lightmap(rig):
+    """The stock shadow coordinates survive refinement independently of shore metadata."""
+    prog = tess_program(baked=True)
+    gl('glUseProgram', None, U)(prog)
+    T.set_vec4s(prog, 'u_WaterSpillway', [[0, 0, 1, 0], [0, 0, .2, 0], [-200, -1900, 1 / 800, 1 / 800]])
+    T.set_vec4s(prog, 'u_WaterBakedLight', [[1, 1, 0, 0]])
+    texture = np.ones((2, 2, 4), dtype=np.float32)
+    texture[..., :3] = np.array([[.08, .8], [.12, .6]], dtype=np.float32)[..., None]
+    image = T.tex2d(2, 2, T.RGBA16F, data=texture, linear=True)
+    T.bind(28, image)
+    # Bind explicitly as the runtime does; ordinary permutations omit this sampler.
+    gl('glUniform1i', None, I, I)(T.uloc(prog, 'u_LightMap'), 28)
+    u = rig.params()
+    u[6, 0] = 12  # diagnostic shows baked irradiance without water optics
+    u[19, 1] = 1
+
+    def mesh(cell):
+        vertices = grid(-200, -1900, 600, -1100, cell)
+        uv = (vertices[:, :2] - np.array([-200, -1900])) / 800
+        return np.column_stack((vertices, uv)).astype(np.float32)
+
+    coarse, _ = draw(rig, prog, u, mesh(800), True, force=8)
+    fine, _ = draw(rig, prog, u, mesh(25), True, force=1)
+    covered = (coarse[..., 3] > -.5) & (fine[..., 3] > -.5)
+    assert np.count_nonzero(covered) > 100
+    error = float(np.max(np.abs(coarse[covered, :3] - fine[covered, :3])))
+    values = coarse[covered, :3]
+    contrast = float(np.max(values) - np.min(values))
+    ok = check('baked platform shadow survives tessellation and keeps spatial contrast',
+               error < .002 and contrast > .35, f'interpolation error {error:.3g}, contrast {contrast:.3g}')
+    # Receiving-light caches use world XY, independent of the sheet's own UV.
+    T.set_vec4s(prog, 'u_WaterBakedLight', [[1, 1, 1, .12]])
+    unrelated_uv = mesh(800)
+    unrelated_uv[:, -2:] = .5
+    cached, _ = draw(rig, prog, u, unrelated_uv, True, force=8)
+    expected = np.maximum(coarse[covered, :3], .12)
+    cache_error = float(np.max(np.abs(cached[covered, :3] - expected)))
+    ok = check('receiving light uses world coordinates and retains indirect light in shadow',
+               cache_error < .002, f'error {cache_error:.3g}') and ok
+    gl('glDeleteProgram', None, U)(prog)
+    return ok
 
 
 def check_cracks(rig):
@@ -384,6 +433,7 @@ def main():
         ok = check_range(rig) and ok
         top = TessRig(T.Camera((200.0, -1500.0, 700.0), (201.0, -1500.0, 0.0)))
         ok = check_shore(top) and ok
+        ok = check_baked_lightmap(top) and ok
         err = gl('glGetError', U)()
         ok = check('no GL error', err == 0, hex(err)) and ok
     finally:

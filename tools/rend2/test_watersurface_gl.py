@@ -146,8 +146,10 @@ def header(defines, size):
 
 
 def water_sources(deform=False, shadows2=False, ssr=False, froxel=0, cubemap=False, hiz=False, size=(W, H), body=None,
-                  snell=False, physical=False, motion=False, prepass=False, fog=False):
+                  snell=False, physical=False, motion=False, prepass=False, fog=False, baked=False):
     defines = ['USE_WATER_ATMOSPHERE']
+    if baked:
+        defines.append('USE_WATER_BAKED_LIGHTMAP')
     if fog:
         # r_ssrReflectedFog (GLSL_LoadGPUProgramWaterSurface): the prepass program marches the fog, the main
         # program only corrects the liquid path; fog='march' puts the march in a main program, whose trace

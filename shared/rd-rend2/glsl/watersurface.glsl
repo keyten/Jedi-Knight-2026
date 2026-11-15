@@ -19,11 +19,13 @@ vec3 attr_Position;
 vec3 attr_Normal;
 vec2 attr_TexCoord0;
 vec2 attr_TexCoord1;
+vec2 attr_TexCoord2;
 #else
 in vec3 attr_Position;
 in vec3 attr_Normal;
 in vec2 attr_TexCoord0;
 in vec2 attr_TexCoord1; // render mesh: 1 at the surface, 0 at skirt foot
+in vec2 attr_TexCoord2; // preserved BSP lightmap UV of the refined mesh
 #endif
 #if !defined(USE_WATER_TESSELLATION) || defined(WATER_TESS_EVALUATION)
 #define WATER_VERTEX_OUTPUTS
@@ -121,6 +123,7 @@ out vec3 var_GeometryDisplacement;
 out vec2 var_GeometrySlope;
 out float var_GeometrySkirt;
 out vec3 var_ShoreData;
+out vec2 var_LightmapUV;
 #endif
 uniform vec4 u_Water[WATER_UNIFORM_VEC4S];
 uniform sampler2D u_WaterInteractionMap;
@@ -153,6 +156,7 @@ out vec3 var_TessInfo;	// geometry weights of the two candidate waves, the patch
 #endif
 uniform sampler2D u_WaterFlowField;	// r_waterFlowField: velocity / body speed, shore distance, impingement
 uniform vec4 u_WaterFlowParams[2];	// see the fragment stage
+uniform vec4 u_WaterSpillway[3];
 
 // r_waterFlowImpact: water running into a wall stands up against it by the
 // stagnation head U^2 / 2g and sloshes; the field's impingement is how
@@ -552,6 +556,22 @@ vec3 waterPreviousShoreInput;
 #define WATER_PREVIOUS_SHORE_INPUT PreviousWaterShoreData(attr_TexCoord1.y)
 #endif
 
+// A shallow turnover of the existing sheet closes the hard sheet/pool angle.
+// It is static in world space and shared by current/previous motion positions.
+vec3 WaterSpillwayTurnover(vec3 position)
+{
+	if (u_WaterSpillway[1].z <= 0.0) return vec3(0.0);
+	vec4 plane = u_WaterSpillway[0];
+	float height = dot(position, plane.xyz) - plane.w;
+	float t = clamp((192.0 - height) * (1.0 / 256.0), 0.0, 1.0);
+	t = t * t * (3.0 - 2.0 * t);
+	vec3 outflow = vec3(u_WaterSpillway[1].xy, 0.0);
+	outflow /= max(length(outflow), 1e-4);
+	float lift = 0.5 * (sqrt(height * height + 900.0) - height) *
+		(1.0 - smoothstep(64.0, 192.0, height));
+	return outflow * (144.0 * t * t) + plane.xyz * lift;
+}
+
 #if defined(WATER_VERTEX_OUTPUTS)
 #if defined(WATER_TESS_EVALUATION)
 void WaterVertex()
@@ -576,6 +596,7 @@ void main()
 
 	vec4 wsPosition = u_ModelMatrix * vec4(position, 1.0);
 	var_BasePosition = wsPosition.xyz;
+	var_LightmapUV = u_Water[WATER_U_GEOMETRY_FOAM].y > 0.5 ? attr_TexCoord2 : attr_TexCoord1;
 	var_GeometryDisplacement = vec3(0.0);
 	var_GeometrySlope = vec2(0.0);
 	vec3 currentAnalytic = vec3(0.0);
@@ -589,7 +610,8 @@ void main()
 	{
 		WaterWaveState geometryWave = EvaluateWaterSurface(var_BasePosition, u_Water[WATER_U_FRAME].z);
 		if (waterfallGeometry)
-			geometryWave.displacement = EvaluateWaterfallSheet(var_BasePosition, u_Water[WATER_U_FRAME].z);
+			geometryWave.displacement = EvaluateWaterfallSheet(var_BasePosition, u_Water[WATER_U_FRAME].z) +
+				WaterSpillwayTurnover(var_BasePosition);
 		else
 		{
 			geometryWave.displacement *= var_ShoreData.y;
@@ -625,7 +647,8 @@ void main()
 			WATER_PREVIOUS_SHORE_INPUT;
 		WaterWaveState previousWave = EvaluatePreviousWaterSurface(previousBasePosition);
 		if (previousWaterfall)
-			previousWave.displacement = EvaluatePreviousWaterfallSheet(previousBasePosition);
+			previousWave.displacement = EvaluatePreviousWaterfallSheet(previousBasePosition) +
+				WaterSpillwayTurnover(previousBasePosition);
 		else
 			previousWave.displacement *= previousShore.y;
 		previousAnalytic = previousWave.displacement;
@@ -666,6 +689,7 @@ in vec3 wte_Position[];
 in vec3 wte_Normal[];
 in vec2 wte_TexCoord0[];
 in vec2 wte_TexCoord1[];
+in vec2 wte_TexCoord2[];
 in vec2 wte_Shore[];
 
 // The geometry share of the two candidate waves: a component enters the mesh
@@ -697,6 +721,7 @@ void main()
 	attr_Normal = b.x * wte_Normal[0] + b.y * wte_Normal[1] + b.z * wte_Normal[2];
 	attr_TexCoord0 = b.x * wte_TexCoord0[0] + b.y * wte_TexCoord0[1] + b.z * wte_TexCoord0[2];
 	attr_TexCoord1 = b.x * wte_TexCoord1[0] + b.y * wte_TexCoord1[1] + b.z * wte_TexCoord1[2];
+	attr_TexCoord2 = b.x * wte_TexCoord2[0] + b.y * wte_TexCoord2[1] + b.z * wte_TexCoord2[2];
 	vec2 shore = b.x * wte_Shore[0] + b.y * wte_Shore[1] + b.z * wte_Shore[2];
 	waterShoreInput = WaterShoreFromDecoded(shore);
 #if defined(USE_WATER_MOTION_REPROJECTION)
@@ -712,6 +737,7 @@ out vec3 wtc_Position;
 out vec3 wtc_Normal;
 out vec2 wtc_TexCoord0;
 out vec2 wtc_TexCoord1;
+out vec2 wtc_TexCoord2;
 out vec2 wtc_Shore;
 
 void main()
@@ -720,6 +746,7 @@ void main()
 	wtc_Normal = attr_Normal;
 	wtc_TexCoord0 = attr_TexCoord0;
 	wtc_TexCoord1 = attr_TexCoord1;
+	wtc_TexCoord2 = attr_TexCoord2;
 	wtc_Shore = WaterShoreDecode(attr_TexCoord1.y);
 	gl_Position = vec4(attr_Position, 1.0);
 }
@@ -762,11 +789,13 @@ in vec3 wtc_Position[];
 in vec3 wtc_Normal[];
 in vec2 wtc_TexCoord0[];
 in vec2 wtc_TexCoord1[];
+in vec2 wtc_TexCoord2[];
 in vec2 wtc_Shore[];
 out vec3 wte_Position[];
 out vec3 wte_Normal[];
 out vec2 wte_TexCoord0[];
 out vec2 wte_TexCoord1[];
+out vec2 wte_TexCoord2[];
 out vec2 wte_Shore[];
 
 // segments of the edge a b for a target length in pixels: symmetric in a and b
@@ -809,6 +838,7 @@ void main()
 	wte_Normal[gl_InvocationID] = wtc_Normal[gl_InvocationID];
 	wte_TexCoord0[gl_InvocationID] = wtc_TexCoord0[gl_InvocationID];
 	wte_TexCoord1[gl_InvocationID] = wtc_TexCoord1[gl_InvocationID];
+	wte_TexCoord2[gl_InvocationID] = wtc_TexCoord2[gl_InvocationID];
 	wte_Shore[gl_InvocationID] = wtc_Shore[gl_InvocationID];
 	if (gl_InvocationID != 0)
 		return;
@@ -980,6 +1010,12 @@ uniform sampler2D u_WaterFlowField;      // r_waterFlowField: velocity / body sp
 // [0] flow field enabled, body flow speed (u/s), wall impact enabled, stagnation head (world units)
 // [1] two-phase period (s), foam pattern world scale, flow debug, unused
 uniform vec4 u_WaterFlowParams[2];
+// [0] receiving plane; [1] shared foam velocity XY, unshadowed radiance, ambient fraction
+uniform vec4 u_WaterSpillway[3];
+#if defined(USE_WATER_BAKED_LIGHTMAP)
+uniform sampler2D u_LightMap;
+uniform vec4 u_WaterBakedLight;
+#endif
 uniform sampler2D u_EnvBrdfMap;
 uniform samplerCube u_CubeMap;
 uniform samplerCube u_WaterfallCubeMap;
@@ -1001,6 +1037,7 @@ vec3 var_ShoreData;			// with the attenuation of the interpolated distance, set 
 in vec3 var_ShoreData;
 #endif
 in vec3 var_Position;
+in vec2 var_LightmapUV;
 in vec3 var_Normal;
 in vec2 var_FlowTex;
 #if defined(USE_WATER_MOTION_REPROJECTION)
@@ -1727,6 +1764,25 @@ float WaterFoamCoverage(float structure, float concentration, float sharpness)
 		concentration * (1.0 - min(sharpness / 8.0, 1.0)), 0.0, 1.0);
 }
 
+vec2 WaterSpillwayFoamUV(vec3 position)
+{
+	return (position.xy - u_WaterSpillway[1].xy * u_Water[WATER_U_FRAME].z) * (1.0 / 224.0);
+}
+
+vec2 WaterSpillwayFoamSecondUV(vec2 uv)
+{
+	uv *= 0.731;
+	return vec2(0.8 * uv.x - 0.6 * uv.y, 0.6 * uv.x + 0.8 * uv.y) + vec2(3.17, -2.13);
+}
+
+float WaterSpillwayFoamMottle(vec4 first, vec4 second)
+{
+	// Dense froth has flecks and clumps, not a dark membrane net.
+	float patches = 0.5 * (first.b + second.b);
+	float flecks = 0.5 * (first.g + second.g);
+	return mix(0.78, 1.24, smoothstep(0.26, 0.64, 0.75 * patches + 0.25 * flecks));
+}
+
 // A continuously advected pattern in the sheet's own coordinates. With speed
 // proportional to sqrt(1 + k * distance), integrating 1 / speed gives this
 // travel coordinate. Subtracting time then stretches the pattern downstream
@@ -1788,6 +1844,8 @@ void main()
 	vec3 V = toCamera / cameraDistance;
 	vec3 Ng = normalize(var_Normal);
 	bool waterfall = u_Water[WATER_U_WATERFALL].x > 0.5;
+	float spillway = step(0.001, u_WaterSpillway[1].z);
+	float spillwayPool = waterfall ? 0.0 : spillway;
 	// A waterfall is a thin two-sided sheet, not a solid liquid half-space.
 	// Face its geometric normal toward the camera so either authored winding
 	// gets the same air -> sheet -> air optics.
@@ -1913,6 +1971,7 @@ void main()
 	vec4 rainField = vec4(0.0);
 	vec4 foamSample = vec4(0.0);
 	vec2 foamUV0 = vec2(0.0), foamUV1 = vec2(0.0);
+	float spillwayMottle = 1.0;
 	float foamStructure0 = 0.0, foamStructure1 = 0.0;
 	float foamSharp0 = 1.0, foamSharp1 = 1.0;
 	float foamPhaseWeight = flowField ? flowWeight0 : 0.5;
@@ -1946,10 +2005,21 @@ void main()
 			// still water: a slow independent drift keeps the bubbles alive
 			foamUV1 = foamUV0 * 1.13 + vec2(0.013, -0.009) * u_Water[WATER_U_FRAME].z + 0.5;
 		}
-		foamStructure0 = WaterFoamStructure(texture(u_WaterFoamPattern, foamUV0));
-		foamStructure1 = WaterFoamStructure(texture(u_WaterFoamPattern, foamUV1));
+		// Both sides of the contact use these world-space foam coordinates.
+		// Larger resolved clusters and two unaligned phases avoid distant moire.
+		vec2 spillwayUV = WaterSpillwayFoamUV(P);
+		foamUV0 = mix(foamUV0, spillwayUV, spillwayPool);
+		foamUV1 = mix(foamUV1, WaterSpillwayFoamSecondUV(spillwayUV), spillwayPool);
+		foamPhaseWeight = mix(foamPhaseWeight, 0.5, spillwayPool);
+		vec4 foamPattern0 = texture(u_WaterFoamPattern, foamUV0);
+		vec4 foamPattern1 = texture(u_WaterFoamPattern, foamUV1);
+		foamStructure0 = WaterFoamStructure(foamPattern0);
+		foamStructure1 = WaterFoamStructure(foamPattern1);
+		spillwayMottle = WaterSpillwayFoamMottle(foamPattern0, foamPattern1);
 		foamSharp0 = clamp(0.35 / max(fwidth(foamStructure0), 1e-3), 1.5, 8.0);
 		foamSharp1 = clamp(0.35 / max(fwidth(foamStructure1), 1e-3), 1.5, 8.0);
+		foamSharp0 = max(foamSharp0, mix(1.5, 2.5, spillwayPool));
+		foamSharp1 = max(foamSharp1, mix(1.5, 2.5, spillwayPool));
 	}
 	// r_waterFoamCompare / r_waterWhitewaterCompare 1: none left of the split line
 	float persistentFoam = u_Water[WATER_U_FOAM].x > 0.5 && !R_CompareOriginal(RC_WATERFOAM) ?
@@ -1961,6 +2031,7 @@ void main()
 	float waterfallTurbulence = 0.0, waterfallThickness = 0.0, waterfallAeration = 0.0;
 	float waterfallFoamSource = 0.0, waterfallSpraySource = 0.0, waterfallImpact = 0.0;
 	float waterfallEdge = 1.0;
+	float waterfallTailCoverage = 1.0, waterfallTailThreshold = 0.0;
 	if (waterfall)
 	{
 		float steepness = 1.0 - smoothstep(0.35, 0.94, abs(Ng.z));
@@ -1994,16 +2065,28 @@ void main()
 		}
 		waterfallSpraySource = waterfallFoamSource * u_Water[WATER_U_WATERFALL + 4].y;
 		waterfallImpact = smoothstep(0.86, 1.0, waterfallAlong) * u_Water[WATER_U_WATERFALL + 4].z;
+		{
+			vec4 contactPlane = u_WaterSpillway[0];
+			float contactHeight = dot(P, contactPlane.xyz) - contactPlane.w;
+			float contact = 1.0 - smoothstep(0.0, 192.0,
+				contactHeight + (waterfallNoise - 0.5) * 48.0);
+			waterfallImpact = mix(waterfallImpact, contact * u_Water[WATER_U_WATERFALL + 4].z, spillway);
+			waterfallFoamSource = max(waterfallFoamSource, contact * 0.98 * spillway);
+		}
 		whitewater = waterfallAeration;
 		persistentFoam = waterfallFoamSource;
+
 	}
 	else
 	{
 		float detailedFoam = mix(WaterFoamCoverage(foamStructure1, persistentFoam, foamSharp1),
 			WaterFoamCoverage(foamStructure0, persistentFoam, foamSharp0), foamPhaseWeight);
 		// Distant bubbles become a broad coverage signal instead of a fine net.
-		persistentFoam = mix(detailedFoam, clamp((persistentFoam - 0.12) * 1.4, 0.0, 1.0),
-			smoothstep(700.0, 1800.0, cameraDistance));
+		float distantCoverage = smoothstep(700.0, 1800.0, cameraDistance);
+		distantCoverage *= mix(1.0, 0.20, spillwayPool);
+		persistentFoam = mix(detailedFoam, clamp((persistentFoam - 0.12) * 1.4, 0.0, 1.0), distantCoverage);
+		// Close the membranes in the dense boil; retain lace only as it thins.
+		persistentFoam = mix(persistentFoam, 1.0, spillwayPool * smoothstep(0.60, 0.88, foamSample.r));
 	}
 	vec3 interactionGradient = vec3(interactionWorldSlope, 0.0);
 	float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
@@ -2710,15 +2793,50 @@ void main()
 	// Bubbles on a thin layer transmit some of the water below where coverage
 	// is partial; the coverage itself comes from the thresholded structure.
 	vec3 foamIrradiance = ambient;
-	if (sun) foamIrradiance += foamSunRadiance * clamp(dot(Nwater, sunDir), 0.0, 1.0) * sunShadow;
-	vec3 foamColor = vec3(0.80, 0.84, 0.86) * foamIrradiance;
+	if (sun)
+	{
+		float foamCosine = clamp(dot(Nwater, sunDir), 0.0, 1.0);
+		foamIrradiance += foamSunRadiance * foamCosine * sunShadow;
+	}
+	// The baked probe includes direct light. Split it before applying current
+	// sun visibility, instead of letting the baked total wash out the shadow.
+	float ambientFraction = clamp(u_WaterSpillway[1].w, 0.0, 1.0);
+	vec3 spillwayAmbient = vec3(u_WaterSpillway[1].z * ambientFraction);
+	vec3 spillwayDirect = vec3(u_WaterSpillway[1].z * (1.0 - ambientFraction));
+	if (sun) spillwayDirect = max(spillwayDirect, foamSunRadiance * 0.65);
+	vec3 spillwayIrradiance = spillwayAmbient + spillwayDirect * (sun ? sunShadow : 1.0);
+#if defined(USE_WATER_BAKED_LIGHTMAP)
+	vec3 bakedIrradiance = vec3(0.0);
+	bool bakedFoam = spillway > 0.5 && u_WaterBakedLight.x > 0.5;
+	if (bakedFoam)
+	{
+		// Stock lightmaps retain spatial occlusion, including levels with no
+		// realtime sun. The existing UV stays attached to the subdivided mesh.
+		vec2 poolUV = (P.xy - u_WaterSpillway[2].xy) * u_WaterSpillway[2].zw;
+		bool receiving = u_WaterBakedLight.z > 0.5;
+		vec3 baked = texture(u_LightMap, receiving && !waterfall ? poolUV : var_LightmapUV).rgb;
+		if (receiving && waterfall && waterfallImpact > 0.001)
+			baked = mix(baked, texture(u_WaterFlowField, poolUV).rgb, clamp(waterfallImpact, 0.0, 1.0));
+		vec3 indirect = max(spillwayAmbient, vec3(u_WaterBakedLight.w));
+		bakedIrradiance = max(SceneToLinear(baked) * u_WaterBakedLight.y, indirect);
+		spillwayIrradiance = indirect + (bakedIrradiance - indirect) * (sun ? sunShadow : 1.0);
+	}
+#endif
+	foamIrradiance = mix(foamIrradiance, spillwayIrradiance, spillway);
+	vec3 foamColor = mix(vec3(0.80, 0.84, 0.86), vec3(0.93, 0.97, 0.99), spillway) * foamIrradiance;
 	if (!waterfall)
 	{
 		// Dense foam keeps diffuse brightness variation even where coverage
 		// reaches one. Reuse the existing bubble pattern and coarse density.
-		float foamMottle = mix(mix(foamStructure1, foamStructure0, foamPhaseWeight),
-			foamSample.r, smoothstep(700.0, 1800.0, cameraDistance));
-		foamColor *= mix(0.72, 1.12, smoothstep(0.18, 0.78, foamMottle));
+		float mottleDistance = smoothstep(700.0, 1800.0, cameraDistance);
+		mottleDistance *= mix(1.0, 0.20, spillwayPool);
+		float foamMottle = mix(mix(foamStructure1, foamStructure0, foamPhaseWeight), foamSample.r, mottleDistance);
+		foamColor *= mix(mix(0.72, 1.12, smoothstep(0.18, 0.78, foamMottle)),
+			spillwayMottle, spillwayPool);
+		// Fresh aeration has the same white albedo as the column; dispersed
+		// foam loses a little brightness while opening into its downstream lace.
+		float freshFoam = smoothstep(0.42, 0.86, foamSample.r);
+		foamColor *= mix(1.0, mix(0.82, 1.0, freshFoam), spillwayPool);
 	}
 	// The overlap skirt closes the bank gap below the surface. Its foot
 	// transmits the ground instead of reflecting a bright strip of the sky.
@@ -2735,6 +2853,7 @@ void main()
 		vec3 sheetLight = max(ambient, 1.8 * u_Water[WATER_U_FLOW].rgb);
 		if (sun)
 			sheetLight += foamSunRadiance * (0.22 + 0.57 * abs(dot(Ng, sunDir))) * sunShadow;
+		sheetLight = mix(sheetLight, spillwayIrradiance, spillway);
 		float brightness = mix(0.62, 1.28, smoothstep(0.19, 0.76, 0.48 * waterfallNoise + 0.52 * waterfallFilaments));
 		vec3 sheetFoam = sheetLight * vec3(0.93, 0.97, 0.99) * brightness;
 		// The irregular lower regime joins the same lit foam as the pool.
@@ -2742,12 +2861,32 @@ void main()
 			(0.8 + 0.4 * waterfallNoise), 0.0, 1.0));
 		color = mix(color, sheetLight * vec3(0.62, 0.72, 0.77), whitewater * 0.82);
 		color = mix(color, sheetFoam, persistentFoam * 0.96);
+		vec2 contactUV = WaterSpillwayFoamUV(P);
+		vec2 contactUV1 = WaterSpillwayFoamSecondUV(contactUV);
+		// Derivatives outside the varying contact branch keep its boundary filtered.
+		vec2 contactDx = dFdx(contactUV), contactDy = dFdy(contactUV);
+		vec2 contactDx1 = dFdx(contactUV1), contactDy1 = dFdy(contactUV1);
+		if (spillway > 0.5 && waterfallImpact > 0.001)
+		{
+			// Two extra reads only in the narrow contact band: the same moving
+			// froth as the pool, so the intersection has no material seam.
+			vec4 first = textureGrad(u_WaterFoamPattern, contactUV, contactDx, contactDy);
+			vec4 second = textureGrad(u_WaterFoamPattern, contactUV1, contactDx1, contactDy1);
+			color = mix(color, foamColor * WaterSpillwayFoamMottle(first, second), clamp(waterfallImpact, 0.0, 1.0));
+			// Break the rolled sheet's terminal edge into the same moving froth
+			// as the pool. Reuse these filtered reads; keep discard outside the
+			// divergent texture branch for older GL drivers.
+			float tailHeight = dot(P, u_WaterSpillway[0].xyz) - u_WaterSpillway[0].w;
+			waterfallTailCoverage = smoothstep(4.0, 64.0, tailHeight);
+			waterfallTailThreshold = mix(0.03, 0.97,
+				smoothstep(0.22, 0.72, 0.6 * first.b + 0.4 * second.b));
+		}
 		color = mix(SceneToLinear(sceneHere.rgb), color, waterfallEdge);
 	}
 	else
 	{
 		color = mix(color, whitewaterColor, whitewater * 0.72);
-		color = mix(color, foamColor, persistentFoam * 0.92);
+		color = mix(color, foamColor, persistentFoam * mix(0.92, 0.98, spillwayPool));
 	}
 	// Channel B of the body-local interaction field is short-lived foam laid
 	// down by energetic physical splash events.  It remains surface-local,
@@ -2869,6 +3008,13 @@ void main()
 			d = vec3(rejected, 1.0 - rejected, 0.0) * (rejected > 0.0 ? 1.0 : 0.25);
 		else if (debugView == 11)
 			d = vec3(roughness);
+		else if (debugView == 12)
+		{
+			d = sun ? vec3(sunShadow) : vec3(1.0, 0.0, 0.0);
+#if defined(USE_WATER_BAKED_LIGHTMAP)
+			if (!sun && bakedFoam) d = bakedIrradiance;
+#endif
+		}
 		out_Color = vec4(LinearToScene(d), sceneHere.a);
 		out_Glow = vec4(0.0);
 		return;
@@ -2920,6 +3066,7 @@ void main()
 		return;
 	}
 
+	if (waterfallTailCoverage < waterfallTailThreshold) discard;
 	out_Color = vec4(LinearToScene(color), sceneHere.a);
 	vec3 glow = ((1.0 - W) * transmittedGlow + glint) * (1.0 - persistentFoam) * (1.0 - 0.8 * whitewater);
 	if (waterfallEdge < 1.0)

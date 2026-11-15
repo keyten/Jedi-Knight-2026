@@ -439,6 +439,9 @@ struct waterBody_t
 	vec2_t fallAcrossUV = {};
 	vec3_t fallDirection = { 0, 0, -1 }, impactCenter = {};
 	vec3_t fallIrradiance = {};
+	float fallAmbientFraction = 1.0f;
+	image_t *spillwayLighting = nullptr;
+	float spillwayLightReference = 0.0f;
 	float impactWidth = 0.0f;
 	float viewCoverage = 1.0f, viewDistance = 0.0f;
 };
@@ -522,6 +525,9 @@ struct waterfallImpactSource_t
 	float strength = 1.0f;
 	float dropHeight = 0.0f;
 	float foamEnergy = 1.0f;
+	bool spillway = false;
+	float fanSide = 0.0f;
+	unsigned foamSeed = 0;
 	int originType = WFIMPACT_CLASSIFIED_BOTTOM;
 	unsigned randomState = 1;
 	int nextSecondaryTime = 0;
@@ -1353,8 +1359,89 @@ static void R_WaterFoamInject(waterBody_t& body, const vec3_t position,
 // Entrained air resurfaces downstream of the falling column. The drop and
 // sheet width set the extent of that broad source; the existing field then
 // transports and decays the bubbles without allocating extra geometry.
+static float R_WaterFoamNoise(float x, float y, unsigned seed)
+{
+	const int ix = (int)floorf(x), iy = (int)floorf(y);
+	float tx = x - ix, ty = y - iy;
+	tx = tx * tx * tx * (tx * (tx * 6.0f - 15.0f) + 10.0f);
+	ty = ty * ty * ty * (ty * (ty * 6.0f - 15.0f) + 10.0f);
+	auto hash = [&](int a, int b) -> float {
+		unsigned h = (unsigned)a * 0x8da6b343u ^ (unsigned)b * 0xd8163841u ^ seed;
+		h ^= h >> 16; h *= 0x7feb352du; h ^= h >> 15;
+		return (h & 65535u) * (1.0f / 65535.0f);
+	};
+	const float a = hash(ix, iy), b = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
+	return (a + tx * (b - a)) * (1.0f - ty) + (c + tx * (d - c)) * ty;
+}
+
+static void R_WaterSpillwayFoamInject(waterBody_t& body, const waterfallImpactSource_t& source, int now)
+{
+	waterFoamState_t& foam = body.foam;
+	const float scale = r_waterfallImpactRadius->value;
+	const float reach = Com_Clamp(350.0f, 1500.0f,
+		(source.radius * (1.0f + 0.60f * source.foamEnergy) + source.dropHeight * 0.18f) * 1.75f) * scale;
+	const float support = reach * 1.65f;
+	const float back = MAX(1.5f * MAX(foam.texelX, foam.texelY), source.radius * 0.20f * scale);
+	const float initialWidth = MAX(1.2f * MAX(foam.texelX, foam.texelY), source.halfWidth * 0.72f * scale);
+	auto widthAt = [&](float along) -> float {
+		return initialWidth + 0.38f * along + 0.00008f * along * along / MAX(scale, 0.1f);
+	};
+	const float halfLength = 0.5f * (support + back);
+	const float halfWidth = widthAt(support) * 2.25f + support * 0.20f;
+	vec3_t center;
+	VectorMA(source.origin, 0.5f * (support - back), source.outflow, center);
+	const float bx = fabsf(source.across[0]) * halfWidth + fabsf(source.outflow[0]) * halfLength;
+	const float by = fabsf(source.across[1]) * halfWidth + fabsf(source.outflow[1]) * halfLength;
+	const int x0 = MAX(0, (int)floorf((center[0] - bx - body.bounds[0][0]) / foam.texelX));
+	const int x1 = MIN(foam.width - 1, (int)floorf((center[0] + bx - body.bounds[0][0]) / foam.texelX));
+	const int y0 = MAX(0, (int)floorf((center[1] - by - body.bounds[0][1]) / foam.texelY));
+	const int y1 = MIN(foam.height - 1, (int)floorf((center[1] + by - body.bounds[0][1]) / foam.texelY));
+	const float strength = source.strength * source.foamEnergy * r_waterfallImpactFoam->value;
+	const float time = now * 0.001f;
+	for (int y = y0; y <= y1; ++y) for (int x = x0; x <= x1; ++x)
+	{
+		const size_t i = (size_t)y * foam.width + x;
+		if (!foam.mask[i]) continue;
+		const float wx = body.bounds[0][0] + (x + 0.5f) * foam.texelX;
+		const float wy = body.bounds[0][1] + (y + 0.5f) * foam.texelY;
+		const float dx = wx - source.origin[0], dy = wy - source.origin[1];
+		const float along = dx * source.outflow[0] + dy * source.outflow[1];
+		if (along <= -back || along >= support) continue;
+		const float downstream = MAX(along, 0.0f);
+		const float width = widthAt(downstream);
+		const float meander = (R_WaterFoamNoise(downstream / 190.0f, time * 0.22f,
+			(unsigned)source.waterfallBodyId * 7919u) - 0.5f) * width * 0.32f;
+		const float lateral = dx * source.across[0] + dy * source.across[1] -
+			source.fanSide * downstream * 0.28f - meander;
+		const float across = lateral / width;
+		float head = Com_Clamp(0.0f, 1.0f, (along + back) / back);
+		head = head * head * (3.0f - 2.0f * head);
+		float tail = Com_Clamp(0.0f, 1.0f, (downstream / reach - 1.1f) / 0.55f);
+		tail = 1.0f - tail * tail * (3.0f - 2.0f * tail);
+		const float density = strength * head * tail * expf(-1.4f * across * across - 2.9f * downstream / reach);
+		if (density < 0.004f) continue;
+		// Shared, advected world noise has no repeated per-strip sine motif.
+		const float px = wx - source.outflow[0] * time * 62.0f;
+		const float py = wy - source.outflow[1] * time * 62.0f;
+		const float broad = R_WaterFoamNoise(px / 169.0f, py / 169.0f, source.foamSeed);
+		const float fine = R_WaterFoamNoise((px + py * 0.37f) / 79.0f,
+			(py - px * 0.23f) / 103.0f, source.foamSeed ^ 0x9e3779b9u);
+		float pockets = Com_Clamp(0.0f, 1.0f, (0.68f * broad + 0.32f * fine - 0.20f) / 0.60f);
+		pockets = pockets * pockets * (3.0f - 2.0f * pockets);
+		float merge = Com_Clamp(0.0f, 1.0f, (downstream - 80.0f) / 240.0f);
+		merge = merge * merge * (3.0f - 2.0f * merge);
+		const float breakup = (0.82f + 0.10f * broad) * (1.0f - merge) + (0.08f + 0.92f * pockets) * merge;
+		const float value = Com_Clamp(0.0f, 1.0f, density) * breakup;
+		// Overlapping jets merge smoothly, without a max-composition ridge.
+		const float previous = foam.source[i * 4] * (1.0f / 255.0f);
+		foam.source[i * 4] = (byte)(255.0f * (previous + value * (1.0f - previous)));
+		foam.sourceDirty = true;
+	}
+}
+
 static void R_WaterfallFoamInject(waterBody_t& body, const waterfallImpactSource_t& source, int now)
 {
+	if (source.spillway) { R_WaterSpillwayFoamInject(body, source, now); return; }
 	waterFoamState_t& foam = body.foam;
 	const float scale = r_waterfallImpactRadius->value;
 	const float cellSize = MAX(foam.texelX, foam.texelY);
@@ -4254,6 +4341,88 @@ void R_WaterBodiesLoadJson( world_t *world, const char *json, const char *end, c
 		(int)s_water.waterfallRules.size(), s_water.waterfallRules.size() == 1 ? "" : "s");
 }
 
+// One map-load projection of the existing pool lightmaps. The receiving
+// surface and the turning sheet then sample exactly the same world-space light.
+static void R_WaterBuildSpillwayLighting(world_t *world, waterBody_t& pool)
+{
+	if (pool.spillwayLighting) return;
+	constexpr int size = 256;
+	struct pixels_t { int width, height; std::vector<float> rgba; };
+	std::map<int, pixels_t> lightmaps;
+	GLint packBuffer = 0;
+	qglGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &packBuffer);
+	qglBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+	std::vector<float> lighting(size * size * 4, 0.0f);
+	const float texelX = MAX(pool.bounds[1][0] - pool.bounds[0][0], 1.0f) / size;
+	const float texelY = MAX(pool.bounds[1][1] - pool.bounds[0][1], 1.0f) / size;
+	for (int surfaceNum : pool.surfaces)
+	{
+		const msurface_t& ms = world->surfaces[surfaceNum];
+		if (!ms.data || !(*ms.data == SF_FACE || *ms.data == SF_GRID || *ms.data == SF_TRIANGLES)) continue;
+		const int index = ms.shader->lightmapIndex[0];
+		if (index < 0 || index >= tr.numLightmaps || !tr.lightmaps[index]) continue;
+		if (!lightmaps.count(index))
+		{
+			image_t *image = tr.lightmaps[index];
+			pixels_t pixels = { image->uploadWidth, image->uploadHeight, {} };
+			pixels.rgba.resize((size_t)pixels.width * pixels.height * 4);
+			GL_Bind(image);
+			qglGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels.rgba.data());
+			lightmaps.emplace(index, std::move(pixels));
+		}
+		const pixels_t& image = lightmaps.at(index);
+		const srfBspSurface_t& surface = *(const srfBspSurface_t *)ms.data;
+		for (int ti = 0; ti + 2 < surface.numIndexes; ti += 3)
+		{
+			const int ia = surface.indexes[ti], ib = surface.indexes[ti + 1], ic = surface.indexes[ti + 2];
+			if (ia < 0 || ib < 0 || ic < 0 || ia >= surface.numVerts || ib >= surface.numVerts || ic >= surface.numVerts) continue;
+			const srfVert_t& a = surface.verts[ia];
+			const srfVert_t& b = surface.verts[ib];
+			const srfVert_t& c = surface.verts[ic];
+			const float bx = b.xyz[0] - a.xyz[0], by = b.xyz[1] - a.xyz[1];
+			const float cx = c.xyz[0] - a.xyz[0], cy = c.xyz[1] - a.xyz[1];
+			const float det = bx * cy - by * cx;
+			if (fabsf(det) < 1e-6f) continue;
+			const int x0 = Com_Clampi(0, size - 1, (int)floorf((MIN(a.xyz[0], MIN(b.xyz[0], c.xyz[0])) - pool.bounds[0][0]) / texelX));
+			const int x1 = Com_Clampi(0, size - 1, (int)floorf((MAX(a.xyz[0], MAX(b.xyz[0], c.xyz[0])) - pool.bounds[0][0]) / texelX));
+			const int y0 = Com_Clampi(0, size - 1, (int)floorf((MIN(a.xyz[1], MIN(b.xyz[1], c.xyz[1])) - pool.bounds[0][1]) / texelY));
+			const int y1 = Com_Clampi(0, size - 1, (int)floorf((MAX(a.xyz[1], MAX(b.xyz[1], c.xyz[1])) - pool.bounds[0][1]) / texelY));
+			for (int y = y0; y <= y1; ++y) for (int x = x0; x <= x1; ++x)
+			{
+				const float dx = pool.bounds[0][0] + (x + .5f) * texelX - a.xyz[0];
+				const float dy = pool.bounds[0][1] + (y + .5f) * texelY - a.xyz[1];
+				const float wb = (dx * cy - dy * cx) / det, wc = (bx * dy - by * dx) / det;
+				if (wb < -1e-5f || wc < -1e-5f || wb + wc > 1.00001f) continue;
+				float uv[2];
+				for (int k = 0; k < 2; ++k)
+					uv[k] = a.lightmap[0][k] + wb * (b.lightmap[0][k] - a.lightmap[0][k]) + wc * (c.lightmap[0][k] - a.lightmap[0][k]);
+				const float sx = uv[0] * image.width - .5f, sy = uv[1] * image.height - .5f;
+				const int ix = (int)floorf(sx), iy = (int)floorf(sy);
+				const float fx = sx - ix, fy = sy - iy;
+				float *pixel = &lighting[((size_t)y * size + x) * 4];
+				for (int channel = 0; channel < 3; ++channel)
+				{
+					auto at = [&](int px, int py) { return image.rgba[((size_t)Com_Clampi(0, image.height - 1, py) * image.width + Com_Clampi(0, image.width - 1, px)) * 4 + channel]; };
+					pixel[channel] = (at(ix, iy) * (1 - fx) + at(ix + 1, iy) * fx) * (1 - fy) +
+						(at(ix, iy + 1) * (1 - fx) + at(ix + 1, iy + 1) * fx) * fy;
+				}
+				pixel[3] = 1.0f;
+				float luminance = 0.0f;
+				for (int channel = 0; channel < 3; ++channel)
+					luminance += (channel == 0 ? .2126f : (channel == 1 ? .7152f : .0722f)) *
+						(tr.linearLight ? pixel[channel] : (float)sRGBtoRGB(MAX(pixel[channel], 0.0f)));
+				pool.spillwayLightReference = MAX(pool.spillwayLightReference, luminance);
+			}
+		}
+	}
+	qglBindBuffer(GL_PIXEL_PACK_BUFFER, packBuffer);
+	if (lightmaps.empty()) return;
+	pool.spillwayLighting = R_CreateImage(va("*spillwayLighting%d", pool.id), nullptr, size, size, IMGTYPE_COLORALPHA,
+		IMGFLAG_NO_COMPRESSION | IMGFLAG_CLAMPTOEDGE | IMGFLAG_MUTABLE | IMGFLAG_NOLIGHTSCALE, GL_RGBA16F);
+	GL_Bind(pool.spillwayLighting);
+	qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size, size, GL_RGBA, GL_FLOAT, lighting.data());
+}
+
 void R_WaterfallEmittersFinalize(world_t *world)
 {
 	if (!world || world != s_water.world) return;
@@ -4463,6 +4632,35 @@ void R_WaterfallEmittersFinalize(world_t *world)
 		}
 	}
 
+	// Form local spillway groups, leaving isolated medium falls on their
+	// approved footprint. The two groups on t3_hevil remain independent.
+	for (waterfallImpactSource_t& source : s_water.waterfallImpacts)
+	{
+		if (!source.poolBodyId || source.dropHeight < 1024.0f ||
+			s_water.bodies[source.waterfallBodyId - 1].waterfallProfile != WFPROFILE_HEAVY) continue;
+		float low = 1.0e30f, high = -1.0e30f;
+		int count = 0, first = source.waterfallBodyId;
+		for (const waterfallImpactSource_t& neighbour : s_water.waterfallImpacts)
+		{
+			if (neighbour.poolBodyId != source.poolBodyId || neighbour.dropHeight < 1024.0f ||
+				s_water.bodies[neighbour.waterfallBodyId - 1].waterfallProfile != WFPROFILE_HEAVY ||
+				DotProduct(neighbour.outflow, source.outflow) < 0.9f) continue;
+			vec3_t delta; VectorSubtract(neighbour.origin, source.origin, delta);
+			if (fabsf(DotProduct(delta, source.across)) > source.radius * 5.0f ||
+				fabsf(DotProduct(delta, source.outflow)) > source.radius * 2.0f) continue;
+			const float side = DotProduct(neighbour.origin, source.across);
+			low = MIN(low, side); high = MAX(high, side); ++count;
+			first = MIN(first, neighbour.waterfallBodyId);
+		}
+		if (count < 2 || high - low < 1.0f) continue;
+		source.spillway = true;
+		source.fanSide = Com_Clamp(-1.0f, 1.0f,
+			(DotProduct(source.origin, source.across) - 0.5f * (low + high)) / (0.5f * (high - low)));
+		source.foamSeed = (unsigned)first * 747796405u + (unsigned)source.poolBodyId * 2891336453u;
+	}
+	for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
+		if (source.spillway && source.poolBodyId > 0)
+			R_WaterBuildSpillwayLighting(world, s_water.bodies[source.poolBodyId - 1]);
 	std::vector<refFogVolume_t> fog;
 	std::vector<lensWaterEmitter_t> lens;
 	for (waterBody_t& body : s_water.bodies)
@@ -4474,6 +4672,7 @@ void R_WaterfallEmittersFinalize(world_t *world)
 		VectorAdd(body.bounds[0], body.bounds[1], center);
 		VectorScale(center, 0.5f, center);
 		VectorMA(center, body.planeDist - DotProduct(center, body.planeNormal), body.planeNormal, center);
+		float ambientSum = 0.0f, totalSum = 0.0f;
 		for (float height : { -0.30f, 0.0f, 0.30f })
 		{
 			vec3_t sample, ambient, directed, direction;
@@ -4484,10 +4683,15 @@ void R_WaterfallEmittersFinalize(world_t *world)
 				for (int c = 0; c < 3; ++c)
 				{
 					const float light = (ambient[c] + 0.45f * directed[c]) / 255.0f;
-					body.fallIrradiance[c] += (float)sRGBtoRGB(MAX(light, 0.0f)) / 3.0f;
+					const float linear = (float)sRGBtoRGB(MAX(light, 0.0f));
+					body.fallIrradiance[c] += linear / 3.0f;
+					const float weight = c == 0 ? 0.2126f : (c == 1 ? 0.7152f : 0.0722f);
+					ambientSum += weight * (float)sRGBtoRGB(MAX(ambient[c], 0.0f) / 255.0f);
+					totalSum += weight * linear;
 				}
 			}
 		}
+		body.fallAmbientFraction = totalSum > 1e-6f ? Com_Clamp(0.0f, 1.0f, ambientSum / totalSum) : 1.0f;
 		bool matched = false, existingFx = false;
 		for (const waterfallEmitterRule_t& rule : s_water.waterfallEmitterRules)
 			if (R_WaterfallRuleMatches(rule.selector, body)) { matched = true; existingFx |= rule.existingFx; }
@@ -4709,6 +4913,8 @@ void R_Waterfalls_f(void)
 			p.breakup, p.normalScale, p.aeration, p.spray, p.impact);
 		ri.Printf(PRINT_ALL, "    top %.2f bottom %.2f impact center (%g %g %g), width %.1f; foam/spray/impact source metadata available\n",
 			body.fallMin, body.fallMax, body.impactCenter[0], body.impactCenter[1], body.impactCenter[2], body.impactWidth);
+		ri.Printf(PRINT_ALL, "    baked foam irradiance (%g %g %g), ambient fraction %.3f\n",
+			body.fallIrradiance[0], body.fallIrradiance[1], body.fallIrradiance[2], body.fallAmbientFraction);
 	}
 	for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
 		ri.Printf(PRINT_ALL, "  impact sheet %d -> pool %d at (%g %g %g), radius %.1f, strength %.2f, drop %.1f, foam energy %.2f [%s]%s\n",
@@ -5558,6 +5764,7 @@ static glIndex_t R_WaterMidpoint(std::vector<packedVertex_t>& verts,
 	{
 		v.texcoords[0][i] = 0.5f * (verts[a].texcoords[0][i] + verts[b].texcoords[0][i]);
 		v.texcoords[1][i] = 0.5f * (verts[a].texcoords[1][i] + verts[b].texcoords[1][i]);
+		v.texcoords[2][i] = 0.5f * (verts[a].texcoords[2][i] + verts[b].texcoords[2][i]);
 	}
 	const glIndex_t result = (glIndex_t)verts.size();
 	verts.push_back(v);
@@ -5843,6 +6050,7 @@ void R_WaterBuildGeometry(world_t *world)
 				VectorCopy(s->verts[i].xyz, v.position);
 				v.normal = R_VboPackNormal(s->verts[i].normal);
 				VectorCopy2(s->verts[i].st, v.texcoords[0]);
+				VectorCopy2(s->verts[i].lightmap[0], v.texcoords[2]);
 				if (body.waterfall)
 				{
 					// Falling sheets do not use shoreline/skirt metadata. Preserve the
@@ -5990,14 +6198,17 @@ void R_WaterBuildGeometry(world_t *world)
 		vbo->offsets[ATTR_INDEX_NORMAL] = offsetof(packedVertex_t, normal);
 		vbo->offsets[ATTR_INDEX_TEXCOORD0] = offsetof(packedVertex_t, texcoords[0]);
 		vbo->offsets[ATTR_INDEX_TEXCOORD1] = offsetof(packedVertex_t, texcoords[1]);
+		vbo->offsets[ATTR_INDEX_TEXCOORD2] = offsetof(packedVertex_t, texcoords[2]);
 		vbo->strides[ATTR_INDEX_POSITION] = sizeof(packedVertex_t);
 		vbo->strides[ATTR_INDEX_NORMAL] = sizeof(packedVertex_t);
 		vbo->strides[ATTR_INDEX_TEXCOORD0] = sizeof(packedVertex_t);
 		vbo->strides[ATTR_INDEX_TEXCOORD1] = sizeof(packedVertex_t);
+		vbo->strides[ATTR_INDEX_TEXCOORD2] = sizeof(packedVertex_t);
 		vbo->sizes[ATTR_INDEX_POSITION] = sizeof(verts[0].position);
 		vbo->sizes[ATTR_INDEX_NORMAL] = sizeof(verts[0].normal);
 		vbo->sizes[ATTR_INDEX_TEXCOORD0] = sizeof(verts[0].texcoords[0]);
 		vbo->sizes[ATTR_INDEX_TEXCOORD1] = sizeof(verts[0].texcoords[1]);
+		vbo->sizes[ATTR_INDEX_TEXCOORD2] = sizeof(verts[0].texcoords[2]);
 		for (const range_t& r : ranges)
 		{
 			r.s->waterVbo = vbo; r.s->waterIbo = ibo;
@@ -6853,6 +7064,51 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		Com_Clamp(0.0f, 4.0f, r_waterWhitewaterFoam->value),
 		(float)r_waterWhitewaterDebug->integer);
 	const bool waterfall = body && body->waterfall && (key & WATERKEY_WATERFALL);
+	waterBody_t *spillwayPool = nullptr;
+	vec4_t spillway[3] = {};
+	if (body && r_waterfall->integer && r_waterfallImpact->integer && r_waterfallImpactFoam->value > 0.0f &&
+		R_WaterFoamResourcesEnabled() && !R_CompareOff(RC_WATERFALL))
+	{
+		for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
+			if (source.spillway && (source.waterfallBodyId == body->id || source.poolBodyId == body->id))
+			{ spillwayPool = &s_water.bodies[source.poolBodyId - 1]; break; }
+		if (spillwayPool && spillwayPool->foam.active)
+		{
+			int count = 0;
+			vec3_t outflow = {};
+			float lightSum = 0.0f, ambientSum = 0.0f;
+			for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
+				if (source.spillway && source.poolBodyId == spillwayPool->id)
+				{
+					const vec3_t& light = s_water.bodies[source.waterfallBodyId - 1].fallIrradiance;
+					const waterBody_t& fall = s_water.bodies[source.waterfallBodyId - 1];
+					const float luminance = 1.8f * (0.2126f * light[0] + 0.7152f * light[1] + 0.0722f * light[2]);
+					lightSum += luminance;
+					ambientSum += luminance * fall.fallAmbientFraction;
+					VectorAdd(outflow, source.outflow, outflow);
+					++count;
+				}
+			VectorNormalize(outflow);
+			VectorSet4(spillway[0], spillwayPool->planeNormal[0], spillwayPool->planeNormal[1],
+				spillwayPool->planeNormal[2], spillwayPool->planeDist);
+			VectorSet4(spillway[1], outflow[0] * 62.0f, outflow[1] * 62.0f,
+				Com_Clamp(0.12f, 1.5f, lightSum / MAX(count, 1)),
+				lightSum > 1e-6f ? Com_Clamp(0.0f, 1.0f, ambientSum / lightSum) : 1.0f);
+			VectorSet4(spillway[2], spillwayPool->bounds[0][0], spillwayPool->bounds[0][1],
+				1.0f / MAX(spillwayPool->bounds[1][0] - spillwayPool->bounds[0][0], 1.0f),
+				1.0f / MAX(spillwayPool->bounds[1][1] - spillwayPool->bounds[0][1], 1.0f));
+		}
+	}
+	uniforms.SetUniformVec4(UNIFORM_WATERSPILLWAY, spillway[0], 3);
+	const int lightmapIndex = input->shader->lightmapIndex[0];
+	image_t *bakedLightmap = spillway[1][2] > 0.0f && lightmapIndex >= 0 && lightmapIndex < tr.numLightmaps ?
+		tr.lightmaps[lightmapIndex] : nullptr;
+	const bool receivingLight = spillway[1][2] > 0.0f && spillwayPool && spillwayPool->spillwayLighting;
+	if (receivingLight && !waterfall) bakedLightmap = spillwayPool->spillwayLighting;
+	const vec4_t bakedLight = { bakedLightmap ? 1.0f : 0.0f, 1.0f, receivingLight ? 1.0f : 0.0f,
+		receivingLight ? spillwayPool->spillwayLightReference * 0.12f : spillway[1][2] * 0.18f };
+	uniforms.SetUniformVec4(UNIFORM_WATERBAKEDLIGHT, bakedLight);
+	samplers.AddStaticImage(bakedLightmap ? bakedLightmap : tr.whiteImage, TB_WATER_LIGHTMAP);
 	const waterfallProfile_t& waterfallProfile = body ? body->waterfallValues : s_waterfallProfiles[WFPROFILE_MEDIUM];
 	const float waterfallProfileStrength = !body ? 1.0f : Com_Clamp(0.0f, 4.0f,
 		body->waterfallProfile == WFPROFILE_SMALL ? r_waterfallSmallStrength->value :
@@ -6864,11 +7120,23 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	const float requestedLod = r_waterfallQuality->integer <= 0 ? 0.32f :
 		(r_waterfallQuality->integer >= 2 ? 1.0f : 0.68f);
 	float waterfallLod = MIN(requestedLod, MAX(distanceLod, coverageLod));
-	// Tall spillways are normally seen from the upper walkway. Keep the
-	// whole draw coherent and cheap even when the nearby lip fills the view.
-	if (waterfall && r_waterfallQuality->integer < 2 && body->fallMax - body->fallMin > 1024.0f &&
-		backEnd.viewParms.ori.origin[2] - body->impactCenter[2] > 768.0f)
-		waterfallLod = MIN(waterfallLod, 0.32f);
+	// Retain filtered filaments in upper spillway views. Fade the quality
+	// continuously, instead of switching to the visibly cellular coarse tier.
+	const bool tallSpillway = waterfall && body->waterfallProfile == WFPROFILE_HEAVY &&
+		body->fallMax - body->fallMin > 1024.0f;
+	float opticalLod = waterfallLod < 0.34f ? 0.0f : (waterfallLod < 0.67f ? 0.5f : 1.0f);
+	if (tallSpillway && r_waterfallQuality->integer == 1)
+	{
+		const float above = backEnd.viewParms.ori.origin[2] - body->impactCenter[2];
+		float t = Com_Clamp(0.0f, 1.0f,
+			(above - 512.0f) / 1536.0f);
+		t = t * t * (3.0f - 2.0f * t);
+		waterfallLod = MIN(waterfallLod, 0.68f - t * 0.14f);
+		// Opaque distant froth needs filtered filaments, but no displaced
+		// refraction lookup. Fade that optical work independently of detail.
+		float opticalFade = Com_Clamp(0.0f, 1.0f, (above - 512.0f) / 1024.0f);
+		opticalLod *= 1.0f - opticalFade * opticalFade * (3.0f - 2.0f * opticalFade);
+	}
 	bool impactContact = false;
 	if (waterfall && r_waterfallImpact->integer && r_waterfallImpactFoam->value > 0.0f && R_WaterFoamResourcesEnabled())
 		for (const waterfallImpactSource_t& source : s_water.waterfallImpacts)
@@ -6891,7 +7159,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	// merging geometry or adding transparent passes. z gates refraction/SSR.
 	// x/w normalize the stock patch's authored across-sheet UV.
 	VectorSet4(water[WATER_U_WATERFALL + 5], waterfall ? body->fallAcrossUV[0] : 0.0f, waterfallLod,
-		waterfallLod < 0.34f ? 0.0f : (waterfallLod < 0.67f ? 0.5f : 1.0f),
+		opticalLod,
 		waterfall ? body->fallAcrossUV[1] : 0.0f);
 	if (waterfall)
 	{
@@ -6939,11 +7207,21 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		// segments per world unit of edge at unit distance for the target
 		// pixel length (the main view; the reflection prepass scales it)
 		const float pixels = Com_Clamp(2.0f, 128.0f, r_waterTessPixels->value);
+		float cullExtent = body->tessCullExtent;
+		if (waterfall && spillway[1][2] > 0.0f)
+		{
+			float lowest = -spillway[0][3];
+			for (int axis = 0; axis < 3; ++axis)
+				lowest += spillway[0][axis] * body->bounds[spillway[0][axis] < 0.0f ? 1 : 0][axis];
+			// 144-unit outflow plus the soft lift, including any authored
+			// portion of the sheet below the receiving plane.
+			cullExtent += 160.0f + MAX(0.0f, -lowest);
+		}
 		const vec4_t tessParams = {
 			fabsf(backEnd.viewParms.projectionMatrix[0]) * backEnd.viewParms.viewportWidth * 0.5f / pixels,
 			(float)R_WaterTessMaxLevel(),
 			r_waterTessForce->value > 0.0f ? Com_Clamp(1.0f, (float)R_WaterTessMaxLevel(), r_waterTessForce->value) : 0.0f,
-			body->tessCullExtent };
+			cullExtent };
 		uniforms.SetUniformVec4(UNIFORM_WATERTESS, tessParams);
 		// z: segment factor of the reflection prepass, which renders at
 		// 1 / reflectionScale of the view (r_waterSSROptimize 0: the 10-19 x scale)
@@ -7011,7 +7289,8 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	samplers.AddStaticImage(tr.waterNormalImage, 2);
 	samplers.AddStaticImage(tr.waterFoamPatternImage ? tr.waterFoamPatternImage : tr.whiteImage, 16);
 	const bool flowField = body && !body->waterfall && r_waterFlow->integer && body->flowField.valid;
-	samplers.AddStaticImage(flowField ? body->flowField.image : tr.whiteImage, 17);
+	samplers.AddStaticImage(receivingLight && waterfall ? spillwayPool->spillwayLighting :
+		(flowField ? body->flowField.image : tr.whiteImage), 17);
 	vec4_t flowParams[2];
 	{
 		// [0] field enabled, body flow speed (u/s), wall impact enabled, stagnation head (world units)
@@ -7077,7 +7356,8 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 			s_water.previousInteractionAtlas : tr.whiteImage, 24);
 	}
 	samplers.AddStaticImage(waterRain ? waterRainImage : tr.whiteImage, TB_WATERRAIN);
-	samplers.AddStaticImage(foam ? ((r_waterFoamDebug->integer == 3 || r_waterWhitewaterDebug->integer == 4) ? foam->sourceImage : foam->image[foam->current]) : tr.whiteImage,
+	const waterFoamState_t *receivingFoam = waterfall && receivingLight ? &spillwayPool->foam : foam;
+	samplers.AddStaticImage(receivingFoam ? ((r_waterFoamDebug->integer == 3 || r_waterWhitewaterDebug->integer == 4) ? receivingFoam->sourceImage : receivingFoam->image[receivingFoam->current]) : tr.whiteImage,
 		TB_WATERFOAM);
 	samplers.AddStaticImage(tr.waterGlowImage, 9);
 	if (tr.envBrdfImage) samplers.AddStaticImage(tr.envBrdfImage, 3);

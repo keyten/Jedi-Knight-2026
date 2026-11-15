@@ -2828,7 +2828,7 @@ void RB_StageIteratorGeneric( void )
 	//
 	uint32_t vertexAttribs = RB_CalcShaderVertexAttribs( input->shader );
 	if (waterDraw)
-		vertexAttribs |= ATTR_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0 | ATTR_TEXCOORD1;
+		vertexAttribs |= ATTR_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_TEXCOORD2;
 	if (tess.useInternalVBO)
 	{
 		RB_DeformTessGeometry();

@@ -491,6 +491,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterFlowField",		GLSL_INT, 1 },
 	{ "u_WaterFlowFieldParams",	GLSL_VEC4, 1 },
 	{ "u_WaterFlowParams",	GLSL_VEC4, 2 },
+	{ "u_WaterSpillway",		GLSL_VEC4, 3 },
+	{ "u_WaterBakedLight",		GLSL_VEC4, 1 },
 	{ "u_WaterFoamPattern",	GLSL_INT, 1 },
 	{ "u_WaterfallCubeMap",	GLSL_INT, 1 },
 	{ "u_WaterPass", GLSL_VEC4, 1 },
@@ -3741,7 +3743,7 @@ static int GLSL_LoadGPUProgramWaterSurface(
 
 	for (int i = 0; i < WATERDEF_COUNT; i++)
 	{
-		const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_NORMAL;
+		const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_TEXCOORD2 | ATTR_NORMAL;
 		char name[64];
 		char extradefines[4096];
 		Q_strncpyz(name, "watersurface", sizeof(name));
@@ -3841,6 +3843,10 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		}
 
 		shaderProgram_t *sp = &tr.waterSurfaceShader[i];
+		GLint fragmentUnits = 0;
+		qglGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &fragmentUnits);
+		if (fragmentUnits > TB_WATER_LIGHTMAP)
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_WATER_BAKED_LIGHTMAP\n");
 		if (!vertexStage || !fragmentStage || (tessellation && !controlStage))
 			ri.Error(ERR_FATAL, "Could not load watersurface shader!");
 		builder.Start(name, attribs, NO_XFB_VARS);
@@ -3867,6 +3873,8 @@ static int GLSL_LoadGPUProgramWaterSurface(
 		GLSL_SetUniformInt(sp, UNIFORM_WATERSCENEMAP, 0);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERDEPTHMAP, 1);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERNORMALMAP, 2);
+		if (fragmentUnits > TB_WATER_LIGHTMAP)
+			GLSL_SetUniformInt(sp, UNIFORM_LIGHTMAP, TB_WATER_LIGHTMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_WATERINTERACTIONMAP, 19);
 		// Water foam already occupies 18; 24 is free in this program and matches
 		// the renderer's existing extended water/atmosphere sampler layout.

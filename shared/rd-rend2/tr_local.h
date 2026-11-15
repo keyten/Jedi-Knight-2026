@@ -1933,6 +1933,7 @@ enum
 	TB_WATERFOAMSOURCE   = 19,
 	TB_WATERRAIN         = 20,
 	TB_WATERFALL_CUBEMAP = 8, // shadow array unit is free in the water surface program
+	TB_WATER_LIGHTMAP = 28, // existing BSP lightmap; water never samples froxel integration carry
 
 	// spot light cookies (tr_lightcookie.cpp): one 2D array, a layer per
 	// cookie, of lightall and volumetric_inject. Needs
@@ -3098,6 +3099,8 @@ typedef enum
 	UNIFORM_WATERFLOWFIELDMAP,	// body-local flow field: velocity / body speed, shore distance, impingement
 	UNIFORM_WATERFLOWFIELDPARAMS,	// solver/foam: field enabled, body flow speed (u/s), unused, unused
 	UNIFORM_WATERFLOWPARAMS,	// vec4[2] water surface: flow field / wall impact / foam pattern controls
+	UNIFORM_WATERSPILLWAY,	// vec4[3] receiving plane, flow/radiance/ambient, receiving-world UV
+	UNIFORM_WATERBAKEDLIGHT,	// vec4: lightmap enabled, irradiance scale, receiving cache, indirect floor
 	UNIFORM_WATERFOAMPATTERNMAP,	// water surface: procedural tiling foam structure
 	UNIFORM_WATERFALLCUBEMAP,
 	UNIFORM_WATERPASS,            // reflection prepass / resolved reflection / temporal weight
