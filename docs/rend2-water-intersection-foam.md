@@ -1,5 +1,12 @@
 # Object/intersection foam
 
+Contact contributes foam when water runs into the opaque surface or a local
+wave reaches it. Flow parallel to a quiet wall leaves the source inactive.
+The source breaks into patches, then enters the existing advected,
+decaying foam field. Both the GL 4.3 depth kernel and the GL 3.2 CPU path
+evaluate this activity gate. The developer verification command snapshots
+the GPU wave velocity for the CPU comparison.
+
 `r_waterIntersectionFoam 1` lets opaque geometry create foam where it crosses
 a modern water surface. It uses the modern water pass and its opaque scene
 depth; it does not enable or reuse an ocean renderer, require a material tag,
@@ -15,9 +22,11 @@ only when all of the following hold:
   plane;
 - neighbouring depth samples form a coherent opaque surface;
 - the reconstructed opaque normal crosses the water plane rather than running
-  parallel to it.
+  parallel to it;
+- incident flow or a local wave disturbance supplies enough activity to make
+  bubbles. A quiet contact alone does not emit foam.
 
-The last two tests reject ordinary depth silhouettes and shallow floors, so
+Normal and depth confidence reject ordinary depth silhouettes and shallow floors, so
 the feature does not draw a white outline around every discontinuity. Sky and
 samples outside the active view are rejected. BSP rocks, props and animated
 characters follow the same test and need no foam tag.
@@ -81,10 +90,12 @@ using the body's already resolved flow from the directional-flow system.
 
 ## Validation
 
-Use a shallow stream containing a BSP rock and a character. First enable only
-the master switch and verify the immediate contact follows both silhouettes.
-Then enable the interaction field, restart, and verify foam remains briefly
-after the character leaves and travels downstream when body flow is enabled.
+Use a shallow stream containing a BSP rock and a character. Enable the master
+switch, direct flow into the rock or disturb the nearby surface, and verify
+the immediate patches follow the energetic contacts. A quiet bank should
+have no continuous white outline. Then enable the interaction field,
+restart, and verify foam remains briefly after the disturbance and travels
+downstream when body flow is enabled.
 With the debug mask active, submerged floors, airborne objects and unrelated
 depth edges should remain black.
 

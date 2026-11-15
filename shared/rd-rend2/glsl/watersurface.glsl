@@ -174,8 +174,8 @@ vec3 WaterShoreData(float encodedDistance)
 	float rigid = step(encodedDistance, 0.0);
 	float width = max(u_Water[WATER_U_SHORELINE].y, 1.0);
 	float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
-	float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
-	float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
+	float rigidEdge = clamp(0.28 + profileShore * 0.12, 0.28, 0.46);
+	float naturalEdge = clamp(0.48 + profileShore * 0.22, 0.48, 0.72);
 	float rigidAttenuation = mix(rigidEdge, 1.0, smoothstep(0.0, width, distance));
 	float naturalAttenuation = mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, distance));
 	return vec3(distance, mix(naturalAttenuation, rigidAttenuation, rigid), rigid);
@@ -200,8 +200,8 @@ vec3 WaterShoreFromDecoded(vec2 shore)
 	float rigid = shore.y;
 	float width = max(u_Water[WATER_U_SHORELINE].y, 1.0);
 	float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
-	float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
-	float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
+	float rigidEdge = clamp(0.28 + profileShore * 0.12, 0.28, 0.46);
+	float naturalEdge = clamp(0.48 + profileShore * 0.22, 0.48, 0.72);
 	float rigidAttenuation = mix(rigidEdge, 1.0, smoothstep(0.0, width, distance));
 	float naturalAttenuation = mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, distance));
 	return vec3(distance, mix(naturalAttenuation, rigidAttenuation, rigid), rigid);
@@ -473,8 +473,8 @@ vec3 PreviousWaterShoreData(float encodedDistance)
 	float rigid = step(encodedDistance, 0.0);
 	float width = max(shore.y, 1.0);
 	float profileShore = clamp(shore.z, 0.0, 1.5);
-	float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
-	float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
+	float rigidEdge = clamp(0.28 + profileShore * 0.12, 0.28, 0.46);
+	float naturalEdge = clamp(0.48 + profileShore * 0.22, 0.48, 0.72);
 	return vec3(distance,
 		mix(mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, distance)),
 			mix(rigidEdge, 1.0, smoothstep(0.0, width, distance)), rigid), rigid);
@@ -489,8 +489,8 @@ vec3 PreviousWaterShoreFromDecoded(vec2 shore)
 	float rigid = shore.y;
 	float width = max(params.y, 1.0);
 	float profileShore = clamp(params.z, 0.0, 1.5);
-	float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
-	float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
+	float rigidEdge = clamp(0.28 + profileShore * 0.12, 0.28, 0.46);
+	float naturalEdge = clamp(0.48 + profileShore * 0.22, 0.48, 0.72);
 	return vec3(distance,
 		mix(mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, distance)),
 			mix(rigidEdge, 1.0, smoothstep(0.0, width, distance)), rigid), rigid);
@@ -1621,7 +1621,7 @@ vec4 WaterInteractionSample(vec3 worldPosition, out vec2 worldSlope)
 // narrow world-space slab around the water and a locally coherent surface
 // whose normal crosses the water plane. This rejects shallow floors, distant
 // silhouettes and the usual screen-space halo around every object.
-float WaterIntersectionFoam(vec3 P, vec3 Ng, vec3 Tw, vec3 Bw, vec2 uv)
+float WaterIntersectionFoam(vec3 P, vec3 Ng, vec3 Tw, vec3 Bw, vec2 uv, float disturbance)
 {
 	if (u_Water[WATER_U_INTERSECTION_FOAM].x < 0.5 || WATER_PREPASS || R_CompareOriginal(RC_WATERFOAM))
 		return 0.0;
@@ -1659,7 +1659,10 @@ float WaterIntersectionFoam(vec3 P, vec3 Ng, vec3 Tw, vec3 Bw, vec2 uv)
 		float normalConfidence = smoothstep(0.15, 0.70, crossing);
 		float depthConfidence = 1.0 - smoothstep(width * 2.0, width * 8.0,
 			max(length(dx), length(dy)));
-		result = max(result, bandConfidence * normalConfidence * depthConfidence);
+		vec3 flow = u_Water[WATER_U_FLOW].xyz * u_Water[WATER_U_FLOW].w;
+		float incident = abs(dot(flow, opaqueNormal));
+		float activity = max(clamp((incident - 18.0) / 90.0, 0.0, 0.65), disturbance * 0.7);
+		result = max(result, bandConfidence * normalConfidence * depthConfidence * activity);
 	}
 	return clamp(result, 0.0, 1.0);
 }
@@ -1749,8 +1752,8 @@ void main()
 	{
 		float width = max(u_Water[WATER_U_SHORELINE].y, 1.0);
 		float profileShore = clamp(u_Water[WATER_U_BODY_BOUNDS].w, 0.0, 1.5);
-		float rigidEdge = clamp(0.03 + profileShore * 0.033333, 0.03, 0.08);
-		float naturalEdge = clamp(0.15 + profileShore * 0.25, 0.15, 0.40);
+		float rigidEdge = clamp(0.28 + profileShore * 0.12, 0.28, 0.46);
+		float naturalEdge = clamp(0.48 + profileShore * 0.22, 0.48, 0.72);
 		float rigidAttenuation = mix(rigidEdge, 1.0, smoothstep(0.0, width, var_ShoreDataRaw.x));
 		float naturalAttenuation = mix(naturalEdge, 1.0, smoothstep(0.0, width * 0.35, var_ShoreDataRaw.x));
 		var_ShoreData.y = mix(naturalAttenuation, rigidAttenuation, var_ShoreDataRaw.z);
@@ -1952,6 +1955,8 @@ void main()
 		clamp(foamSample.r * u_Water[WATER_U_GEOMETRY_FOAM].w, 0.0, 1.0) : 0.0;
 	float whitewater = u_Water[WATER_U_WHITEWATER].x > 0.5 && !R_CompareOriginal(RC_WHITEWATER) ?
 		clamp(foamSample.b * u_Water[WATER_U_WHITEWATER].y, 0.0, 1.0) : 0.0;
+	persistentFoam *= clamp(1.0 - var_GeometrySkirt, 0.0, 1.0);
+	whitewater *= clamp(1.0 - var_GeometrySkirt, 0.0, 1.0);
 	float waterfallTurbulence = 0.0, waterfallThickness = 0.0, waterfallAeration = 0.0;
 	float waterfallFoamSource = 0.0, waterfallSpraySource = 0.0, waterfallImpact = 0.0;
 	float waterfallEdge = 1.0;
@@ -2054,8 +2059,12 @@ void main()
 	vec3 Nwater = normalize(Ng - slope.x * Tw - slope.y * Bw);
 	vec3 N = inside ? -Nwater : Nwater;
 	vec3 Nside = inside ? -Ng : Ng;	// geometric normal on the camera side
-	float intersectionMask = !inside && !waterfall ? WaterIntersectionFoam(P, Ng, Tw, Bw, uv) : 0.0;
-	float intersectionFoam = clamp(intersectionMask * u_Water[WATER_U_INTERSECTION_FOAM].z * u_Water[WATER_U_GEOMETRY_FOAM].w, 0.0, 1.0);
+	float contactMotion = max(wallChop, smoothstep(0.015, 0.12, length(interactionWorldSlope)));
+	float intersectionMask = !inside && !waterfall ? WaterIntersectionFoam(P, Ng, Tw, Bw, uv, contactMotion) : 0.0;
+	// Foam at contact follows the incident flow and local disturbance. A quiet
+	// wall has a wet line, while energetic contact breaks into foam patches.
+	float contactPattern = smoothstep(0.22, 0.68, mix(foamStructure1, foamStructure0, foamPhaseWeight));
+	float intersectionFoam = clamp(intersectionMask * contactPattern * u_Water[WATER_U_INTERSECTION_FOAM].z * u_Water[WATER_U_GEOMETRY_FOAM].w, 0.0, 1.0);
 	int flowFieldDebug = int(u_WaterFlowParams[1].z + 0.5);
 	if (flowFieldDebug >= 5 && !WATER_PREPASS)
 	{
@@ -2697,6 +2706,9 @@ void main()
 	vec3 foamIrradiance = ambient;
 	if (sun) foamIrradiance += foamSunRadiance * clamp(dot(Nwater, sunDir), 0.0, 1.0) * sunShadow;
 	vec3 foamColor = vec3(0.80, 0.84, 0.86) * foamIrradiance;
+	// The overlap skirt closes the bank gap below the surface. Its foot
+	// transmits the ground instead of reflecting a bright strip of the sky.
+	W *= clamp(1.0 - var_GeometrySkirt, 0.0, 1.0);
 	vec3 color = (1.0 - W) * transmitted + W * reflection + glint;
 	// Bulk whitewater is lit scattering inside aerated water, not emissive
 	// surface paint. It suppresses clear refraction while retaining some of

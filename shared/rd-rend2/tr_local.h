@@ -4729,6 +4729,7 @@ typedef struct trGlobals_s {
 	shader_t				*projectionShadowShader;
 	shader_t				*weatherInternalShader;
 	shader_t				*waterParticleInternalShader;	// SS_UNDERWATER placeholder (tr_waterparticles.cpp)
+	shader_t				*waterfallDropletShader;
 
 	shader_t				*flareShader;
 	shader_t				*sunShader;
@@ -6930,6 +6931,7 @@ void RE_AddWaterImpulse(const refWaterImpulse_t *impulse);
 void RE_SetWaterSources(const refWaterSource_t *sources, int count);
 void R_WaterBodiesLoadJson(world_t *world, const char *json, const char *end, const char *filename);
 void R_WaterfallEmittersFinalize(world_t *world);
+void R_WaterfallSprayToScene(const refdef_t *fd);
 
 // Render-only camera relationship to a horizontal modern water body. Gameplay
 // contents remains authoritative and is reported separately; micro normals are

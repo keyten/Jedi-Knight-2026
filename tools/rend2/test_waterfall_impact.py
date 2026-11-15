@@ -20,13 +20,15 @@ def main():
     assert "explicit WaterfallEmitter required" in water
     assert "WFIMPACT_EXISTING_FX" in water and '"fx_runner"' in water
 
-    # Both outputs reuse local fields. The center is continuously downward;
-    # secondary locations are bounded by the configured radius.
+    # Both outputs reuse local fields. A bounded depressed core and resolved
+    # outgoing pulses supply the wave equation on the receiving body.
     assert "R_WaterfallImpactInteraction(now, fixedDt)" in water
-    assert "-impulse * dt" in water
-    assert "sqrtf(R_WaterfallImpactRandom(source)) * radius * 0.78f" in water
+    assert "-impulse * 0.02f * dt" in water
+    assert "secondary + turbulence * 0.005f" in water
+    assert "2.4f * MAX(pool.interaction.texelX, pool.interaction.texelY)" in water
+    assert "R_WaterfallFoamInject(pool, source, now)" in water
     assert "WATERFOAMSOURCE_WATERFALL" in water
-    assert "source.radius * r_waterfallImpactRadius->value" in water
+    assert "r_waterfallImpactRadius->value" in water
     assert "sourceGradient" in foam and "radialFlow" in foam
 
     assert "does not add a general fluid solver" in docs

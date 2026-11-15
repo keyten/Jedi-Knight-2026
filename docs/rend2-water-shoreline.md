@@ -39,11 +39,11 @@ scene depth remains the existing optical thickness source.
 The shared analytical surface is evaluated as before. Its macro height,
 slope, velocity and bounded horizontal displacement are then multiplied by the
 baked boundary attenuation. The existing profile `shoreline` value maps to a
-small 3..8 percent rigid-edge macro residual and a 15..40 percent natural-edge
+28..46 percent rigid-edge macro residual and a 48..72 percent natural-edge
 residual; the latter recovers over the inner 35 percent of the attenuation
 band. Micro-normal detail is deliberately unchanged. Interactive height and
-slope use the same profile and boundary signal (5..12.5 percent at a rigid
-wall, 20..50 percent at a natural edge). This keeps pool contact controlled
+slope use the same profile and boundary signal (45..55 percent at a rigid
+wall, 60..75 percent at a natural edge). This keeps pool contact controlled
 while allowing a strong disturbance to move its visual waterline slightly.
 
 Rigid edges use a downward overlap skirt sized from the maximum configured
@@ -51,9 +51,14 @@ wave envelope plus contact softness, capped at 32 units. Natural edges use a
 short half-softness skirt whose foot extends outward by the contact width,
 forming a narrow transparent wedge under the bank instead of a razor edge.
 This replaces the unconditional 64-unit skirt while the feature is enabled.
-Existing scene-depth thickness makes the final thin contact optically clear
-instead of applying a separate shore colour. With the feature disabled, the
-old displacement and 64-unit skirts are retained.
+The foot of the overlap skirt blends with the opaque scene,
+removing the bright grazing reflection of a skirt buried under the bank.
+Contact foam uses local disturbance strength, incident flow and the existing
+advected foam pattern to break its contour.
+
+[samples/water-motion.cfg](samples/water-motion.cfg) enables the geometry,
+tessellation, flow and foam paths used for the visual review on `yavin1b` and
+`t3_hevil`. Load it before the map or restart the renderer for latched resources.
 
 ## Dynamic waterline and wet material response
 

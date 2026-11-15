@@ -16,7 +16,8 @@ uniform sampler2D u_WaterInteractionState;	// body state: alpha < 0 = dry cell
 uniform mat4 u_ModelViewProjectionMatrix;	// view projection of the depth copy
 // 0 body min xy, texel xy | 1 plane normal, dist | 2 copy rect x, y, w, h |
 // 3 viewport x, y, w, h | 4 target w, h, band, strength | 5 P[0], P[5], P[8], P[9] |
-// 6 P[10], P[14], hit slot, unused | 7 view origin | 8 forward | 9 left | 10 up
+// 6 P[10], P[14], hit slot, unused | 7 view origin, flow X |
+// 8 forward, flow Y | 9 left | 10 up, time
 uniform vec4 u_WaterIntersection[11];
 
 layout(binding = 0, r16f) writeonly uniform image2D u_WaterIntersectionOut;
@@ -84,7 +85,17 @@ float ContactSource(ivec2 cell)
 	float derivative = max(length(dx), length(dy));
 	float depthConfidence = 1.0 - clamp(derivative / (band * 8.0), 0.0, 1.0);
 	float bandConfidence = 1.0 - clamp(abs(signedDistance) / band, 0.0, 1.0);
-	float source = bandConfidence * normalConfidence * depthConfidence * u_WaterIntersection[4].w;
+	vec2 flow = vec2(u_WaterIntersection[7].w, u_WaterIntersection[8].w);
+	float incident = abs(dot(flow, sceneNormal.xy));
+	float velocity = abs(texelFetch(u_WaterInteractionState, cell, 0).g);
+	float activity = max(clamp((incident - 18.0) / 90.0, 0.0, 0.65),
+		clamp((velocity - 2.0) / 16.0, 0.0, 0.70));
+	float time = u_WaterIntersection[10].w;
+	float patchPattern = 0.5 + 0.25 * sin(dot(waterPoint.xy, vec2(0.11, 0.073)) - time * 2.7) +
+		0.25 * sin(dot(waterPoint.xy, vec2(-0.057, 0.13)) + time * 1.9);
+	float breakup = clamp((patchPattern - 0.40) / 0.38, 0.0, 1.0);
+	float source = bandConfidence * normalConfidence * depthConfidence * u_WaterIntersection[4].w *
+		activity * breakup;
 	return source <= 0.01 ? 0.0 : clamp(source, 0.0, 1.0);
 }
 

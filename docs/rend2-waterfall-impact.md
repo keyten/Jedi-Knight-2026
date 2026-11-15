@@ -22,17 +22,20 @@ surface is found, that source stays inactive. Add a map-specific
 
 ## Response
 
-At each fixed interaction step the source applies a compact downward velocity
-kick at its center. Deterministic, irregular secondary kicks around the center
-break symmetry. The ordinary local ripple field supplies the propagated waves.
-The persistent foam source uses the waterfall channel, which creates larger
-local normals, increased effective roughness, and dense foam with smooth field
-falloff. Where a pool has no authored flow, the foam update approximates
-outward transport from the gradient of the local source footprint.
+At each fixed interaction step the source applies a small downward acceleration
+to a compact core. Uneven packets of water periodically raise a crest outside
+that core, distributed across the foot of the sheet. Their footprints cover
+several interaction texels. The ordinary body solver carries the outgoing waves
+downstream and reflects them at its masked banks.
+The persistent foam field receives a broken band oriented across the sheet and
+extended in the direction of the falling water. The existing flow and decay
+carry the foam away from the contact. Where a pool has no authored flow, the
+foam update approximates outward transport from the gradient of the source.
 
-Waterfall mist remains controlled independently by `r_waterfallMist`; impact
-strength shares the resolved waterfall profile's `ImpactStrength` but does not
-enable mist.
+With `r_waterfallMist 1`, resolved contacts also emit short ballistic droplets.
+They use the baked light grid, share one alpha-blended material, and are
+distance-limited to at most 64 visible quads per scene. The droplets do not
+require the volumetric particle system.
 
 ## Controls
 
