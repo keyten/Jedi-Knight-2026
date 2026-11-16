@@ -661,6 +661,7 @@ qboolean RB_AODebugBypassesToneMap( void )
 		(r_sunShadowMode->integer && r_shadowDebug->integer >= 1 && r_shadowDebug->integer <= 13) ||
 		(s_aoResources && RB_AODebugIsLightall()) ||
 		(r_autoPBRDebug->integer >= 1 && r_autoPBRDebug->integer <= 2) ||
+		R_SurfaceMaterialDebugActive() ||
 		(r_materialModelDebug->integer >= 1 && r_materialModelDebug->integer <= 7) ||
 		(r_weatherWetness->integer && r_weatherSurfaceDebug->integer >= 1 && r_weatherSurfaceDebug->integer <= 36 &&
 			r_weatherSurfaceDebug->integer != 4 && r_weatherSurfaceDebug->integer != 32) ||

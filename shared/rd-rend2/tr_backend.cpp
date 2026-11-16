@@ -1788,10 +1788,11 @@ static void RB_SubmitRenderPass(
 	}
 	const qboolean water = (qboolean)(numWaterItems > 0);
 
-	const qboolean ssr = RB_ScreenSpaceActive();
-	const qboolean froxelFog = RB_VolumetricCompositeActive();
-	const qboolean atmosphere = RB_AtmosphereActive();
-	const qboolean clouds = RB_CloudsActive();
+	const bool materialDebug = R_SurfaceMaterialDebugActive() != qfalse;
+	const qboolean ssr = (qboolean)(!materialDebug && RB_ScreenSpaceActive());
+	const qboolean froxelFog = (qboolean)(!materialDebug && RB_VolumetricCompositeActive());
+	const qboolean atmosphere = (qboolean)(!materialDebug && RB_AtmosphereActive());
+	const qboolean clouds = (qboolean)(!materialDebug && RB_CloudsActive());
 	if (!ssr && !froxelFog && !atmosphere && !clouds && !water)
 	{
 		RB_DrawItems(renderPass.numDrawItems, renderPass.drawItems, drawOrder);
@@ -1967,6 +1968,7 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 
 		// TODO: Find a better place to add the fog cap surface
 		if (r_volumetricFog->integer 
+			&& !R_SurfaceMaterialDebugActive()
 			&& !(backEnd.viewParms.flags & VPF_DEPTHSHADOW)
 			&& !(backEnd.refdef.rdflags & RDF_NOWORLDMODEL)
 			&& !(backEnd.viewParms.isSkyPortal)

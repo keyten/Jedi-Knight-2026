@@ -434,6 +434,8 @@ in vec4 var_Position;
 in vec4 var_prevPosition;
 #endif
 
+uniform vec4 u_MaterialDebug;
+
 in vec2 var_TexCoords;
 in vec3 var_Color;
 in float var_Alpha;
@@ -635,6 +637,12 @@ void main()
 #endif
 
 #if !defined(VELOCITY_PASS)
+	if (u_MaterialDebug.a >= 2.5)
+	{
+		out_Color = vec4(u_MaterialDebug.rgb, 1.0);
+		out_Glow = vec4(0.0);
+		return;
+	}
 	if (u_FoliageDebug.a > 0.0)
 		out_Color.rgb = u_FoliageDebug.rgb;
 #endif

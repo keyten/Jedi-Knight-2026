@@ -522,6 +522,8 @@ cvar_t  *r_skinSSSFollowSurface;
 cvar_t  *r_skinSSSTransmission;
 cvar_t  *r_skinSSSDebug;
 
+cvar_t  *r_materialClassification;
+cvar_t  *r_materialClassificationDebug;
 cvar_t  *r_autoPBR;
 cvar_t  *r_autoPBRDebug;
 cvar_t  *r_materialModelDebug;
@@ -2010,6 +2012,7 @@ static consoleCommand_t	commands[] = {
 	{ "glslusage",			GLSL_Usage_f },
 	{ "shaderlist",			R_ShaderList_f },
 	{ "r_pbrDumpMaterials",	R_PBRDumpMaterials_f },
+	{ "r_materialClassificationDump", R_MaterialClassificationDump_f },
 	{ "r_skinSSSKernel",	R_SkinSSSKernel_f },
 	{ "r_skinSSSList",	R_SkinSSSList_f },
 	{ "r_weatherMaterialList", R_WeatherMaterialList_f },
@@ -2613,6 +2616,10 @@ void R_Register( void )
 	R_CvarRange( r_skinSSSTransmission, 0.0f, 2.0f, qfalse );
 	r_skinSSSDebug = R_Cvar( "r_skinSSSDebug", "0", CVAR_CHEAT, "Skin scattering debug view: 1 = classification, 2 = skin mask, 3 = raw skin diffuse, 4 = horizontal blur, 5 = vertical blur, 6 = final delta, 7 = all but the skin diffuse, 8 = kernel radius (pixels)" );
 	R_CvarRange( r_skinSSSDebug, 0, 8, qtrue );
+	r_materialClassification = R_Cvar("r_materialClassification", "0", CVAR_ARCHIVE | CVAR_LATCH, "Classify shader surface materials for procedural effects (metadata only; needs vid_restart)");
+	R_CvarRange(r_materialClassification, 0, 1, qtrue);
+	r_materialClassificationDebug = R_Cvar("r_materialClassificationDebug", "0", CVAR_CHEAT, "Flat surface material colors; requires r_materialClassification 1");
+	R_CvarRange(r_materialClassificationDebug, 0, 1, qtrue);
 	r_autoPBR = R_Cvar( "r_autoPBR", "0", CVAR_ARCHIVE, "PBR parameters of legacy materials without authored specular / packed maps: 0 = current rend2 fallback, 1 = generic dielectric, 2 = heuristic material classes" );
 	R_CvarRange( r_autoPBR, 0, 2, qtrue );
 	r_autoPBRDebug = R_Cvar( "r_autoPBRDebug", "0", CVAR_CHEAT, "Auto PBR debug view: 1 = material class, 2 = parameter source (authored / auto), 3 = roughness (generated variation in grey, blue = not auto PBR)" );

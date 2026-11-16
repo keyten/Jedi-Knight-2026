@@ -1342,6 +1342,7 @@ Blends a fog texture on top of everything else
 */
 static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *vertexArrays )
 {
+	if (R_SurfaceMaterialDebugActive()) return;
 	// froxel volumetric fog (tr_volumetric.cpp): the composite after the
 	// SS_FOG layer fogs this surface
 	const int froxelFogMode = RB_VolumetricFogMode(input->shader->sort);
@@ -2095,6 +2096,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			stateBits = (stateBits & ~(GLS_DEPTHFUNC_BITS | GLS_DEPTHMASK_TRUE | GLS_DEPTHTEST_DISABLE)) |
 				GLS_DEPTHFUNC_LESS;
 
+		vec4_t surfaceMaterialDebug = {};
+		const bool surfaceDebug = R_SurfaceMaterialDebugColor(input->shader, surfaceMaterialDebug) != qfalse;
+		if (surfaceDebug) {
+			forceRefraction = false;
+			stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
+		}
 		sp = SelectShaderProgram(stage, pStage, pStage->glslShaderGroup, useAlphaTestGE192, forceRefraction);
 		assert(sp);
 		if (input->pomMode != POM_MODE_NONE)
@@ -2338,6 +2345,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		}
 		// r_volumetricFogDebug 69: draws the liquid medium does not fog
 		RB_LiquidBypassDebugColor(liquidBypass, materialDebug);
+		if (surfaceDebug) VectorCopy4(surfaceMaterialDebug, materialDebug);
 		uniformDataWriter.SetUniformVec4(UNIFORM_MATERIALDEBUG, materialDebug);
 		if (!backEnd.depthFill && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW))
 			pStage->pbrDrawn = qtrue;
@@ -2811,7 +2819,7 @@ void RB_StageIteratorGeneric( void )
 	}
 
 	// modern water surface: drawn by the water program in this view
-	const bool waterDraw = RB_WaterSurfaceDraws(input->shader) != qfalse;
+	const bool waterDraw = !R_SurfaceMaterialDebugActive() && RB_WaterSurfaceDraws(input->shader) != qfalse;
 
 	//
 	// log this call

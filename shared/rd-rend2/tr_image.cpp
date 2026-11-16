@@ -3070,6 +3070,7 @@ image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgT
 	image->generatedNormal = qfalse;
 	image->usedByLitStage = qfalse;
 	image->normalDeferred = qfalse;
+	image->surfaceMaterialPBR = {};
 	image->hasSourceData = (pic && !(flags & IMGFLAG_CUBEMAP)) ? qtrue : qfalse;
 	if (flags & IMGFLAG_CLAMPTOEDGE)
 		glWrapClampMode = GL_CLAMP_TO_EDGE;
@@ -3612,7 +3613,15 @@ void R_LoadPackedMaterialImage(shaderStage_t *stage, const char *packedImageName
 		break;
 	}
 
+	Rend2Material::PBRStats materialStats = {};
+	if (r_materialClassification->integer) {
+		const Rend2Material::Layout layout =
+			stage->specularType == SPEC_RMO || stage->specularType == SPEC_RMOS ? Rend2Material::RMO :
+			stage->specularType == SPEC_MOXR || stage->specularType == SPEC_MOSR ? Rend2Material::MOXR : Rend2Material::ORM;
+		materialStats = Rend2Material::SamplePacked(packedPic, size_t(packedWidth) * packedHeight, layout);
+	}
 	stage->bundle[TB_ORMSMAP].image[0] = R_CreateImage(packedName, packedPic, packedWidth, packedHeight, IMGTYPE_COLORALPHA, flags & ~IMGFLAG_SRGB, 0);
+	stage->bundle[TB_ORMSMAP].image[0]->surfaceMaterialPBR = materialStats;
 	glBindTexture(GL_TEXTURE_2D, stage->bundle[TB_ORMSMAP].image[0]->texnum);
 	glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
 	Z_Free(packedPic);

@@ -1,0 +1,42 @@
+{
+  "shader_files": 68,
+  "shaders": 4235,
+  "rmo_images_read": 1261,
+  "image_errors": [],
+  "types": {
+    "unknown": 2954,
+    "metal": 691,
+    "soil": 9,
+    "water": 60,
+    "skin": 7,
+    "glass": 45,
+    "rock": 109,
+    "sand": 42,
+    "plaster": 22,
+    "electronics": 22,
+    "snow": 30,
+    "fabric": 26,
+    "foliage": 16,
+    "painted_metal": 10,
+    "gravel": 8,
+    "grass": 28,
+    "hair": 7,
+    "plastic": 11,
+    "sky": 100,
+    "concrete": 8,
+    "wood": 2,
+    "mud": 6,
+    "ice": 18,
+    "tile": 1,
+    "carpet": 3
+  },
+  "sources": {
+    "unresolved": 2954,
+    "name": 391,
+    "JA-material": 415,
+    "PBR": 333,
+    "keyword": 142
+  },
+  "mixed_pbr": 177,
+  "conflicting_pbr": 3
+}

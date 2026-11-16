@@ -2873,6 +2873,9 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 		!backEnd.depthFill && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW))
 		R_FoliageDebugColor(ss->foliageClass, foliageDebug);
 	uniformDataWriter.SetUniformVec4(UNIFORM_FOLIAGEDEBUG, foliageDebug);
+	vec4_t materialDebug = {};
+	const bool surfaceDebug = R_SurfaceMaterialDebugColor(shader, materialDebug) != qfalse;
+	uniformDataWriter.SetUniformVec4(UNIFORM_MATERIALDEBUG, materialDebug);
 
 	if (surf->fogIndex != -1)
 	{
@@ -2955,6 +2958,7 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 
 		DrawItem item = {};
 		item.renderState.stateBits = firstStage->stateBits;
+		if (surfaceDebug) item.renderState.stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
 		if (modernSunShadow)
 		{
 			item.renderState.stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
@@ -2994,6 +2998,7 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 
 		DrawItem item = {};
 		item.renderState.stateBits = firstStage->stateBits;
+		if (surfaceDebug) item.renderState.stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
 		if (modernSunShadow)
 		{
 			item.renderState.stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);

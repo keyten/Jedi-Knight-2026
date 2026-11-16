@@ -900,9 +900,10 @@ void main()
 		// keep the vertex lighting as shading so the shape stays readable
 		float shade = clamp(dot(var_Color.rgb, vec3(0.3333)), 0.0, 1.0);
 		vec3 debugColor = u_MaterialDebug.rgb;
-		if (u_LeafFlutterDebug == 8.0)
+		if (u_LeafFlutterDebug == 8.0 && u_MaterialDebug.a < 2.5)
 			debugColor = mix(vec3(0.05, 0.1, 0.8), vec3(1.0, 0.85, 0.1), var_LeafFlutter);
-		out_Color = vec4(debugColor * (0.35 + 0.65 * shade), color.a);
+		out_Color = u_MaterialDebug.a >= 2.5 ? vec4(debugColor, 1.0) :
+			vec4(debugColor * (0.35 + 0.65 * shade), color.a);
 		out_Glow = vec4(0.0, 0.0, 0.0, color.a);
 		return;
 	}

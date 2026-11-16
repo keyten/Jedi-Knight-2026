@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_allocator.h"
 #include "tr_extratypes.h"
 #include "tr_extramath.h"
+#include "tr_surface_material.h"
 #include "tr_fbo.h"
 #include "tr_postprocess.h"
 #include "iqm.h"
@@ -656,6 +657,8 @@ extern cvar_t  *r_skinSSSFollowSurface;
 extern cvar_t  *r_skinSSSTransmission;
 extern cvar_t  *r_skinSSSDebug;
 
+extern cvar_t  *r_materialClassification;
+extern cvar_t  *r_materialClassificationDebug;
 extern cvar_t  *r_autoPBR;
 extern cvar_t  *r_autoPBRDebug;
 extern cvar_t  *r_materialModelDebug;
@@ -1066,6 +1069,7 @@ typedef struct image_s {
 	// r_autoPBRRoughness map (<diffuse>_aORMS): mean and std-dev of the
 	// roughness multiplier; 0 0 for every other image
 	float		autoRoughness[2];
+	Rend2Material::PBRStats surfaceMaterialPBR; // raw packed-map evidence, optional
 
 	// map-load diagnostics (r_loadProfile, r_imageChecksums)
 	qboolean	generatedNormal;		// <diffuse>_n built by R_CreateNormalMap
@@ -2245,6 +2249,9 @@ enum {
 
 typedef struct shader_s {
 	char		name[MAX_QPATH];		// game path, including extension
+	Rend2Material::Result surfaceMaterial; // registration-time semantic classification
+	Rend2Material::Type surfaceMaterialOverride;
+	qboolean surfaceMaterialOverrideSet;
 	int			lightmapIndex[MAXLIGHTMAPS];	// for a shader to match, both name and all lightmapIndex must match
 	byte		styles[MAXLIGHTMAPS];
 
@@ -6501,6 +6508,10 @@ void R_WetnessResponse(const shaderStage_t *stage, vec3_t out);
 qboolean R_IsAutoPBRSource(pbrSource_t source);
 qboolean R_IsGouraudStage(const shaderStage_t *stage);
 void R_PBRDumpMaterials_f(void);
+void R_ClassifySurfaceMaterial(shader_t *shader, shaderStage_t *stages, int count);
+qboolean R_SurfaceMaterialDebugActive(void);
+qboolean R_SurfaceMaterialDebugColor(const shader_t *shader, vec4_t out);
+void R_MaterialClassificationDump_f(void);
 void R_ClassifyFoliageShader(shader_t *shader, shaderStage_t *stages);
 void R_InitFoliageModel(mdvModel_t *model, const char *path);
 void R_InitFoliageSurface(mdvSurface_t *surface, int numFrames);

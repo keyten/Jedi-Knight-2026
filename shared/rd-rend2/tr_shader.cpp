@@ -3098,6 +3098,15 @@ static qboolean ParseShader( const char **text )
 		{
 			ParseMaterial( text );
 		}
+		else if (!Q_stricmp(token, "surfaceMaterial"))
+		{
+			token = COM_ParseExt(text, qfalse);
+			Rend2Material::Type type;
+			if (Rend2Material::ParseType(token, type)) {
+				shader.surfaceMaterialOverride = type;
+				shader.surfaceMaterialOverrideSet = qtrue;
+			} else ri.Printf(PRINT_WARNING, "Unknown surfaceMaterial '%s' in shader '%s'\n", token, shader.name);
+		}
 		// weatherResponse <wetness> [<puddle> [<runoff>]]: default of every stage
 		else if ( !Q_stricmp( token, "weatherResponse" ) )
 		{
@@ -5103,6 +5112,7 @@ static shader_t *FinishShader( void ) {
 				stages[es].emissiveConfidence, stages[es].emissiveReason);
 	}
 	R_SkinSSSClassifyShader(&shader, stages, MAX_SHADER_STAGES);
+	R_ClassifySurfaceMaterial(&shader, stages, MAX_SHADER_STAGES);
 
 	if ( shader.lightmapIndex[0] >= 0 && !hasLightmapStage ) {
 		ri.Printf( PRINT_DEVELOPER, "WARNING: shader '%s' has lightmap but no lightmap stage!\n", shader.name );

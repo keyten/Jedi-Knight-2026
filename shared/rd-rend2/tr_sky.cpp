@@ -457,6 +457,9 @@ static void DrawSkySide( struct image_s *image, const int mins[2], const int max
 	uniformDataWriter.SetUniformInt(
 		UNIFORM_ALPHA_TEST_TYPE, ALPHA_TEST_NONE);
 
+	vec4_t materialDebug = {};
+	R_SurfaceMaterialDebugColor(tess.shader, materialDebug);
+	uniformDataWriter.SetUniformVec4(UNIFORM_MATERIALDEBUG, materialDebug);
 	samplerBindingsWriter.AddStaticImage(image, TB_DIFFUSEMAP);
 
 	const byte currentFrameScene = backEndData->currentFrame->currentScene;

@@ -4500,6 +4500,21 @@ void main()
 		return;
 	}
 
+#if defined(USE_LIGHTALL_DEBUG)
+	// Semantic classification also covers unlit lightall and skybox programs.
+	// Alpha testing and the weather-impact ID pass above retain their silhouettes.
+	if (u_MaterialDebug.a >= 2.5)
+	{
+		out_Color = vec4(u_MaterialDebug.rgb, 1.0);
+		out_Glow = vec4(0.0);
+	#if defined(USE_SSR) && defined(USE_SPECULARMAP)
+		out_SSRSpecular = vec4(0.0);
+		out_SSRCubemap.rgb = vec3(0.0);
+	#endif
+		return;
+	}
+#endif
+
 #if defined(PER_PIXEL_LIGHTING)
   #if defined(USE_SILHOUETTE_POM)
 	viewDir = pomViewDir;

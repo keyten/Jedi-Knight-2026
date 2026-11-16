@@ -4020,6 +4020,7 @@ static bool GLSL_LightallDebugWanted( void )
 		r_shadowDebug, r_pbrEnergyDebug, r_materialModelDebug, r_specularAADebug,
 		r_spotLightCookieDebug, r_autoPBRDebug, r_autoFoliageDebug, r_leafFlutterDebug,
 		r_emissiveDebug, r_skinSSSDebug,
+		R_SurfaceMaterialDebugActive() ? r_materialClassificationDebug : nullptr,
 	};
 	for ( const cvar_t *view : views )
 	{

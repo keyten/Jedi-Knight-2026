@@ -54,6 +54,7 @@ option(BuildJK2SPRdVanilla "Whether to create projects for the jk2 sp renderer (
 option(BuildJK2SPRdRend2 "Whether to create projects for the EXPERIMENTAL jk2 SP rend2 renderer (rdjosp-rend2_x86.dll)" OFF)
 
 option(BuildTests "Whether to build automatic unit tests (requires Boost)" OFF)
+option(BuildMaterialClassificationTests "Build dependency-free semantic material CPU tests" OFF)
 option(BuildLightReconTests "Build dependency-free reconstructed lighting CPU tests" OFF)
 option(UseAddressSanitizer "Whether to enable runtime address sanitizer" OFF)
 option(UseUndefinedSanitizer "Whether to enable runtime Undefined Behavior sanitizer" OFF)
@@ -441,12 +442,21 @@ if(BuildSymbolServer)
 	add_subdirectory("tools/WinSymbol")
 endif()
 
-if(BuildTests OR BuildLightReconTests)
+if(BuildTests OR BuildLightReconTests OR BuildMaterialClassificationTests)
 	enable_testing()
 endif()
 if(BuildLightReconTests)
 	add_subdirectory("tools/lightrecon_test")
 endif()
+if(BuildMaterialClassificationTests)
+	add_executable(rend2_material_classification_test
+		"tests/rend2_surface_material_test.cpp"
+		"${SharedDir}/rd-rend2/tr_surface_material.cpp")
+	target_include_directories(rend2_material_classification_test PRIVATE "${SharedDir}/rd-rend2")
+	target_compile_features(rend2_material_classification_test PRIVATE cxx_std_11)
+	add_test(NAME rend2_material_classification COMMAND rend2_material_classification_test)
+endif()
+
 if(BuildTests)
 	add_subdirectory("tests")
 endif()
