@@ -1371,6 +1371,16 @@ static void RB_DrawItems(
 		RB_SetRenderState(state);
 		if (drawItem.renderState.waterLegacyClip)
 			RB_WaterSurfaceLegacyScissor(qtrue);
+		if (drawItem.renderState.phongCompareSide)
+		{
+			const viewParms_t& view = backEnd.viewParms;
+			const int split = Com_Clampi(view.viewportX, view.viewportX + view.viewportWidth,
+				(int)backEnd.refdef.compareSplitX);
+			const bool left = drawItem.renderState.phongCompareSide == 1;
+			GL_CompareScissor(left ? view.viewportX : split, view.viewportY,
+				left ? split - view.viewportX : view.viewportX + view.viewportWidth - split,
+				view.viewportHeight);
+		}
 
 		if (drawItem.cubeFaceMask)
 		{
@@ -1400,6 +1410,9 @@ static void RB_DrawItems(
 		}
 		if (drawItem.renderState.waterLegacyClip)
 			RB_WaterSurfaceLegacyScissor(qfalse);
+		if (drawItem.renderState.phongCompareSide)
+			GL_SetViewportAndScissor(backEnd.viewParms.viewportX, backEnd.viewParms.viewportY,
+				backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight);
 	}
 	RB_ScreenEndTimer(weatherTimer);
 	if (timedWeatherProgram == &tr.weatherSplashShader)
@@ -1410,6 +1423,22 @@ static void RB_DrawItems(
 
 void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 {
+	// A geometric comparison needs both silhouettes and both depth surfaces.
+	// Reuse bindings/uniform data; only debug split mode submits the second draw.
+	if (pass && drawItem.program->phongTessellation && !drawItem.renderState.phongCompareSide &&
+		backEnd.refdef.compareSplitX >= 0.0f && R_CompareSplit(RC_PHONGTESSELLATION))
+	{
+		DrawItem original = drawItem;
+		original.program = drawItem.program->phongBase;
+		GLSL_EnsureProgram(original.program);
+		original.draw.primitiveType = GL_TRIANGLES;
+		original.renderState.phongCompareSide = 1;
+		RB_AddDrawItem(pass, sortKey, original);
+		DrawItem smoothed = drawItem;
+		smoothed.renderState.phongCompareSide = 2;
+		RB_AddDrawItem(pass, sortKey, smoothed);
+		return;
+	}
 	// There will be no pass if we are drawing a 2D object.
 	if ( pass )
 	{
@@ -1929,6 +1958,8 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 	*/
 
 	int estimatedNumShaderStages = (backEnd.viewParms.flags & VPF_DEPTHSHADOW) ? 1 : 4;
+	if (R_CompareSplit(RC_PHONGTESSELLATION))
+		estimatedNumShaderStages *= 2;
 	// The water A/B view submits the dedicated program plus every stock stage.
 	// Four-stage waterfall shaders therefore need one extra item per surface;
 	// without this debug-only reserve the late legacy half can be dropped when

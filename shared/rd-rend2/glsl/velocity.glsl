@@ -361,7 +361,7 @@ void main()
 	vec3 prevPosition = position;
 #endif
 
-#if defined(USE_DEFORM_VERTEXES) || (defined(USE_PARALLAXMAP) && defined(USE_ALPHA_TEST))
+#if defined(USE_DEFORM_VERTEXES) || (defined(USE_PARALLAXMAP) && defined(USE_ALPHA_TEST)) || defined(USE_PHONG_TESSELLATION)
 	#if defined(USE_VERTEX_ANIMATION)
 		vec3 normal = mix(attr_Normal, attr_Normal2, u_VertexLerp);
 		normal = normalize(normal - vec3(0.5));
@@ -396,6 +396,13 @@ void main()
 #endif
 
 	vec4 wsPosition = u_ModelMatrix * vec4(position, 1.0);
+#if defined(USE_PHONG_TESSELLATION)
+	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * normal);
+#if !defined(USE_DEPTH_ONLY)
+	PhongPreviousControlPoint((u_PreviousModelMatrix * vec4(prevPosition, 1.0)).xyz,
+		mat3(u_PreviousModelMatrix) * prevNormal);
+#endif
+#endif
 
 #if defined(USE_DEPTH_ONLY)
 	// depth prepass without a velocity buffer: the same current frame

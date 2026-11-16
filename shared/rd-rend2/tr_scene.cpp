@@ -438,6 +438,7 @@ void RE_AddRefEntityToScene( const refEntity_t *ent ) {
 		R_MaxEntityAxisScale(&backEndData->entities[r_numentities]);
 	backEndData->entities[r_numentities].ghoulCameraLodCalculated = qfalse;
 	backEndData->entities[r_numentities].ghoulCameraProjectedRadius = 0.0f;
+	backEndData->entities[r_numentities].phongTessStrength = 0.0f;
 	backEndData->entities[r_numentities].plantBoneOffset = -1;
 	backEndData->entities[r_numentities].plantBoneTexels = 0;
 	backEndData->entities[r_numentities].plantCutDraw = NULL;
@@ -709,6 +710,94 @@ void RE_AddAdditiveLightToScene( const vec3_t org, float intensity, float r, flo
 	RE_AddDynamicLightToScene( org, intensity, r, g, b, qtrue );
 }
 
+static bool R_PhongSelectionDebug(const refdef_t *fd, int count)
+{
+	if (!r_phongTessDebug->integer || (fd->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)))
+		return false;
+	static int lastTime = -1000, lastCount = -1, lastFlags = -1;
+	const int flags = ((fd->rdflags & RDF_CINEMATIC) ? 1 : 0) |
+		(r_phongTessGameplay->integer ? 2 : 0) | (r_phongTessellation->integer ? 4 : 0);
+	if (count == lastCount && flags == lastFlags && fd->time >= lastTime && fd->time - lastTime < 1000)
+		return false;
+	lastTime = fd->time; lastCount = count; lastFlags = flags;
+	ri.Printf(PRINT_ALL, "Phong tessellation: cinematic %d, gameplay %d, selected %d/%d, range %.1f\n",
+		(flags & 1) != 0, (flags & 2) != 0, count, r_phongTessMaxCharacters->integer, r_phongTessDistance->value);
+	return true;
+}
+
+// Select once from the main camera, before any shadow/portal views. Duplicate
+// powerup submissions share a Ghoul2 instance and consume a single character slot.
+static void R_SelectPhongCharacters(const refdef_t *fd)
+{
+	if (!r_phongTessellation->integer || R_CompareOff(RC_PHONGTESSELLATION) ||
+		r_phongTessMaxCharacters->integer <= 0 ||
+		(!r_phongTessGameplay->integer && !(fd->rdflags & RDF_CINEMATIC)) ||
+		(fd->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL | RDF_AUTOMAP)) ||
+		!R_HasModernFeatures(MODERN_TESSELLATION))
+	{
+		R_PhongSelectionDebug(fd, 0);
+		return;
+	}
+	struct Candidate { int index; float distanceSquared; };
+	// Reuse storage after the first enabled frame; disabled gameplay allocates nothing.
+	static std::vector<Candidate> candidates;
+	static std::vector<void *> selected;
+	candidates.clear();
+	selected.clear();
+	const float range = r_phongTessDistance->value;
+	const float tanX = tanf(fd->fov_x * M_PI / 360.0f);
+	const float tanY = tanf(fd->fov_y * M_PI / 360.0f);
+	for (int i = 0; i < tr.refdef.num_entities; ++i)
+	{
+		const refEntity_t& e = tr.refdef.entities[i].e;
+		if (e.reType != RT_MODEL || !e.ghoul2 || !(e.renderfx & RF_CHARACTER) ||
+			((e.renderfx & RF_FORCE_ENT_ALPHA) && e.shaderRGBA[3] == 0) ||
+			(e.renderfx & (RF_FIRST_PERSON | RF_THIRD_PERSON | RF_SHADOW_ONLY | RF_DEPTHHACK |
+				RF_NODEPTH | RF_ALPHA_FADE | RF_DISINTEGRATE1 | RF_DISINTEGRATE2 | RF_DISTORTION)))
+			continue;
+		vec3_t delta;
+		VectorSubtract(e.origin, fd->vieworg, delta);
+		const float distanceSquared = VectorLengthSquared(delta);
+		if (distanceSquared >= range * range)
+			continue;
+		const float forward = DotProduct(delta, fd->viewaxis[0]);
+		// Conservative character sphere, so an offscreen origin does not exclude
+		// a head/shoulder close-up. Occlusion is left to the normal depth pass.
+		const float radius = 64.0f * MAX(1.0f, tr.refdef.entities[i].maxModelScale);
+		if (forward < -radius ||
+			fabsf(DotProduct(delta, fd->viewaxis[1])) > MAX(forward, 0.0f) * tanX + radius ||
+			fabsf(DotProduct(delta, fd->viewaxis[2])) > MAX(forward, 0.0f) * tanY + radius)
+			continue;
+		candidates.push_back({i, distanceSquared});
+	}
+	std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) {
+		return a.distanceSquared != b.distanceSquared ? a.distanceSquared < b.distanceSquared : a.index < b.index;
+	});
+	for (const Candidate& c : candidates)
+	{
+		trRefEntity_t& entity = tr.refdef.entities[c.index];
+		const bool duplicate = std::find(selected.begin(), selected.end(), entity.e.ghoul2) != selected.end();
+		if (!duplicate && (int)selected.size() >= r_phongTessMaxCharacters->integer)
+			continue;
+		if (!duplicate)
+			selected.push_back(entity.e.ghoul2);
+		float fade = Com_Clamp(0.0f, 1.0f, (range - sqrtf(c.distanceSquared)) / (range * 0.25f));
+		fade = fade * fade * (3.0f - 2.0f * fade);
+		entity.phongTessStrength = r_phongTessStrength->value * fade;
+	}
+	if (R_PhongSelectionDebug(fd, (int)selected.size()))
+	{
+		for (const Candidate& c : candidates)
+		{
+			const trRefEntity_t& entity = tr.refdef.entities[c.index];
+			if (entity.phongTessStrength > 0.0f)
+				ri.Printf(PRINT_ALL, "  character %d: origin %.1f %.1f %.1f, camera distance %.1f, strength %.3f, flags %08x\n",
+					c.index, entity.e.origin[0], entity.e.origin[1], entity.e.origin[2],
+					sqrtf(c.distanceSquared), entity.phongTessStrength, entity.e.renderfx);
+		}
+	}
+}
+
 void RE_BeginScene(const refdef_t *fd)
 {
 	tr.refdef.x = fd->x;
@@ -892,6 +981,7 @@ void RE_BeginScene(const refdef_t *fd)
 
 	tr.refdef.num_entities = r_numentities - r_firstSceneEntity;
 	tr.refdef.entities = &backEndData->entities[r_firstSceneEntity];
+	R_SelectPhongCharacters(fd);
 
 	// r_forwardPlusSpawnTestLights (developer only), before the scene takes its lights
 	R_ForwardPlusAddTestLights(fd);

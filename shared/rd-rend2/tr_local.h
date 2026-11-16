@@ -374,6 +374,9 @@ extern cvar_t *r_waterWhitewaterFoam, *r_waterWhitewaterDecay, *r_waterWhitewate
 extern cvar_t *r_waterSplashes, *r_waterSplashQuality, *r_waterSplashStrength;
 extern cvar_t *r_waterSplashFoam, *r_waterSplashProjectiles, *r_waterSplashDebug;
 extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
+extern cvar_t *r_phongTessDebug;
+extern cvar_t *r_phongTessellation, *r_phongTessMaxCharacters, *r_phongTessDistance, *r_phongTessGameplay;
+extern cvar_t *r_phongTessLevel, *r_phongTessStrength, *r_phongTessMaxDisplacement;
 extern cvar_t *r_waterTessellation, *r_waterTessPixels, *r_waterTessMax, *r_waterTessForce;
 extern cvar_t *r_waterTessMinEdge, *r_waterTessLodDistance;
 extern cvar_t *r_offscreenPresent;
@@ -1178,6 +1181,7 @@ typedef struct trRefEntity_s {
 	float		maxModelScale;
 	qboolean	ghoulCameraLodCalculated;
 	float		ghoulCameraProjectedRadius;
+	float       phongTessStrength; // scene snapshot, shared by all body surfaces/passes
 	qboolean	mirrored;		// mirrored matrix, needs reversed culling
 	vec3_t		lightDir;		// normalized direction towards light, in world space
 	vec3_t      modelLightDir;  // normalized direction towards light, in model space
@@ -3130,6 +3134,8 @@ typedef enum
 	UNIFORM_CUBEFACEVIEWPROJ,	// mat4[6] r_shadowLayered: view projection of each point light cube face
 	UNIFORM_CUBELAYER,			// r_shadowLayered: x 1 = layered cube draw, y = face (gl_Layer)
 
+	UNIFORM_PHONGPARAMS,
+	UNIFORM_PHONGVIEWPROJECTION,
 	UNIFORM_COUNT
 } uniform_t;
 
@@ -3160,6 +3166,9 @@ typedef struct shaderProgram_s
 	// uniform blocks
 	uint32_t uniformBlocks;
 
+	struct shaderProgram_s *phongBase;
+	struct shaderProgram_s *phongVariant;
+	bool phongTessellation;
 	bool used;	// bound since it was loaded (glslusage)
 } shaderProgram_t;
 
@@ -5832,6 +5841,8 @@ void GL_VertexArraysToAttribs( vertexAttribute_t *attribs,
 	size_t attribsCount, const VertexArraysProperties *vertexArrays );
 void GLSL_BindProgram(shaderProgram_t * program);
 void GLSL_Usage_f( void );
+shaderProgram_t *GLSL_PhongTessellationProgram(shaderProgram_t *base);
+void GLSL_ClearPhongTessellationPrograms();
 bool GLSL_EnsureProgram( shaderProgram_t *program );
 void GLSL_UpdateLightallDebug( void );
 void GLSL_EndRegistration( void );
@@ -7415,6 +7426,7 @@ struct RenderState
 	// the left of the r_waterSurfaceDebug split
 	bool waterSurface;
 	bool waterLegacyClip;
+	byte phongCompareSide; // 0 whole view, 1 original left, 2 tessellated right
 };
 
 struct DrawItem

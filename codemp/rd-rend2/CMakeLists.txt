@@ -80,6 +80,7 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_bsp.cpp"
 	"${SharedDir}/rd-rend2/tr_cache.cpp"
 	"${SharedDir}/rd-rend2/tr_cache.h"
+	"${SharedDir}/rd-rend2/tr_phong_crease.h"
 	"${SharedDir}/rd-rend2/tr_cmds.cpp"
 	"${SharedDir}/rd-rend2/tr_colorgrading.cpp"
 	"${SharedDir}/rd-rend2/tr_cube_lut.h"
@@ -138,7 +139,9 @@ list(APPEND MPRend2GLSLFiles
 	"${SharedDir}/rd-rend2/glsl/weather_lighting.glsl"
 	"${SharedDir}/rd-rend2/glsl/water_interaction_field.glsl"
 	"${SharedDir}/rd-rend2/glsl/water_intersection.glsl"
-	"${SharedDir}/rd-rend2/glsl/fplus_cluster.glsl")
+	"${SharedDir}/rd-rend2/glsl/fplus_cluster.glsl"
+	"${SharedDir}/rd-rend2/glsl/phong.glsl"
+	"${SharedDir}/rd-rend2/glsl/phong_interface.glsl")
 list(REMOVE_DUPLICATES MPRend2GLSLFiles)
 source_group("renderer\\glsl" FILES ${MPRend2GLSLFiles})
 set(MPRend2Files ${MPRend2Files} ${MPRend2GLSLFiles})

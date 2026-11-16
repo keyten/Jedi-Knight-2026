@@ -7296,6 +7296,7 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 				CG_AddHealthBarEnt( cent->currentState.clientNum );
 			}
 		}
+		ent.renderfx |= RF_CHARACTER;
 		CG_AddRefEntityWithPowerups( &ent, cent->currentState.powerups, cent );
 		VectorCopy( tempAngles, cent->renderAngles );
 

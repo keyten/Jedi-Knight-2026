@@ -512,6 +512,8 @@ static uniformInfo_t uniformsInfo[] =
 
 	{ "u_CubeFaceViewProj",		GLSL_MAT4x4, 6 },
 	{ "u_CubeLayer",			GLSL_VEC4, 1 },
+	{ "u_PhongParams", GLSL_VEC4, 1 },
+	{ "u_PhongViewProjection", GLSL_MAT4x4, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -2186,14 +2188,27 @@ static bool GLSL_LoadGPUShader(
 Which permutations a loader of a lazily built family (r_shaderProgramLazy,
 see GLSL_EnsureProgram) handles in one call.
 */
+static bool GLSL_LoadPhongGPUShader(ShaderProgramBuilder& builder, shaderProgram_t *program,
+	const char *name, uint32_t attribs, const char *extra, const GPUProgramDesc& desc,
+	const GPUShaderDesc *fragmentLibrary, const GPUShaderDesc *vertexLibrary);
+
 struct GLSL_PermutationFilter
 {
 	const uint8_t *wanted;	// per permutation index; null = every permutation
 	bool keysOnly;			// only the cache keys of the permutations not loaded yet
 	bool prepare;			// only rend2_glslc jobs for the wanted ones not in the cache
 
+	shaderProgram_t *phongDestination = nullptr;
+	int phongIndex = -1;
+	shaderProgram_t *Destination(shaderProgram_t *base) const
+	{
+		return phongDestination ? phongDestination : base;
+	}
+
 	bool Want( const shaderProgram_t& program, int index ) const
 	{
+		if (phongDestination)
+			return index == phongIndex && !phongDestination->program;
 		if ( program.program )
 			return false;
 		return keysOnly || !wanted || wanted[index];
@@ -2223,6 +2238,9 @@ static permutationResult_t GLSL_LoadPermutation(
 	const GPUShaderDesc *fragmentLibrary = nullptr,
 	const GPUShaderDesc *vertexLibrary = nullptr)
 {
+	if (filter.phongDestination)
+		return GLSL_LoadPhongGPUShader(builder, program, name, attribs, extra, programDesc,
+			fragmentLibrary, vertexLibrary) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
 	if ( !filter.keysOnly && !filter.prepare )
 	{
 		return GLSL_LoadGPUShader(builder, program, name, attribs, xfbVariables, extra, programDesc,
@@ -3286,6 +3304,70 @@ static void GLSL_SetFroxelLookupUnits( shaderProgram_t *program )
 	GLSL_SetUniformInt(program, UNIFORM_PARTICLELIGHTVOLUME, TB_SHADOWMAPARRAY);
 }
 
+
+static bool GLSL_LoadPhongGPUShader(ShaderProgramBuilder& builder, shaderProgram_t *program,
+	const char *name, uint32_t attribs, const char *extra, const GPUProgramDesc& desc,
+	const GPUShaderDesc *fragmentLibrary, const GPUShaderDesc *vertexLibrary)
+{
+	Allocator scratch(128 * 1024);
+	const GPUProgramDesc *phong = LoadProgramSource("phong", scratch, fallback_phongProgram);
+	const GPUProgramDesc *phongInterface = LoadProgramSource("phong_interface", scratch, fallback_phong_interfaceProgram);
+	const GPUShaderDesc *wrapper = nullptr, *control = nullptr, *evaluation = nullptr, *debug = nullptr;
+	for (size_t i = 0; i < phong->numShaders; ++i)
+	{
+		const GPUShaderDesc& stage = phong->shaders[i];
+		if (stage.type == GPUSHADER_VERTEX) wrapper = &stage;
+		if (stage.type == GPUSHADER_TESS_CONTROL) control = &stage;
+		if (stage.type == GPUSHADER_TESS_EVALUATION) evaluation = &stage;
+		if (stage.type == GPUSHADER_FRAGMENT) debug = &stage;
+	}
+	if (!wrapper || !control || !evaluation || phongInterface->numShaders != 1)
+		return false;
+	std::string defines = extra ? extra : "";
+	if (!strncmp(name, "lightall", 8)) defines += "\n#define PHONG_LIGHTALL\n";
+	else if (!strncmp(name, "generic", 7)) defines += "\n#define PHONG_GENERIC\n";
+	else if (!strncmp(name, "fogpass", 7)) defines += "\n#define PHONG_FOG\n";
+	else if (!strncmp(name, "velocity", 8)) defines += "\n#define PHONG_VELOCITY\n";
+	else if (!strncmp(name, "refraction", 10)) defines += "\n#define PHONG_REFRACTION\n";
+	else return false;
+	const std::string programName = std::string(name) + "_PHONG";
+	builder.Start(programName.c_str(), attribs | ATTR_NORMAL | ATTR_POSITION2, NO_XFB_VARS);
+	builder.SetModernVersion(true);
+	for (size_t i = 0; i < desc.numShaders; ++i)
+	{
+		GPUShaderDesc stage = desc.shaders[i];
+		if (stage.type == GPUSHADER_VERTEX)
+		{
+			std::string vertexDefines = defines + "#define USE_PHONG_TESSELLATION\n";
+			const char *varyings[] = { "var_TexCoords", "var_Color", "var_LeafFlutter", "var_Normal",
+				"var_Tangent", "var_ViewDir", "var_LightDir", "var_Position", "var_prevPosition",
+				"var_DiffuseTex", "var_WSPosition", "var_TangentViewDir",
+				"var_RefractPosR", "var_RefractPosG", "var_RefractPosB" };
+			for (const char *varying : varyings)
+				vertexDefines += std::string("#define ") + varying + " phongVertex_" + varying + "\n";
+			const std::string source = std::string(wrapper->source) + "\n" + stage.source;
+			stage.source = source.c_str();
+			if (!builder.AddShader(stage, vertexDefines.c_str(), vertexLibrary)) return false;
+		}
+		else if (stage.type == GPUSHADER_FRAGMENT && debug &&
+			(!strncmp(name, "lightall", 8) || !strncmp(name, "generic", 7)))
+		{
+			const std::string fragmentDefines = defines + "#define main PhongOriginalFragment\n";
+			const std::string source = std::string(stage.source) + "\n" + debug->source;
+			stage.source = source.c_str();
+			if (!builder.AddShader(stage, fragmentDefines.c_str(), fragmentLibrary)) return false;
+		}
+		else if (!builder.AddShader(stage, defines.c_str(), fragmentLibrary)) return false;
+	}
+	const std::string controlDefines = defines + "#define PHONG_CONTROL\n";
+	if (!builder.AddShader(*control, controlDefines.c_str(), &phongInterface->shaders[0]) ||
+		!builder.AddShader(*evaluation, defines.c_str(), &phongInterface->shaders[0]) ||
+		!builder.Build(program))
+		return false;
+	program->phongTessellation = true;
+	return true;
+}
+
 static int GLSL_LoadGPUProgramGeneric(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc,
@@ -3372,7 +3454,8 @@ static int GLSL_LoadGPUProgramGeneric(
 		/*if (i & GENERICDEF_USE_ALPHA_TEST)
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_ALPHA_TEST\n");*/
 
-		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.genericShader[i],
+		shaderProgram_t *destination = filter.Destination(&tr.genericShader[i]);
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, destination,
 			name, attribs, NO_XFB_VARS, extradefines, *programDesc, volumetricLibrary, leafFlutterLibrary);
 		if (result == PERMUTATION_KEY)
 			continue;
@@ -3381,18 +3464,18 @@ static int GLSL_LoadGPUProgramGeneric(
 			ri.Error(ERR_FATAL, "Could not load generic shader!");
 		}
 
-		GLSL_InitUniforms(&tr.genericShader[i]);
+		GLSL_InitUniforms(destination);
 
-		qglUseProgram(tr.genericShader[i].program);
-		GLSL_SetUniformInt(&tr.genericShader[i], UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-		GLSL_SetUniformInt(&tr.genericShader[i], UNIFORM_LIGHTMAP,   TB_LIGHTMAP);
-		GLSL_SetUniformInt(&tr.genericShader[i], UNIFORM_EMISSIVEMAP, TB_EMISSIVEMAP);
-		GLSL_SetUniformInt(&tr.genericShader[i], UNIFORM_VOLUMETRICLIGHTMAP, 2);
-		GLSL_SetUniformInt(&tr.genericShader[i], UNIFORM_SCREENDEPTHMAP, TB_SHADOWMAP);
-		GLSL_SetFroxelLookupUnits(&tr.genericShader[i]);
+		qglUseProgram(destination->program);
+		GLSL_SetUniformInt(destination, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GLSL_SetUniformInt(destination, UNIFORM_LIGHTMAP,   TB_LIGHTMAP);
+		GLSL_SetUniformInt(destination, UNIFORM_EMISSIVEMAP, TB_EMISSIVEMAP);
+		GLSL_SetUniformInt(destination, UNIFORM_VOLUMETRICLIGHTMAP, 2);
+		GLSL_SetUniformInt(destination, UNIFORM_SCREENDEPTHMAP, TB_SHADOWMAP);
+		GLSL_SetFroxelLookupUnits(destination);
 		qglUseProgram(0);
 
-		GLSL_FinishGPUShader(&tr.genericShader[i]);
+		GLSL_FinishGPUShader(destination);
 
 		++numPrograms;
 	}
@@ -3465,7 +3548,8 @@ static int GLSL_LoadGPUProgramFogPass(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_VOLUMETRIC_FOG\n");
 		}
 
-		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.fogShader[i],
+		shaderProgram_t *destination = filter.Destination(&tr.fogShader[i]);
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, destination,
 			name, attribs, NO_XFB_VARS, extradefines, *programDesc, volumetricLibrary, leafFlutterLibrary);
 		if (result == PERMUTATION_KEY)
 			continue;
@@ -3474,17 +3558,17 @@ static int GLSL_LoadGPUProgramFogPass(
 			ri.Error(ERR_FATAL, "Could not load fogpass shader!");
 		}
 
-		GLSL_InitUniforms(&tr.fogShader[i]);
+		GLSL_InitUniforms(destination);
 
-		qglUseProgram(tr.fogShader[i].program);
+		qglUseProgram(destination->program);
 		//if (i & FOGDEF_USE_ALPHA_TEST)
-		GLSL_SetUniformInt(&tr.fogShader[i], UNIFORM_DIFFUSEMAP, 0);
-		GLSL_SetUniformInt(&tr.fogShader[i], UNIFORM_VOLUMETRICLIGHTMAP, 2);
-		GLSL_SetFroxelLookupUnits(&tr.fogShader[i]);
+		GLSL_SetUniformInt(destination, UNIFORM_DIFFUSEMAP, 0);
+		GLSL_SetUniformInt(destination, UNIFORM_VOLUMETRICLIGHTMAP, 2);
+		GLSL_SetFroxelLookupUnits(destination);
 
 		qglUseProgram(0);
 
-		GLSL_FinishGPUShader(&tr.fogShader[i]);
+		GLSL_FinishGPUShader(destination);
 
 		++numPrograms;
 	}
@@ -3569,7 +3653,8 @@ static int GLSL_LoadGPUProgramVelocityPass(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_DEPTH_ONLY\n");
 		}
 
-		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.velocityShader[i],
+		shaderProgram_t *destination = filter.Destination(&tr.velocityShader[i]);
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, destination,
 			name, attribs, NO_XFB_VARS, extradefines, *programDesc, nullptr, leafFlutterLibrary);
 		if (result == PERMUTATION_KEY)
 			continue;
@@ -3578,15 +3663,15 @@ static int GLSL_LoadGPUProgramVelocityPass(
 			ri.Error(ERR_FATAL, "Could not load velocity shader!");
 		}
 
-		GLSL_InitUniforms(&tr.velocityShader[i]);
+		GLSL_InitUniforms(destination);
 
-		qglUseProgram(tr.velocityShader[i].program);
+		qglUseProgram(destination->program);
 		//if (i & FOGDEF_USE_ALPHA_TEST)
-		GLSL_SetUniformInt(&tr.velocityShader[i], UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
-		GLSL_SetUniformInt(&tr.velocityShader[i], UNIFORM_NORMALMAP, TB_NORMALMAP);
+		GLSL_SetUniformInt(destination, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
+		GLSL_SetUniformInt(destination, UNIFORM_NORMALMAP, TB_NORMALMAP);
 		qglUseProgram(0);
 
-		GLSL_FinishGPUShader(&tr.velocityShader[i]);
+		GLSL_FinishGPUShader(destination);
 
 		++numPrograms;
 	}
@@ -3660,7 +3745,8 @@ static int GLSL_LoadGPUProgramRefraction(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_LINEAR_LIGHT\n");
 		}
 
-		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.refractionShader[i],
+		shaderProgram_t *destination = filter.Destination(&tr.refractionShader[i]);
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, destination,
 			name, attribs, NO_XFB_VARS, extradefines, *programDesc, outputTransform);
 		if (result == PERMUTATION_KEY)
 			continue;
@@ -3669,17 +3755,17 @@ static int GLSL_LoadGPUProgramRefraction(
 			ri.Error(ERR_FATAL, "Could not load refraction shader!");
 		}
 
-		GLSL_InitUniforms(&tr.refractionShader[i]);
+		GLSL_InitUniforms(destination);
 
-		qglUseProgram(tr.refractionShader[i].program);
-		GLSL_SetUniformInt(&tr.refractionShader[i], UNIFORM_TEXTUREMAP, TB_COLORMAP);
-		GLSL_SetUniformInt(&tr.refractionShader[i], UNIFORM_LEVELSMAP, TB_LEVELSMAP);
-		GLSL_SetUniformInt(&tr.refractionShader[i], UNIFORM_SCREENDEPTHMAP, TB_SHADOWMAP);
-		GLSL_SetUniformInt(&tr.refractionShader[i], UNIFORM_COLORGRADINGLUT, TB_COLORGRADINGLUT);
-		GLSL_SetUniformInt(&tr.refractionShader[i], UNIFORM_BLOOMMAP, TB_SPECULARMAP);
+		qglUseProgram(destination->program);
+		GLSL_SetUniformInt(destination, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(destination, UNIFORM_LEVELSMAP, TB_LEVELSMAP);
+		GLSL_SetUniformInt(destination, UNIFORM_SCREENDEPTHMAP, TB_SHADOWMAP);
+		GLSL_SetUniformInt(destination, UNIFORM_COLORGRADINGLUT, TB_COLORGRADINGLUT);
+		GLSL_SetUniformInt(destination, UNIFORM_BLOOMMAP, TB_SPECULARMAP);
 		qglUseProgram(0);
 
-		GLSL_FinishGPUShader(&tr.refractionShader[i]);
+		GLSL_FinishGPUShader(destination);
 
 		++numPrograms;
 	}
@@ -4301,7 +4387,8 @@ static int GLSL_LoadGPUProgramLightAll(
 		if (liquidSun && !pbrLiquidLibrary)
 			pbrLiquidLibrary = GLSL_CombineLibraries(allocator, pbrLibrary, liquidLibrary);
 		const GPUShaderDesc *lightLibrary = liquidSun ? pbrLiquidLibrary : pbrLibrary;
-		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, &tr.lightallShader[i],
+		shaderProgram_t *destination = filter.Destination(&tr.lightallShader[i]);
+		const permutationResult_t result = GLSL_LoadPermutation(filter, builder, destination,
 			name, attribs, NO_XFB_VARS, extradefines, *programDesc, lightLibrary, leafFlutterLibrary);
 		if (result == PERMUTATION_KEY)
 			continue;
@@ -4310,9 +4397,14 @@ static int GLSL_LoadGPUProgramLightAll(
 			ri.Error(ERR_FATAL, "Could not load lightall shader!");
 		}
 
-		shaderProgram_t *program = &tr.lightallShader[i];
+		shaderProgram_t *program = destination;
 		for ( int variant = 0; variant < 2; variant++ )
 		{
+			if ( variant == 1 )
+			{
+				if (filter.phongDestination)
+					break;
+			}
 			if ( variant == 1 )
 			{
 				// silhouette POM set (tr_pom_silhouette.cpp): the same permutation
@@ -6384,6 +6476,55 @@ static int GLSL_BuildLazy( int family, const uint8_t *wanted )
 	return built;
 }
 
+
+static std::unordered_map<shaderProgram_t *, shaderProgram_t> s_phongPrograms;
+
+void GLSL_ClearPhongTessellationPrograms()
+{
+	if (!s_phongPrograms.empty())
+		GLSL_BindNullProgram();
+	for (auto& entry : s_phongPrograms)
+	{
+		entry.first->phongVariant = nullptr;
+		shaderProgram_t *program = &entry.second;
+		s_glslPrograms.erase(std::remove(s_glslPrograms.begin(), s_glslPrograms.end(), program), s_glslPrograms.end());
+		GLSL_DeleteGPUShader(program);
+	}
+	s_phongPrograms.clear();
+}
+
+shaderProgram_t *GLSL_PhongTessellationProgram(shaderProgram_t *base)
+{
+	if (base->phongVariant)
+		return base->phongVariant;
+	for (int f = LAZY_LIGHTALL; f <= LAZY_REFRACTION; ++f)
+	{
+		const lazyFamily_t& family = GLSL_LazyFamily(f);
+		// Integer addresses avoid ordering unrelated program arrays/pointers.
+		const uintptr_t address = reinterpret_cast<uintptr_t>(base);
+		const uintptr_t begin = reinterpret_cast<uintptr_t>(family.programs);
+		if (address < begin || address >= begin + family.count * sizeof(*base)) continue;
+		const int index = (int)(base - family.programs);
+		shaderProgram_t& target = s_phongPrograms[base];
+		if (!target.program)
+		{
+			GLint previousProgram = 0;
+			qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+			Allocator allocator(1024 * 1024);
+			ShaderProgramBuilder builder;
+			GLSL_PermutationFilter filter = {};
+			filter.phongDestination = &target;
+			filter.phongIndex = index;
+			family.load(builder, allocator, filter);
+			qglUseProgram(previousProgram);
+			target.phongBase = base;
+			base->phongVariant = &target;
+		}
+		return target.program ? &target : base;
+	}
+	return base;
+}
+
 bool GLSL_EnsureProgram( shaderProgram_t *program )
 {
 	if ( program->program )
@@ -6424,6 +6565,7 @@ void GLSL_UpdateLightallDebug( void )
 		return;
 	s_lightallDebug = wanted;
 	R_IssuePendingRenderCommands();
+	GLSL_ClearPhongTessellationPrograms();
 
 	std::vector<uint8_t> loaded(LIGHTDEF_COUNT, 0);
 	int numLoaded = 0;
@@ -6774,6 +6916,7 @@ void GLSL_ShutdownGPUShaders(void)
 {
 	int i;
 
+	GLSL_ClearPhongTessellationPrograms();
 	// what was built or bound since the last level load
 	GLSL_LazyFlush();
 	s_glslLazy = false;
@@ -7096,6 +7239,10 @@ void GL_VertexArraysToAttribs(
 		attrib.vbo = glState.currentVBO;
 		attrib.index = attributeIndex;
 		attrib.numComponents = attributes[attributeIndex].numComponents;
+		// Ghoul2 reuses the otherwise unused pos2 slot for one geometry crease
+		// weight. MD3 animation and POM keep their three-component positions.
+		if (attributeIndex == ATTR_INDEX_POSITION2 && vertexArrays->sizes[attributeIndex] == sizeof(float))
+			attrib.numComponents = 1;
 		attrib.integerAttribute = attributes[attributeIndex].integerAttribute;
 		attrib.type = attributes[attributeIndex].type;
 		attrib.normalize = attributes[attributeIndex].normalize;

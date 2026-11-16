@@ -17,6 +17,7 @@
 #include "qcommon/disablewarnings.h"
 #endif // !REND2_SP
 #include "tr_cache.h"
+#include "tr_phong_crease.h"
 #include <chrono>
 
 #define	LL(x) x=LittleLong(x)
@@ -4874,6 +4875,8 @@ qboolean R_LoadMDXM(model_t *mod, void *buffer, const char *mod_name, qboolean &
 
 		byte *data;
 		int dataSize = 0;
+		const bool phongData = R_HasModernFeatures(MODERN_TESSELLATION);
+		int ofsPhongWeights = 0;
 		int ofsPosition, ofsNormals, ofsTexcoords, ofsBoneRefs, ofsWeights, ofsTangents, ofsColor, ofsLMCoords, ofsLightDir;;
 		int stride = 0;
 		int numVerts = 0;
@@ -4909,6 +4912,11 @@ qboolean R_LoadMDXM(model_t *mod, void *buffer, const char *mod_name, qboolean &
 		dataSize += numVerts * sizeof (*weights) * 4;
 		dataSize += numVerts * sizeof (*bonerefs) * 4;
 		dataSize += numVerts * sizeof (*tangents);
+		if (phongData)
+		{
+			ofsPhongWeights = dataSize;
+			dataSize += numVerts * sizeof(float);
+		}
 		dataSize += sizeof(vec4_t) + sizeof(vec2_t) + sizeof(uint32_t);
 
 		// Allocate and write to memory
@@ -5070,6 +5078,14 @@ qboolean R_LoadMDXM(model_t *mod, void *buffer, const char *mod_name, qboolean &
 
 		// TODO: Check why this was here and why it always fails
 		// assert ((byte *)verts == (data + dataSize));
+		if (phongData)
+		{
+			// Separate stream: ordinary G2 vertex stride/fetches stay unchanged.
+			const int creases = R_BuildPhongCreaseWeights(data, numVerts, stride,
+				ofsPosition, ofsNormals, ofsBoneRefs, ofsWeights, (float *)(data + ofsPhongWeights));
+			if (r_phongTessDebug->integer)
+				ri.Printf(PRINT_ALL, "Phong mesh %s LOD %d: %d/%d crease vertices\n", mod_name, l, creases, numVerts);
+		}
 
 		const char *modelName = strrchr (mdxm->name, '/');
 		if (modelName == NULL)
@@ -5089,6 +5105,12 @@ qboolean R_LoadMDXM(model_t *mod, void *buffer, const char *mod_name, qboolean &
 		vbo->offsets[ATTR_INDEX_BONE_INDEXES] = ofsBoneRefs;
 		vbo->offsets[ATTR_INDEX_BONE_WEIGHTS] = ofsWeights;
 		vbo->offsets[ATTR_INDEX_TANGENT] = ofsTangents;
+		if (phongData)
+		{
+			vbo->offsets[ATTR_INDEX_POSITION2] = ofsPhongWeights;
+			vbo->strides[ATTR_INDEX_POSITION2] = sizeof(float);
+			vbo->sizes[ATTR_INDEX_POSITION2] = sizeof(float);
+		}
 
 		vbo->offsets[ATTR_INDEX_COLOR] = ofsColor;
 		vbo->offsets[ATTR_INDEX_TEXCOORD1] = ofsLMCoords;

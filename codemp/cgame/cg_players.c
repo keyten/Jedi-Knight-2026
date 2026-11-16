@@ -9352,7 +9352,7 @@ void CG_Player( centity_t *cent ) {
 
 	VectorCopy( cent->lerpOrigin, legs.lightingOrigin );
 	legs.shadowPlane = shadowPlane;
-	legs.renderfx = renderfx;
+	legs.renderfx = renderfx | RF_CHARACTER;
 	if (cg_shadows.integer == 2 && (renderfx & RF_THIRD_PERSON))
 	{ //can see own shadow
 		legs.renderfx |= RF_SHADOW_ONLY;

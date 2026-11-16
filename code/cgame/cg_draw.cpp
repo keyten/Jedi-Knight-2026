@@ -4314,6 +4314,12 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 
 	cg.refdef.rdflags |= RDF_DRAWSKYBOX;
 
+	// Explicitly identify the scripted camera; zoom and third person are gameplay.
+	if (in_camera)
+		cg.refdef.rdflags |= RDF_CINEMATIC;
+	else
+		cg.refdef.rdflags &= ~RDF_CINEMATIC;
+
 	// draw 3D view
 	cgi_R_RenderScene( &cg.refdef );
 

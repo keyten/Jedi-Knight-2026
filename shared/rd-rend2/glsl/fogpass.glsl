@@ -259,6 +259,14 @@ void main()
 #endif
 
 	vec4 wsPosition = u_ModelMatrix * vec4(position, 1.0);
+#if defined(USE_PHONG_TESSELLATION)
+#if defined(USE_SKELETAL_ANIMATION)
+	vec3 phongNormal = normalize(influence * vec4(attr_Normal - vec3(0.5), 0.0));
+#else
+	vec3 phongNormal = attr_Normal - vec3(0.5);
+#endif
+	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * phongNormal);
+#endif
 
 	// r_leafFlutter: same displacement as lightall, the fog is drawn with
 	// depth func EQUAL (leaf_flutter.glsl)

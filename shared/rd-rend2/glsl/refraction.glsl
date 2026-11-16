@@ -349,6 +349,9 @@ void main()
 	vec3 wsPosition = mat3(u_ModelMatrix) * position;
 	mat4 MVP = u_viewProjectionMatrix * u_ModelMatrix;
 	gl_Position = MVP * vec4(position, 1.0);
+#if defined(USE_PHONG_TESSELLATION)
+	PhongControlPoint((u_ModelMatrix * vec4(position, 1.0)).xyz, mat3(u_ModelMatrix) * normal);
+#endif
 
 #if defined(USE_TCGEN)
 	vec2 tex = GenTexCoords(u_TCGen0, wsPosition.xyz, normal, u_TCGen0Vector0, u_TCGen0Vector1);

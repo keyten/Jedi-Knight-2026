@@ -22,7 +22,8 @@ if not exist "%CMAKE_EXE%" (
     goto finish
 )
 
-"%CMAKE_EXE%" --build "%BUILD_DIR%" --config Release --target rd-rend2_x86_64 rdsp-rend2_x86_64 --parallel 4
+rem Character/cinematic render flags are emitted by cgame (inside jagame for SP).
+"%CMAKE_EXE%" --build "%BUILD_DIR%" --config Release --target rd-rend2_x86_64 rdsp-rend2_x86_64 jagamex86_64 cgamex86_64 --parallel 4
 set "RESULT=%ERRORLEVEL%"
 
 :finish

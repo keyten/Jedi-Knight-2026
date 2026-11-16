@@ -665,6 +665,8 @@ static bool RB_WritesScreenMaterial( const shaderProgram_t *sp, uint32_t stateBi
 	if ( !backEnd.screenAuxView || backEnd.depthFill || backEnd.refractionFill || forceRefraction )
 		return false;
 
+	if (sp->phongBase)
+		sp = sp->phongBase;
 	if ( sp < tr.lightallShader || sp >= tr.lightallShader + LIGHTDEF_COUNT )
 		return false;
 
@@ -1340,6 +1342,35 @@ RB_FogPass
 Blends a fog texture on top of everything else
 ===================
 */
+// Close-up characters only. Keep material deformations and special effects on
+// their existing path; their displacement is not part of the tangent planes.
+static shaderProgram_t *RB_PhongProgram(shaderProgram_t *base, const shaderCommands_t *input)
+{
+	if (!backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity ||
+		backEnd.currentEntity->phongTessStrength <= 0.0f ||
+		input->shader->numDeforms || input->pomMode != POM_MODE_NONE ||
+		!glState.currentVBO || glState.currentVBO->sizes[ATTR_INDEX_POSITION2] != sizeof(float) ||
+		(backEnd.viewParms.flags & VPF_DEPTHSHADOW) || RB_WeatherImpactPass())
+		return base;
+	return GLSL_PhongTessellationProgram(base);
+}
+
+static void RB_PhongUniforms(UniformDataWriter& writer, const shaderProgram_t *program)
+{
+	if (!program->phongTessellation)
+		return;
+	const vec4_t params = {
+		(float)MIN(r_phongTessLevel->integer, glRefConfig.maxTessGenLevel),
+		backEnd.currentEntity->phongTessStrength, r_phongTessMaxDisplacement->value,
+		(float)r_phongTessDebug->integer
+	};
+	matrix_t viewProjection;
+	Matrix16Multiply(backEnd.viewParms.projectionMatrix,
+		backEnd.viewParms.world.modelViewMatrix, viewProjection);
+	writer.SetUniformVec4(UNIFORM_PHONGPARAMS, params);
+	writer.SetUniformMatrix4x4(UNIFORM_PHONGVIEWPROJECTION, viewProjection);
+}
+
 static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *vertexArrays )
 {
 	if (R_SurfaceMaterialDebugActive()) return;
@@ -1375,7 +1406,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		if (input->xstages[0]->alphaTestType != ALPHA_TEST_NONE)
 			shaderBits |= FOGDEF_USE_ALPHA_TEST;*/
 
-	shaderProgram_t *sp = tr.fogShader + shaderBits;
+	shaderProgram_t *sp = RB_PhongProgram(tr.fogShader + shaderBits, input);
 	// silhouette POM: the fog of the virtual surface point
 	const bool pomFog = input->pomMode != POM_MODE_NONE && input->numPasses > 0;
 	if (pomFog)
@@ -1391,6 +1422,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		const int rgbPass = (numFogDraws == 2) ? fogDraw + 1 : 0;
 		UniformDataWriter uniformDataWriter;
 		uniformDataWriter.Start(sp);
+		RB_PhongUniforms(uniformDataWriter, sp);
 		RB_SetFoliageMotionUniforms(uniformDataWriter, input->foliageMotion);
 		uniformDataWriter.SetUniformInt(UNIFORM_FOGINDEX, MAX(input->fogNum - 1, 0));
 		if (input->numPasses > 0 && tess.shader->fogPass != FP_EQUAL)
@@ -1489,7 +1521,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		DrawItemSetUniformBlockBindings(
 			item, uniformBlockBindings, frameAllocator);
 
-		RB_FillDrawCommand(item.draw, GL_TRIANGLES, 1, input);
+		RB_FillDrawCommand(item.draw, sp->phongTessellation ? GL_PATCHES : GL_TRIANGLES, 1, input);
 
 		// the in-scattering add after the transmittance multiply (stage 15 sorts after 14)
 		const int fogStage = (rgbPass == 2) ? 15 : 14;
@@ -2102,12 +2134,13 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			forceRefraction = false;
 			stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
 		}
-		sp = SelectShaderProgram(stage, pStage, pStage->glslShaderGroup, useAlphaTestGE192, forceRefraction);
+		sp = RB_PhongProgram(SelectShaderProgram(stage, pStage, pStage->glslShaderGroup, useAlphaTestGE192, forceRefraction), input);
 		assert(sp);
 		if (input->pomMode != POM_MODE_NONE)
 			stateBits = RB_PomSilhouetteStateBits(stateBits, qfalse);
 
 		uniformDataWriter.Start(sp);
+		RB_PhongUniforms(uniformDataWriter, sp);
 		const float impactClass = RB_WeatherImpactPass() ?
 			(float)RB_WeatherImpactClass(input->shader, pStage, input->foliageMotion) /
 			(float)(WEATHER_IMPACT_COUNT - 1) : -1.0f;
@@ -2704,7 +2737,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		DrawItemSetUniformBlockBindings(
 			item, uniformBlockBindings, frameAllocator);
 
-		RB_FillDrawCommand(item.draw, GL_TRIANGLES, 1, input);
+		RB_FillDrawCommand(item.draw, sp->phongTessellation ? GL_PATCHES : GL_TRIANGLES, 1, input);
 
 		uint32_t key;
 		if (input->shader->sort == SS_ENVIRONMENT)
@@ -2835,6 +2868,9 @@ void RB_StageIteratorGeneric( void )
 	// update vertex buffer data
 	//
 	uint32_t vertexAttribs = RB_CalcShaderVertexAttribs( input->shader );
+	if (backEnd.currentEntity && backEnd.currentEntity->phongTessStrength > 0.0f &&
+		glState.currentVBO && glState.currentVBO->sizes[ATTR_INDEX_POSITION2] == sizeof(float))
+		vertexAttribs |= ATTR_NORMAL | ATTR_POSITION2;
 	if (waterDraw)
 		vertexAttribs |= ATTR_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_TEXCOORD2;
 	if (tess.useInternalVBO)

@@ -465,6 +465,9 @@ void main()
 #endif
 
 	vec4 wsPosition = u_ModelMatrix * vec4(position, 1.0);
+#if defined(USE_PHONG_TESSELLATION)
+	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * normal);
+#endif
 
 	// r_leafFlutter: FOLIAGE_LEAF surfaces only (leaf_flutter.glsl). Vertex
 	// lit, so only the position moves.
