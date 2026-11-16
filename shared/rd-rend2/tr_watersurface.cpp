@@ -442,6 +442,7 @@ struct waterBody_t
 	float fallAmbientFraction = 1.0f;
 	image_t *spillwayLighting = nullptr;
 	float spillwayLightReference = 0.0f;
+	int reflectionProbe = 0;
 	float impactWidth = 0.0f;
 	float viewCoverage = 1.0f, viewDistance = 0.0f;
 };
@@ -4423,6 +4424,83 @@ static void R_WaterBuildSpillwayLighting(world_t *world, waterBody_t& pool)
 	qglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size, size, GL_RGBA, GL_FLOAT, lighting.data());
 }
 
+// Bounded, water-only reflection coverage. Probe placement starts on actual
+// surface triangles, then verifies air space and the short upward trace.
+// These probes never change the opaque world's reflection/IBL assignment.
+void R_WaterBodyReflectionProbesFinalize(world_t *world)
+{
+	if (!world || world != s_water.world || !r_waterBodyOptics->integer ||
+		!r_waterSurface->integer || !r_cubeMapping->integer) return;
+	std::vector<waterBody_t *> candidates;
+	for (waterBody_t& body : s_water.bodies)
+		if (!body.waterfall && body.model == 0 && body.liquidClass == LIQUID_WATER &&
+			body.planeNormal[2] > 0.7f && body.area >= 4096.0f) candidates.push_back(&body);
+	std::sort(candidates.begin(), candidates.end(), [](const waterBody_t *a, const waterBody_t *b) {
+		return a->area > b->area;
+	});
+	struct pending_t { waterBody_t *body; vec3_t origin; };
+	std::vector<pending_t> pending;
+	const int budget = MIN(8, MAX_RUNTIME_CUBEMAPS - tr.numCubemaps);
+	for (waterBody_t *body : candidates)
+	{
+		if ((int)pending.size() >= budget) break;
+		vec3_t target;
+		VectorAdd(body->bounds[0], body->bounds[1], target); VectorScale(target, .5f, target);
+		float best = 1.0e30f;
+		pending_t candidate = {}; candidate.body = body;
+		for (int surfaceNum : body->surfaces)
+		{
+			const msurface_t& ms = world->surfaces[surfaceNum];
+			if (!ms.data || !(*ms.data == SF_FACE || *ms.data == SF_GRID || *ms.data == SF_TRIANGLES)) continue;
+			const srfBspSurface_t& mesh = *(const srfBspSurface_t *)ms.data;
+			for (int ti = 0; ti + 2 < mesh.numIndexes; ti += 3)
+			{
+				const int ia = mesh.indexes[ti], ib = mesh.indexes[ti+1], ic = mesh.indexes[ti+2];
+				if (ia < 0 || ib < 0 || ic < 0 || ia >= mesh.numVerts || ib >= mesh.numVerts || ic >= mesh.numVerts) continue;
+				for (int sample = 0; sample < 4; ++sample)
+				{
+					vec3_t surfacePoint;
+					for (int k = 0; k < 3; ++k)
+						surfacePoint[k] = (mesh.verts[ia].xyz[k] + mesh.verts[ib].xyz[k] + mesh.verts[ic].xyz[k]) / 3.0f;
+					if (sample) for (int k = 0; k < 3; ++k)
+						surfacePoint[k] = .6f * surfacePoint[k] + .4f * mesh.verts[mesh.indexes[ti+sample-1]].xyz[k];
+					vec3_t start; VectorMA(surfacePoint, 2.0f, body->planeNormal, start);
+					for (float height : { 48.0f, 24.0f, 12.0f })
+					{
+						vec3_t probe, delta; VectorMA(surfacePoint, height, body->planeNormal, probe);
+						mnode_t *leaf = world->nodes;
+						while (leaf->contents == -1)
+							leaf = leaf->children[DotProduct(probe, leaf->plane->normal) >= leaf->plane->dist ? 0 : 1];
+						if (leaf->cluster < 0 || R_WaterFlowFieldSolid(start, probe)) continue;
+						VectorSubtract(probe, target, delta);
+						const float score = DotProduct(delta, delta) + (48.0f - height) * 4096.0f;
+						if (score < best) { best = score; VectorCopy(probe, candidate.origin); }
+						break;
+					}
+				}
+			}
+		}
+		if (best < 1.0e30f) pending.push_back(candidate);
+	}
+	if (pending.empty()) return;
+	const int first = tr.numCubemaps;
+	cubemap_t *probes = (cubemap_t *)Hunk_Alloc((first + pending.size()) * sizeof(cubemap_t), h_low);
+	if (first) memcpy(probes, tr.cubemaps, first * sizeof(cubemap_t));
+	for (size_t i = 0; i < pending.size(); ++i)
+	{
+		cubemap_t& probe = probes[first + i];
+		Com_Memset(&probe, 0, sizeof(probe));
+		Com_sprintf(probe.name, sizeof(probe.name), "Water body %d", pending[i].body->id);
+		VectorCopy(pending[i].origin, probe.origin);
+		probe.parallaxRadius = Com_Clamp(512.0f, 4096.0f, sqrtf(pending[i].body->area) * .75f);
+		probe.waterSurfaceOnly = true;
+		pending[i].body->reflectionProbe = first + (int)i + 1;
+		ri.Printf(PRINT_ALL, "Water body optics: body %d air probe %d at (%g %g %g), radius %.0f\n",
+			pending[i].body->id, first + (int)i + 1, probe.origin[0], probe.origin[1], probe.origin[2], probe.parallaxRadius);
+	}
+	tr.cubemaps = probes; tr.numCubemaps = first + (int)pending.size();
+}
+
 void R_WaterfallEmittersFinalize(world_t *world)
 {
 	if (!world || world != s_water.world) return;
@@ -7108,6 +7186,13 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 	const vec4_t bakedLight = { bakedLightmap ? 1.0f : 0.0f, 1.0f, receivingLight ? 1.0f : 0.0f,
 		receivingLight ? spillwayPool->spillwayLightReference * 0.12f : spillway[1][2] * 0.18f };
 	uniforms.SetUniformVec4(UNIFORM_WATERBAKEDLIGHT, bakedLight);
+	const bool bodyOptics = r_waterBodyOptics->integer && body && !waterfall && body->liquidClass == LIQUID_WATER;
+	// World-unit extinction. Faster streams carry more suspended matter; air
+	// concentration comes from the existing advected foam/whitewater field.
+	const float suspended = bodyOptics ? (waterfallImpact ? 0.0040f : (body->flowSpeed > 20.0f ? 0.0035f : 0.0020f)) : 0.0f;
+	const vec4_t bodyOpticsParams = { bodyOptics ? 1.0f : 0.0f, suspended, bodyOptics ? 0.040f : 0.0f, 0.0f };
+	uniforms.SetUniformVec4(UNIFORM_WATERBODYOPTICS, bodyOpticsParams);
+
 	samplers.AddStaticImage(bakedLightmap ? bakedLightmap : tr.whiteImage, TB_WATER_LIGHTMAP);
 	const waterfallProfile_t& waterfallProfile = body ? body->waterfallValues : s_waterfallProfiles[WFPROFILE_MEDIUM];
 	const float waterfallProfileStrength = !body ? 1.0f : Com_Clamp(0.0f, 4.0f,
@@ -7239,7 +7324,7 @@ void RB_WaterSurfaceSetupDraw( const shaderCommands_t *input, UniformDataWriter&
 		froxelLiquid ? 1.0f : 0.0f);
 	VectorCopy4(s_water.albedo[liquidClass], water[WATER_U_SCATTER]);
 	int flags = s_water.viewFlags;
-	int cubemapIndex = input->cubemapIndex;
+	int cubemapIndex = bodyOptics && body->reflectionProbe ? body->reflectionProbe : input->cubemapIndex;
 	if (cubemapIndex <= 0 || cubemapIndex > tr.numCubemaps || !tr.cubemaps[cubemapIndex - 1].image)
 		cubemapIndex = s_water.fallbackCubemap;
 	const bool cubemap = r_cubeMapping->integer && !(backEnd.viewParms.flags & VPF_NOCUBEMAPS) &&

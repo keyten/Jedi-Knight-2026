@@ -810,7 +810,7 @@ int R_CubemapForPoint( const vec3_t point, bool waterfallOnly )
 		for (i = 0; i < MIN(tr.numCubemaps, MAX_RUNTIME_CUBEMAPS); i++)
 		{
 			const cubemap_t& probe = tr.cubemaps[i];
-			if (probe.waterfallOnly != waterfallOnly)
+			if (probe.waterSurfaceOnly || probe.waterfallOnly != waterfallOnly)
 				continue;
 			vec3_t diff;
 			float length;

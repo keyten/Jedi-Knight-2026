@@ -492,6 +492,7 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_WaterFlowFieldParams",	GLSL_VEC4, 1 },
 	{ "u_WaterFlowParams",	GLSL_VEC4, 2 },
 	{ "u_WaterSpillway",		GLSL_VEC4, 3 },
+	{ "u_WaterBodyOptics",		GLSL_VEC4, 1 },
 	{ "u_WaterBakedLight",		GLSL_VEC4, 1 },
 	{ "u_WaterFoamPattern",	GLSL_INT, 1 },
 	{ "u_WaterfallCubeMap",	GLSL_INT, 1 },

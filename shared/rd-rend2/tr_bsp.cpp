@@ -3440,6 +3440,7 @@ void R_LoadEnvironmentJson(world_t *world, qboolean cubemaps)
 			cubemap->parallaxRadius = JSON_ValueGetFloat(keyValueJson, bufferEnd);
 		keyValueJson = JSON_ObjectGetNamedValue(cubemapJson, bufferEnd, "WaterfallOnly");
 		cubemap->waterfallOnly = keyValueJson && JSON_ValueGetInt(keyValueJson, bufferEnd) == 1;
+		cubemap->waterSurfaceOnly = false;
 	}
 
 	ri.FS_FreeFile(buffer.v);
@@ -3508,6 +3509,7 @@ void R_LoadCubemapEntities(const char *cubemapEntityName)
 			VectorCopy(origin, cubemap->origin);
 			cubemap->parallaxRadius = parallaxRadius;
 			cubemap->waterfallOnly = false;
+			cubemap->waterSurfaceOnly = false;
 			cubemap->image = nullptr;
 			numCubemaps++;
 		}
@@ -3604,6 +3606,9 @@ static void R_RenderAllCubemaps()
 		for (int i = 0; i < maxCubemaps; i++)
 		{
 			const bool waterfallOnly = tr.cubemaps[i].waterfallOnly;
+			const bool waterOnly = tr.cubemaps[i].waterSurfaceOnly;
+			if (waterOnly && (!r_waterBodyOptics->integer || !r_waterSurface->integer || !r_cubeMapping->integer || bounce))
+				continue;
 			if (waterfallOnly && (!r_waterfall->integer || !r_waterfallEnvironmentReflection->integer ||
 				!r_cubeMapping->integer || bounce))
 				continue;
@@ -3618,7 +3623,7 @@ static void R_RenderAllCubemaps()
 			const auto convolveStart = std::chrono::steady_clock::now();
 			R_AddConvolveCubemapCmd(&tr.cubemaps[i], i,
 				r_cubeMapping->integer ? qtrue : qfalse,
-				(!waterfallOnly && r_diffuseIBL->integer && k == lastBounce) ? qtrue : qfalse);
+				(!waterfallOnly && !waterOnly && r_diffuseIBL->integer && k == lastBounce) ? qtrue : qfalse);
 			R_IssuePendingRenderCommands();
 			if (profile) {
 				convolveUs += std::chrono::duration_cast<std::chrono::microseconds>(
@@ -5140,6 +5145,8 @@ world_t *R_LoadBSP(const char *name, int *bspIndex)
 			}
 
 		}
+
+		R_WaterBodyReflectionProbesFinalize(worldData);
 
 		if (tr.numCubemaps)
 		{

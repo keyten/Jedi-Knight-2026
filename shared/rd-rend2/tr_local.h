@@ -388,6 +388,7 @@ extern cvar_t	*r_waterSurfaceDepthReject;
 extern cvar_t	*r_waterSurfaceReflection;
 extern cvar_t	*r_waterSurfaceSSR;
 extern cvar_t	*r_waterSurfaceAbsorption;
+extern cvar_t	*r_waterBodyOptics;
 extern cvar_t	*r_waterSurfaceDepthScale;
 extern cvar_t	*r_waterSurfaceExperimental;
 extern cvar_t	*r_waterSurfaceDebug;
@@ -1078,6 +1079,7 @@ typedef struct cubemap_s {
 	vec3_t origin;
 	float parallaxRadius;
 	bool waterfallOnly;
+	bool waterSurfaceOnly;
 	image_t *image;
 	image_t *diffuseIrradianceImage;
 } cubemap_t;
@@ -3100,6 +3102,7 @@ typedef enum
 	UNIFORM_WATERFLOWFIELDPARAMS,	// solver/foam: field enabled, body flow speed (u/s), unused, unused
 	UNIFORM_WATERFLOWPARAMS,	// vec4[2] water surface: flow field / wall impact / foam pattern controls
 	UNIFORM_WATERSPILLWAY,	// vec4[3] receiving plane, flow/radiance/ambient, receiving-world UV
+	UNIFORM_WATERBODYOPTICS, // vec4: enabled, suspended extinction, bubble extinction, reserved
 	UNIFORM_WATERBAKEDLIGHT,	// vec4: lightmap enabled, irradiance scale, receiving cache, indirect floor
 	UNIFORM_WATERFOAMPATTERNMAP,	// water surface: procedural tiling foam structure
 	UNIFORM_WATERFALLCUBEMAP,
@@ -6934,6 +6937,7 @@ void RE_AddWaterImpulse(const refWaterImpulse_t *impulse);
 void RE_SetWaterSources(const refWaterSource_t *sources, int count);
 void R_WaterBodiesLoadJson(world_t *world, const char *json, const char *end, const char *filename);
 void R_WaterfallEmittersFinalize(world_t *world);
+void R_WaterBodyReflectionProbesFinalize(world_t *world);
 void R_WaterfallSprayToScene(const refdef_t *fd);
 
 // Render-only camera relationship to a horizontal modern water body. Gameplay

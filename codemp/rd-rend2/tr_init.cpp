@@ -251,6 +251,7 @@ cvar_t	*r_waterSSRWaveReprojection;
 cvar_t	*r_waterSSROptimize;
 cvar_t	*r_waterMotionDebug;
 cvar_t	*r_waterSurfaceAbsorption;
+cvar_t	*r_waterBodyOptics;
 cvar_t	*r_waterSurfaceDepthScale;
 cvar_t	*r_waterSurfaceExperimental;
 cvar_t	*r_waterSurfaceDebug;
@@ -3295,6 +3296,8 @@ void R_Register( void )
 	R_CvarRange(r_waterMotionDebug, 0, 10, qtrue);
 	r_waterSurfaceAbsorption = R_Cvar("r_waterSurfaceAbsorption", "1.0", CVAR_ARCHIVE, "r_waterSurface: shared liquid extinction scale for surface and volume (r_volumetricWaterExtinction / Color, Slime)");
 	R_CvarRange(r_waterSurfaceAbsorption, 0.0f, 16.0f, qfalse);
+	r_waterBodyOptics = R_Cvar("r_waterBodyOptics", "0", CVAR_ARCHIVE | CVAR_LATCH, "Water body optics: local air-side reflection probes, depth-dependent suspended matter and advected bubble scattering; 0 original, 1 enabled (restart video)");
+	R_CvarRange(r_waterBodyOptics, 0, 1, qtrue);
 	r_waterSurfaceDepthScale = R_Cvar("r_waterSurfaceDepthScale", "1.0", CVAR_ARCHIVE, "r_waterSurface: scale of the path length under the surface (water thickness from the depth buffer)");
 	R_CvarRange(r_waterSurfaceDepthScale, 0.0f, 16.0f, qfalse);
 	r_waterSurfaceExperimental = R_Cvar("r_waterSurfaceExperimental", "0", CVAR_ARCHIVE, "r_waterSurface: also classify surfaces by a water-like shader name (pool, lake, river, water...) when they face up and have no water contents; experimental");

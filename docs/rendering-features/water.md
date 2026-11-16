@@ -14,6 +14,7 @@ Stock water is a scrolling texture with a fixed tint. Modern water reflects its 
 - `r_waterSurfaceSSR 1` — weight of on-screen reflections over cubemap reflections; 0 cubemap only. Independent of `r_ssr`.
 - `r_waterSurfaceRoughness 0.06` — smaller gives sharper highlights and reflections.
 - `r_waterSurfaceAbsorption 1` — how fast water gets darker with depth (shared with [underwater fog](#underwater-fog)).
+- `r_waterBodyOptics 0` *(restart)* — 1: local water reflection captures and depth-dependent scattering by suspended matter and advected bubbles; shallows stay clearer and waterfall receiving pools become cloudier. See [body optics](../rend2-water-body-optics.md) for costs and limits.
 - `r_waterSurfaceReflection 1`, `r_waterSurfaceRefraction 1` — strength of reflection and of bending; 1 physically correct.
 - `r_waterSurfaceNormal 1` — strength of small ripples; 0 removes them.
 - `r_waterSurfaceExperimental 0` — 1: also treat surfaces with water-like shader names (`pool`, `lake`, `river`…) as water, for maps where detection misses some.

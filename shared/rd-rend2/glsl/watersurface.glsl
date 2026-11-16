@@ -1012,6 +1012,7 @@ uniform sampler2D u_WaterFlowField;      // r_waterFlowField: velocity / body sp
 uniform vec4 u_WaterFlowParams[2];
 // [0] receiving plane; [1] shared foam velocity XY, unshadowed radiance, ambient fraction
 uniform vec4 u_WaterSpillway[3];
+uniform vec4 u_WaterBodyOptics; // enabled, suspended extinction, bubble extinction, reserved
 #if defined(USE_WATER_BAKED_LIGHTMAP)
 uniform sampler2D u_LightMap;
 uniform vec4 u_WaterBakedLight;
@@ -2823,6 +2824,32 @@ void main()
 	}
 #endif
 	foamIrradiance = mix(foamIrradiance, spillwayIrradiance, spillway);
+	if (u_WaterBodyOptics.x > 0.5 && !waterfall && !inside)
+	{
+		// Single-layer participating medium in the actual refracted liquid path.
+		// The background suspension remains subtle in shallows. Advected air is
+		// dense near impacts and opens into clearer water with the existing field.
+		float air = clamp(max(foamSample.b, foamSample.r * 0.22), 0.0, 1.0);
+		float suspended = max(u_WaterBodyOptics.y, 0.0);
+		float bubble = max(u_WaterBodyOptics.z, 0.0) * air;
+		float density = suspended + bubble;
+		vec3 mediumAlbedo = (suspended * vec3(0.40, 0.50, 0.36) +
+			bubble * vec3(0.88, 0.90, 0.91)) / max(density, 1e-6);
+		float mediumT = exp(-density * pathLength);
+		vec3 mediumLight = mix(0.5 * ambient, spillwayIrradiance * 0.85, spillway);
+		if (sun)
+		{
+			float phaseG = mix(0.25, 0.60, bubble / max(density, 1e-6));
+			float sunDepth = 0.5 * pathLength * max(dot(-viewInLiquid, Ng), 0.05) / sunCos;
+			mediumLight += sunIrradiance * sunShadow * WaterPhase(phaseG, dot(viewInLiquid, -sunInLiquid)) *
+				exp(-(sigma + vec3(density)) * sunDepth);
+		}
+		vec3 mediumS = mediumAlbedo * mediumLight * (1.0 - mediumT);
+		transmittance *= mediumT;
+		transmitted = transmitted * mediumT + mediumS;
+		transmittedGlow *= mediumT;
+	}
+
 	vec3 foamColor = mix(vec3(0.80, 0.84, 0.86), vec3(0.93, 0.97, 0.99), spillway) * foamIrradiance;
 	if (!waterfall)
 	{
@@ -2885,7 +2912,8 @@ void main()
 	}
 	else
 	{
-		color = mix(color, whitewaterColor, whitewater * 0.72);
+		// The body-optics path already integrated the advected bubbles above.
+		if (u_WaterBodyOptics.x < 0.5 || inside) color = mix(color, whitewaterColor, whitewater * 0.72);
 		color = mix(color, foamColor, persistentFoam * mix(0.92, 0.98, spillwayPool));
 	}
 	// Channel B of the body-local interaction field is short-lived foam laid

@@ -7,6 +7,8 @@ World-caused body-local disturbances are documented in
 [`rend2-water-interaction.md`](rend2-water-interaction.md).
 Advected bulk aeration for rapids and fast streams is documented in
 [`rend2-water-whitewater.md`](rend2-water-whitewater.md).
+Optional local reflection coverage and suspended-matter/bubble scattering are
+documented in [`rend2-water-body-optics.md`](rend2-water-body-optics.md).
 Optional direct-sun caustics driven by this same surface state are documented
 in [`rend2-surface-caustics.md`](rend2-surface-caustics.md).
 
