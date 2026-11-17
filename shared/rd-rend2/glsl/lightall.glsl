@@ -294,7 +294,7 @@ void main()
 
 	vec4 wsPosition = u_ModelMatrix * vec4(position, 1.0);
 #if defined(USE_PHONG_TESSELLATION)
-	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * normal);
+	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * normal, attr_TexCoord0);
 #endif
 
 	// r_leafFlutter: FOLIAGE_LEAF surfaces only (leaf_flutter.glsl). The
@@ -580,6 +580,9 @@ uniform vec4 u_LtcScreenParams;
 #endif
 #endif
 uniform sampler2D u_DiffuseMap;
+#if defined(USE_VORONOI_FRACTURING) && defined(PER_PIXEL_LIGHTING)
+uniform sampler2D u_VoronoiHeight;
+#endif
 
 #if defined(USE_RECON_ENTITY_IRRADIANCE)
 vec3 ReflectedEntityLight(vec3 N, float worldZ)
@@ -4468,6 +4471,11 @@ void main()
 #else
 	vec4 diffuse = texture(u_DiffuseMap, texCoords);
 #endif
+#if defined(USE_VORONOI_FRACTURING) && defined(PER_PIXEL_LIGHTING)
+	float stoneFade = 1.0 - smoothstep(200.0, 390.0, length(var_ViewDir.xyz));
+	float stoneHeight = texture(u_VoronoiHeight, texCoords).r;
+	diffuse.rgb *= mix(1.0, mix(0.86, 1.06, stoneHeight), stoneFade);
+#endif
 	diffuse.a *= var_Color.a;
 #if defined(USE_ALPHA_TEST)
 	if (u_AlphaTestType == ALPHA_TEST_GT0)
@@ -4609,6 +4617,17 @@ void main()
 	N = CalcNormal(vertexNormal, var_Tangent, texCoords, normalMapMipVariance);
 	#else
 	N = CalcNormal(vertexNormal, var_Tangent, texCoords);
+	#endif
+	#if defined(USE_VORONOI_FRACTURING)
+	// Account for rotation and stretch of the original BSP texture mapping.
+	vec3 dpdx = -dFdx(var_ViewDir.xyz);
+	vec3 dpdy = -dFdy(var_ViewDir.xyz);
+	vec3 sx = cross(dpdy, vertexNormal);
+	vec3 sy = cross(vertexNormal, dpdx);
+	float det = dot(dpdx, sx);
+	vec3 slope = (dFdx(stoneHeight) * sx + dFdy(stoneHeight) * sy)
+		* (0.90 * stoneFade * sign(det) / max(abs(det), 1e-7));
+	N = normalize(N - slope / max(1.0, 2.2 * length(slope)));
 	#endif
 	int materialType = int(g_MaterialModel.x + 0.5);
 	vec3 materialT = var_Tangent.xyz - N * dot(N, var_Tangent.xyz);

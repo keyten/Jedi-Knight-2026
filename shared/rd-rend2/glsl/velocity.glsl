@@ -397,7 +397,7 @@ void main()
 
 	vec4 wsPosition = u_ModelMatrix * vec4(position, 1.0);
 #if defined(USE_PHONG_TESSELLATION)
-	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * normal);
+	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * normal, attr_TexCoord0);
 #if !defined(USE_DEPTH_ONLY)
 	PhongPreviousControlPoint((u_PreviousModelMatrix * vec4(prevPosition, 1.0)).xyz,
 		mat3(u_PreviousModelMatrix) * prevNormal);

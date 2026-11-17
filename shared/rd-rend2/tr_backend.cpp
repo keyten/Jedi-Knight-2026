@@ -1426,7 +1426,8 @@ void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 	// A geometric comparison needs both silhouettes and both depth surfaces.
 	// Reuse bindings/uniform data; only debug split mode submits the second draw.
 	if (pass && drawItem.program->phongTessellation && !drawItem.renderState.phongCompareSide &&
-		backEnd.refdef.compareSplitX >= 0.0f && R_CompareSplit(RC_PHONGTESSELLATION))
+		backEnd.refdef.compareSplitX >= 0.0f && R_CompareSplit(drawItem.program->voronoiFracturing ?
+			RC_VORONOIFRACTURING : RC_PHONGTESSELLATION))
 	{
 		DrawItem original = drawItem;
 		original.program = drawItem.program->phongBase;
@@ -1563,10 +1564,10 @@ static void RB_SubmitDrawSurfsForDepthFill(
 			continue;
 		}
 
-		// silhouette POM shells / crossfade base surfaces keep their shader:
-		// their depth is traced (tr_pom_silhouette.cpp)
+		// Displaced world surfaces need the same height field in both passes.
 		if (shader->depthPrepass == DEPTHPREPASS_SIMPLE && !alphaShadowDepth &&
 			!RB_WeatherImpactPass() &&
+			!(entityNum == REFENTITYNUM_WORLD && RB_UsesVoronoiFracturing(shader)) &&
 			*drawSurf->surface != SF_POM_SHELL && *drawSurf->surface != SF_POM_FADEBASE)
 			shader = tr.defaultShader;
 
@@ -1958,7 +1959,7 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 	*/
 
 	int estimatedNumShaderStages = (backEnd.viewParms.flags & VPF_DEPTHSHADOW) ? 1 : 4;
-	if (R_CompareSplit(RC_PHONGTESSELLATION))
+	if (R_CompareSplit(RC_PHONGTESSELLATION) || R_CompareSplit(RC_VORONOIFRACTURING))
 		estimatedNumShaderStages *= 2;
 	// The water A/B view submits the dedicated program plus every stock stage.
 	// Four-stage waterfall shaders therefore need one extra item per surface;

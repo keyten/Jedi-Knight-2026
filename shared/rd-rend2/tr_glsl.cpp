@@ -514,6 +514,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_CubeLayer",			GLSL_VEC4, 1 },
 	{ "u_PhongParams", GLSL_VEC4, 1 },
 	{ "u_PhongViewProjection", GLSL_MAT4x4, 1 },
+	{ "u_VoronoiHeight", GLSL_INT, 1 },
+	{ "u_VoronoiViewOrigin", GLSL_VEC3, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -2190,7 +2192,7 @@ see GLSL_EnsureProgram) handles in one call.
 */
 static bool GLSL_LoadPhongGPUShader(ShaderProgramBuilder& builder, shaderProgram_t *program,
 	const char *name, uint32_t attribs, const char *extra, const GPUProgramDesc& desc,
-	const GPUShaderDesc *fragmentLibrary, const GPUShaderDesc *vertexLibrary);
+	const GPUShaderDesc *fragmentLibrary, const GPUShaderDesc *vertexLibrary, bool voronoi);
 
 struct GLSL_PermutationFilter
 {
@@ -2199,6 +2201,7 @@ struct GLSL_PermutationFilter
 	bool prepare;			// only rend2_glslc jobs for the wanted ones not in the cache
 
 	shaderProgram_t *phongDestination = nullptr;
+	bool voronoi = false;
 	int phongIndex = -1;
 	shaderProgram_t *Destination(shaderProgram_t *base) const
 	{
@@ -2240,7 +2243,7 @@ static permutationResult_t GLSL_LoadPermutation(
 {
 	if (filter.phongDestination)
 		return GLSL_LoadPhongGPUShader(builder, program, name, attribs, extra, programDesc,
-			fragmentLibrary, vertexLibrary) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
+			fragmentLibrary, vertexLibrary, filter.voronoi) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
 	if ( !filter.keysOnly && !filter.prepare )
 	{
 		return GLSL_LoadGPUShader(builder, program, name, attribs, xfbVariables, extra, programDesc,
@@ -3307,7 +3310,7 @@ static void GLSL_SetFroxelLookupUnits( shaderProgram_t *program )
 
 static bool GLSL_LoadPhongGPUShader(ShaderProgramBuilder& builder, shaderProgram_t *program,
 	const char *name, uint32_t attribs, const char *extra, const GPUProgramDesc& desc,
-	const GPUShaderDesc *fragmentLibrary, const GPUShaderDesc *vertexLibrary)
+	const GPUShaderDesc *fragmentLibrary, const GPUShaderDesc *vertexLibrary, bool voronoi)
 {
 	Allocator scratch(128 * 1024);
 	const GPUProgramDesc *phong = LoadProgramSource("phong", scratch, fallback_phongProgram);
@@ -3330,8 +3333,11 @@ static bool GLSL_LoadPhongGPUShader(ShaderProgramBuilder& builder, shaderProgram
 	else if (!strncmp(name, "velocity", 8)) defines += "\n#define PHONG_VELOCITY\n";
 	else if (!strncmp(name, "refraction", 10)) defines += "\n#define PHONG_REFRACTION\n";
 	else return false;
-	const std::string programName = std::string(name) + "_PHONG";
-	builder.Start(programName.c_str(), attribs | ATTR_NORMAL | ATTR_POSITION2, NO_XFB_VARS);
+	if (voronoi)
+		defines += "#define USE_VORONOI_FRACTURING\n";
+	const std::string programName = std::string(name) + (voronoi ? "_VORONOI" : "_PHONG");
+	builder.Start(programName.c_str(), attribs | ATTR_NORMAL |
+		(voronoi ? ATTR_TEXCOORD0 : ATTR_POSITION2), NO_XFB_VARS);
 	builder.SetModernVersion(true);
 	for (size_t i = 0; i < desc.numShaders; ++i)
 	{
@@ -3349,7 +3355,7 @@ static bool GLSL_LoadPhongGPUShader(ShaderProgramBuilder& builder, shaderProgram
 			stage.source = source.c_str();
 			if (!builder.AddShader(stage, vertexDefines.c_str(), vertexLibrary)) return false;
 		}
-		else if (stage.type == GPUSHADER_FRAGMENT && debug &&
+		else if (stage.type == GPUSHADER_FRAGMENT && debug && !voronoi &&
 			(!strncmp(name, "lightall", 8) || !strncmp(name, "generic", 7)))
 		{
 			const std::string fragmentDefines = defines + "#define main PhongOriginalFragment\n";
@@ -3365,6 +3371,7 @@ static bool GLSL_LoadPhongGPUShader(ShaderProgramBuilder& builder, shaderProgram
 		!builder.Build(program))
 		return false;
 	program->phongTessellation = true;
+	program->voronoiFracturing = voronoi;
 	return true;
 }
 
@@ -6477,26 +6484,30 @@ static int GLSL_BuildLazy( int family, const uint8_t *wanted )
 }
 
 
-static std::unordered_map<shaderProgram_t *, shaderProgram_t> s_phongPrograms;
+static std::unordered_map<shaderProgram_t *, shaderProgram_t> s_tessPrograms[2];
 
 void GLSL_ClearPhongTessellationPrograms()
 {
-	if (!s_phongPrograms.empty())
+	if (!s_tessPrograms[0].empty() || !s_tessPrograms[1].empty())
 		GLSL_BindNullProgram();
-	for (auto& entry : s_phongPrograms)
+	for (auto& variants : s_tessPrograms)
 	{
-		entry.first->phongVariant = nullptr;
-		shaderProgram_t *program = &entry.second;
-		s_glslPrograms.erase(std::remove(s_glslPrograms.begin(), s_glslPrograms.end(), program), s_glslPrograms.end());
-		GLSL_DeleteGPUShader(program);
+		for (auto& entry : variants)
+		{
+			shaderProgram_t *program = &entry.second;
+			entry.first->tessVariants[program->voronoiFracturing] = nullptr;
+			s_glslPrograms.erase(std::remove(s_glslPrograms.begin(), s_glslPrograms.end(), program), s_glslPrograms.end());
+			GLSL_DeleteGPUShader(program);
+		}
+		variants.clear();
 	}
-	s_phongPrograms.clear();
 }
 
-shaderProgram_t *GLSL_PhongTessellationProgram(shaderProgram_t *base)
+shaderProgram_t *GLSL_PhongTessellationProgram(shaderProgram_t *base, bool voronoi)
 {
-	if (base->phongVariant)
-		return base->phongVariant;
+	auto*& variant = base->tessVariants[voronoi];
+	if (variant)
+		return variant->program ? variant : base;
 	for (int f = LAZY_LIGHTALL; f <= LAZY_REFRACTION; ++f)
 	{
 		const lazyFamily_t& family = GLSL_LazyFamily(f);
@@ -6504,22 +6515,25 @@ shaderProgram_t *GLSL_PhongTessellationProgram(shaderProgram_t *base)
 		const uintptr_t address = reinterpret_cast<uintptr_t>(base);
 		const uintptr_t begin = reinterpret_cast<uintptr_t>(family.programs);
 		if (address < begin || address >= begin + family.count * sizeof(*base)) continue;
-		const int index = (int)(base - family.programs);
-		shaderProgram_t& target = s_phongPrograms[base];
-		if (!target.program)
+		GLint previousProgram = 0;
+		qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
+		Allocator allocator(1024 * 1024);
+		ShaderProgramBuilder builder;
+		auto& target = s_tessPrograms[voronoi][base];
+		GLSL_PermutationFilter filter = {};
+		filter.phongDestination = &target;
+		filter.phongIndex = (int)(base - family.programs);
+		filter.voronoi = voronoi;
+		family.load(builder, allocator, filter);
+		if (voronoi && target.program)
 		{
-			GLint previousProgram = 0;
-			qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
-			Allocator allocator(1024 * 1024);
-			ShaderProgramBuilder builder;
-			GLSL_PermutationFilter filter = {};
-			filter.phongDestination = &target;
-			filter.phongIndex = index;
-			family.load(builder, allocator, filter);
-			qglUseProgram(previousProgram);
-			target.phongBase = base;
-			base->phongVariant = &target;
+			qglUseProgram(target.program);
+			GLSL_SetUniformInt(&target, UNIFORM_VORONOIHEIGHT, TB_VORONOIHEIGHT);
 		}
+		qglUseProgram(previousProgram);
+		target.voronoiFracturing = voronoi;
+		target.phongBase = base;
+		variant = &target;
 		return target.program ? &target : base;
 	}
 	return base;

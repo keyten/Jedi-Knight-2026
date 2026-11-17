@@ -100,7 +100,7 @@ static const Word words[] = {
 // "dirt" in "dirtymetal", "sand" in "sandro", or "ice" in "office".
 static const Word compounds[] = {
 	{"sandfloor",Sand}, {"sandground",Sand}, {"sanddune",Sand},
-	{"rockwall",Rock}, {"rockfloor",Rock}, {"rockground",Rock},
+	{"rockwall",Rock}, {"rockfloor",Rock}, {"rockground",Rock}, {"stonewall",Masonry},
 	{"grassground",Grass}, {"grassfloor",Grass},
 	{"metalsec",Metal}, {"metalpanel",Metal}, {"metalfloor",Metal}, {"metalwall",Metal},
 	{"basemetal",Metal}, {"rustmetal",Metal}, {"rustyplate",Metal},

@@ -111,3 +111,4 @@ COMPARE_FEATURE(RC_FOLIAGEINTERACTION, "r_foliageInteractionCompare", "r_foliage
 COMPARE_FEATURE(RC_FORCEWAVES, "r_foliageForceWavesCompare", "r_foliageForceWaves", 1, qfalse, "Force push and pull on plants (r_foliageForceWaves)", "plants that ignore the Force", "the plants are simulated for the whole world")
 COMPARE_FEATURE(RC_SABERCUT, "r_foliageSaberCutCompare", "r_foliageSaberCut", 1, qfalse, "cutting plants with a saber (r_foliageSaberCut)", "uncut plants", "cut plants stay cut for the whole world")
 COMPARE_FEATURE(RC_PHONGTESSELLATION, "r_phongTessellationCompare", "r_phongTessellation", 1, qtrue, "Phong character tessellation (r_phongTessellation)", "the original character mesh", NULL)
+COMPARE_FEATURE(RC_VORONOIFRACTURING, "r_voronoiFracturingCompare", "r_voronoiFracturing", 1, qtrue, "Voronoi stone relief (r_voronoiFracturing)", "the original stone surface", NULL)

@@ -3929,6 +3929,148 @@ static float R_AutoRoughPercentile( const float *data, float *scratch, int count
 	return scratch[n];
 }
 
+namespace {
+uint32_t StoneHash(int x, int y, uint32_t seed)
+{
+	uint32_t n = uint32_t(x) * 0x9e3779b9u ^ uint32_t(y) * 0x85ebca6bu ^ seed;
+	n ^= n >> 16;
+	n *= 0x7feb352du;
+	n ^= n >> 15;
+	n *= 0x846ca68bu;
+	return n ^ (n >> 16);
+}
+
+float StoneRandom(uint32_t hash)
+{
+	return float(hash >> 8) * (1.0f / 16777216.0f);
+}
+
+float StoneSmooth(float lo, float hi, float x)
+{
+	const float t = Com_Clamp(0.0f, 1.0f, (x - lo) / (hi - lo));
+	return t * t * (3.0f - 2.0f * t);
+}
+
+int StoneWrap(int x, int period)
+{
+	return (x % period + period) % period;
+}
+
+float StoneNoise(float u, float v, int period, uint32_t seed)
+{
+	const float x = u * period, y = v * period;
+	const int i = int(floorf(x)), j = int(floorf(y));
+	const float s = StoneSmooth(0.0f, 1.0f, x - i), t = StoneSmooth(0.0f, 1.0f, y - j);
+	const int x0 = StoneWrap(i, period), x1 = StoneWrap(i + 1, period);
+	const int y0 = StoneWrap(j, period), y1 = StoneWrap(j + 1, period);
+	const float a = StoneRandom(StoneHash(x0, y0, seed));
+	const float b = StoneRandom(StoneHash(x1, y0, seed));
+	const float c = StoneRandom(StoneHash(x0, y1, seed));
+	const float d = StoneRandom(StoneHash(x1, y1, seed));
+	return (a + (b - a) * s) * (1.0f - t) + (c + (d - c) * s) * t;
+}
+} // namespace
+
+image_t *R_StoneReliefImage(const image_t *diffuse, Rend2Material::Type type)
+{
+	if (diffuse->imgName[0] == '*' || (diffuse->flags & IMGFLAG_CLAMPTOEDGE))
+		return nullptr;
+
+	char name[MAX_QPATH];
+	Com_sprintf(name, sizeof(name), "*stoneRelief%u_%u", diffuse->texnum, unsigned(type));
+	for (image_t *img = hashTable[generateHashValue(name)]; img; img = img->next)
+		if (!Q_stricmp(img->imgName, name))
+			return img;
+
+	byte *source = nullptr;
+	int sw = 0, sh = 0;
+	R_LoadSourceImage(diffuse->imgName, &source, &sw, &sh);
+	if (!source)
+		return nullptr;
+
+	constexpr int size = 128;
+	constexpr int count = size * size;
+	std::vector<float> fine(count), broad(count), scratch(count);
+	for (int y = 0; y < size; ++y)
+	{
+		for (int x = 0; x < size; ++x)
+		{
+			float luma = 0.0f;
+			for (int j = 0; j < 2; ++j)
+				for (int i = 0; i < 2; ++i)
+				{
+					const int sx = ((x * 4 + i * 2 + 1) * sw) / (size * 4);
+					const int sy = ((y * 4 + j * 2 + 1) * sh) / (size * 4);
+					const byte *rgba = source + 4 * (sy * sw + sx);
+					luma += rgba[0] * 0.2126f + rgba[1] * 0.7152f + rgba[2] * 0.0722f;
+				}
+			fine[y * size + x] = luma / (255.0f * 4.0f);
+		}
+	}
+	Z_Free(source);
+	R_AutoRoughBlur(fine.data(), scratch.data(), size, size, 1, qtrue);
+	broad = fine;
+	R_AutoRoughBlur(broad.data(), scratch.data(), size, size, 5, qtrue);
+	const float low = R_AutoRoughPercentile(fine.data(), scratch.data(), count, 0.08f);
+	const float high = MAX(low + 0.08f, R_AutoRoughPercentile(fine.data(), scratch.data(), count, 0.92f));
+
+	const int cellsX = Com_Clampi(3, 10, int(5.0f * sqrtf(float(sw) / sh) + 0.5f));
+	const int cellsY = Com_Clampi(3, 10, int(5.0f * sqrtf(float(sh) / sw) + 0.5f));
+	uint32_t seed = 2166136261u;
+	for (const unsigned char c : diffuse->imgName)
+	{
+		if (!c)
+			break;
+		seed = (seed ^ c) * 16777619u;
+	}
+	std::vector<byte> pixels(count * 4);
+	for (int y = 0; y < size; ++y)
+	{
+		for (int x = 0; x < size; ++x)
+		{
+			const float u = (x + 0.5f) / size, v = (y + 0.5f) / size;
+			const float px = u * cellsX + 0.50f * (StoneNoise(u, v, 11, seed) - 0.5f);
+			const float py = v * cellsY + 0.50f * (StoneNoise(u, v, 11, seed + 1) - 0.5f);
+			const int cx = int(floorf(px)), cy = int(floorf(py));
+			float first = 100.0f, second = 100.0f;
+			uint32_t cell = 0;
+			for (int j = -1; j <= 1; ++j)
+				for (int i = -1; i <= 1; ++i)
+				{
+					const uint32_t site = StoneHash(StoneWrap(cx + i, cellsX), StoneWrap(cy + j, cellsY), seed);
+					const float dx = cx + i + 0.12f + 0.76f * StoneRandom(site) - px;
+					const float dy = cy + j + 0.12f + 0.76f * StoneRandom(StoneHash(0, 0, site)) - py;
+					const float d = dx * dx + dy * dy;
+					if (d < first)
+					{
+						second = first;
+						first = d;
+						cell = site;
+					}
+					else if (d < second)
+						second = d;
+				}
+
+			const int p = y * size + x;
+			const float joint = StoneSmooth(0.015f, 0.105f, broad[p] - fine[p]);
+			const float sourceRelief = StoneSmooth(low, high, fine[p]);
+			const float chips = StoneNoise(u, v, 23, seed + 2);
+			const float grain = 0.65f * chips + 0.35f * StoneNoise(u, v, 49, seed + 3) - 0.5f;
+			const float crack = 1.0f - StoneSmooth(0.018f, 0.14f + 0.10f * chips, second - first);
+			// On painted masonry, reserve the strongest recesses for the painted joints.
+			const float cellWeight = type == Rend2Material::Masonry ? 0.06f : 0.15f;
+			const float relief = 0.51f + 0.30f * (sourceRelief - 0.5f) - 0.30f * joint
+				- crack * (cellWeight + 0.23f * joint) + 0.09f * (StoneRandom(cell) - 0.5f)
+				+ 0.12f * grain + 0.07f * (1.0f - StoneSmooth(0.05f, 0.80f, first));
+			const byte value = byte(Com_Clamp(0.0f, 1.0f, relief) * 255.0f + 0.5f);
+			pixels[4 * p] = pixels[4 * p + 1] = pixels[4 * p + 2] = value;
+			pixels[4 * p + 3] = 255;
+		}
+	}
+	return R_CreateImage(name, pixels.data(), size, size, IMGTYPE_COLORALPHA,
+		IMGFLAG_MIPMAP | IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION, GL_RGBA8);
+}
+
 image_t *R_BuildAutoRoughnessORMSImage( const char *diffuseName, int flags )
 {
 	ImageWorkTimer profileWork;

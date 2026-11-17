@@ -265,7 +265,7 @@ void main()
 #else
 	vec3 phongNormal = attr_Normal - vec3(0.5);
 #endif
-	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * phongNormal);
+	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * phongNormal, attr_TexCoord0);
 #endif
 
 	// r_leafFlutter: same displacement as lightall, the fog is drawn with

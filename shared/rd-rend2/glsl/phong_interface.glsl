@@ -44,7 +44,12 @@
 #ifndef PHONG_PARALLAX
 #define PHONG_PARALLAX
 #endif
-#define PHONG_VARYINGS PHONG_BASE PHONG_MATERIAL PHONG_MOTION PHONG_PARALLAX V(vec3, phongPosition) V(vec3, phongNormal)
+#if defined(USE_VORONOI_FRACTURING)
+#define PHONG_RELIEF V(vec2, voronoiUV)
+#else
+#define PHONG_RELIEF
+#endif
+#define PHONG_VARYINGS PHONG_RELIEF PHONG_BASE PHONG_MATERIAL PHONG_MOTION PHONG_PARALLAX V(vec3, phongPosition) V(vec3, phongNormal)
 
 #if defined(PHONG_CONTROL)
 #define V(type, name) in type phongVertex_##name[]; out type phongPatch_##name[];

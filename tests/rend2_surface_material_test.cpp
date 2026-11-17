@@ -34,6 +34,7 @@ static void SelfTest() {
 	Expect("models/players/icebear/body", Unknown);
 	Expect("textures/hoth/wall", Unknown);
 	Expect("textures/common/BrickWall", Masonry);
+	Expect("textures/yavin/stonewall2_vertex", Masonry);
 	Expect("TEXTURES\\COMMON\\METAL_03.TGA", Metal);
 	Expect("textures/unknown/body", Glass, "textures/common/glass01");
 	Expect("textures/metal/wood_floor", Wood);

@@ -5124,6 +5124,24 @@ static shader_t *FinishShader( void ) {
 	// compute number of passes
 	//
 	shader.numUnfoggedPasses = stage;
+	if (r_voronoiFracturing->integer && r_materialClassification->integer &&
+		R_HasModernFeatures(MODERN_TESSELLATION) &&
+		stage == 1 && shader.sort == SS_OPAQUE && !shader.numDeforms && !shader.polygonOffset &&
+		!shader.isSky && !shader.isPortal && !shader.useDistortion && !shader.alphaShadow)
+	{
+		const auto& material = shader.surfaceMaterial;
+		const auto& diffuse = stages[0].bundle[TB_DIFFUSEMAP];
+		const auto lightType = stages[0].glslShaderIndex & LIGHTDEF_LIGHTTYPE_MASK;
+		if ((material.type == Rend2Material::Rock || material.type == Rend2Material::Masonry) &&
+			material.confidence >= 60 && !(material.flags & (Rend2Material::MixedPBR | Rend2Material::ConflictingPBR)) &&
+			stages[0].glslShaderGroup == tr.lightallShader &&
+			(lightType == LIGHTDEF_USE_LIGHTMAP || lightType == LIGHTDEF_USE_LIGHT_VERTEX) &&
+			!(stages[0].stateBits & (GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS)) &&
+			stages[0].alphaTestType == ALPHA_TEST_NONE && !stages[0].ss && !stages[0].glow &&
+			diffuse.tcGen == TCGEN_TEXTURE && !diffuse.numTexMods && !diffuse.numImageAnimations &&
+			!diffuse.isVideoMap && diffuse.image[0] && (shader.surfaceFlags & MATERIAL_MASK) != MATERIAL_MARBLE)
+			shader.voronoiHeight = R_StoneReliefImage(diffuse.image[0], material.type);
+	}
 
 	// fogonly shaders don't have any normal passes
 	if (stage == 0 && !shader.isSky)

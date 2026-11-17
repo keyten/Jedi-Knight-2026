@@ -94,7 +94,7 @@ void main()
     position = skin * vec4(position, 1.0);
     normal = skin * vec4(normal, 0.0);
 #endif
-    PhongControlPoint(position, normal);
+    PhongControlPoint(position, normal, vec2(0.0));
     var_TexCoords = vec2(0.0);
     var_WSPosition = attr_Position;
     gl_Position = vec4(attr_Position, 1.0);

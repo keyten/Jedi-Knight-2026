@@ -466,7 +466,7 @@ void main()
 
 	vec4 wsPosition = u_ModelMatrix * vec4(position, 1.0);
 #if defined(USE_PHONG_TESSELLATION)
-	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * normal);
+	PhongControlPoint(wsPosition.xyz, mat3(u_ModelMatrix) * normal, attr_TexCoord0);
 #endif
 
 	// r_leafFlutter: FOLIAGE_LEAF surfaces only (leaf_flutter.glsl). Vertex

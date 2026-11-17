@@ -350,7 +350,7 @@ void main()
 	mat4 MVP = u_viewProjectionMatrix * u_ModelMatrix;
 	gl_Position = MVP * vec4(position, 1.0);
 #if defined(USE_PHONG_TESSELLATION)
-	PhongControlPoint((u_ModelMatrix * vec4(position, 1.0)).xyz, mat3(u_ModelMatrix) * normal);
+	PhongControlPoint((u_ModelMatrix * vec4(position, 1.0)).xyz, mat3(u_ModelMatrix) * normal, attr_TexCoord0);
 #endif
 
 #if defined(USE_TCGEN)

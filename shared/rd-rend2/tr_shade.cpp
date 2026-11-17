@@ -1342,10 +1342,22 @@ RB_FogPass
 Blends a fog texture on top of everything else
 ===================
 */
-// Close-up characters only. Keep material deformations and special effects on
-// their existing path; their displacement is not part of the tangent planes.
-static shaderProgram_t *RB_PhongProgram(shaderProgram_t *base, const shaderCommands_t *input)
+bool RB_UsesVoronoiFracturing(const shader_t *shader)
 {
+	return shader->voronoiHeight && !backEnd.projection2D && !backEnd.refractionFill &&
+		!(backEnd.viewParms.flags & VPF_DEPTHSHADOW) && !RB_WeatherImpactPass() &&
+		r_shadows->integer != 4 && !R_SurfaceMaterialDebugActive() &&
+		!R_CompareOff(RC_VORONOIFRACTURING);
+}
+
+static shaderProgram_t *RB_TessellationProgram(shaderProgram_t *base, const shaderCommands_t *input)
+{
+	if (backEnd.currentEntity == &tr.worldEntity && input->pomMode == POM_MODE_NONE &&
+		RB_UsesVoronoiFracturing(input->shader))
+		return GLSL_PhongTessellationProgram(base, true);
+
+	// Phong smoothing is limited to close-up characters with a crease stream.
+
 	if (!backEnd.currentEntity || backEnd.currentEntity == &tr.worldEntity ||
 		backEnd.currentEntity->phongTessStrength <= 0.0f ||
 		input->shader->numDeforms || input->pomMode != POM_MODE_NONE ||
@@ -1355,13 +1367,13 @@ static shaderProgram_t *RB_PhongProgram(shaderProgram_t *base, const shaderComma
 	return GLSL_PhongTessellationProgram(base);
 }
 
-static void RB_PhongUniforms(UniformDataWriter& writer, const shaderProgram_t *program)
+static void RB_TessellationUniforms(UniformDataWriter& writer, const shaderProgram_t *program)
 {
 	if (!program->phongTessellation)
 		return;
 	const vec4_t params = {
-		(float)MIN(r_phongTessLevel->integer, glRefConfig.maxTessGenLevel),
-		backEnd.currentEntity->phongTessStrength, r_phongTessMaxDisplacement->value,
+		(float)MIN(program->voronoiFracturing ? 12 : r_phongTessLevel->integer, glRefConfig.maxTessGenLevel),
+		backEnd.currentEntity->phongTessStrength, program->voronoiFracturing ? 1.25f : r_phongTessMaxDisplacement->value,
 		(float)r_phongTessDebug->integer
 	};
 	matrix_t viewProjection;
@@ -1369,6 +1381,8 @@ static void RB_PhongUniforms(UniformDataWriter& writer, const shaderProgram_t *p
 		backEnd.viewParms.world.modelViewMatrix, viewProjection);
 	writer.SetUniformVec4(UNIFORM_PHONGPARAMS, params);
 	writer.SetUniformMatrix4x4(UNIFORM_PHONGVIEWPROJECTION, viewProjection);
+	if (program->voronoiFracturing)
+		writer.SetUniformVec3(UNIFORM_VORONOIVIEWORIGIN, backEnd.viewParms.ori.origin);
 }
 
 static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *vertexArrays )
@@ -1406,7 +1420,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		if (input->xstages[0]->alphaTestType != ALPHA_TEST_NONE)
 			shaderBits |= FOGDEF_USE_ALPHA_TEST;*/
 
-	shaderProgram_t *sp = RB_PhongProgram(tr.fogShader + shaderBits, input);
+	shaderProgram_t *sp = RB_TessellationProgram(tr.fogShader + shaderBits, input);
 	// silhouette POM: the fog of the virtual surface point
 	const bool pomFog = input->pomMode != POM_MODE_NONE && input->numPasses > 0;
 	if (pomFog)
@@ -1422,7 +1436,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		const int rgbPass = (numFogDraws == 2) ? fogDraw + 1 : 0;
 		UniformDataWriter uniformDataWriter;
 		uniformDataWriter.Start(sp);
-		RB_PhongUniforms(uniformDataWriter, sp);
+		RB_TessellationUniforms(uniformDataWriter, sp);
 		RB_SetFoliageMotionUniforms(uniformDataWriter, input->foliageMotion);
 		uniformDataWriter.SetUniformInt(UNIFORM_FOGINDEX, MAX(input->fogNum - 1, 0));
 		if (input->numPasses > 0 && tess.shader->fogPass != FP_EQUAL)
@@ -1486,6 +1500,8 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		RB_VolumetricSetupFogDraw(froxelFogMode, uniformDataWriter, samplerBindingsWriter);
 		RB_VolumetricSetupFogPassDraw(rgbPass, uniformDataWriter, samplerBindingsWriter);
 		RB_AddPlantSkinSampler(samplerBindingsWriter, input->foliageMotion);
+		if (sp->voronoiFracturing)
+			samplerBindingsWriter.AddStaticImage(input->shader->voronoiHeight, TB_VORONOIHEIGHT);
 		if (pomFog)
 			RB_PomSilhouetteSetupDraw(input->xstages[0], uniformDataWriter, samplerBindingsWriter, qtrue);
 		if (input->numPasses > 0)
@@ -2134,13 +2150,13 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			forceRefraction = false;
 			stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
 		}
-		sp = RB_PhongProgram(SelectShaderProgram(stage, pStage, pStage->glslShaderGroup, useAlphaTestGE192, forceRefraction), input);
+		sp = RB_TessellationProgram(SelectShaderProgram(stage, pStage, pStage->glslShaderGroup, useAlphaTestGE192, forceRefraction), input);
 		assert(sp);
 		if (input->pomMode != POM_MODE_NONE)
 			stateBits = RB_PomSilhouetteStateBits(stateBits, qfalse);
 
 		uniformDataWriter.Start(sp);
-		RB_PhongUniforms(uniformDataWriter, sp);
+		RB_TessellationUniforms(uniformDataWriter, sp);
 		const float impactClass = RB_WeatherImpactPass() ?
 			(float)RB_WeatherImpactClass(input->shader, pStage, input->foliageMotion) /
 			(float)(WEATHER_IMPACT_COUNT - 1) : -1.0f;
@@ -2698,6 +2714,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			RB_PomSilhouetteSetupDraw(pStage, uniformDataWriter, samplerBindingsWriter, qfalse);
 		// MD3 plant bones (tr_plantsim.cpp), every pass
 		RB_AddPlantSkinSampler(samplerBindingsWriter, input->foliageMotion);
+		if (sp->voronoiFracturing)
+			samplerBindingsWriter.AddStaticImage(input->shader->voronoiHeight, TB_VORONOIHEIGHT);
 
 		CaptureDrawData(input, pStage, index, stage);
 
@@ -2871,6 +2889,8 @@ void RB_StageIteratorGeneric( void )
 	if (backEnd.currentEntity && backEnd.currentEntity->phongTessStrength > 0.0f &&
 		glState.currentVBO && glState.currentVBO->sizes[ATTR_INDEX_POSITION2] == sizeof(float))
 		vertexAttribs |= ATTR_NORMAL | ATTR_POSITION2;
+	if (input->shader->voronoiHeight)
+		vertexAttribs |= ATTR_NORMAL | ATTR_TEXCOORD0;
 	if (waterDraw)
 		vertexAttribs |= ATTR_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_TEXCOORD2;
 	if (tess.useInternalVBO)

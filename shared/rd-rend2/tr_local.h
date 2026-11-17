@@ -375,6 +375,7 @@ extern cvar_t *r_waterSplashes, *r_waterSplashQuality, *r_waterSplashStrength;
 extern cvar_t *r_waterSplashFoam, *r_waterSplashProjectiles, *r_waterSplashDebug;
 extern cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
 extern cvar_t *r_phongTessDebug;
+extern cvar_t *r_voronoiFracturing;
 extern cvar_t *r_phongTessellation, *r_phongTessMaxCharacters, *r_phongTessDistance, *r_phongTessGameplay;
 extern cvar_t *r_phongTessLevel, *r_phongTessStrength, *r_phongTessMaxDisplacement;
 extern cvar_t *r_waterTessellation, *r_waterTessPixels, *r_waterTessMax, *r_waterTessForce;
@@ -1882,6 +1883,7 @@ enum
 	TB_DIFFUSEIRRADIANCEMAP = 14,
 	TB_PROBEAVERAGEMAP = 15,
 	TB_ENTITYGRID_AMBIENT = 16,
+	TB_VORONOIHEIGHT = 16, // static lightmap / vertex lit world, no entity grid
 	TB_ENTITYGRID_DIRECTED = 17,
 	TB_ENTITYGRID_DIRECTION = 18,
 
@@ -2254,6 +2256,7 @@ enum {
 typedef struct shader_s {
 	char		name[MAX_QPATH];		// game path, including extension
 	Rend2Material::Result surfaceMaterial; // registration-time semantic classification
+	image_t *voronoiHeight;
 	Rend2Material::Type surfaceMaterialOverride;
 	qboolean surfaceMaterialOverrideSet;
 	int			lightmapIndex[MAXLIGHTMAPS];	// for a shader to match, both name and all lightmapIndex must match
@@ -3136,6 +3139,8 @@ typedef enum
 
 	UNIFORM_PHONGPARAMS,
 	UNIFORM_PHONGVIEWPROJECTION,
+	UNIFORM_VORONOIHEIGHT,
+	UNIFORM_VORONOIVIEWORIGIN,
 	UNIFORM_COUNT
 } uniform_t;
 
@@ -3167,8 +3172,9 @@ typedef struct shaderProgram_s
 	uint32_t uniformBlocks;
 
 	struct shaderProgram_s *phongBase;
-	struct shaderProgram_s *phongVariant;
+	struct shaderProgram_s *tessVariants[2]; // Phong and Voronoi
 	bool phongTessellation;
+	bool voronoiFracturing;
 	bool used;	// bound since it was loaded (glslusage)
 } shaderProgram_t;
 
@@ -5841,7 +5847,8 @@ void GL_VertexArraysToAttribs( vertexAttribute_t *attribs,
 	size_t attribsCount, const VertexArraysProperties *vertexArrays );
 void GLSL_BindProgram(shaderProgram_t * program);
 void GLSL_Usage_f( void );
-shaderProgram_t *GLSL_PhongTessellationProgram(shaderProgram_t *base);
+shaderProgram_t *GLSL_PhongTessellationProgram(shaderProgram_t *base, bool voronoi = false);
+bool RB_UsesVoronoiFracturing(const shader_t *shader);
 void GLSL_ClearPhongTessellationPrograms();
 bool GLSL_EnsureProgram( shaderProgram_t *program );
 void GLSL_UpdateLightallDebug( void );
@@ -6469,6 +6476,7 @@ extern int autoRoughnessMaps, autoRoughnessMsec;
 qhandle_t RE_RegisterShader( const char *name );
 qhandle_t RE_RegisterShaderNoMip( const char *name );
 const char		*RE_ShaderNameFromIndex(int index);
+image_t *R_StoneReliefImage(const image_t *diffuse, Rend2Material::Type type);
 image_t *R_CreateImage( const char *name, byte *pic, int width, int height, imgType_t type, int flags, int internalFormat );
 // mipData, when provided, contains every level including level 0 (instead of data).
 image_t *R_CreateImage3D(const char *name, byte *data, int width, int height, int depth, int internalFormat, int flags = IMGFLAG_CLAMPTOEDGE, const byte *const *mipData = NULL);
