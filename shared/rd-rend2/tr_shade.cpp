@@ -1358,7 +1358,8 @@ static shaderProgram_t *RB_SurfaceProgram(shaderProgram_t *base, const shaderCom
 	{
 		if (r_voronoiFracturingGeometry->integer)
 			return GLSL_GetDrawVariant(base, GLSLV_STONE_GEOMETRY);
-		if (lightall && !backEnd.depthFill)
+		if (lightall && !backEnd.depthFill &&
+			(r_normalMapping->integer || r_specularMapping->integer))
 			return GLSL_GetDrawVariant(base, GLSLV_STONE_SURFACE);
 		return base;
 	}

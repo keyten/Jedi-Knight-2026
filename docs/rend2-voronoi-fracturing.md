@@ -43,7 +43,8 @@ eligibility checks still apply to overrides. Restart the renderer after edits.
 ## Shading and geometry
 
 By default the effect adds bounded tangent-space normal detail and shallow cavity shading in
-the material pass. The depth, motion and fog passes use their base programs.
+the material pass. The depth, motion and fog passes use their base programs. Fast lighting with
+both normal and specular mapping disabled uses the base material program too.
 The shader fades relief from 200 to 390 game units and skips the relief lookup
 outside that range.
 
