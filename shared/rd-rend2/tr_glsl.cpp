@@ -2200,18 +2200,18 @@ struct GLSL_PermutationFilter
 	bool keysOnly;			// only the cache keys of the permutations not loaded yet
 	bool prepare;			// only rend2_glslc jobs for the wanted ones not in the cache
 
-	shaderProgram_t *phongDestination = nullptr;
-	bool voronoi = false;
-	int phongIndex = -1;
+	shaderProgram_t *variantDestination = nullptr;
+	glslVariant_t variant = GLSLV_PHONG;
+	int variantIndex = -1;
 	shaderProgram_t *Destination(shaderProgram_t *base) const
 	{
-		return phongDestination ? phongDestination : base;
+		return variantDestination ? variantDestination : base;
 	}
 
 	bool Want( const shaderProgram_t& program, int index ) const
 	{
-		if (phongDestination)
-			return index == phongIndex && !phongDestination->program;
+		if (variantDestination)
+			return index == variantIndex && !variantDestination->program;
 		if ( program.program )
 			return false;
 		return keysOnly || !wanted || wanted[index];
@@ -2241,9 +2241,18 @@ static permutationResult_t GLSL_LoadPermutation(
 	const GPUShaderDesc *fragmentLibrary = nullptr,
 	const GPUShaderDesc *vertexLibrary = nullptr)
 {
-	if (filter.phongDestination)
+	if (filter.variantDestination)
+	{
+		if (filter.variant == GLSLV_STONE_SURFACE)
+		{
+			const std::string surfaceName = std::string(name) + "_STONE";
+			const std::string defines = std::string(extra ? extra : "") + "\n#define USE_VORONOI_FRACTURING\n";
+			return GLSL_LoadGPUShader(builder, program, surfaceName.c_str(), attribs, xfbVariables,
+				defines.c_str(), programDesc, fragmentLibrary, vertexLibrary) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
+		}
 		return GLSL_LoadPhongGPUShader(builder, program, name, attribs, extra, programDesc,
-			fragmentLibrary, vertexLibrary, filter.voronoi) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
+			fragmentLibrary, vertexLibrary, filter.variant == GLSLV_STONE_GEOMETRY) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
+	}
 	if ( !filter.keysOnly && !filter.prepare )
 	{
 		return GLSL_LoadGPUShader(builder, program, name, attribs, xfbVariables, extra, programDesc,
@@ -3370,8 +3379,7 @@ static bool GLSL_LoadPhongGPUShader(ShaderProgramBuilder& builder, shaderProgram
 		!builder.AddShader(*evaluation, defines.c_str(), &phongInterface->shaders[0]) ||
 		!builder.Build(program))
 		return false;
-	program->phongTessellation = true;
-	program->voronoiFracturing = voronoi;
+	program->usesPatches = true;
 	return true;
 }
 
@@ -4409,7 +4417,7 @@ static int GLSL_LoadGPUProgramLightAll(
 		{
 			if ( variant == 1 )
 			{
-				if (filter.phongDestination)
+				if (filter.variantDestination)
 					break;
 			}
 			if ( variant == 1 )
@@ -6484,18 +6492,19 @@ static int GLSL_BuildLazy( int family, const uint8_t *wanted )
 }
 
 
-static std::unordered_map<shaderProgram_t *, shaderProgram_t> s_tessPrograms[2];
+static std::unordered_map<shaderProgram_t *, shaderProgram_t> s_drawVariants[GLSLV_COUNT];
 
-void GLSL_ClearPhongTessellationPrograms()
+void GLSL_ClearDrawVariants()
 {
-	if (!s_tessPrograms[0].empty() || !s_tessPrograms[1].empty())
-		GLSL_BindNullProgram();
-	for (auto& variants : s_tessPrograms)
+	for (int i = 0; i < GLSLV_COUNT; ++i)
 	{
+		auto& variants = s_drawVariants[i];
+		if (!variants.empty())
+			GLSL_BindNullProgram();
 		for (auto& entry : variants)
 		{
 			shaderProgram_t *program = &entry.second;
-			entry.first->tessVariants[program->voronoiFracturing] = nullptr;
+			entry.first->variants[i] = nullptr;
 			s_glslPrograms.erase(std::remove(s_glslPrograms.begin(), s_glslPrograms.end(), program), s_glslPrograms.end());
 			GLSL_DeleteGPUShader(program);
 		}
@@ -6503,15 +6512,15 @@ void GLSL_ClearPhongTessellationPrograms()
 	}
 }
 
-shaderProgram_t *GLSL_PhongTessellationProgram(shaderProgram_t *base, bool voronoi)
+shaderProgram_t *GLSL_GetDrawVariant(shaderProgram_t *base, glslVariant_t variant)
 {
-	auto*& variant = base->tessVariants[voronoi];
-	if (variant)
-		return variant->program ? variant : base;
-	for (int f = LAZY_LIGHTALL; f <= LAZY_REFRACTION; ++f)
+	auto*& cached = base->variants[variant];
+	if (cached)
+		return cached->program ? cached : base;
+	const int lastFamily = variant == GLSLV_STONE_SURFACE ? LAZY_LIGHTALL : LAZY_REFRACTION;
+	for (int f = LAZY_LIGHTALL; f <= lastFamily; ++f)
 	{
 		const lazyFamily_t& family = GLSL_LazyFamily(f);
-		// Integer addresses avoid ordering unrelated program arrays/pointers.
 		const uintptr_t address = reinterpret_cast<uintptr_t>(base);
 		const uintptr_t begin = reinterpret_cast<uintptr_t>(family.programs);
 		if (address < begin || address >= begin + family.count * sizeof(*base)) continue;
@@ -6519,21 +6528,21 @@ shaderProgram_t *GLSL_PhongTessellationProgram(shaderProgram_t *base, bool voron
 		qglGetIntegerv(GL_CURRENT_PROGRAM, &previousProgram);
 		Allocator allocator(1024 * 1024);
 		ShaderProgramBuilder builder;
-		auto& target = s_tessPrograms[voronoi][base];
+		auto& target = s_drawVariants[variant][base];
 		GLSL_PermutationFilter filter = {};
-		filter.phongDestination = &target;
-		filter.phongIndex = (int)(base - family.programs);
-		filter.voronoi = voronoi;
+		filter.variantDestination = &target;
+		filter.variantIndex = (int)(base - family.programs);
+		filter.variant = variant;
 		family.load(builder, allocator, filter);
-		if (voronoi && target.program)
+		target.voronoiFracturing = variant != GLSLV_PHONG;
+		if (target.voronoiFracturing && target.program)
 		{
 			qglUseProgram(target.program);
 			GLSL_SetUniformInt(&target, UNIFORM_VORONOIHEIGHT, TB_VORONOIHEIGHT);
 		}
 		qglUseProgram(previousProgram);
-		target.voronoiFracturing = voronoi;
-		target.phongBase = base;
-		variant = &target;
+		target.variantBase = base;
+		cached = &target;
 		return target.program ? &target : base;
 	}
 	return base;
@@ -6579,7 +6588,7 @@ void GLSL_UpdateLightallDebug( void )
 		return;
 	s_lightallDebug = wanted;
 	R_IssuePendingRenderCommands();
-	GLSL_ClearPhongTessellationPrograms();
+	GLSL_ClearDrawVariants();
 
 	std::vector<uint8_t> loaded(LIGHTDEF_COUNT, 0);
 	int numLoaded = 0;
@@ -6930,7 +6939,7 @@ void GLSL_ShutdownGPUShaders(void)
 {
 	int i;
 
-	GLSL_ClearPhongTessellationPrograms();
+	GLSL_ClearDrawVariants();
 	// what was built or bound since the last level load
 	GLSL_LazyFlush();
 	s_glslLazy = false;

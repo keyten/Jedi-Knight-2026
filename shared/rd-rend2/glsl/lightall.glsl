@@ -4472,9 +4472,17 @@ void main()
 	vec4 diffuse = texture(u_DiffuseMap, texCoords);
 #endif
 #if defined(USE_VORONOI_FRACTURING) && defined(PER_PIXEL_LIGHTING)
-	float stoneFade = 1.0 - smoothstep(200.0, 390.0, length(var_ViewDir.xyz));
-	float stoneHeight = texture(u_VoronoiHeight, texCoords).r;
-	diffuse.rgb *= mix(1.0, mix(0.86, 1.06, stoneHeight), stoneFade);
+	float stoneFade = 1.0 - smoothstep(200.0 * 200.0, 390.0 * 390.0, dot(var_ViewDir.xyz, var_ViewDir.xyz));
+	vec2 stoneUVdx = dFdx(texCoords);
+	vec2 stoneUVdy = dFdy(texCoords);
+	vec2 stoneSlope = vec2(0.0);
+	if (stoneFade > 0.0)
+	{
+		vec3 relief = textureGrad(u_VoronoiHeight, texCoords, stoneUVdx, stoneUVdy).rgb;
+		stoneSlope = (relief.gb * 255.0 - 128.0) * ((24.0 / 127.0) * 0.014);
+		stoneSlope *= stoneFade / max(1.0, 6.0 * length(stoneSlope));
+		diffuse.rgb *= 1.0 - 0.22 * relief.r * stoneFade;
+	}
 #endif
 	diffuse.a *= var_Color.a;
 #if defined(USE_ALPHA_TEST)
@@ -4619,15 +4627,12 @@ void main()
 	N = CalcNormal(vertexNormal, var_Tangent, texCoords);
 	#endif
 	#if defined(USE_VORONOI_FRACTURING)
-	// Account for rotation and stretch of the original BSP texture mapping.
-	vec3 dpdx = -dFdx(var_ViewDir.xyz);
-	vec3 dpdy = -dFdy(var_ViewDir.xyz);
-	vec3 sx = cross(dpdy, vertexNormal);
-	vec3 sy = cross(vertexNormal, dpdx);
-	float det = dot(dpdx, sx);
-	vec3 slope = (dFdx(stoneHeight) * sx + dFdy(stoneHeight) * sy)
-		* (0.90 * stoneFade * sign(det) / max(abs(det), 1e-7));
-	N = normalize(N - slope / max(1.0, 2.2 * length(slope)));
+	if (stoneFade > 0.0)
+	{
+		vec3 bitangent = var_Tangent.w * cross(vertexNormal, var_Tangent.xyz);
+		vec3 slope = stoneSlope.x * var_Tangent.xyz + stoneSlope.y * bitangent;
+		N = normalize(N - (slope - N * dot(slope, N)));
+	}
 	#endif
 	int materialType = int(g_MaterialModel.x + 0.5);
 	vec3 materialT = var_Tangent.xyz - N * dot(N, var_Tangent.xyz);

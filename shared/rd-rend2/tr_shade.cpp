@@ -665,8 +665,8 @@ static bool RB_WritesScreenMaterial( const shaderProgram_t *sp, uint32_t stateBi
 	if ( !backEnd.screenAuxView || backEnd.depthFill || backEnd.refractionFill || forceRefraction )
 		return false;
 
-	if (sp->phongBase)
-		sp = sp->phongBase;
+	if (sp->variantBase)
+		sp = sp->variantBase;
 	if ( sp < tr.lightallShader || sp >= tr.lightallShader + LIGHTDEF_COUNT )
 		return false;
 
@@ -1344,17 +1344,24 @@ Blends a fog texture on top of everything else
 */
 bool RB_UsesVoronoiFracturing(const shader_t *shader)
 {
-	return shader->voronoiHeight && !backEnd.projection2D && !backEnd.refractionFill &&
+	return shader->voronoiRelief && !backEnd.projection2D && !backEnd.refractionFill &&
 		!(backEnd.viewParms.flags & VPF_DEPTHSHADOW) && !RB_WeatherImpactPass() &&
-		r_shadows->integer != 4 && !R_SurfaceMaterialDebugActive() &&
+		(!r_voronoiFracturingGeometry->integer || r_shadows->integer != 4) &&
+		!R_SurfaceMaterialDebugActive() &&
 		!R_CompareOff(RC_VORONOIFRACTURING);
 }
 
-static shaderProgram_t *RB_TessellationProgram(shaderProgram_t *base, const shaderCommands_t *input)
+static shaderProgram_t *RB_SurfaceProgram(shaderProgram_t *base, const shaderCommands_t *input, bool lightall)
 {
 	if (backEnd.currentEntity == &tr.worldEntity && input->pomMode == POM_MODE_NONE &&
 		RB_UsesVoronoiFracturing(input->shader))
-		return GLSL_PhongTessellationProgram(base, true);
+	{
+		if (r_voronoiFracturingGeometry->integer)
+			return GLSL_GetDrawVariant(base, GLSLV_STONE_GEOMETRY);
+		if (lightall && !backEnd.depthFill)
+			return GLSL_GetDrawVariant(base, GLSLV_STONE_SURFACE);
+		return base;
+	}
 
 	// Phong smoothing is limited to close-up characters with a crease stream.
 
@@ -1364,12 +1371,12 @@ static shaderProgram_t *RB_TessellationProgram(shaderProgram_t *base, const shad
 		!glState.currentVBO || glState.currentVBO->sizes[ATTR_INDEX_POSITION2] != sizeof(float) ||
 		(backEnd.viewParms.flags & VPF_DEPTHSHADOW) || RB_WeatherImpactPass())
 		return base;
-	return GLSL_PhongTessellationProgram(base);
+	return GLSL_GetDrawVariant(base, GLSLV_PHONG);
 }
 
 static void RB_TessellationUniforms(UniformDataWriter& writer, const shaderProgram_t *program)
 {
-	if (!program->phongTessellation)
+	if (!program->usesPatches)
 		return;
 	const vec4_t params = {
 		(float)MIN(program->voronoiFracturing ? 12 : r_phongTessLevel->integer, glRefConfig.maxTessGenLevel),
@@ -1420,7 +1427,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		if (input->xstages[0]->alphaTestType != ALPHA_TEST_NONE)
 			shaderBits |= FOGDEF_USE_ALPHA_TEST;*/
 
-	shaderProgram_t *sp = RB_TessellationProgram(tr.fogShader + shaderBits, input);
+	shaderProgram_t *sp = RB_SurfaceProgram(tr.fogShader + shaderBits, input, false);
 	// silhouette POM: the fog of the virtual surface point
 	const bool pomFog = input->pomMode != POM_MODE_NONE && input->numPasses > 0;
 	if (pomFog)
@@ -1501,7 +1508,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		RB_VolumetricSetupFogPassDraw(rgbPass, uniformDataWriter, samplerBindingsWriter);
 		RB_AddPlantSkinSampler(samplerBindingsWriter, input->foliageMotion);
 		if (sp->voronoiFracturing)
-			samplerBindingsWriter.AddStaticImage(input->shader->voronoiHeight, TB_VORONOIHEIGHT);
+			samplerBindingsWriter.AddStaticImage(input->shader->voronoiRelief, TB_VORONOIHEIGHT);
 		if (pomFog)
 			RB_PomSilhouetteSetupDraw(input->xstages[0], uniformDataWriter, samplerBindingsWriter, qtrue);
 		if (input->numPasses > 0)
@@ -1537,7 +1544,7 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 		DrawItemSetUniformBlockBindings(
 			item, uniformBlockBindings, frameAllocator);
 
-		RB_FillDrawCommand(item.draw, sp->phongTessellation ? GL_PATCHES : GL_TRIANGLES, 1, input);
+		RB_FillDrawCommand(item.draw, sp->usesPatches ? GL_PATCHES : GL_TRIANGLES, 1, input);
 
 		// the in-scattering add after the transmittance multiply (stage 15 sorts after 14)
 		const int fogStage = (rgbPass == 2) ? 15 : 14;
@@ -2150,7 +2157,9 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			forceRefraction = false;
 			stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
 		}
-		sp = RB_TessellationProgram(SelectShaderProgram(stage, pStage, pStage->glslShaderGroup, useAlphaTestGE192, forceRefraction), input);
+		sp = RB_SurfaceProgram(
+			SelectShaderProgram(stage, pStage, pStage->glslShaderGroup, useAlphaTestGE192, forceRefraction),
+			input, !forceRefraction && pStage->glslShaderGroup == tr.lightallShader);
 		assert(sp);
 		if (input->pomMode != POM_MODE_NONE)
 			stateBits = RB_PomSilhouetteStateBits(stateBits, qfalse);
@@ -2715,7 +2724,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		// MD3 plant bones (tr_plantsim.cpp), every pass
 		RB_AddPlantSkinSampler(samplerBindingsWriter, input->foliageMotion);
 		if (sp->voronoiFracturing)
-			samplerBindingsWriter.AddStaticImage(input->shader->voronoiHeight, TB_VORONOIHEIGHT);
+			samplerBindingsWriter.AddStaticImage(input->shader->voronoiRelief, TB_VORONOIHEIGHT);
 
 		CaptureDrawData(input, pStage, index, stage);
 
@@ -2755,7 +2764,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		DrawItemSetUniformBlockBindings(
 			item, uniformBlockBindings, frameAllocator);
 
-		RB_FillDrawCommand(item.draw, sp->phongTessellation ? GL_PATCHES : GL_TRIANGLES, 1, input);
+		RB_FillDrawCommand(item.draw, sp->usesPatches ? GL_PATCHES : GL_TRIANGLES, 1, input);
 
 		uint32_t key;
 		if (input->shader->sort == SS_ENVIRONMENT)
@@ -2889,7 +2898,7 @@ void RB_StageIteratorGeneric( void )
 	if (backEnd.currentEntity && backEnd.currentEntity->phongTessStrength > 0.0f &&
 		glState.currentVBO && glState.currentVBO->sizes[ATTR_INDEX_POSITION2] == sizeof(float))
 		vertexAttribs |= ATTR_NORMAL | ATTR_POSITION2;
-	if (input->shader->voronoiHeight)
+	if (input->shader->voronoiRelief && r_voronoiFracturingGeometry->integer)
 		vertexAttribs |= ATTR_NORMAL | ATTR_TEXCOORD0;
 	if (waterDraw)
 		vertexAttribs |= ATTR_POSITION | ATTR_NORMAL | ATTR_TEXCOORD0 | ATTR_TEXCOORD1 | ATTR_TEXCOORD2;

@@ -3107,6 +3107,16 @@ static qboolean ParseShader( const char **text )
 				shader.surfaceMaterialOverrideSet = qtrue;
 			} else ri.Printf(PRINT_WARNING, "Unknown surfaceMaterial '%s' in shader '%s'\n", token, shader.name);
 		}
+		else if (!Q_stricmp(token, "stoneRelief"))
+		{
+			token = COM_ParseExt(text, qfalse);
+			if (!Q_stricmp(token, "auto")) shader.stoneReliefProfile = STONE_RELIEF_AUTO;
+			else if (!Q_stricmp(token, "rock")) shader.stoneReliefProfile = STONE_RELIEF_ROCK;
+			else if (!Q_stricmp(token, "masonry")) shader.stoneReliefProfile = STONE_RELIEF_MASONRY;
+			else if (!Q_stricmp(token, "strata")) shader.stoneReliefProfile = STONE_RELIEF_STRATA;
+			else if (!Q_stricmp(token, "off")) shader.stoneReliefProfile = STONE_RELIEF_OFF;
+			else ri.Printf(PRINT_WARNING, "Unknown stoneRelief '%s' in shader '%s'\n", token, shader.name);
+		}
 		// weatherResponse <wetness> [<puddle> [<runoff>]]: default of every stage
 		else if ( !Q_stricmp( token, "weatherResponse" ) )
 		{
@@ -5127,6 +5137,8 @@ static shader_t *FinishShader( void ) {
 	if (r_voronoiFracturing->integer && r_materialClassification->integer &&
 		R_HasModernFeatures(MODERN_TESSELLATION) &&
 		stage == 1 && shader.sort == SS_OPAQUE && !shader.numDeforms && !shader.polygonOffset &&
+		shader.stoneReliefProfile != STONE_RELIEF_OFF &&
+		(shader.lightmapIndex[0] >= 0 || shader.lightmapIndex[0] == LIGHTMAP_BY_VERTEX) &&
 		!shader.isSky && !shader.isPortal && !shader.useDistortion && !shader.alphaShadow)
 	{
 		const auto& material = shader.surfaceMaterial;
@@ -5140,7 +5152,18 @@ static shader_t *FinishShader( void ) {
 			stages[0].alphaTestType == ALPHA_TEST_NONE && !stages[0].ss && !stages[0].glow &&
 			diffuse.tcGen == TCGEN_TEXTURE && !diffuse.numTexMods && !diffuse.numImageAnimations &&
 			!diffuse.isVideoMap && diffuse.image[0] && (shader.surfaceFlags & MATERIAL_MASK) != MATERIAL_MARBLE)
-			shader.voronoiHeight = R_StoneReliefImage(diffuse.image[0], material.type);
+		{
+			stoneReliefProfile_t profile = shader.stoneReliefProfile;
+			if (profile == STONE_RELIEF_AUTO)
+			{
+				profile = STONE_RELIEF_ROCK;
+				if (material.type == Rend2Material::Masonry)
+					profile = STONE_RELIEF_MASONRY;
+				else if (!Q_stricmp(material.reason, "sandstone"))
+					profile = STONE_RELIEF_STRATA;
+			}
+			shader.voronoiRelief = R_StoneReliefImage(diffuse.image[0], profile);
+		}
 	}
 
 	// fogonly shaders don't have any normal passes

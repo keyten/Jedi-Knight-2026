@@ -42,14 +42,15 @@ layout(vertices = 3) out;
 uniform vec4 u_PhongParams; // level, smoothing, maximum displacement, debug
 #if defined(USE_VORONOI_FRACTURING)
 uniform vec3 u_VoronoiViewOrigin;
+patch out vec3 voronoiAltitude;
 float VoronoiEdgeLevel(vec3 a, vec3 b)
 {
     vec3 edge = b - a;
     float lengthSq = max(dot(edge, edge), 1e-6);
     float t = clamp(dot(u_VoronoiViewOrigin - a, edge) / lengthSq, 0.0, 1.0);
-    float d = distance(u_VoronoiViewOrigin, a + t * edge);
-    return mix(1.0, clamp(sqrt(lengthSq) / 10.0, 1.0, u_PhongParams.x),
-        1.0 - smoothstep(200.0, 400.0, d));
+    vec3 fromEye = a + t * edge - u_VoronoiViewOrigin;
+    return mix(1.0, clamp(sqrt(lengthSq) / 12.0, 1.0, u_PhongParams.x),
+        1.0 - smoothstep(140.0 * 140.0, 300.0 * 300.0, dot(fromEye, fromEye)));
 }
 #endif
 void main()
@@ -64,13 +65,24 @@ void main()
         vec3 a = phongVertex_phongPosition[0];
         vec3 b = phongVertex_phongPosition[1];
         vec3 c = phongVertex_phongPosition[2];
+        vec3 fromEye = clamp(u_VoronoiViewOrigin, min(a, min(b, c)), max(a, max(b, c))) - u_VoronoiViewOrigin;
+        float distanceSq = dot(fromEye, fromEye);
+        if (distanceSq >= 300.0 * 300.0)
+        {
+            voronoiAltitude = vec3(0.0);
+            gl_TessLevelOuter[0] = gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = gl_TessLevelInner[0] = 1.0;
+            return;
+        }
         gl_TessLevelOuter[0] = VoronoiEdgeLevel(b, c);
         gl_TessLevelOuter[1] = VoronoiEdgeLevel(c, a);
         gl_TessLevelOuter[2] = VoronoiEdgeLevel(a, b);
-        vec3 nearest = clamp(u_VoronoiViewOrigin, min(a, min(b, c)), max(a, max(b, c)));
-        float inside = 1.0 - smoothstep(200.0, 400.0, distance(nearest, u_VoronoiViewOrigin));
-        float edge = max(length(b - a), max(length(c - b), length(a - c)));
-        gl_TessLevelInner[0] = mix(1.0, clamp(edge / 10.0, 1.0, u_PhongParams.x), inside);
+
+        vec3 edges = vec3(length(c - b), length(a - c), length(b - a));
+        float area2 = length(cross(b - a, c - a));
+        voronoiAltitude = area2 / max(edges, vec3(1e-5));
+        float edge = max(edges.x, max(edges.y, edges.z));
+        float inside = 1.0 - smoothstep(140.0 * 140.0, 300.0 * 300.0, distanceSq);
+        gl_TessLevelInner[0] = mix(1.0, clamp(edge / 12.0, 1.0, u_PhongParams.x), inside);
 #else
         // One level for the entire character keeps shared edges identical,
         // including edges crossing material and Ghoul2 surface boundaries.
@@ -93,6 +105,7 @@ void main()
 layout(triangles, fractional_odd_spacing, ccw) in;
 uniform sampler2D u_VoronoiHeight;
 uniform vec3 u_VoronoiViewOrigin;
+patch in vec3 voronoiAltitude;
 #else
 layout(triangles, fractional_even_spacing, ccw) in;
 #endif
@@ -115,21 +128,19 @@ layout(std140) uniform TemporalInfo
 #if defined(USE_VORONOI_FRACTURING)
 vec3 VoronoiOffset()
 {
-    vec3 a = phongPatch_phongPosition[0];
-    vec3 b = phongPatch_phongPosition[1];
-    vec3 c = phongPatch_phongPosition[2];
-    vec3 edgeLengths = vec3(length(c - b), length(a - c), length(b - a));
-    float area2 = length(cross(b - a, c - a));
-    vec3 sideDistance = gl_TessCoord * area2 / max(edgeLengths, vec3(1e-5));
+    vec3 sideDistance = gl_TessCoord * voronoiAltitude;
     // Preserve the inputs of any neighboring patch, including T-junctions and
     // transitions to a different material. Fragment relief crosses these edges.
     float edge = min(sideDistance.x, min(sideDistance.y, sideDistance.z));
-    float fade = (1.0 - smoothstep(200.0, 390.0, distance(phongPosition, u_VoronoiViewOrigin)))
+    if (edge <= 0.0)
+        return vec3(0.0);
+    vec3 fromEye = phongPosition - u_VoronoiViewOrigin;
+    float fade = (1.0 - smoothstep(140.0 * 140.0, 290.0 * 290.0, dot(fromEye, fromEye)))
                  * smoothstep(0.0, 5.0, edge);
     if (fade <= 0.0)
         return vec3(0.0);
-    float h = textureLod(u_VoronoiHeight, voronoiUV, 2.0).r;
-    return phongNormal * (-u_PhongParams.z * (1.0 - h) * fade);
+    float depth = textureLod(u_VoronoiHeight, voronoiUV, 2.0).r;
+    return phongNormal * (-u_PhongParams.z * depth * fade);
 }
 #else
 vec3 PhongOffset(vec3 p, vec3 p0, vec3 p1, vec3 p2, vec3 n0, vec3 n1, vec3 n2)

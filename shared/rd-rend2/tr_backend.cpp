@@ -1423,14 +1423,13 @@ static void RB_DrawItems(
 
 void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 {
-	// A geometric comparison needs both silhouettes and both depth surfaces.
-	// Reuse bindings/uniform data; only debug split mode submits the second draw.
-	if (pass && drawItem.program->phongTessellation && !drawItem.renderState.phongCompareSide &&
+	// Reuse bindings/uniform data and split the draw only in comparison mode.
+	if (pass && drawItem.program->variantBase && !drawItem.renderState.phongCompareSide &&
 		backEnd.refdef.compareSplitX >= 0.0f && R_CompareSplit(drawItem.program->voronoiFracturing ?
 			RC_VORONOIFRACTURING : RC_PHONGTESSELLATION))
 	{
 		DrawItem original = drawItem;
-		original.program = drawItem.program->phongBase;
+		original.program = drawItem.program->variantBase;
 		GLSL_EnsureProgram(original.program);
 		original.draw.primitiveType = GL_TRIANGLES;
 		original.renderState.phongCompareSide = 1;
@@ -1567,7 +1566,8 @@ static void RB_SubmitDrawSurfsForDepthFill(
 		// Displaced world surfaces need the same height field in both passes.
 		if (shader->depthPrepass == DEPTHPREPASS_SIMPLE && !alphaShadowDepth &&
 			!RB_WeatherImpactPass() &&
-			!(entityNum == REFENTITYNUM_WORLD && RB_UsesVoronoiFracturing(shader)) &&
+			!(shader->voronoiRelief && entityNum == REFENTITYNUM_WORLD &&
+			  r_voronoiFracturingGeometry->integer && RB_UsesVoronoiFracturing(shader)) &&
 			*drawSurf->surface != SF_POM_SHELL && *drawSurf->surface != SF_POM_FADEBASE)
 			shader = tr.defaultShader;
 

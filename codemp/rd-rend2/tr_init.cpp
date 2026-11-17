@@ -214,7 +214,7 @@ cvar_t *r_waterfallImpact, *r_waterfallImpactRadius, *r_waterfallImpactImpulse;
 cvar_t *r_waterfallImpactTurbulence, *r_waterfallImpactFoam, *r_waterfallImpactDebug;
 cvar_t *r_waterGeometry, *r_waterGeometryEdge, *r_waterGeometryBodyVerts, *r_waterGeometryMapVerts, *r_waterGeometryDebug;
 cvar_t *r_phongTessDebug;
-cvar_t *r_voronoiFracturing;
+cvar_t *r_voronoiFracturing, *r_voronoiFracturingGeometry;
 cvar_t *r_phongTessellation, *r_phongTessMaxCharacters, *r_phongTessDistance, *r_phongTessGameplay;
 cvar_t *r_phongTessLevel, *r_phongTessStrength, *r_phongTessMaxDisplacement;
 cvar_t *r_waterTessellation, *r_waterTessPixels, *r_waterTessMax, *r_waterTessForce;
@@ -3244,6 +3244,9 @@ void R_Register( void )
 	r_voronoiFracturing = R_Cvar("r_voronoiFracturing", "0", CVAR_ARCHIVE | CVAR_LATCH,
 		"Texture-guided Voronoi relief on classified world stone (r_materialClassification 1 and r_gl43 1, requires vid_restart)");
 	R_CvarRange(r_voronoiFracturing, 0, 1, qtrue);
+	r_voronoiFracturingGeometry = R_Cvar("r_voronoiFracturingGeometry", "0", CVAR_ARCHIVE,
+		"Add close-range mesh displacement to Voronoi stone relief (experimental, 0 = shading only)");
+	R_CvarRange(r_voronoiFracturingGeometry, 0, 1, qtrue);
 	r_phongTessellation = R_Cvar("r_phongTessellation", "0", CVAR_ARCHIVE, "Phong GPU tessellation of nearby player/NPC bodies in scripted cinematics (requires r_gl43 1)");
 	R_CvarRange(r_phongTessellation, 0, 1, qtrue);
 	r_phongTessMaxCharacters = R_Cvar("r_phongTessMaxCharacters", "1", CVAR_ARCHIVE, "Maximum nearest visible characters with Phong tessellation; 0 disables it");

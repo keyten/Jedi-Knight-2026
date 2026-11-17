@@ -3971,13 +3971,62 @@ float StoneNoise(float u, float v, int period, uint32_t seed)
 }
 } // namespace
 
-image_t *R_StoneReliefImage(const image_t *diffuse, Rend2Material::Type type)
+namespace {
+constexpr int STONE_SIZE = 128;
+constexpr int STONE_PIXELS = STONE_SIZE * STONE_SIZE;
+constexpr float STONE_SLOPE_RANGE = 24.0f;
+constexpr int stoneNormals[][2] = { {1, 0}, {0, 1}, {1, 1}, {1, -1} };
+
+int StoneIndex(int x, int y)
+{
+	return (y & (STONE_SIZE - 1)) * STONE_SIZE + (x & (STONE_SIZE - 1));
+}
+
+// A groove must have a raised lip on both sides. This rejects changes in
+// exposure and one-sided color gradients across the stone face.
+float StoneValley(const float *texels, int x, int y, int direction, int wide)
+{
+	const int dx = stoneNormals[direction][0], dy = stoneNormals[direction][1];
+	const float center = texels[StoneIndex(x, y)];
+	const float narrow = MIN(texels[StoneIndex(x - 2 * dx, y - 2 * dy)],
+		texels[StoneIndex(x + 2 * dx, y + 2 * dy)]) - center;
+	const float broad = MIN(texels[StoneIndex(x - wide * dx, y - wide * dy)],
+		texels[StoneIndex(x + wide * dx, y + wide * dy)]) - center;
+	return MAX(narrow, broad * 0.80f);
+}
+
+int StoneLayerNormal(const float *texels)
+{
+	float energy[ARRAY_LEN(stoneNormals)] = {};
+	for (int y = 0; y < STONE_SIZE; y += 3)
+	{
+		for (int x = 0; x < STONE_SIZE; x += 3)
+		{
+			for (int d = 0; d < ARRAY_LEN(stoneNormals); ++d)
+			{
+				const int dx = stoneNormals[d][0], dy = stoneNormals[d][1];
+				const float gradient = fabsf(texels[StoneIndex(x + dx, y + dy)] -
+					texels[StoneIndex(x - dx, y - dy)]);
+				energy[d] += gradient * (d < 2 ? 1.0f : 0.70710678f);
+			}
+		}
+	}
+	return int(std::max_element(energy, energy + ARRAY_LEN(energy)) - energy);
+}
+
+byte StoneSlopeByte(float slope)
+{
+	return byte(128 + int(roundf(Com_Clamp(-1.0f, 1.0f, slope / STONE_SLOPE_RANGE) * 127.0f)));
+}
+} // namespace
+
+image_t *R_StoneReliefImage(const image_t *diffuse, stoneReliefProfile_t profile)
 {
 	if (diffuse->imgName[0] == '*' || (diffuse->flags & IMGFLAG_CLAMPTOEDGE))
 		return nullptr;
 
 	char name[MAX_QPATH];
-	Com_sprintf(name, sizeof(name), "*stoneRelief%u_%u", diffuse->texnum, unsigned(type));
+	Com_sprintf(name, sizeof(name), "*stoneRelief%u_%u", diffuse->texnum, unsigned(profile));
 	for (image_t *img = hashTable[generateHashValue(name)]; img; img = img->next)
 		if (!Q_stricmp(img->imgName, name))
 			return img;
@@ -3988,34 +4037,35 @@ image_t *R_StoneReliefImage(const image_t *diffuse, Rend2Material::Type type)
 	if (!source)
 		return nullptr;
 
-	constexpr int size = 128;
-	constexpr int count = size * size;
-	std::vector<float> fine(count), broad(count), scratch(count);
-	for (int y = 0; y < size; ++y)
+	std::vector<float> luma(STONE_PIXELS), depth(STONE_PIXELS);
+	for (int y = 0; y < STONE_SIZE; ++y)
 	{
-		for (int x = 0; x < size; ++x)
+		for (int x = 0; x < STONE_SIZE; ++x)
 		{
-			float luma = 0.0f;
+			float sample = 0.0f;
 			for (int j = 0; j < 2; ++j)
 				for (int i = 0; i < 2; ++i)
 				{
-					const int sx = ((x * 4 + i * 2 + 1) * sw) / (size * 4);
-					const int sy = ((y * 4 + j * 2 + 1) * sh) / (size * 4);
+					const int sx = ((x * 4 + i * 2 + 1) * sw) / (STONE_SIZE * 4);
+					const int sy = ((y * 4 + j * 2 + 1) * sh) / (STONE_SIZE * 4);
 					const byte *rgba = source + 4 * (sy * sw + sx);
-					luma += rgba[0] * 0.2126f + rgba[1] * 0.7152f + rgba[2] * 0.0722f;
+					sample += rgba[0] * 0.2126f + rgba[1] * 0.7152f + rgba[2] * 0.0722f;
 				}
-			fine[y * size + x] = luma / (255.0f * 4.0f);
+			luma[StoneIndex(x, y)] = sample / (255.0f * 4.0f);
 		}
 	}
 	Z_Free(source);
-	R_AutoRoughBlur(fine.data(), scratch.data(), size, size, 1, qtrue);
-	broad = fine;
-	R_AutoRoughBlur(broad.data(), scratch.data(), size, size, 5, qtrue);
-	const float low = R_AutoRoughPercentile(fine.data(), scratch.data(), count, 0.08f);
-	const float high = MAX(low + 0.08f, R_AutoRoughPercentile(fine.data(), scratch.data(), count, 0.92f));
+	std::vector<float> fine = luma, scratch(STONE_PIXELS);
+	R_AutoRoughBlur(fine.data(), scratch.data(), STONE_SIZE, STONE_SIZE, 1, qtrue);
 
-	const int cellsX = Com_Clampi(3, 10, int(5.0f * sqrtf(float(sw) / sh) + 0.5f));
-	const int cellsY = Com_Clampi(3, 10, int(5.0f * sqrtf(float(sh) / sw) + 0.5f));
+	const bool strata = profile == STONE_RELIEF_STRATA;
+	const bool masonry = profile == STONE_RELIEF_MASONRY;
+	const int layerNormal = strata ? StoneLayerNormal(fine.data()) : 0;
+	const float grooveThreshold = strata ? 0.010f : 0.012f;
+	const float fullGroove = masonry ? 0.14f : (strata ? 0.085f : 0.105f);
+	const float grooveDepth = masonry ? 0.65f : 0.42f;
+	const int cellsX = Com_Clampi(4, 12, int(8.0f * sqrtf(float(sw) / sh) + 0.5f));
+	const int cellsY = Com_Clampi(4, 12, int(8.0f * sqrtf(float(sh) / sw) + 0.5f));
 	uint32_t seed = 2166136261u;
 	for (const unsigned char c : diffuse->imgName)
 	{
@@ -4023,51 +4073,91 @@ image_t *R_StoneReliefImage(const image_t *diffuse, Rend2Material::Type type)
 			break;
 		seed = (seed ^ c) * 16777619u;
 	}
-	std::vector<byte> pixels(count * 4);
-	for (int y = 0; y < size; ++y)
-	{
-		for (int x = 0; x < size; ++x)
-		{
-			const float u = (x + 0.5f) / size, v = (y + 0.5f) / size;
-			const float px = u * cellsX + 0.50f * (StoneNoise(u, v, 11, seed) - 0.5f);
-			const float py = v * cellsY + 0.50f * (StoneNoise(u, v, 11, seed + 1) - 0.5f);
-			const int cx = int(floorf(px)), cy = int(floorf(py));
-			float first = 100.0f, second = 100.0f;
-			uint32_t cell = 0;
-			for (int j = -1; j <= 1; ++j)
-				for (int i = -1; i <= 1; ++i)
-				{
-					const uint32_t site = StoneHash(StoneWrap(cx + i, cellsX), StoneWrap(cy + j, cellsY), seed);
-					const float dx = cx + i + 0.12f + 0.76f * StoneRandom(site) - px;
-					const float dy = cy + j + 0.12f + 0.76f * StoneRandom(StoneHash(0, 0, site)) - py;
-					const float d = dx * dx + dy * dy;
-					if (d < first)
-					{
-						second = first;
-						first = d;
-						cell = site;
-					}
-					else if (d < second)
-						second = d;
-				}
 
-			const int p = y * size + x;
-			const float joint = StoneSmooth(0.015f, 0.105f, broad[p] - fine[p]);
-			const float sourceRelief = StoneSmooth(low, high, fine[p]);
-			const float chips = StoneNoise(u, v, 23, seed + 2);
-			const float grain = 0.65f * chips + 0.35f * StoneNoise(u, v, 49, seed + 3) - 0.5f;
-			const float crack = 1.0f - StoneSmooth(0.018f, 0.14f + 0.10f * chips, second - first);
-			// On painted masonry, reserve the strongest recesses for the painted joints.
-			const float cellWeight = type == Rend2Material::Masonry ? 0.06f : 0.15f;
-			const float relief = 0.51f + 0.30f * (sourceRelief - 0.5f) - 0.30f * joint
-				- crack * (cellWeight + 0.23f * joint) + 0.09f * (StoneRandom(cell) - 0.5f)
-				+ 0.12f * grain + 0.07f * (1.0f - StoneSmooth(0.05f, 0.80f, first));
-			const byte value = byte(Com_Clamp(0.0f, 1.0f, relief) * 255.0f + 0.5f);
-			pixels[4 * p] = pixels[4 * p + 1] = pixels[4 * p + 2] = value;
+	vec2_t sites[12][12];
+	for (int y = 0; y < cellsY; ++y)
+	{
+		for (int x = 0; x < cellsX; ++x)
+		{
+			const uint32_t site = StoneHash(x, y, seed);
+			sites[y][x][0] = 0.18f + 0.64f * StoneRandom(site);
+			sites[y][x][1] = 0.18f + 0.64f * StoneRandom(StoneHash(0, 0, site));
+		}
+	}
+
+	for (int y = 0; y < STONE_SIZE; ++y)
+	{
+		for (int x = 0; x < STONE_SIZE; ++x)
+		{
+			const int p = StoneIndex(x, y);
+			float groove = 0.0f;
+			if (strata)
+			{
+				const int tangent = layerNormal ^ 1;
+				const int tx = stoneNormals[tangent][0], ty = stoneNormals[tangent][1];
+				const float center = StoneValley(fine.data(), x, y, layerNormal, 5);
+				const float before = StoneValley(fine.data(), x - 4 * tx, y - 4 * ty, layerNormal, 5);
+				const float after = StoneValley(fine.data(), x + 4 * tx, y + 4 * ty, layerNormal, 5);
+				const float farBefore = StoneValley(fine.data(), x - 7 * tx, y - 7 * ty, layerNormal, 5);
+				const float farAfter = StoneValley(fine.data(), x + 7 * tx, y + 7 * ty, layerNormal, 5);
+				const float continuity = MIN(before, after) * 0.65f + MIN(farBefore, farAfter) * 0.35f;
+				// An isolated dark pit also has raised lips along the layer.
+				// Keep the part of the valley that extends across the texture.
+				const float alongLayer = StoneValley(fine.data(), x, y, tangent, 5);
+				groove = MAX(0.0f, center - MAX(0.0f, alongLayer))
+					* StoneSmooth(0.003f, 0.022f, continuity);
+			}
+			else
+			{
+				const int radius = masonry ? 8 : 5;
+				for (int d = 0; d < ARRAY_LEN(stoneNormals); ++d)
+					groove = MAX(groove, StoneValley(fine.data(), x, y, d, radius));
+			}
+
+			const float seam = StoneSmooth(grooveThreshold, fullGroove, groove);
+			const float u = (x + 0.5f) / STONE_SIZE, v = (y + 0.5f) / STONE_SIZE;
+			const float chipMask = StoneNoise(u, v, 13, seed);
+			float chip = 0.0f;
+			if (chipMask > 0.79f && seam < 0.40f)
+			{
+				const float px = u * cellsX + 0.60f * (fine[p] - 0.5f);
+				const float py = v * cellsY + 0.42f * (StoneNoise(u, v, 19, seed + 1) - 0.5f);
+				const int cx = int(floorf(px)), cy = int(floorf(py));
+				float first = 10.0f, second = 10.0f;
+				for (int j = -1; j <= 1; ++j)
+					for (int i = -1; i <= 1; ++i)
+					{
+						const float *site = sites[StoneWrap(cy + j, cellsY)][StoneWrap(cx + i, cellsX)];
+						const float dx = cx + i + site[0] - px, dy = cy + j + site[1] - py;
+						const float distance = dx * dx + dy * dy;
+						second = MIN(second, MAX(first, distance));
+						first = MIN(first, distance);
+					}
+				chip = StoneSmooth(0.79f, 0.91f, chipMask) * (1.0f - StoneSmooth(0.015f, 0.13f, second - first));
+			}
+
+			const float grain = Com_Clamp(0.0f, 0.025f, (fine[p] - luma[p]) * 0.12f);
+			depth[p] = grooveDepth * seam + 0.17f * chip + grain;
+		}
+	}
+
+	std::vector<byte> pixels(STONE_PIXELS * 4);
+	for (int y = 0; y < STONE_SIZE; ++y)
+	{
+		for (int x = 0; x < STONE_SIZE; ++x)
+		{
+			const int p = StoneIndex(x, y);
+			pixels[4 * p] = byte(depth[p] * 255.0f + 0.5f);
+			// Pack the UV derivatives of height in the unused channels. Mips
+			// filter these slopes instead of differentiating rasterized heights.
+			pixels[4 * p + 1] = StoneSlopeByte((depth[StoneIndex(x - 1, y)] -
+				depth[StoneIndex(x + 1, y)]) * (0.5f * STONE_SIZE));
+			pixels[4 * p + 2] = StoneSlopeByte((depth[StoneIndex(x, y - 1)] -
+				depth[StoneIndex(x, y + 1)]) * (0.5f * STONE_SIZE));
 			pixels[4 * p + 3] = 255;
 		}
 	}
-	return R_CreateImage(name, pixels.data(), size, size, IMGTYPE_COLORALPHA,
+	return R_CreateImage(name, pixels.data(), STONE_SIZE, STONE_SIZE, IMGTYPE_COLORALPHA,
 		IMGFLAG_MIPMAP | IMGFLAG_NOLIGHTSCALE | IMGFLAG_NO_COMPRESSION, GL_RGBA8);
 }
 
