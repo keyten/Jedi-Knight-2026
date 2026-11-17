@@ -516,6 +516,14 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_PhongViewProjection", GLSL_MAT4x4, 1 },
 	{ "u_VoronoiHeight", GLSL_INT, 1 },
 	{ "u_VoronoiViewOrigin", GLSL_VEC3, 1 },
+	{ "u_RtStaticBuffer",		GLSL_INT, 1 },
+	{ "u_RtDynamicBuffer",		GLSL_INT, 1 },
+	{ "u_RtScene",				GLSL_VEC4, 1 },
+	{ "u_RtParams",				GLSL_VEC4, 4 },
+	{ "u_RtLights",				GLSL_VEC4, 8 },
+	{ "u_RtHistory",			GLSL_VEC4, 1 },
+	{ "u_RtViewToWorld",		GLSL_MAT4x4, 1 },
+	{ "u_RtShadowMap",			GLSL_INT, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -832,9 +840,16 @@ static size_t GLSL_GetShaderHeader(
 	// a permutation, not a uniform branch: off leaves lightall unchanged
 	// r_sunShadowModelLayer: models are not in the soft layers, so the character
 	// layers have nothing to separate there
-	if (r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 1)
+	// r_sunShadowMode 2 (ray traced): layers 3-5 hold the casters the tracer
+	// does not have instead, the models are traced
+	if (R_RtShadowsSunEnabled())
+		GLSL_HeaderCat(dest, size, "#define USE_RT_SHADOWS\n");
+	// r_dlightMode 3: traced visibility of up to four dynamic lights
+	if (R_RtShadowsLightsEnabled())
+		GLSL_HeaderCat(dest, size, "#define USE_RT_DSHADOWS\n");
+	if (!R_RtShadowsSunEnabled() && r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 1)
 		GLSL_HeaderCat(dest, size, "#define USE_SUN_SHADOW_SPLIT\n");
-	else if (r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 2)
+	else if (!R_RtShadowsSunEnabled() && r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 2)
 		GLSL_HeaderCat(dest, size, "#define USE_PCSS_CHARACTER_LAYERS\n");
 
 	// screen-space AO / contact shadow map (u_SSAOMap), tr_ao.cpp
@@ -4194,7 +4209,7 @@ static int GLSL_LoadGPUProgramLightAll(
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_LTC\n");
 			if (maxFragmentSamplers > TB_LTC_SHADOW)
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LTC_SHADOWS\n");
-			if (maxFragmentSamplers > TB_LTC_SABER_SCREEN)
+			if (maxFragmentSamplers > TB_LTC_SABER_SCREEN && !R_RtShadowsLightsEnabled())
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LTC_SABER_SCREEN\n");
 			if (r_ltcDebug->integer)
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LTC_DEBUG\n");
@@ -4452,6 +4467,7 @@ static int GLSL_LoadGPUProgramLightAll(
 			GLSL_SetUniformInt(program, UNIFORM_PROBEAVERAGEMAP, TB_PROBEAVERAGEMAP);
 			GLSL_SetUniformInt(program, UNIFORM_SHADOWMAP2,  TB_SHADOWMAPARRAY);
 			GLSL_SetUniformInt(program, UNIFORM_SSAOMAP,     TB_SSAOMAP);
+			GLSL_SetUniformInt(program, UNIFORM_RTSHADOWMAP, TB_RT_LIGHTSHADOW);
 			GLSL_SetUniformInt(program, UNIFORM_EMISSIVEMAP, TB_EMISSIVEMAP);
 			GLSL_SetUniformInt(program, UNIFORM_ENTITYGRIDAMBIENT, TB_ENTITYGRID_AMBIENT);
 			GLSL_SetUniformInt(program, UNIFORM_ENTITYGRIDDIRECTED, TB_ENTITYGRID_DIRECTED);
@@ -4960,6 +4976,7 @@ static int GLSL_LoadGPUProgramScreenSpaceAO(
 		GLSL_SetUniformInt(sp, UNIFORM_AODEPTHMAP, TB_NORMALMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_LEGACYAOMAP, TB_DELUXEMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_AOBENTMAP, TB_SPECULARMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_RTSHADOWMAP, TB_SHADOWMAP);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(sp);
 		++numPrograms;
@@ -6746,10 +6763,72 @@ static int GLSL_CountStartupPrograms()
 	// the raster injection / integration (GLSL_LoadGPUProgramVolumetric)
 	if (R_VolumetricFroxelEnabled())
 		count += 4 + (R_VolumetricComputeAvailable() && r_volumetricSelfShadow->integer ? 1 : 0);
+	if (R_RtSceneWanted())
+		count += 2 + (R_RtShadowsSunEnabled() ? 1 : 0) + (R_RtShadowsLightsEnabled() ? 1 : 0);
 	if (r_cubeMapping->integer) ++count;
 	if (r_diffuseIBL->integer) count += 2;
 	if (r_smaa->integer) count += 4;
 	return count;
+}
+
+// Ray traced shadows (tr_rtshadows.cpp): the trace over the BVH buffers, the
+// resolve / temporal pass and the filter. ssr_common.glsl is their library
+// (view reconstruction, noise).
+static int GLSL_LoadGPUProgramRtShadows(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	if (!R_RtSceneWanted())
+		return 0;
+
+	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
+	const GPUShaderDesc *common = nullptr;
+	{
+		const GPUProgramDesc *commonDesc =
+			LoadProgramSource("ssr_common", allocator, fallback_ssr_commonProgram);
+		for ( size_t i = 0; i < commonDesc->numShaders; ++i )
+		{
+			if ( commonDesc->shaders[i].type == GPUSHADER_FRAGMENT )
+				common = &commonDesc->shaders[i];
+		}
+		if ( !common )
+			ri.Error(ERR_FATAL, "Could not load ssr_common shader library!");
+	}
+
+	const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0;
+	int numPrograms = 0;
+	auto load = [&]( shaderProgram_t *sp, const char *name, const char *defines )
+	{
+		const GPUProgramDesc *programDesc =
+			LoadProgramSource("rt_shadows", allocator, fallback_rt_shadowsProgram);
+		if ( !GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
+				defines, *programDesc, common) )
+		{
+			ri.Error(ERR_FATAL, "Could not load %s shader!", name);
+		}
+
+		GLSL_InitUniforms(sp);
+		qglUseProgram(sp->program);
+		GLSL_SetUniformInt(sp, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_SSRTRACEMAP, TB_SHADOWMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYMAP, TB_CUBEMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYGEOMMAP, TB_ENVBRDFMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_VELOCITYMAP, TB_SSAOMAP);
+		// the trace has no trace map: the buffers take its units
+		GLSL_SetUniformInt(sp, UNIFORM_RTSTATICBUFFER, TB_SHADOWMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_RTDYNAMICBUFFER, TB_SHADOWMAPARRAY);
+		qglUseProgram(0);
+		GLSL_FinishGPUShader(sp);
+		++numPrograms;
+	};
+
+	if (R_RtShadowsSunEnabled())
+		load(&tr.rtShadowShader[0], "rt_shadow_sun", "#define RT_TRACE\n");
+	if (R_RtShadowsLightsEnabled())
+		load(&tr.rtShadowShader[1], "rt_shadow_lights", "#define RT_TRACE\n#define RT_LIGHTS\n");
+	load(&tr.rtShadowShader[2], "rt_shadow_resolve", "#define RT_RESOLVE\n");
+	load(&tr.rtShadowShader[3], "rt_shadow_filter", "#define RT_FILTER\n");
+	return numPrograms;
 }
 
 // every startup loader; GLSL_LoadGPUShaders runs them for real and, before
@@ -6777,6 +6856,7 @@ static void GLSL_RunStartupLoaders( ShaderProgramBuilder& builder, Allocator& al
 	numEtc += GLSL_LoadGPUProgramMotionBlur(builder, allocator);
 	numEtc += GLSL_LoadGPUProgramRainLens(builder, allocator);
 	numEtc += GLSL_LoadGPUProgramScreenSpace(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramRtShadows(builder, allocator);
 	numEtc += GLSL_LoadGPUProgramVolumetric(builder, allocator);
 	numEtc += GLSL_LoadGPUProgramAtmosphere(builder, allocator);
 	numEtc += GLSL_LoadGPUProgramClouds(builder, allocator);
@@ -7034,6 +7114,8 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.waterIntersectionComputeShader);
 	GLSL_DeleteGPUShader(&tr.forwardPlusClusterShader);
 	GLSL_DeleteGPUShader(&tr.froxelLightClusterShader);
+	for ( i = 0; i < 4; i++ )
+		GLSL_DeleteGPUShader(&tr.rtShadowShader[i]);
 
 	for ( i = 0; i < 2; i++)
 		GLSL_DeleteGPUShader(&tr.screenHiZShader[i]);

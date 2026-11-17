@@ -5246,6 +5246,8 @@ void R_CreateBuiltinImages( void ) {
 		|| R_SSGIWantsVelocity()
 		|| (r_ltcAreaLights->integer && R_LtcSaberScreenResourcesEnabled())
 		|| R_MotionBlurEnabled()
+		// the temporal accumulation of ray traced shadows follows moving surfaces
+		|| (R_RtSceneWanted() && r_rtShadowsSoft->integer)
 		// || r_taa->integer
 		);
 	if (needVelocityBuffer)
@@ -5346,7 +5348,9 @@ void R_CreateBuiltinImages( void ) {
 			r_shadowMapSize->integer,
 			r_shadowMapSize->integer,
 			// cascades; r_sunShadowModelLayer adds the hard model layers 3-5
-			(r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 1) ? 6 : 3,
+			// (r_sunShadowMode 2: the residual casters of the ray traced sun)
+			((r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 1) ||
+				R_RtShadowsSunEnabled()) ? 6 : 3,
 			IMGTYPE_COLORALPHA,
 			sunShadowFlags,
 			r_sunShadowMode->integer ? GL_DEPTH_COMPONENT24 : GL_DEPTH_COMPONENT16);

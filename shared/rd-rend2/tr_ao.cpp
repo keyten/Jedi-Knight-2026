@@ -114,7 +114,9 @@ void R_CreateAOImages( int width, int height )
 		s_aoResources = (qboolean)(
 			r_ssao->integer ||
 			r_aoMode->integer > 0 ||
-			r_contactShadows->integer);
+			r_contactShadows->integer ||
+			// the traced sun visibility reaches lightall through this map
+			R_RtShadowsSunEnabled());
 	}
 
 	s_debugGtaoImage = NULL;
@@ -427,7 +429,8 @@ static void RB_RenderAOComposite(
 	int aoSource,
 	image_t *gtaoResult,
 	image_t *bentResult,
-	qboolean contactShadows )
+	qboolean contactShadows,
+	image_t *rtSunImage )
 {
 	const int timer = RB_AOBeginTimer("AO composite/contact");
 
@@ -439,6 +442,8 @@ static void RB_RenderAOComposite(
 	GL_BindToTMU(tr.aoDepthImage, TB_NORMALMAP);
 	GL_BindToTMU(tr.screenSsaoImage, TB_DELUXEMAP);
 	GL_BindToTMU(bentResult ? bentResult : tr.whiteImage, TB_SPECULARMAP);
+	// r_sunShadowMode 2: the traced sun visibility of this view goes into g
+	GL_BindToTMU(rtSunImage ? rtSunImage : tr.whiteImage, TB_SHADOWMAP);
 
 	RB_AOSetViewUniforms(sp, info);
 
@@ -466,7 +471,8 @@ static void RB_RenderAOComposite(
 	const vec4_t settings3 = {
 		r_contactShadowSoft->integer ? 1.0f : 0.0f,
 		(bentResult && aoSource == 2) ? 1.0f : 0.0f,
-		contactSplit >= 0.0f ? contactSplit / (float)glConfig.vidWidth : -1.0f, 0.0f };
+		contactSplit >= 0.0f ? contactSplit / (float)glConfig.vidWidth : -1.0f,
+		rtSunImage ? 1.0f : 0.0f };
 	GLSL_SetUniformVec4(sp, UNIFORM_AOSETTINGS3, settings3);
 
 	const vec3_t *axis = backEnd.viewParms.ori.axis;
@@ -547,7 +553,10 @@ void RB_RenderScreenSpaceLighting( void )
 	const qboolean needLegacy = (qboolean)(mode == AO_MODE_LEGACY || compareLegacy || debugView == 1);
 	const qboolean needGtao = (qboolean)(mode == AO_MODE_GTAO || compare || (debugView >= 2 && debugView <= 5));
 
-	if ( !needLegacy && !needGtao && !contact )
+	// r_sunShadowMode 2: traced by RB_RenderRtShadows just before this
+	image_t *rtSunImage = RB_RtShadowsSunImage();
+
+	if ( !needLegacy && !needGtao && !contact && !rtSunImage )
 		return;
 
 	// With MSAA the depth prepass only resolves into renderDepthImage for
@@ -588,14 +597,14 @@ void RB_RenderScreenSpaceLighting( void )
 	else if ( mode == AO_MODE_GTAO )
 		aoSource = 2;
 
-	if ( aoSource == 1 && !contact )
+	if ( aoSource == 1 && !contact && !rtSunImage )
 	{
 		// plain legacy SSAO, sampled by lightall exactly as before
 		backEnd.screenAoImage = tr.screenSsaoImage;
 	}
-	else if ( aoSource != AO_MODE_OFF || contact )
+	else if ( aoSource != AO_MODE_OFF || contact || rtSunImage )
 	{
-		RB_RenderAOComposite(info, aoSource, gtaoResult, bentResult, contact);
+		RB_RenderAOComposite(info, aoSource, gtaoResult, bentResult, contact, rtSunImage);
 		backEnd.screenAoImage = tr.screenAoImage;
 	}
 

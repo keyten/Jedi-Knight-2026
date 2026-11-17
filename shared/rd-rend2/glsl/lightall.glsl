@@ -882,6 +882,12 @@ uniform sampler2D u_SSAOMap;
 uniform sampler2DArrayShadow u_ShadowMap2;
 #endif
 
+#if defined(USE_RT_DSHADOWS)
+// r_dlightMode 3: ray traced visibility of up to four lights of this view (tr_rtshadows.cpp),
+// one channel each; u_ViewInfo.z = channels traced in this view
+uniform sampler2D u_RtShadowMap;
+#endif
+
 #if defined(PER_PIXEL_LIGHTING) && defined(USE_SPECULARMAP)
 uniform sampler2D u_EnvBrdfMap;
 #endif
@@ -1255,11 +1261,22 @@ float ShadowKernelRadius(in vec2 uv, in float radiusUv)
 	return min(radiusUv, max(min(edge.x, edge.y) - 0.5 * u_ShadowTexelSize.w, 0.0));
 }
 
+// r_sunShadowMode 2 (ray traced sun, tr_rtshadows.cpp): in a view whose sun is traced the
+// cascades are read from the residual layers 3-5, the casters the tracer does not have
+// (u_ViewInfo.w = 1), or not at all (2). Everywhere else they are the complete ones.
+#if defined(USE_RT_SHADOWS)
+int g_ShadowLayerBase = 0;
+bool g_RtSunOnly = false;
+#define SHADOW_LAYER(c) ((c) + g_ShadowLayerBase)
+#else
+#define SHADOW_LAYER(c) (c)
+#endif
+
 float ShadowRawDepth(in int cascade, in vec2 uv)
 {
 	ivec2 size = textureSize(u_ShadowMap, 0).xy;
 	ivec2 p = clamp(ivec2(uv * vec2(size)), ivec2(0), size - ivec2(1));
-	return texelFetch(u_ShadowMap, ivec3(p, cascade), 0).r;
+	return texelFetch(u_ShadowMap, ivec3(p, SHADOW_LAYER(cascade)), 0).r;
 }
 
 float ShadowReceiverDepth(in float centerDepth, in vec2 gradient,
@@ -1325,7 +1342,7 @@ float ShadowBilinearPcf(in int cascade, in vec3 shadowPos,
 		vec2 offset = (texel + 0.5) / size - shadowPos.xy;
 		float receiver = ShadowReceiverDepth(shadowPos.z, receiverGradient, offset, depthSpan);
 		ivec2 p = clamp(ivec2(texel), ivec2(0), ivec2(size) - ivec2(1));
-		lit[corner] = receiver <= texelFetch(u_ShadowMap, ivec3(p, cascade), 0).r ? 1.0 : 0.0;
+		lit[corner] = receiver <= texelFetch(u_ShadowMap, ivec3(p, SHADOW_LAYER(cascade)), 0).r ? 1.0 : 0.0;
 	}
 	return mix(mix(lit.x, lit.y, f.x), mix(lit.z, lit.w, f.x), f.y);
 }
@@ -1415,7 +1432,7 @@ float ShadowLayerPcf(in int cascade, in vec3 shadowPos,
 			vec2 offset = (texel + 0.5) / size - shadowPos.xy;
 			float receiver = ShadowReceiverDepth(shadowPos.z, receiverGradient, offset, depthSpan);
 			ivec2 p = clamp(ivec2(texel), ivec2(0), ivec2(size) - ivec2(1));
-			float sampleDepth = texelFetch(u_ShadowMap, ivec3(p, cascade), 0).r;
+			float sampleDepth = texelFetch(u_ShadowMap, ivec3(p, SHADOW_LAYER(cascade)), 0).r;
 			bool inCharacter = ShadowInCharacter(sampleDepth, (texel + 0.5) / size,
 				characterDepth, footprint);
 			lit[corner] = (receiver > sampleDepth && inCharacter == character) ? 0.0 : 1.0;
@@ -1463,6 +1480,10 @@ SunCascadeResult EvaluateSunCascade(in mat4 shadowMvp, in int cascade,
 
 	if (any(lessThan(shadowPos, vec3(0.0))) || any(greaterThan(shadowPos, vec3(1.0))))
 		return result;
+#if defined(USE_RT_SHADOWS)
+	if (g_RtSunOnly)
+		return result;
+#endif
 
 	int debugMode = int(u_ShadowDebug.x + 0.5);
 	if (debugMode == 1 || debugMode == 7 || debugMode == 9)
@@ -2556,6 +2577,7 @@ struct FPlusLight
 	float halfWidth;	// area lights: along right (line: half length)
 	float halfHeight;	// area lights: along up (line: tube radius)
 	float sourceRadius;	// point lights only, finite emitter radius in world units
+	int   rtChannel;		// point lights: channel of the traced shadow (r_dlightMode 3), -1 shadow map
 };
 
 bool FPlusEnabled()
@@ -2614,8 +2636,9 @@ FPlusLight FPlusUnpackLight(in int lightIndex, in vec4 t0, in vec4 t1)
 	light.flags = int(t2.y);
 	light.halfWidth = t2.z;
 	light.halfHeight = t2.w;
-	light.sourceRadius = light.type == 0.0 ?
-		texelFetch(u_FPlusLights, base + 4).y : 0.0;
+	vec4 t4 = light.type == 0.0 ? texelFetch(u_FPlusLights, base + 4) : vec4(0.0);
+	light.sourceRadius = t4.y;
+	light.rtChannel = int(t4.z + 0.5) - 1;
 	return light;
 }
 
@@ -2843,6 +2866,7 @@ vec3 EvaluateDynamicLight(
 	in float lightRadius,
 	in float sourceRadius,
 	in int shadowLayer,
+	in int rtChannel,
 	in vec4 spot,
 	in vec4 spot2,
 	in float liquidLocal)
@@ -2864,6 +2888,18 @@ vec3 EvaluateDynamicLight(
 
 	#if defined(USE_DSHADOWS)
 		float dlightShadow = 1.0;
+		#if defined(USE_RT_DSHADOWS)
+		// r_dlightMode 3: a traced light of this view reads its channel instead of the cube
+		if (rtChannel >= 0 && float(rtChannel) < u_ViewInfo.z)
+		{
+			vec4 traced = texture(u_RtShadowMap, gl_FragCoord.xy / r_FBufScale);
+			dlightShadow = rtChannel == 0 ? traced.x : (rtChannel == 1 ? traced.y : (rtChannel == 2 ? traced.z : traced.w));
+			if (dot(s.N, L) > 0.0)
+				g_dlightShadowVisibility = min(g_dlightShadowVisibility, dlightShadow);
+			attenuation *= dlightShadow;
+			shadowLayer = -1;
+		}
+		#endif
 		if (shadowLayer >= 0)
 		{
 			bool projected = spot2.y > 0.5;
@@ -3527,6 +3563,7 @@ vec3 CalcDynamicLightContribution(
 		float lightRadius;
 		float sourceRadius;
 		int shadowLayer;
+		int rtChannel = -1;
 		vec4 spot;
 		vec4 spot2;
 		if (fplus)
@@ -3561,6 +3598,7 @@ vec3 CalcDynamicLightContribution(
 			lightRadius = light.radius;
 			sourceRadius = light.sourceRadius;
 			shadowLayer = light.shadowSlot;
+			rtChannel = light.rtChannel;
 			spot = FPlusSpot(light, lightIndex, spot2);
 		}
 		else
@@ -3575,6 +3613,7 @@ vec3 CalcDynamicLightContribution(
 			spot2 = u_Lights[k].spot2;
 			// the loop index is the cube; spot lights without shadow: none
 			shadowLayer = u_Lights[k].spot2.y < -0.5 ? -1 : k;
+			rtChannel = int(u_Lights[k].physical.y + 0.5) - 1;
 		}
 		if (SpotDebugSkipLight(spot2.x))
 			continue;
@@ -3594,7 +3633,7 @@ vec3 CalcDynamicLightContribution(
 		}
 #endif
 		outColor += EvaluateDynamicLight(s, lightOrigin, lightColor, lightRadius, sourceRadius,
-			shadowLayer, spot, spot2, liquidLocal);
+			shadowLayer, rtChannel, spot, spot2, liquidLocal);
 	}
 	return outColor;
 }
@@ -4893,7 +4932,12 @@ void main()
 	contactShadow = screenAO.g;
 	#if defined(USE_SILHOUETTE_POM)
 	// contact shadows march the displaced depth: hard black grooves on shells
+	// (r_sunShadowMode 2: the channel also holds the traced sun, which the shell keeps)
+	#if defined(USE_RT_SHADOWS)
+	if (pomShell && u_PomFade.w < 0.5 && u_ViewInfo.w < 0.5)
+	#else
 	if (pomShell && u_PomFade.w < 0.5)
+	#endif
 		contactShadow = 1.0;
 	#endif
 	#endif
@@ -4918,6 +4962,11 @@ void main()
 	#if defined(USE_SHADOWS2)
 	vec3 geometricNormal = normalize(vertexNormal);
 	float geometricNPL = clamp(dot(geometricNormal, primaryLightDir), 0.0, 1.0);
+	#if defined(USE_RT_SHADOWS)
+	// the traced sun of this view is in contactShadow (screen AO map, g)
+	g_ShadowLayerBase = u_ViewInfo.w > 0.5 ? 3 : 0;
+	g_RtSunOnly = u_ViewInfo.w > 1.5;
+	#endif
 	#if defined(USE_SILHOUETTE_POM)
 	sunInfo = sunShadowModern(shadowViewDir, geometricNormal, geometricNPL);
 	#else

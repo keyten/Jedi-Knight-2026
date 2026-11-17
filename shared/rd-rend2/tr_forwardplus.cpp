@@ -1373,7 +1373,9 @@ void RB_UpdateForwardPlus( gpuFrame_t *frame, const trRefdef_t *refdef )
 		else
 		{
 			VectorSet4(t + 12, dl->spotDir[0], dl->spotDir[1], dl->spotDir[2], dl->spotCosOuter);
-			VectorSet4(t + 16, dl->cookieRoll, dl->emitterRadius, 0.0f, 0.0f);
+			// z: 1 + channel of the traced visibility (r_dlightMode 3), 0 = shadow map
+			VectorSet4(t + 16, dl->cookieRoll, dl->emitterRadius,
+				(float)(R_RtShadowsLightChannel(i) + 1), 0.0f);
 		}
 	}
 	const int lightBase = RB_ForwardPlusUpload(fb, FPLUS_BUFFER_LIGHTS, lightData,
