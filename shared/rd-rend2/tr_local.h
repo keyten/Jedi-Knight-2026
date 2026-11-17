@@ -836,6 +836,8 @@ extern cvar_t  *r_shadowStaticCache;
 extern cvar_t  *r_dlightShadowBias;
 extern cvar_t  *r_contactShadowSoft;
 extern cvar_t  *r_rtShadowsSoft;
+extern cvar_t  *r_rtShadowsHybrid;
+extern cvar_t  *r_rtShadowsCompute;
 extern cvar_t  *r_rtShadowsHalfRes;
 extern cvar_t  *r_rtShadowsResidual;
 extern cvar_t  *r_rtShadowsMaxCharacters;
@@ -3183,6 +3185,11 @@ typedef enum
 	UNIFORM_RTHISTORY,
 	UNIFORM_RTVIEWTOWORLD,
 	UNIFORM_RTSHADOWMAP,		// traced sun visibility (ao_composite) / light visibility (lightall)
+	UNIFORM_RTDEPTHMAP,			// linear view depth of the ray traced shadow passes
+	UNIFORM_RTCASCADEMAP,		// r_rtShadowsHybrid: the sun cascades
+	UNIFORM_RTCASCADEMVP,
+	UNIFORM_RTCASCADEINFO,
+	UNIFORM_RTHYBRID,
 	UNIFORM_COUNT
 } uniform_t;
 
@@ -4915,7 +4922,9 @@ typedef struct trGlobals_s {
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: masked mip 0
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
 	shaderProgram_t ltcSaberScreenShader[3];
-	shaderProgram_t rtShadowShader[4];		// trace sun, trace lights, resolve, filter (tr_rtshadows.cpp)
+	// tr_rtshadows.cpp: trace sun, trace lights, resolve, filter, linearize; GL 4.3: classify sun,
+	// classify lights, trace list sun, trace list lights
+	shaderProgram_t rtShadowShader[9];
 	shaderProgram_t ssrResolveShader;
 	shaderProgram_t ssrRadianceShader;
 	shaderProgram_t ssrUpsampleShader;
