@@ -522,6 +522,11 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_RtHistory",			GLSL_VEC4, 1 },
 	{ "u_RtViewToWorld",		GLSL_MAT4x4, 1 },
 	{ "u_RtShadowMap",			GLSL_INT, 1 },
+	{ "u_RtDepthMap",			GLSL_INT, 1 },
+	{ "u_RtCascadeMap",			GLSL_INT, 1 },
+	{ "u_RtCascadeMvp",			GLSL_MAT4x4, 3 },
+	{ "u_RtCascadeInfo",			GLSL_VEC4, 3 },
+	{ "u_RtHybrid",				GLSL_VEC4, 1 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -6750,7 +6755,7 @@ static int GLSL_CountStartupPrograms()
 	if (R_VolumetricFroxelEnabled())
 		count += 4 + (R_VolumetricComputeAvailable() && r_volumetricSelfShadow->integer ? 1 : 0);
 	if (R_RtSceneWanted())
-		count += 2 + (R_RtShadowsSunEnabled() ? 1 : 0) + (R_RtShadowsLightsEnabled() ? 1 : 0);
+		count += 3 + (R_RtShadowsSunEnabled() ? 1 : 0) + (R_RtShadowsLightsEnabled() ? 1 : 0);
 	if (r_cubeMapping->integer) ++count;
 	if (r_diffuseIBL->integer) count += 2;
 	if (r_smaa->integer) count += 4;
@@ -6768,34 +6773,17 @@ static int GLSL_LoadGPUProgramRtShadows(
 		return 0;
 
 	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
-	const GPUShaderDesc *common = nullptr;
-	{
-		const GPUProgramDesc *commonDesc =
-			LoadProgramSource("ssr_common", allocator, fallback_ssr_commonProgram);
-		for ( size_t i = 0; i < commonDesc->numShaders; ++i )
-		{
-			if ( commonDesc->shaders[i].type == GPUSHADER_FRAGMENT )
-				common = &commonDesc->shaders[i];
-		}
-		if ( !common )
-			ri.Error(ERR_FATAL, "Could not load ssr_common shader library!");
-	}
-
+	const GPUProgramDesc *programDesc =
+		LoadProgramSource("rt_shadows", allocator, fallback_rt_shadowsProgram);
 	const uint32_t attribs = ATTR_POSITION | ATTR_TEXCOORD0;
 	int numPrograms = 0;
-	auto load = [&]( shaderProgram_t *sp, const char *name, const char *defines )
-	{
-		const GPUProgramDesc *programDesc =
-			LoadProgramSource("rt_shadows", allocator, fallback_rt_shadowsProgram);
-		if ( !GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
-				defines, *programDesc, common) )
-		{
-			ri.Error(ERR_FATAL, "Could not load %s shader!", name);
-		}
 
-		GLSL_InitUniforms(sp);
+	auto configure = [&]( shaderProgram_t *sp )
+	{
 		qglUseProgram(sp->program);
-		GLSL_SetUniformInt(sp, UNIFORM_SCREENDEPTHMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_RTDEPTHMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_RTCASCADEMAP, TB_DELUXEMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRTRACEMAP, TB_SHADOWMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYMAP, TB_CUBEMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_SSRHISTORYGEOMMAP, TB_ENVBRDFMAP);
@@ -6804,8 +6792,44 @@ static int GLSL_LoadGPUProgramRtShadows(
 		GLSL_SetUniformInt(sp, UNIFORM_RTSTATICBUFFER, TB_SHADOWMAP);
 		GLSL_SetUniformInt(sp, UNIFORM_RTDYNAMICBUFFER, TB_SHADOWMAPARRAY);
 		qglUseProgram(0);
-		GLSL_FinishGPUShader(sp);
 		++numPrograms;
+	};
+	auto load = [&]( shaderProgram_t *sp, const char *name, const char *defines )
+	{
+		if ( !GLSL_LoadGPUShader(builder, sp, name, attribs, NO_XFB_VARS,
+				defines, *programDesc, nullptr) )
+		{
+			ri.Error(ERR_FATAL, "Could not load %s shader!", name);
+		}
+		GLSL_InitUniforms(sp);
+		configure(sp);
+		GLSL_FinishGPUShader(sp);
+	};
+	// GL 4.3: the fragment block compiled as a compute kernel (RT_COMPUTE). False leaves sp empty
+	// and the raster trace is used.
+	auto loadCompute = [&]( shaderProgram_t *sp, const char *name, const char *defines )
+	{
+		const uint32_t features = MODERN_COMPUTE | MODERN_SSBO | MODERN_IMAGE_LOAD_STORE;
+		if ( !R_HasModernFeatures(features) )
+			return;
+		for ( size_t i = 0; i < programDesc->numShaders; ++i )
+		{
+			const GPUShaderDesc& fragment = programDesc->shaders[i];
+			if ( fragment.type != GPUSHADER_FRAGMENT )
+				continue;
+			std::vector<char> source(16384 + strlen(fragment.source) + strlen(defines));
+			if ( !GLSL_GetShaderHeader(GL_COMPUTE_SHADER, defines, nullptr,
+					fragment.firstLineNumber, source.data(), source.size()) )
+				return;
+			Q_strcat(source.data(), source.size(), fragment.source);
+			// GLSL_InitComputeShader supplies the version directive itself.
+			const char *body = strchr(source.data(), '\n');
+			if ( body && GLSL_InitComputeShader(sp, name, body + 1, features) )
+				configure(sp);
+			else
+				ri.Printf(PRINT_WARNING, "%s: the GL 4.3 ray traced shadow kernel failed, the raster trace is used\n", name);
+			return;
+		}
 	};
 
 	if (R_RtShadowsSunEnabled())
@@ -6814,6 +6838,21 @@ static int GLSL_LoadGPUProgramRtShadows(
 		load(&tr.rtShadowShader[1], "rt_shadow_lights", "#define RT_TRACE\n#define RT_LIGHTS\n");
 	load(&tr.rtShadowShader[2], "rt_shadow_resolve", "#define RT_RESOLVE\n");
 	load(&tr.rtShadowShader[3], "rt_shadow_filter", "#define RT_FILTER\n");
+	load(&tr.rtShadowShader[4], "rt_shadow_linearize", "#define RT_LINEARIZE\n");
+	if (R_RtShadowsSunEnabled())
+	{
+		loadCompute(&tr.rtShadowShader[5], "rt_shadow_classify_sun",
+			"#define RT_COMPUTE\n#define RT_CLASSIFY\n#define RT_GROUP_X 8\n#define RT_GROUP_Y 8\n");
+		loadCompute(&tr.rtShadowShader[7], "rt_shadow_trace_list_sun",
+			"#define RT_COMPUTE\n#define RT_TRACE_LIST\n#define RT_GROUP_X 64\n#define RT_GROUP_Y 1\n");
+	}
+	if (R_RtShadowsLightsEnabled())
+	{
+		loadCompute(&tr.rtShadowShader[6], "rt_shadow_classify_lights",
+			"#define RT_COMPUTE\n#define RT_CLASSIFY\n#define RT_LIGHTS\n#define RT_GROUP_X 8\n#define RT_GROUP_Y 8\n");
+		loadCompute(&tr.rtShadowShader[8], "rt_shadow_trace_list_lights",
+			"#define RT_COMPUTE\n#define RT_TRACE_LIST\n#define RT_LIGHTS\n#define RT_GROUP_X 64\n#define RT_GROUP_Y 1\n");
+	}
 	return numPrograms;
 }
 
@@ -7100,7 +7139,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.waterIntersectionComputeShader);
 	GLSL_DeleteGPUShader(&tr.forwardPlusClusterShader);
 	GLSL_DeleteGPUShader(&tr.froxelLightClusterShader);
-	for ( i = 0; i < 4; i++ )
+	for ( i = 0; i < (int)ARRAY_LEN(tr.rtShadowShader); i++ )
 		GLSL_DeleteGPUShader(&tr.rtShadowShader[i]);
 
 	for ( i = 0; i < 2; i++)

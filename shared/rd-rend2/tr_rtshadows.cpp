@@ -39,6 +39,9 @@ struct rtChain_t
 	unsigned		readyFrame;
 	int				readyView;
 	int				readyScene;
+	// GL 4.3 (r_rtShadowsCompute): pixels that need a ray, and the indirect dispatch growing with them
+	GLuint			listBuffer;
+	GLuint			argsBuffer;
 };
 
 struct rtLight_t
@@ -60,6 +63,11 @@ static rtLight_t	s_previousLights[RT_MAX_LIGHTS];
 static int			s_numPreviousLights = 0;
 
 static image_t		*s_debugImage = NULL;
+
+// linear view depth of the view, read by every pass instead of the depth buffer (depth texture fetches
+// are slow on Intel, and the receiver reconstruction reads five per pixel)
+static image_t		*s_depthImage = NULL;
+static FBO_t		*s_depthFbo = NULL;
 
 void R_RtShadowsInvalidate( void )
 {
@@ -136,8 +144,12 @@ Resources
 
 void R_CreateRtShadowImages( int width, int height )
 {
+	// a new context: the compute buffers of the old one are gone with it
 	Com_Memset( s_chains, 0, sizeof( s_chains ) );
 	R_RtShadowsInvalidate();
+	s_depthImage = NULL;
+	if ( s_sunResources || s_lightResources )
+		s_depthImage = R_ScreenCreateImage( "*rtDepth", width, height, GL_R32F, qfalse );
 
 	for ( int c = 0; c < RT_NUM_CHAINS; c++ )
 	{
@@ -173,6 +185,7 @@ void R_CreateRtShadowImages( int width, int height )
 
 void R_CreateRtShadowFBOs( void )
 {
+	s_depthFbo = s_depthImage ? R_ScreenCreateLevelFBO( "_rtDepth", s_depthImage, 0 ) : NULL;
 	for ( int c = 0; c < RT_NUM_CHAINS; c++ )
 	{
 		rtChain_t *chain = &s_chains[c];
@@ -291,7 +304,97 @@ static void RB_RtSetCommon( shaderProgram_t *sp, const screenViewInfo_t& info, c
 	GLSL_SetUniformVec4( sp, UNIFORM_SSRTEXELSIZE, texelSize );
 	GLSL_SetUniformVec4N( sp, UNIFORM_RTPARAMS, (const float *)params, 4 );
 	GLSL_SetUniformVec4( sp, UNIFORM_RTHISTORY, historyWeights );
-	GL_BindToTMU( tr.renderDepthImage, TB_COLORMAP );
+	GL_BindToTMU( s_depthImage, TB_COLORMAP );
+}
+
+// r_rtShadowsHybrid: the sun cascades of this view (all casters in mode 2), see RtSunHybrid
+static void RB_RtSetHybrid( shaderProgram_t *sp, qboolean sun )
+{
+	vec4_t hybrid = { 0.0f, 1.5f, 1.0f, 0.0f };
+	vec4_t info[3];
+	Com_Memset( info, 0, sizeof( info ) );
+	if ( sun && r_rtShadowsHybrid->integer && tr.sunShadowArrayImage &&
+		( backEnd.viewParms.flags & VPF_USESUNLIGHT ) )
+	{
+		hybrid[0] = 1.0f;
+		const float texelUv = 1.0f / (float)Q_max( 1, tr.sunShadowArrayImage->width );
+		for ( int c = 0; c < 3; c++ )
+		{
+			const float texelWorld = backEnd.refdef.sunShadowTexelSize[c];
+			const float span = backEnd.refdef.sunShadowDepthSpan[c];
+			VectorSet4( info[c], texelWorld, span, texelUv, ( texelWorld > 0.0f && span > 0.0f ) ? 1.0f : 0.0f );
+		}
+		GL_BindToTMU( tr.sunShadowArrayImage, TB_DELUXEMAP );
+	}
+	GLSL_SetUniformVec4( sp, UNIFORM_RTHYBRID, hybrid );
+	GLSL_SetUniformVec4N( sp, UNIFORM_RTCASCADEINFO, (const float *)info, 3 );
+	GLSL_SetUniformMatrix4x4( sp, UNIFORM_RTCASCADEMVP, &backEnd.refdef.sunShadowMvp[0][0], 3 );
+}
+
+static qboolean RB_RtComputeAvailable( int c )
+{
+	return (qboolean)( r_rtShadowsCompute->integer &&
+		R_HasModernFeatures( MODERN_COMPUTE | MODERN_SSBO | MODERN_IMAGE_LOAD_STORE ) &&
+		tr.rtShadowShader[5 + c].program && tr.rtShadowShader[7 + c].program );
+}
+
+static void RB_RtComputeBuffers( rtChain_t *chain )
+{
+	if ( chain->listBuffer )
+		return;
+	const GLsizeiptr pixels = (GLsizeiptr)chain->traceImage->width * chain->traceImage->height;
+	qglGenBuffers( 1, &chain->listBuffer );
+	qglBindBuffer( GL_SHADER_STORAGE_BUFFER, chain->listBuffer );
+	qglBufferData( GL_SHADER_STORAGE_BUFFER, pixels * sizeof( uint32_t ), NULL, GL_DYNAMIC_DRAW );
+	qglGenBuffers( 1, &chain->argsBuffer );
+	qglBindBuffer( GL_SHADER_STORAGE_BUFFER, chain->argsBuffer );
+	qglBufferData( GL_SHADER_STORAGE_BUFFER, 4 * sizeof( uint32_t ), NULL, GL_DYNAMIC_DRAW );
+	qglBindBuffer( GL_SHADER_STORAGE_BUFFER, 0 );
+}
+
+// GL 4.3: classify (8x8 groups) writes what it decides and lists the rest, the list is traced by an
+// indirect dispatch of 64 thread groups
+static void RB_RtTraceCompute( int c, const screenViewInfo_t& info, const vec4_t *params,
+	const vec4_t texelSize, const vec4_t historyWeights, const vec4_t *lights )
+{
+	rtChain_t *chain = &s_chains[c];
+	RB_RtComputeBuffers( chain );
+
+	const uint32_t args[4] = { 0, 1, 1, 0 };
+	qglBindBuffer( GL_SHADER_STORAGE_BUFFER, chain->argsBuffer );
+	qglBufferSubData( GL_SHADER_STORAGE_BUFFER, 0, sizeof( args ), args );
+	qglBindBuffer( GL_SHADER_STORAGE_BUFFER, 0 );
+	qglBindBufferBase( GL_SHADER_STORAGE_BUFFER, 0, chain->listBuffer );
+	qglBindBufferBase( GL_SHADER_STORAGE_BUFFER, 1, chain->argsBuffer );
+	qglBindImageTexture( 0, chain->traceImage->texnum, 0, GL_FALSE, 0, GL_WRITE_ONLY,
+		c == RT_CHAIN_SUN ? GL_R8 : GL_RGBA8 );
+
+	vec4_t sceneParams;
+	for ( int stage = 0; stage < 2; stage++ )
+	{
+		shaderProgram_t *sp = &tr.rtShadowShader[( stage ? 7 : 5 ) + c];
+		GLSL_BindProgram( sp );
+		RB_RtSetCommon( sp, info, params, texelSize, historyWeights );
+		RB_RtSceneBind( TB_SHADOWMAP, TB_SHADOWMAPARRAY, sceneParams );
+		GLSL_SetUniformVec4( sp, UNIFORM_RTSCENE, sceneParams );
+		GLSL_SetUniformVec4N( sp, UNIFORM_RTLIGHTS, (const float *)lights, RT_MAX_LIGHTS * 2 );
+		GLSL_SetUniformMatrix4x4( sp, UNIFORM_RTVIEWTOWORLD, info.viewToWorld, 1 );
+		RB_RtSetHybrid( sp, (qboolean)( c == RT_CHAIN_SUN ) );
+		if ( stage == 0 )
+		{
+			qglDispatchCompute( ( chain->traceImage->width + 7 ) / 8, ( chain->traceImage->height + 7 ) / 8, 1 );
+			qglMemoryBarrier( GL_SHADER_STORAGE_BARRIER_BIT | GL_COMMAND_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT );
+		}
+		else
+		{
+			qglBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, chain->argsBuffer );
+			qglDispatchComputeIndirect( 0 );
+			qglBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, 0 );
+			qglMemoryBarrier( GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+				GL_FRAMEBUFFER_BARRIER_BIT );
+		}
+	}
+	qglBindImageTexture( 0, 0, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R8 );
 }
 
 static void RB_RtRunChain( int c, const screenViewInfo_t& info )
@@ -361,17 +464,29 @@ static void RB_RtRunChain( int c, const screenViewInfo_t& info )
 	}
 
 	// trace
-	int timer = RB_ScreenBeginTimer( c == RT_CHAIN_SUN ? "RT sun shadow trace" : "RT light shadow trace" );
-	shaderProgram_t *sp = &tr.rtShadowShader[c];
-	RB_ScreenBeginPass( chain->traceFbo, sp, chain->traceFbo->width, chain->traceFbo->height );
-	RB_RtSetCommon( sp, info, params, texelSize, historyWeights );
-	vec4_t sceneParams;
-	RB_RtSceneBind( TB_SHADOWMAP, TB_SHADOWMAPARRAY, sceneParams );
-	GLSL_SetUniformVec4( sp, UNIFORM_RTSCENE, sceneParams );
-	GLSL_SetUniformVec4N( sp, UNIFORM_RTLIGHTS, (const float *)lights, RT_MAX_LIGHTS * 2 );
-	GLSL_SetUniformMatrix4x4( sp, UNIFORM_RTVIEWTOWORLD, info.viewToWorld, 1 );
-	RB_InstantTriangle();
-	RB_ScreenEndTimer( timer );
+	shaderProgram_t *sp;
+	int timer;
+	if ( RB_RtComputeAvailable( c ) )
+	{
+		timer = RB_ScreenBeginTimer( c == RT_CHAIN_SUN ? "RT sun shadow trace (compute)" : "RT light shadow trace (compute)" );
+		RB_RtTraceCompute( c, info, params, texelSize, historyWeights, lights );
+		RB_ScreenEndTimer( timer );
+	}
+	else
+	{
+		timer = RB_ScreenBeginTimer( c == RT_CHAIN_SUN ? "RT sun shadow trace" : "RT light shadow trace" );
+		sp = &tr.rtShadowShader[c];
+		RB_ScreenBeginPass( chain->traceFbo, sp, chain->traceFbo->width, chain->traceFbo->height );
+		RB_RtSetCommon( sp, info, params, texelSize, historyWeights );
+		vec4_t sceneParams;
+		RB_RtSceneBind( TB_SHADOWMAP, TB_SHADOWMAPARRAY, sceneParams );
+		GLSL_SetUniformVec4( sp, UNIFORM_RTSCENE, sceneParams );
+		GLSL_SetUniformVec4N( sp, UNIFORM_RTLIGHTS, (const float *)lights, RT_MAX_LIGHTS * 2 );
+		GLSL_SetUniformMatrix4x4( sp, UNIFORM_RTVIEWTOWORLD, info.viewToWorld, 1 );
+		RB_RtSetHybrid( sp, (qboolean)( c == RT_CHAIN_SUN ) );
+		RB_InstantTriangle();
+		RB_ScreenEndTimer( timer );
+	}
 
 	chain->result = chain->traceImage;
 	const qboolean rawDebug = (qboolean)( debugView >= 3 );
@@ -457,7 +572,7 @@ void RB_RenderRtShadows( void )
 {
 	const qboolean sun = R_RtShadowsViewSun( &backEnd.viewParms, &backEnd.refdef );
 	const qboolean lights = R_RtShadowsViewLights( &backEnd.viewParms, &backEnd.refdef );
-	if ( !sun && !lights )
+	if ( ( !sun && !lights ) || !s_depthFbo || !tr.rtShadowShader[4].program )
 		return;
 	if ( !RB_RtSceneUpdate() )
 		return;
@@ -468,6 +583,17 @@ void RB_RenderRtShadows( void )
 
 	screenViewInfo_t info;
 	RB_ScreenGetViewInfo( info );
+
+	// linear view depth, once for every pass of both kinds
+	{
+		const int timer = RB_ScreenBeginTimer( "RT shadow depth" );
+		shaderProgram_t *sp = &tr.rtShadowShader[4];
+		RB_ScreenBeginPass( s_depthFbo, sp, s_depthFbo->width, s_depthFbo->height );
+		RB_ScreenSetViewUniforms( sp, info );
+		GL_BindToTMU( tr.renderDepthImage, TB_LIGHTMAP );
+		RB_InstantTriangle();
+		RB_ScreenEndTimer( timer );
+	}
 
 	if ( sun )
 		RB_RtRunChain( RT_CHAIN_SUN, info );

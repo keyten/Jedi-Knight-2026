@@ -707,6 +707,8 @@ cvar_t  *r_shadowStaticCache;
 cvar_t  *r_dlightShadowBias;
 cvar_t  *r_contactShadowSoft;
 cvar_t  *r_rtShadowsSoft;
+cvar_t  *r_rtShadowsHybrid;
+cvar_t  *r_rtShadowsCompute;
 cvar_t  *r_rtShadowsHalfRes;
 cvar_t  *r_rtShadowsResidual;
 cvar_t  *r_rtShadowsMaxCharacters;
@@ -3510,6 +3512,10 @@ void R_Register( void )
 	// ray traced shadows: r_sunShadowMode 2 (sun), r_dlightMode 3 (dynamic lights)
 	r_rtShadowsSoft = R_Cvar( "r_rtShadowsSoft", "1", CVAR_ARCHIVE, "Ray traced shadows (r_sunShadowMode 2, r_dlightMode 3): 0 hard, one ray per pixel and no filter; 1 soft penumbra of the sun disc (r_shadowSunAngularDiameter) and of the light source (r_rtShadowsLightRadius), accumulated over frames and filtered" );
 	R_CvarRange( r_rtShadowsSoft, 0, 1, qtrue );
+	r_rtShadowsHybrid = R_Cvar( "r_rtShadowsHybrid", "1", CVAR_ARCHIVE, "Ray traced sun shadows: 1 = pixels the sun cascades decide clearly (plainly lit, or deep in a shadow) are not traced, only those near shadow edges (much faster; a caster too thin for the cascades can be missed there); 0 = every pixel is traced" );
+	R_CvarRange( r_rtShadowsHybrid, 0, 1, qtrue );
+	r_rtShadowsCompute = R_Cvar( "r_rtShadowsCompute", "1", CVAR_ARCHIVE, "Ray traced shadows with r_gl43 1: 1 = GL 4.3 compute kernels, the pixels that need a ray are packed into a list and traced densely; 0 = the GL 3.2 full screen trace" );
+	R_CvarRange( r_rtShadowsCompute, 0, 1, qtrue );
 	r_rtShadowsHalfRes = R_Cvar( "r_rtShadowsHalfRes", "0", CVAR_ARCHIVE | CVAR_LATCH, "Ray traced shadows: 0 one ray per pixel, 1 one ray per 2x2 pixels (a quarter of the tracing cost; with r_rtShadowsSoft 1 the pixel traced rotates and the frames fill in)" );
 	R_CvarRange( r_rtShadowsHalfRes, 0, 1, qtrue );
 	r_rtShadowsResidual = R_Cvar( "r_rtShadowsResidual", "1", CVAR_ARCHIVE, "Ray traced sun shadows: 1 = casters the tracer does not have (cutout textures, moving shaders, plants, characters over r_rtShadowsMaxCharacters) keep their shadow map shadows, 0 = they cast no shadow on surfaces (three shadow map views less per frame)" );
@@ -3525,8 +3531,8 @@ void R_Register( void )
 	r_rtShadowsBias = R_Cvar( "r_rtShadowsBias", "1", CVAR_ARCHIVE, "Ray traced shadows: scale of the ray start offset along the surface normal; raise against speckles on surfaces, lower against light leaking at contacts" );
 	R_CvarRange( r_rtShadowsBias, 0, 16, qfalse );
 	r_rtShadowsStats = R_Cvar( "r_rtShadowsStats", "0", CVAR_CHEAT, "Ray traced shadows: 1 prints the traced scene every frame (instances, skinned Ghoul2 triangles, dropped models, CPU time)" );
-	r_rtShadowsDebug = R_Cvar( "r_rtShadowsDebug", "0", CVAR_CHEAT, "Ray traced shadow debug view: 1 sun visibility, 2 light visibility (rgba = lights), 3 the rays of this frame (no accumulation, no filter), 4 BVH nodes visited per pixel (white = 256)" );
-	R_CvarRange( r_rtShadowsDebug, 0, 4, qtrue );
+	r_rtShadowsDebug = R_Cvar( "r_rtShadowsDebug", "0", CVAR_CHEAT, "Ray traced shadow debug view: 1 sun visibility, 2 light visibility (rgba = lights), 3 the rays of this frame (no accumulation, no filter), 4 BVH nodes visited per pixel (white = 256), 5 sun pixels decided by the cascades (black / white) and traced (grey), r_rtShadowsHybrid" );
+	R_CvarRange( r_rtShadowsDebug, 0, 5, qtrue );
 	r_entitySunLight = R_Cvar( "r_entitySunLight", "0", CVAR_ARCHIVE | CVAR_LATCH, "Sun on characters: light models from the real sun direction with per-pixel sun shadows instead of the light grid's merged light; needs r_sunlightMode and r_entityLightGrid 0. 0 off, 1 on");
 	R_CvarRange( r_entitySunLight, 0, 1, qtrue );
 	r_entityShadowAmbient = R_Cvar( "r_entityShadowAmbient", "0", CVAR_ARCHIVE, "Models (players, NPCs, items): share of the light grid ambient that the sun shadow darkens like the world lightmap (0 = legacy: only the directed light is shadowed, 1 = the whole ambient, as the lightmap). r_sunlightMode 1 only" );

@@ -204,22 +204,37 @@ def source(name):
     return (ROOT / f'shared/rd-rend2/glsl/{name}.glsl').read_text()
 
 
+UNITS = [('u_RtDepthMap', 0), ('u_ScreenDepthMap', 1), ('u_RtCascadeMap', 3), ('u_SSRTraceMap', 5),
+         ('u_SSRHistoryMap', 4), ('u_SSRHistoryGeomMap', 6), ('u_VelocityMap', 9), ('u_RtStaticBuffer', 5),
+         ('u_RtDynamicBuffer', 8)]
+
+
+def set_units(prog):
+    # tr_glsl.cpp GLSL_LoadGPUProgramRtShadows: linear depth 0, hardware depth 1 (linearize), cascades 3,
+    # trace map 5, history 4 (cube unit in the game), history depth 6, velocity 9; the trace programs take
+    # 5 / 8 for the buffers
+    gl('glUseProgram', None, U)(prog)
+    for name, unit in UNITS:
+        loc = uloc(prog, name)
+        if loc >= 0:
+            gl('glUniform1i', None, I, I)(loc, unit)
+
+
 def rt_program(defines):
-    common = source('ssr_common').split('/*[Fragment]*/', 1)[1]
+    # self contained since the GL 4.3 kernels compile the same block (no ssr_common in front)
     text = source('rt_shadows')
     vs = text.split('/*[Vertex]*/', 1)[1].split('/*[Fragment]*/')[0]
     fs = text.split('/*[Fragment]*/', 1)[1]
     header = '#version 150 core\n' + defines
-    prog = compile_program([(GL_VERTEX, header + vs), (GL_FRAGMENT, header + common + fs)], 'rt_shadows ' + defines)
-    gl('glUseProgram', None, U)(prog)
-    # tr_glsl.cpp GLSL_LoadGPUProgramRtShadows: depth 0, trace map 5, history 4 (cube), history depth 6, velocity 9;
-    # the trace programs take 5 / 8 for the buffers
-    for name, unit in [('u_ScreenDepthMap', 0), ('u_SSRTraceMap', 5), ('u_SSRHistoryMap', 4),
-                       ('u_SSRHistoryGeomMap', 6), ('u_VelocityMap', 9), ('u_RtStaticBuffer', 5),
-                       ('u_RtDynamicBuffer', 8)]:
-        loc = uloc(prog, name)
-        if loc >= 0:
-            gl('glUniform1i', None, I, I)(loc, unit)
+    prog = compile_program([(GL_VERTEX, header + vs), (GL_FRAGMENT, header + fs)], 'rt_shadows ' + defines)
+    set_units(prog)
+    return prog
+
+
+def compute_program(defines):
+    fs = source('rt_shadows').split('/*[Fragment]*/', 1)[1]
+    prog = compile_program([(0x91B9, '#version 430 core\n#define RT_COMPUTE\n' + defines + fs)], 'rt_shadows cs ' + defines)
+    set_units(prog)
     return prog
 
 
@@ -253,15 +268,16 @@ def view_uniforms(prog, view, tex_w=W, tex_h=H, dst_w=None, dst_h=None):
     m4(prog, 'u_SSRWorldToView', world_to_view)
 
 
-def draw(prog, w, h, fmt=RGBA16F, attachments=1):
+def draw(prog, w, h, fmt=RGBA16F, attachments=1, keep=False):
     gl('glActiveTexture', None, U)(0x84C0 + 15)
-    target = fbo([tex2d(w, h, fmt) for _ in range(attachments)])
+    targets = [tex2d(w, h, fmt) for _ in range(attachments)]
+    target = fbo(targets)
     gl('glViewport', None, I, I, I, I)(0, 0, w, h)
     gl('glUseProgram', None, U)(prog)
     gl('glDrawArrays', None, U, I, I)(4, 0, 3)
     out = read_color(target, w, h)
     assert np.isfinite(out).all()
-    return out
+    return (out, targets[0]) if keep else out
 
 
 def tex(*args, **kw):
@@ -270,8 +286,23 @@ def tex(*args, **kw):
     return tex2d(*args, **kw)
 
 
+_linearize = {}
+LINEARIZE_ERRORS = []
+
+
 def depth_texture(depth):
-    handle = tex(W, H, R32F, RED, data=depth)
+    """hardware depth -> RT_LINEARIZE -> linear view depth bound at unit 0, as RB_RenderRtShadows does"""
+    if 'prog' not in _linearize:
+        _linearize['prog'] = rt_program('#define RT_LINEARIZE\n')
+    prog = _linearize['prog']
+    view = View()
+    bind(1, tex(W, H, R32F, RED, data=depth))
+    gl('glUseProgram', None, U)(prog)
+    v4(prog, 'u_SSRDepthParams', [view.p14, view.p10, FAR, view.pixel_size()])
+    out, handle = draw(prog, W, H, fmt=R32F, keep=True)
+    surface = depth < 1.0
+    z = np.where(surface, view.p14 / (2.0 * depth.astype(np.float64) - 1.0 + view.p10), -1.0)
+    LINEARIZE_ERRORS.append(float(np.max(np.abs(out[..., 0] - z) / np.maximum(np.abs(z), 1.0))))
     bind(0, handle)
     return handle
 
@@ -504,7 +535,7 @@ def resolve_filter_checks():
     results['temporal: history clamped to this frame\'s neighbourhood'] = bool(
         np.allclose(out[left][:, 0], 1.0, atol=2e-3) and np.allclose(out[right][:, 0], 0.0, atol=2e-3))
     cur2 = np.full((H, W, 4), 0.0, np.float32)
-    cur2[::2, ::2] = 1.0   # a noisy frame: min 0, max 1 everywhere, history passes
+    cur2[(np.add.outer(np.arange(H), np.arange(W)) % 2) == 0] = 1.0   # checkerboard: every cross holds 0 and 1
     bind(5, tex(W, H, RGBA16F, RGBA, data=cur2))
     out = draw(prog, W, H, attachments=2)
     expect = 0.25 * cur2[..., 0] + 0.75 * 0.5
@@ -578,6 +609,178 @@ def composite_checks():
     return results
 
 
+# ---------------------------------------------------------------- hybrid / GL 4.3 compute
+
+def build_cascade(tris, center, half_size, half_depth, res):
+    """an orthographic sun shadow map of the triangles, the way a cascade holds it (raw depth 0..1)"""
+    f = -SUN
+    a = np.array([0.0, 0.0, 1.0]) if abs(f[2]) < 0.9 else np.array([1.0, 0.0, 0.0])
+    r = np.cross(f, a)
+    r /= np.linalg.norm(r)
+    u = np.cross(r, f)
+    c = np.asarray(center, float)
+    mvp = np.eye(4)
+    mvp[0, :3], mvp[0, 3] = r / half_size, -r @ c / half_size
+    mvp[1, :3], mvp[1, 3] = u / half_size, -u @ c / half_size
+    mvp[2, :3], mvp[2, 3] = f / half_depth, -f @ c / half_depth
+    g = (np.arange(res) + 0.5) / res * 2.0 - 1.0
+    X, Y = np.meshgrid(g, g)
+    starts = c + (X.reshape(-1, 1) * r + Y.reshape(-1, 1) * u) * half_size - f * half_depth
+    t, _ = closest_hit(starts, np.repeat(f[None], len(starts), 0), tris)
+    depth = np.where(np.isfinite(t), np.minimum(t / (2.0 * half_depth), 1.0), 1.0)
+    return mvp, 2.0 * half_size / res, 2.0 * half_depth, depth.reshape(res, res).astype(np.float32)
+
+
+def cascade_texture(depth):
+    res = depth.shape[0]
+    layers = np.ascontiguousarray(np.stack([depth] * 3), dtype=np.float32)
+    handle = U()
+    gl('glActiveTexture', None, U)(0x84C0 + 3)
+    gl('glGenTextures', None, I, C.POINTER(U))(1, C.byref(handle))
+    gl('glBindTexture', None, U, U)(0x8C1A, handle)
+    gl('glTexImage3D', None, U, I, I, I, I, I, I, U, U, P)(0x8C1A, 0, R32F, res, res, 3, 0, RED, FLOAT,
+        layers.ctypes.data_as(P))
+    for parameter, value in [(0x2800, 0x2600), (0x2801, 0x2600), (0x2802, 0x812F), (0x2803, 0x812F)]:
+        gl('glTexParameteri', None, U, U, I)(0x8C1A, parameter, value)
+    gl('glActiveTexture', None, U)(0x84C0)
+    return handle.value
+
+
+def setup(prog, view, static_tex, dynamic_tex, scene, lights=(), hybrid=None, debug=0.0, size=(W, H)):
+    gl('glUseProgram', None, U)(prog)
+    view_uniforms(prog, view)
+    bind_buffer(5, static_tex)
+    bind_buffer(8, dynamic_tex)
+    v4(prog, 'u_RtScene', scene)
+    v4(prog, 'u_RtParams', [[*SUN, 0.0], [0.1 * BIAS, BIAS * (1.5 * view.pixel_size() + 3.0e-4), 131072.0, 0.0],
+                            [1, 0, 0, debug], [len(lights), 0, 0, 0]])
+    rows = np.zeros((8, 4))
+    for k, (lp, radius, spot) in enumerate(lights):
+        rows[k * 2] = [*lp, radius]
+        rows[k * 2 + 1] = [*spot[0], spot[1]] if spot is not None else [0, 0, 1, -2]
+    v4(prog, 'u_RtLights', rows)
+    v4(prog, 'u_RtHistory', [0, 0, 0, 0])
+    if hybrid is None:
+        v4(prog, 'u_RtHybrid', [0, 1.5, 1.0, 0])
+    else:
+        mvp, texel_world, span, res = hybrid
+        v4(prog, 'u_RtHybrid', [1, 1.5, 1.0, 0])
+        v4(prog, 'u_RtCascadeInfo', [[texel_world, span, 1.0 / res, 1.0], [0, 0, 0, 0], [0, 0, 0, 0]])
+        loc = uloc(prog, 'u_RtCascadeMvp')
+        mats = np.ascontiguousarray(np.stack([mvp.T] * 3), dtype=np.float32)
+        gl('glUniformMatrix4fv', None, I, I, U, P)(loc, 3, 0, mats.ctypes.data_as(P))
+
+
+def ssbo(data_bytes, size):
+    buf = U()
+    gl('glGenBuffers', None, I, C.POINTER(U))(1, C.byref(buf))
+    gl('glBindBuffer', None, U, U)(0x90D2, buf)
+    raw = C.create_string_buffer(bytes(data_bytes).ljust(size, b'\0'), size)
+    gl('glBufferData', None, U, C.c_ssize_t, P, U)(0x90D2, size, raw, 0x88E8)
+    return buf.value
+
+
+def run_compute(classify, trace_list, lights_kind):
+    """RB_RtTraceCompute: classify writes / lists, the list goes through an indirect dispatch.
+    Returns the trace image and the number of listed (traced) pixels."""
+    gl('glActiveTexture', None, U)(0x84C0 + 15)
+    internal = 0x8058 if lights_kind else 0x8229
+    image = tex2d(W, H, internal, RGBA if lights_kind else RED)
+    listed = ssbo(b'', W * H * 4)
+    args = ssbo(np.array([0, 1, 1, 0], np.uint32).tobytes(), 16)
+    gl('glBindBufferBase', None, U, U, U)(0x90D2, 0, listed)
+    gl('glBindBufferBase', None, U, U, U)(0x90D2, 1, args)
+    gl('glBindImageTexture', None, U, U, I, U, I, U, U)(0, image, 0, 0, 0, 0x88B9, internal)
+    gl('glUseProgram', None, U)(classify)
+    gl('glDispatchCompute', None, U, U, U)((W + 7) // 8, (H + 7) // 8, 1)
+    gl('glMemoryBarrier', None, U)(0x2000 | 0x40 | 0x20)
+    gl('glUseProgram', None, U)(trace_list)
+    gl('glBindBuffer', None, U, U)(0x90EE, args)
+    gl('glDispatchComputeIndirect', None, C.c_ssize_t)(0)
+    gl('glMemoryBarrier', None, U)(0xFFFFFFFF)
+    gl('glBindBuffer', None, U, U)(0x90D2, args)
+    out = C.create_string_buffer(16)
+    gl('glGetBufferSubData', None, U, C.c_ssize_t, C.c_ssize_t, P)(0x90D2, 0, 16, out)
+    groups, _, _, count = np.frombuffer(out.raw, np.uint32)
+    result = read_color(fbo([image]), W, H)
+    return result, int(count), int(groups)
+
+
+def hybrid_compute_checks(lib, compute):
+    results = {}
+    view = View()
+    world = np.concatenate([ground()] + scene_boxes())
+    depth = view.render(world)
+    depth_texture(depth[0])
+    edge = silhouette(depth[0])
+    texels, nodes, _ = bvh(lib, world)
+    static, dynamic = tbo(texels), tbo(np.zeros((4, 4)))
+    scene = [nodes, nodes * 2, 0, 0]
+    want = reference_sun(view, *depth[1:4], depth[4], SUN, world)
+    surface = depth[3].reshape(H, W)
+
+    mvp, texel_world, span, sm = build_cascade(world, (0.0, -40.0, 230.0), 260.0, 700.0, 512)
+    cascade_texture(sm)
+    hybrid = (mvp, texel_world, span, sm.shape[0])
+
+    sun_prog = rt_program('#define RT_TRACE\n')
+    setup(sun_prog, view, static, dynamic, scene)
+    full = draw(sun_prog, W, H, fmt=0x8814)[..., 0]
+    setup(sun_prog, view, static, dynamic, scene, hybrid=hybrid)
+    mixed = draw(sun_prog, W, H, fmt=0x8814)[..., 0]
+    compare('hybrid sun shadows (r_rtShadowsHybrid 1) against the reference', mixed, want, edge, results)
+    setup(sun_prog, view, static, dynamic, scene, hybrid=hybrid, debug=5.0)
+    classes = draw(sun_prog, W, H, fmt=0x8814)[..., 0]
+    traced = np.abs(classes - 0.5) < 0.1
+    frac = traced[surface].mean()
+    results[f'hybrid: {100 * frac:.1f}% of the surface pixels still traced, the rest decided by the cascade'] = bool(frac < 0.5)
+    agree = ((np.abs(mixed - full) > 0.5) & ~edge).sum()
+    results[f'hybrid and full trace differ in {agree} pixels'] = bool(agree <= 0.005 * (~edge).sum())
+
+    if not compute:
+        results['GL 4.3 compute path: no GL 4.3 context (skipped)'] = True
+        return results
+
+    lights = [(np.array([-30.0, 30.0, 170.0]), 900.0, None), (np.array([60.0, 10.0, 330.0]), 600.0, None)]
+    progs = {k: compute_program(d) for k, d in [
+        ('cs', '#define RT_CLASSIFY\n#define RT_GROUP_X 8\n#define RT_GROUP_Y 8\n'),
+        ('ts', '#define RT_TRACE_LIST\n#define RT_GROUP_X 64\n#define RT_GROUP_Y 1\n'),
+        ('cl', '#define RT_CLASSIFY\n#define RT_LIGHTS\n#define RT_GROUP_X 8\n#define RT_GROUP_Y 8\n'),
+        ('tl', '#define RT_TRACE_LIST\n#define RT_LIGHTS\n#define RT_GROUP_X 64\n#define RT_GROUP_Y 1\n')]}
+    for hyb, label, raster in [(None, 'full', full), (hybrid, 'hybrid', mixed)]:
+        for key in ('cs', 'ts'):
+            setup(progs[key], view, static, dynamic, scene, hybrid=hyb)
+        out, count, groups = run_compute(progs['cs'], progs['ts'], False)
+        diff = (np.abs(out[..., 0] - raster) > 0.5).sum()
+        results[f'compute {label} sun trace = raster ({diff} pixels differ, {count} pixels listed in {groups} groups)'] = bool(
+            diff <= 0.001 * W * H and groups == (count + 63) // 64)
+    light_prog = rt_program('#define RT_TRACE\n#define RT_LIGHTS\n')
+    setup(light_prog, view, static, dynamic, scene, lights)
+    raster = draw(light_prog, W, H, fmt=0x8814)
+    for key in ('cl', 'tl'):
+        setup(progs[key], view, static, dynamic, scene, lights)
+    out, count, groups = run_compute(progs['cl'], progs['tl'], True)
+    diff = (np.abs(out[..., :2] - raster[..., :2]) > 0.5).any(-1).sum()
+    results[f'compute light trace = raster ({diff} pixels differ, {count} listed)'] = bool(diff <= 0.001 * W * H)
+    return results
+
+
+def context43(title):
+    """GL 4.3 core where the driver has it (the compute checks), else 3.2"""
+    assert SDL.SDL_Init(32) == 0, SDL.SDL_GetError()
+    for major, minor in ((4, 3), (3, 2)):
+        SDL.SDL_GL_SetAttribute(17, major)
+        SDL.SDL_GL_SetAttribute(18, minor)
+        SDL.SDL_GL_SetAttribute(21, 1)
+        window = SDL.SDL_CreateWindow(title, 0, 0, 32, 32, 10)
+        ctx = SDL.SDL_GL_CreateContext(window)
+        if ctx:
+            print(gl('glGetString', C.c_char_p, U)(0x1F01).decode(), '/', gl('glGetString', C.c_char_p, U)(0x1F02).decode())
+            return window, ctx, major == 4
+        SDL.SDL_DestroyWindow(window)
+    raise RuntimeError(SDL.SDL_GetError())
+
+
 def lightall_checks():
     """lightall permutations of mode 1, mode 2 (USE_RT_SHADOWS) and r_dlightMode 3 (USE_RT_DSHADOWS)"""
     import re
@@ -620,12 +823,15 @@ def main():
         'C:/Users/Keyten/Desktop/projects/OpenJK/build/toolchain/w64devkit/bin/g++.exe'))))
     args = parser.parse_args()
     lib = build_capi(args.gxx)
-    window, ctx = context(b'Ray traced shadows')
+    window, ctx, gl43 = context43(b'Ray traced shadows')
     vao = U()
     gl('glGenVertexArrays', None, I, C.POINTER(U))(1, C.byref(vao))
     gl('glBindVertexArray', None, U)(vao)
     try:
-        outcomes = {**trace_checks(lib), **resolve_filter_checks(), **composite_checks(), **lightall_checks()}
+        outcomes = {**trace_checks(lib), **hybrid_compute_checks(lib, gl43), **resolve_filter_checks(),
+                    **composite_checks(), **lightall_checks()}
+        worst = max(LINEARIZE_ERRORS)
+        outcomes[f'RT_LINEARIZE matches the CPU view depth (max relative error {worst:.1e})'] = worst < 1e-4
         for name, ok in outcomes.items():
             print(f'{"PASS" if ok else "FAIL"}: {name}', flush=True)
         assert gl('glGetError', U)() == 0
