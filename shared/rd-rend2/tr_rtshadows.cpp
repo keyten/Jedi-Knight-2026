@@ -155,6 +155,18 @@ void R_CreateRtShadowImages( int width, int height )
 			chain->historyDepthImage[i] = R_ScreenCreateImage( va( "*rt%sHistoryDepth%d", name, i ), width, height, GL_R32F, qfalse );
 			chain->filterImage[i] = R_ScreenCreateImage( va( "*rt%sFilter%d", name, i ), width, height, format, qfalse );
 		}
+		if ( c == RT_CHAIN_SUN )
+		{
+			// grey in the r_rtShadowsDebug views; the passes only read .r
+			image_t *images[] = { chain->traceImage, chain->historyImage[0], chain->historyImage[1],
+				chain->filterImage[0], chain->filterImage[1] };
+			for ( int i = 0; i < (int)ARRAY_LEN( images ); i++ )
+			{
+				GL_Bind( images[i] );
+				qglTexParameteri( GL_TEXTURE_2D, 0x8E43 /* GL_TEXTURE_SWIZZLE_G */, GL_RED );
+				qglTexParameteri( GL_TEXTURE_2D, 0x8E44 /* GL_TEXTURE_SWIZZLE_B */, GL_RED );
+			}
+		}
 	}
 	GL_SelectTexture( 0 );
 }
@@ -485,6 +497,8 @@ void RB_RtShadowsDebugOverlay( void )
 {
 	if ( r_rtShadowsDebug->integer <= 0 || !s_debugImage )
 		return;
-	FBO_FastBlitFromTexture( s_debugImage, NULL, NULL, NULL, 0 );
+	// a NULL target needs its box: FBO_FastBlitFromTexture takes the size from dst otherwise
+	vec4i_t box = { 0, 0, glConfig.vidWidth, glConfig.vidHeight };
+	FBO_FastBlitFromTexture( s_debugImage, NULL, box, NULL, 0 );
 	s_debugImage = NULL;
 }
