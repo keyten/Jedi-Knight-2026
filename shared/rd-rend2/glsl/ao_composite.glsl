@@ -37,6 +37,7 @@ uniform vec4 u_AOSettings;          // AO source (0 none, 1 legacy, 2 GTAO, 3 sp
 uniform vec4 u_AOSettings2;         // contact length, steps, thickness, view size of a pixel at depth 1
 uniform vec4 u_AOSettings3;         // soft contact shadows (r_contactShadowSoft), bent normals, unused, unused
 uniform vec3 u_AOLightDir;          // view space direction to the sun
+uniform sampler2D u_RtShadowMap;    // ray traced sun visibility (r_sunShadowMode 2), u_AOSettings3.w
 uniform sampler2D u_AOBentMap;      // GTAO bent normals, octahedral view space (AO resolution)
 uniform mat4 u_AOViewToWorld;       // view space -> world space rotation
 
@@ -266,7 +267,8 @@ void main()
 	{
 		// sky, far plane, depth hack: legacy AO kept as lightall saw it before
 		float legacy = u_AOSettings.x == 1.0 ? texture(u_LegacyAOMap, uv).r : 1.0;
-		out_Color = vec4(legacy, 1.0, 0.5, 0.5);
+		// (the traced sun also covers the view model)
+		out_Color = vec4(legacy, u_AOSettings3.w > 0.5 ? texelFetch(u_RtShadowMap, pix, 0).r : 1.0, 0.5, 0.5);
 		return;
 	}
 
@@ -295,6 +297,10 @@ void main()
 	float contact = 1.0;
 	if (u_AOSettings.z > 0.5 && uv.x >= u_AOSettings3.z)
 		contact = ContactShadow(pix, uv, P, z);
+	// r_sunShadowMode 2: the traced visibility of the sun; lightall multiplies g
+	// with what is left in the shadow map (casters that are not traced)
+	if (u_AOSettings3.w > 0.5)
+		contact *= texelFetch(u_RtShadowMap, pix, 0).r;
 
 	out_Color = vec4(ao, contact, bentEncoded);
 }

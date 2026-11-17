@@ -2665,6 +2665,12 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 							aoImage = backEnd.screenAoImage;
 						samplerBindingsWriter.AddStaticImage(aoImage, TB_SSAOMAP);
 					}
+					// r_dlightMode 3: traced visibility of the lights of this view
+					if (R_RtShadowsLightsEnabled())
+					{
+						image_t *rtImage = backEnd.framePostProcessed == qfalse ? RB_RtShadowsLightImage() : NULL;
+						samplerBindingsWriter.AddStaticImage(rtImage ? rtImage : tr.whiteImage, TB_RT_LIGHTSHADOW);
+					}
 
 				}
 			}

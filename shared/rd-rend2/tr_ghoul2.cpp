@@ -3754,6 +3754,9 @@ void R_AddGhoulSurfaces( trRefEntity_t *ent, int entityNum )
 
 		int whichLod = G2_ComputeLOD( g2Info.currentModel, g2Info.mLodBias,
 			projectedRadius, cameraRadius );
+		// ray traced shadows trace the mesh the camera draws
+		if ( tr.viewParms.viewParmType == VPT_MAIN && !shadowView )
+			R_RtSceneNoteGhoulLod(entityNum, modelList[j], whichLod);
 		G2_FindOverrideSurface(-1, g2Info.mSlist); //reset the quick surface override lookup;
 
 #ifdef _G2_GORE
@@ -5619,3 +5622,208 @@ qboolean R_LoadMDXA(model_t *mod, void *buffer, const char *mod_name, qboolean &
 	return qtrue;
 }
 
+
+/*
+============================================================
+
+Ray traced shadows (tr_rtscene.cpp): the Ghoul2 side
+
+The tracer needs what the camera draws: the same LOD, the same surfaces that
+are switched on, the same (byte quantised) skinning weights, and the bone
+matrices RB_TransformBones left in the bone cache.
+
+============================================================
+*/
+
+static void R_RtGhoulWalkSurfaces( const model_t *model, int lod, int surfaceNum,
+	surfaceInfo_v &rootSList, const shader_t *custShader, const skin_t *skin, rtGhoulPart_t *part )
+{
+	const mdxmHeader_t *header = model->data.glm->header;
+	if ( surfaceNum < 0 || surfaceNum >= header->numSurfaces )
+		return;
+
+	mdxmSurface_t *surface = (mdxmSurface_t *)G2_FindSurface((model_t *)model, surfaceNum, lod);
+	if ( !surface )
+		return;
+	mdxmHierarchyOffsets_t *surfIndexes = (mdxmHierarchyOffsets_t *)((byte *)header + sizeof(mdxmHeader_t));
+	mdxmSurfHierarchy_t *surfInfo = (mdxmSurfHierarchy_t *)
+		((byte *)surfIndexes + surfIndexes->offsets[surface->thisSurfaceIndex]);
+
+	const surfaceInfo_t *surfOverride = G2_FindOverrideSurface(surfaceNum, rootSList);
+	int offFlags = surfInfo->flags;
+	if ( surfOverride )
+		offFlags = surfOverride->offFlags;
+
+	if ( !offFlags && surfaceNum < RT_G2_MAX_SURFACES )
+	{
+		const shader_t *shader;
+		if ( custShader )
+		{
+			shader = custShader;
+		}
+		else
+		{
+			shader = R_GetShaderByHandle(surfInfo->shaderIndex);
+			if ( skin )
+			{
+				for ( int j = 0; j < skin->numSurfaces; j++ )
+				{
+					if ( !strcmp(skin->surfaces[j]->name, surfInfo->name) )
+					{
+						shader = (shader_t *)skin->surfaces[j]->shader;
+						break;
+					}
+				}
+			}
+		}
+		if ( shader && shader->remappedShader )
+			shader = shader->remappedShader;
+		// what the shadow views keep of a model (R_AddDrawSurf)
+		if ( shader && shader->sort == SS_OPAQUE && surface->numTriangles > 0 )
+		{
+			part->surfaceMask[surfaceNum >> 5] |= 1u << (surfaceNum & 31);
+			part->numSurfaces++;
+			part->numTriangles += surface->numTriangles;
+		}
+	}
+
+	if ( offFlags & G2SURFACEFLAG_NODESCENDANTS )
+		return;
+
+	for ( int i = 0; i < surfInfo->numChildren; i++ )
+		R_RtGhoulWalkSurfaces(model, lod, surfInfo->childIndexes[i], rootSList, custShader, skin, part);
+}
+
+int R_RtGhoulCollectParts( trRefEntity_t *ent, int entityNum, rtGhoulPart_t *parts, int maxParts )
+{
+	if ( !ent->e.ghoul2 || !G2API_HaveWeGhoul2Models(*((CGhoul2Info_v *)ent->e.ghoul2)) )
+		return 0;
+
+	CGhoul2Info_v &ghoul2 = *((CGhoul2Info_v *)ent->e.ghoul2);
+	if ( !ghoul2.IsValid() || r_noServerGhoul2->integer || !G2_SetupModelPointers(ghoul2) )
+		return 0;
+
+	int modelList[256];
+	int modelCount;
+	G2_Sort_Models(ghoul2, modelList, ARRAY_LEN(modelList), &modelCount);
+
+	const float lodRadius = 0.75f * ent->maxModelScale * ent->e.radius;
+	int numParts = 0;
+	for ( int j = 0; j < modelCount && numParts < maxParts; ++j )
+	{
+		CGhoul2Info &g2Info = ghoul2[modelList[j]];
+		if ( !g2Info.mValid || (g2Info.mFlags & (GHOUL2_NOMODEL | GHOUL2_NORENDER)) != 0 )
+			continue;
+		const model_t *model = g2Info.currentModel;
+		CBoneCache *bc = g2Info.mBoneCache;
+		if ( !model || model->type != MOD_MDXM || !model->data.glm || !model->data.glm->header || !bc )
+			continue;
+
+		skin_t *skin = nullptr;
+		shader_t *custShader = nullptr;
+		if ( ent->e.customShader )
+		{
+			custShader = R_GetShaderByHandle(ent->e.customShader);
+		}
+		else
+		{
+#ifndef REND2_SP
+			if ( g2Info.mCustomSkin )
+				skin = R_GetSkinByHandle(g2Info.mCustomSkin);
+			else
+#endif
+			if ( ent->e.customSkin )
+				skin = R_GetSkinByHandle(ent->e.customSkin);
+			else if ( g2Info.mSkin > 0 && g2Info.mSkin < tr.numSkins )
+				skin = R_GetSkinByHandle(g2Info.mSkin);
+		}
+
+		// the LOD the camera drew this model with; a model the camera culled
+		// is no receiver, any LOD will do
+		int lod = R_RtSceneGhoulLod(entityNum, modelList[j]);
+		if ( lod < 0 )
+		{
+			int lodBias = g2Info.mLodBias;
+			if ( r_lodbias->integer > lodBias )
+				lodBias = r_lodbias->integer;
+			lod = model->numLods < 2 ? 0 : G2_LodFromProjectedRadius(
+				G2_CameraProjectRadius(lodRadius, ent->e.origin), model, lodBias);
+		}
+		lod = Com_Clampi(0, Q_max(0, model->numLods - 1), lod);
+
+		rtGhoulPart_t *part = &parts[numParts];
+		Com_Memset(part, 0, sizeof(*part));
+		part->model = model;
+		part->lod = lod;
+		part->bones = bc->boneMatrices;
+		part->numBones = (int)bc->mBones.size();
+
+		G2_FindOverrideSurface(-1, g2Info.mSlist);	// reset the quick surface override lookup
+		R_RtGhoulWalkSurfaces(model, lod, g2Info.mSurfaceRoot, g2Info.mSlist, custShader, skin, part);
+		if ( part->numSurfaces > 0 )
+			numParts++;
+	}
+	return numParts;
+}
+
+// The masked surfaces of one LOD as the vertex buffer has them: bind pose
+// positions, 4 global bone indexes and weights (bytes / 255), triangle indexes.
+void R_RtGhoulExtract( const rtGhoulPart_t *part, std::vector<float> &xyz,
+	std::vector<byte> &bones, std::vector<float> &weights, std::vector<int> &indexes )
+{
+	xyz.clear();
+	bones.clear();
+	weights.clear();
+	indexes.clear();
+
+	const mdxmHeader_t *header = part->model->data.glm->header;
+	const int numSurfaces = Q_min(header->numSurfaces, RT_G2_MAX_SURFACES);
+	for ( int s = 0; s < numSurfaces; s++ )
+	{
+		if ( !(part->surfaceMask[s >> 5] & (1u << (s & 31))) )
+			continue;
+		mdxmSurface_t *surf = (mdxmSurface_t *)G2_FindSurface((model_t *)part->model, s, part->lod);
+		if ( !surf )
+			continue;
+
+		const int base = (int)(xyz.size() / 3);
+		const mdxmVertex_t *v = (const mdxmVertex_t *)((const byte *)surf + surf->ofsVerts);
+		const int *boneRef = (const int *)((const byte *)surf + surf->ofsBoneReferences);
+		for ( int k = 0; k < surf->numVerts; k++ )
+		{
+			xyz.push_back(v[k].vertCoords[0]);
+			xyz.push_back(v[k].vertCoords[1]);
+			xyz.push_back(v[k].vertCoords[2]);
+
+			// the same quantisation as R_LoadMDXM's vertex buffer
+			byte w[4] = { 0, 0, 0, 0 };
+			byte b[4] = { 0, 0, 0, 0 };
+			const int numWeights = Com_Clampi(1, 4, G2_GetVertWeights(&v[k]));
+			const int lastInfluence = numWeights - 1;
+			int lastWeight = 255;
+			for ( int i = 0; i < lastInfluence; i++ )
+			{
+				w[i] = (byte)(G2_GetVertBoneWeightNotSlow(&v[k], i) * 255.0f);
+				b[i] = (byte)boneRef[G2_GetVertBoneIndex(&v[k], i)];
+				lastWeight -= w[i];
+			}
+			w[lastInfluence] = (byte)Q_max(0, lastWeight);
+			b[lastInfluence] = (byte)boneRef[G2_GetVertBoneIndex(&v[k], lastInfluence)];
+			for ( int i = 0; i < 4; i++ )
+			{
+				bones.push_back(b[i]);
+				weights.push_back((float)w[i] * (1.0f / 255.0f));
+			}
+		}
+
+		const mdxmTriangle_t *t = (const mdxmTriangle_t *)((const byte *)surf + surf->ofsTriangles);
+		for ( int k = 0; k < surf->numTriangles; k++ )
+		{
+			for ( int c = 0; c < 3; c++ )
+			{
+				const int index = t[k].indexes[c];
+				indexes.push_back(base + ((index >= 0 && index < surf->numVerts) ? index : 0));
+			}
+		}
+	}
+}

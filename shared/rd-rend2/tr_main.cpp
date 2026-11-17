@@ -1989,7 +1989,9 @@ static qboolean R_SunShadowSplitActive(void)
 {
 	// r_sunShadowModelLayerCompare 2: models back in the shared cascades (the
 	// hard layers get no casters, lightall finds them empty)
+	// r_sunShadowMode 2: the layers are the residual ones, the models are traced
 	return (r_sunShadowMode->integer && r_sunShadowModelLayer->integer == 1 && tr.sunShadowHardFbo[0] &&
+		!R_RtShadowsSunEnabled() &&
 		!R_CompareOff(RC_SUNSHADOWSPLIT)) ? qtrue : qfalse;
 }
 
@@ -2119,6 +2121,12 @@ void R_AddDrawSurf(
 	if ((tr.viewParms.flags & VPF_SHADOWCASCADES) && R_SunShadowSplitActive() &&
 		R_IsSunHardShadowSurface(entityNum, drawShader, foliage) !=
 			((tr.viewParms.flags & VPF_SUN_HARD_SHADOW) ? qtrue : qfalse))
+		return;
+
+	// r_sunShadowMode 2: the residual layers (3-5) hold what the tracer does
+	// not have; the cascades themselves stay complete for their other readers
+	if ((tr.viewParms.flags & VPF_SUN_HARD_SHADOW) && R_RtShadowsResidualActive() &&
+		R_RtSceneSurfaceTraced(surface, entityNum, drawShader, foliage, waterKey))
 		return;
 
 	if (tr.viewParms.flags & (VPF_SUN_STATIC_SHADOW | VPF_SUN_DYNAMIC_SHADOW))
@@ -2425,7 +2433,8 @@ void R_GenerateDrawSurfs( viewParms_t *viewParms, trRefdef_t *refdef ) {
 		R_AddWorldSurfaces(viewParms, refdef);
 		return;
 	}
-	if (viewParms->flags & VPF_SUN_HARD_SHADOW)
+	// (r_sunShadowMode 2: the residual view walks the scene like a cascade)
+	if ((viewParms->flags & VPF_SUN_HARD_SHADOW) && !R_RtShadowsResidualActive())
 	{
 		if (!(refdef->sunShadowHardMask & (1 << viewParms->targetFboLayer)))
 			return;
@@ -5306,7 +5315,7 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 				tr.numCachedViewParms++;
 
 				refdef->sunShadowHardMask |= R_SunShadowHardMask(refdef, level);
-				if (R_SunShadowSplitActive())
+				if (R_SunShadowSplitActive() || R_RtShadowsResidualActive())
 				{
 					// always cleared: water reads the hard layers without the mask
 					hardParms.targetFbo = tr.sunShadowHardFbo[level];

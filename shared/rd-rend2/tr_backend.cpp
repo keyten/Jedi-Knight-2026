@@ -2810,6 +2810,9 @@ static void RB_RenderAllDepthRelatedPasses( drawSurf_t *drawSurfs, int numDrawSu
 	RB_ScreenEndTimer(prepassTimer);
 	RB_ScreenPrepareSaberDepth();
 
+	// r_sunShadowMode 2 / r_dlightMode 3: traced visibility of this view
+	RB_RenderRtShadows();
+
 	// SSAO / GTAO / contact shadows for the main pass of this view (tr_ao.cpp)
 	RB_RenderScreenSpaceLighting();
 
@@ -2853,6 +2856,10 @@ static void RB_UpdateCameraConstants(gpuFrame_t *frame)
 			tr.cachedViewParms[i].world.modelViewMatrix,
 			cameraBlock.viewProjectionMatrix);
 		VectorSet4(cameraBlock.viewInfo, zmax / zmin, zmax, 0.0f, 0.0f);
+		// ray traced shadows of this view: z = traced light channels, w = sun
+		// (1 residual shadow map layers, 2 traced only), tr_rtshadows.cpp
+		R_RtShadowsViewInfo(&tr.cachedViewParms[i], &tr.refdef,
+			&cameraBlock.viewInfo[2], &cameraBlock.viewInfo[3]);
 		VectorCopy(viewBasis[0], cameraBlock.viewForward);
 		VectorCopy(viewBasis[1], cameraBlock.viewLeft);
 		VectorCopy(viewBasis[2], cameraBlock.viewUp);
@@ -3042,7 +3049,9 @@ static void RB_UpdateLightsConstants(gpuFrame_t *frame, const trRefdef_t *refdef
 		VectorSet4(lightData->spot2, dlight->spotCosInner,
 			shadowLayers[i] < 0 || !R_DlightCastsShadow(dlight) ? -1.0f : (projected ? 1.0f : 0.0f),
 			cookiesActive ? (float)dlight->cookieLayer : -1.0f, dlight->cookieRoll);
-		VectorSet4(lightData->physical, dlight->emitterRadius, 0.0f, 0.0f, 0.0f);
+		// y: 1 + channel of the traced visibility (r_dlightMode 3), 0 = shadow map
+		VectorSet4(lightData->physical, dlight->emitterRadius,
+			(float)(R_RtShadowsLightChannel(lightIndexes[i]) + 1), 0.0f, 0.0f);
 	}
 	// spot shadow views of this scene, by shadow slot (R_GatherFrameViews)
 	for (int i = 0; i < refdef->num_dlights; ++i)
@@ -3741,6 +3750,8 @@ void RB_UpdateConstants(const trRefdef_t *refdef)
 	gpuFrame_t *frame = backEndData->currentFrame;
 	RB_BeginConstantsUpdate(frame);
 
+	// r_dlightMode 3: which lights are traced; the camera blocks carry the count
+	R_RtShadowsAssignLights(refdef);
 	// cluster light lists first: the camera blocks carry their grid parameters
 	RB_UpdateForwardPlus(frame, refdef);
 	RB_UpdateCameraConstants(frame);
@@ -4537,6 +4548,7 @@ const void *RB_PostProcess(const void *data)
 	}
 
 	RB_AODebugOverlay();
+	RB_RtShadowsDebugOverlay();
 	RB_MotionBlurDebugOverlay();
 	RB_RainLensDebugOverlay();
 	RB_ScreenSpaceDebugOverlay();
