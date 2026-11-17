@@ -97,6 +97,61 @@ coverage evidence. Spec-gloss has no unambiguous metalness channel and is not
 treated as direct metallic evidence; shader semantics/names still work.
 With the switch off, the sampling and classification work is skipped.
 
+## Detail Texture Synthesis
+
+Rend2 can use the semantic classification to add microdetail to the lit base
+stage of an opaque or alpha-tested surface. The separate archived, latched
+switch defaults to 0.
+
+```
+set r_materialClassification 1
+set r_detailTextureSynthesis 1
+vid_restart
+```
+
+The renderer generates a mipmapped array of seamless material tiles at startup.
+Rock uses warped cellular fissures and pits, metal uses brushing and short
+scratches, plaster uses fine aggregate and sparse pores, and wood uses
+elongated grain and splits aligned to the diffuse UVs.
+Other profiles cover grains, pores, coatings, fibers, weave and frost. The
+detail slope is reoriented over the base normal map. Small adjustments to
+perceptual roughness and the diffuse lobe help the detail register under different
+lighting. The base layer fades from 96 to 256 world units. A finer sample blends
+in from 96 to 32 units and is fully present within 32 units.
+
+`r_detailTextureMicro` is archived and latched, defaults to 0 and accepts
+strengths from 0 to 2. Set it to 1 and run `vid_restart` for an additional
+analytic layer on magnified surfaces. It fades from 14 to 48 world units, with
+additional attenuation based on diffuse magnification and the projected width
+of the procedural features. The shader evaluates continuous noise slopes and
+the shapes of small pits, scratches and threads in UV space. The closest views
+can resolve a further band of finer grain. This adds new detail above the
+resolution of the authored maps and retains their large-scale features.
+
+`r_detailTexturePBR` is an archived live strength control in the range 0 to 2,
+with 1 as the default. It scales the signed perceptual-roughness variation of
+both layers. The pattern follows the surface finish, with variation across
+mineral grains, pores, scratches, fibers, coatings and thread. The renderer
+uses the authored metalness, F0 and AO inputs when evaluating the material.
+Both cvars apply with `r_detailTextureSynthesis 1`.
+
+The detail layering follows the same material channels as
+[Unity HDRP detail maps](https://docs.unity.cn/Packages/com.unity.render-pipelines.high-definition%4010.1/manual/Mask-Map-and-Detail-Map.html)
+and [CryEngine merged detail maps](https://www.cryengine.com/docs/static/engines/cryengine-5/categories/23756816/pages/29449936).
+Visual references for the generator scale and finish include
+[Beige Wall 001](https://polyhaven.com/a/beige_wall_001),
+[Rock 01](https://polyhaven.com/a/rock_01),
+[Metal 009](https://ambientcg.com/view?id=Metal009),
+[Blue Metal Plate](https://polyhaven.com/a/blue_metal_plate), and
+[Fine Grained Wood](https://polyhaven.com/a/fine_grained_wood).
+
+Classification confidence scales the effect. Mixed or conflicting inferred PBR
+evidence attenuates it further. Low authored roughness reduces relief and
+diffuse variation for polished finishes. Unknown materials, water, sky, effects, blended
+stages and stages with texture-coordinate modifiers are skipped. The feature
+uses the per-pixel lightall path (normal or specular mapping enabled) and
+requires at least 32 fragment texture units.
+
 ## Licensed asset inspection and verification
 
 The implementation was based on the local stock `assets0-3.pk3` and

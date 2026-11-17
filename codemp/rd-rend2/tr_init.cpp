@@ -528,6 +528,9 @@ cvar_t  *r_skinSSSDebug;
 
 cvar_t  *r_materialClassification;
 cvar_t  *r_materialClassificationDebug;
+cvar_t  *r_detailTextureSynthesis;
+cvar_t  *r_detailTextureMicro;
+cvar_t  *r_detailTexturePBR;
 cvar_t  *r_autoPBR;
 cvar_t  *r_autoPBRDebug;
 cvar_t  *r_materialModelDebug;
@@ -2634,6 +2637,15 @@ void R_Register( void )
 	R_CvarRange(r_materialClassification, 0, 1, qtrue);
 	r_materialClassificationDebug = R_Cvar("r_materialClassificationDebug", "0", CVAR_CHEAT, "Flat surface material colors; requires r_materialClassification 1");
 	R_CvarRange(r_materialClassificationDebug, 0, 1, qtrue);
+	r_detailTextureSynthesis = R_Cvar("r_detailTextureSynthesis", "0", CVAR_ARCHIVE | CVAR_LATCH,
+		"Synthesize near-field material detail; requires r_materialClassification 1 and vid_restart");
+	R_CvarRange(r_detailTextureSynthesis, 0, 1, qtrue);
+	r_detailTextureMicro = R_Cvar("r_detailTextureMicro", "0", CVAR_ARCHIVE | CVAR_LATCH,
+		"Analytic microdetail on magnified surfaces, 0-2; requires r_detailTextureSynthesis and vid_restart");
+	R_CvarRange(r_detailTextureMicro, 0, 2, qfalse);
+	r_detailTexturePBR = R_Cvar("r_detailTexturePBR", "1", CVAR_ARCHIVE,
+		"Scale synthesized detail in perceptual roughness, 0-2; requires r_detailTextureSynthesis");
+	R_CvarRange(r_detailTexturePBR, 0, 2, qfalse);
 	r_autoPBR = R_Cvar( "r_autoPBR", "0", CVAR_ARCHIVE, "PBR parameters of legacy materials without authored specular / packed maps: 0 = current rend2 fallback, 1 = generic dielectric, 2 = heuristic material classes" );
 	R_CvarRange( r_autoPBR, 0, 2, qtrue );
 	r_autoPBRDebug = R_Cvar( "r_autoPBRDebug", "0", CVAR_CHEAT, "Auto PBR debug view: 1 = material class, 2 = parameter source (authored / auto), 3 = roughness (generated variation in grey, blue = not auto PBR)" );

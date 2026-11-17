@@ -44,10 +44,10 @@ void R_ClassifySurfaceMaterial(shader_t *shader, shaderStage_t *stages, int coun
 	else if (shader->contentFlags & CONTENTS_WATER) in.keyword = Water;
 
 	// Prefer a lit base over a lightmap, reflection, detail or additive overlay.
-	const shaderStage_t *base = nullptr;
+	shaderStage_t *base = nullptr;
 	int best = -1;
 	for (int i = 0; i < count && stages[i].active; ++i) {
-		const shaderStage_t *s = &stages[i];
+		shaderStage_t *s = &stages[i];
 		if (s->bundle[0].isLightmap || !s->bundle[0].image[0] || s->glow || s->isDetail ||
 			s->bundle[0].tcGen == TCGEN_ENVIRONMENT_MAPPED ||
 			s->bundle[0].tcGen == TCGEN_ENVIRONMENT_MAPPED_SP ||
@@ -96,6 +96,10 @@ void R_ClassifySurfaceMaterial(shader_t *shader, shaderStage_t *stages, int coun
 			in.keyword = Effect;
 	}
 	shader->surfaceMaterial = Classify(in);
+	if (base && tr.detailTextureArray && base->glslShaderGroup == tr.lightallShader &&
+		(base->glslShaderIndex & LIGHTDEF_LIGHTTYPE_MASK) && base->bundle[0].tcGen == TCGEN_TEXTURE &&
+		!base->bundle[0].numTexMods && !(base->stateBits & (GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS)))
+		base->synthesizeDetail = qtrue;
 }
 
 qboolean R_SurfaceMaterialDebugActive(void)

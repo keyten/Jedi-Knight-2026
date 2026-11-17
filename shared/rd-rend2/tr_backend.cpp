@@ -97,7 +97,7 @@ void GL_SelectTexture( int unit )
 		return;
 	}
 
-	if (!(unit >= 0 && unit <= 31))
+	if (!(unit >= 0 && unit < MAX_TEXTURE_UNITS))
 		ri.Error( ERR_DROP, "GL_SelectTexture: unit = %i", unit );
 
 	qglActiveTexture( GL_TEXTURE0 + unit );
@@ -1094,13 +1094,13 @@ SamplerBindingsWriter::SamplerBindingsWriter()
 
 SamplerBindingsWriter& SamplerBindingsWriter::AddStaticImage( image_t *image, int unit )
 {
-	SamplerBinding *binding = &scratch[count];
-	if ( !binding )
+	if ( count >= ARRAY_LEN(scratch) )
 	{
 		failed = true;
 		return *this;
 	}
 
+	SamplerBinding *binding = &scratch[count];
 	binding->image = image;
 	binding->slot = unit;
 	binding->videoMapHandle = NULL_HANDLE;

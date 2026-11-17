@@ -663,6 +663,9 @@ extern cvar_t  *r_skinSSSDebug;
 
 extern cvar_t  *r_materialClassification;
 extern cvar_t  *r_materialClassificationDebug;
+extern cvar_t  *r_detailTextureSynthesis;
+extern cvar_t  *r_detailTextureMicro;
+extern cvar_t  *r_detailTexturePBR;
 extern cvar_t  *r_autoPBR;
 extern cvar_t  *r_autoPBRDebug;
 extern cvar_t  *r_materialModelDebug;
@@ -1990,7 +1993,8 @@ enum
 	// of the clouds, of lightall and volumetric_inject. Needs
 	// GL_MAX_TEXTURE_IMAGE_UNITS > 31, else r_cloudShadows stays off.
 	TB_CLOUDSHADOW         = 31,
-	MAX_TEXTURE_UNITS = 32	// glstate_t bookkeeping, GL_SelectTexture limit
+	TB_DETAILTEXTURE      = 32, // combined texture unit for the lightall detail array
+	MAX_TEXTURE_UNITS = 33	// glstate_t bookkeeping, GL_SelectTexture limit
 };
 
 // linear depth mip levels of the GTAO depth chain (tr_ao.cpp)
@@ -2128,6 +2132,7 @@ enum AlphaTestType
 typedef struct {
 	qboolean		active;
 	qboolean		isDetail;
+	qboolean		synthesizeDetail; // base stage selected by semantic classification
 	qboolean		glow;
 	qboolean		emissive;
 	qboolean		emissivePhysical;	// emissiveLuminance is authored cd/m^2
@@ -2893,6 +2898,10 @@ typedef enum
 	UNIFORM_NORMALSCALE,
 	UNIFORM_SPECULARSCALE,
 	UNIFORM_MATERIALDEBUG,	// r_autoPBRDebug: rgb = color, a = 1 when on (tr_autopbr.cpp)
+	UNIFORM_DETAILTEXTUREMAP,
+	UNIFORM_DETAILTEXTUREPARAMS,
+	UNIFORM_DETAILTEXTURECOLOR,
+	UNIFORM_DETAILTEXTUREMICROPARAMS,
 	UNIFORM_MATERIALMODEL,	// type, has materialMap, anisotropy, debug view
 	UNIFORM_FOLIAGEDEBUG,
 	UNIFORM_AUTOGRASS,		// r_grassCardMode: cards, lod distance, debug mode, width scale
@@ -4609,6 +4618,7 @@ typedef struct trGlobals_s {
 	image_t					*pointShadowStaticArrayImage;	// r_shadowStaticCache, created on first use
 	int						pointShadowStaticSlots;
 	image_t					*lightCookieArray;	// tr_lightcookie.cpp, NULL until a cookie is registered
+	image_t					*detailTextureArray;
 	image_t                 *screenSsaoImage;	// legacy SSAO: r = AO, g = 1
 	image_t					*hdrDepthImage;
 	image_t					*aoDepthImage;		// GTAO: linear view depth, AO_DEPTH_MIPS levels
@@ -6570,6 +6580,9 @@ qboolean R_IsAutoPBRSource(pbrSource_t source);
 qboolean R_IsGouraudStage(const shaderStage_t *stage);
 void R_PBRDumpMaterials_f(void);
 void R_ClassifySurfaceMaterial(shader_t *shader, shaderStage_t *stages, int count);
+void R_InitDetailTextures();
+void RB_SetDetailTexture(const shader_t *shader, const shaderStage_t *stage, unsigned stateBits,
+	class UniformDataWriter &uniforms, class SamplerBindingsWriter &samplers);
 qboolean R_SurfaceMaterialDebugActive(void);
 qboolean R_SurfaceMaterialDebugColor(const shader_t *shader, vec4_t out);
 void R_MaterialClassificationDump_f(void);
@@ -7580,7 +7593,7 @@ public:
 	SamplerBinding *Finish( Allocator& destHeap, uint32_t* numBindings );
 
 private:
-	SamplerBinding scratch[32];
+	SamplerBinding scratch[MAX_TEXTURE_UNITS];
 	bool failed;
 	int count;
 };

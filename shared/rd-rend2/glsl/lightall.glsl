@@ -911,6 +911,14 @@ uniform vec4 u_NormalScale;
 uniform vec4 u_SpecularScale;
 // r_autoPBRDebug (tr_autopbr.cpp): rgb = material class / source color, a = 1 when on
 uniform vec4 u_MaterialDebug;
+#if defined(USE_DETAIL_TEXTURE) && defined(PER_PIXEL_LIGHTING)
+uniform sampler2DArray u_DetailTextureMap;
+uniform vec4 u_DetailTextureParams; // layer, UV repeat, slope scale, roughness scale
+uniform float u_DetailTextureColor;
+  #if defined(USE_DETAIL_TEXTURE_MICRO)
+uniform vec4 u_DetailTextureMicroParams; // generator, cells per UV tile, strength, longitudinal scale
+  #endif
+#endif
 // x: materialType (0 standard, 1 hair, 2 eye), y: materialMap present,
 // z: hair anisotropy, w: r_materialModelDebug
 uniform vec4 u_MaterialModel;
@@ -4341,6 +4349,166 @@ float AOSpecularOcclusion(vec3 N, vec3 E, vec3 B, float NE, float visibility,
 }
 #endif
 
+#if defined(USE_DETAIL_TEXTURE) && defined(PER_PIXEL_LIGHTING)
+#if defined(USE_DETAIL_TEXTURE_MICRO)
+uint DetailMicroHash(ivec2 cell, uint seed)
+{
+	uvec2 p = uvec2(cell);
+	uint h = (p.x * 0x9e3779b9u) ^ (p.y * 0x85ebca6bu) ^ seed;
+	h = (h ^ (h >> 16u)) * 0x7feb352du;
+	h = (h ^ (h >> 15u)) * 0x846ca68bu;
+	return h ^ (h >> 16u);
+}
+
+float DetailMicroRandom(uint h)
+{
+	return float(h >> 8u) * (1.0 / 16777216.0);
+}
+
+// Continuous value noise with analytic derivatives in cell space.
+vec3 DetailMicroNoise(vec2 p, uint seed)
+{
+	ivec2 i = ivec2(floor(p));
+	vec2 f = fract(p);
+	vec2 w = f * f * (3.0 - 2.0 * f);
+	vec2 dw = 6.0 * f * (1.0 - f);
+	float a = DetailMicroRandom(DetailMicroHash(i, seed));
+	float b = DetailMicroRandom(DetailMicroHash(i + ivec2(1, 0), seed));
+	float c = DetailMicroRandom(DetailMicroHash(i + ivec2(0, 1), seed));
+	float d = DetailMicroRandom(DetailMicroHash(i + ivec2(1, 1), seed));
+	return vec3(dw.x * mix(b - a, d - c, w.y), dw.y * mix(c - a, d - b, w.x),
+		mix(mix(a, b, w.x), mix(c, d, w.x), w.y) - 0.5);
+}
+
+vec3 DetailMicroMark(vec2 p, uint seed, vec2 radius, bool sparse)
+{
+	uint hash = DetailMicroHash(ivec2(floor(p)), seed);
+	vec2 center = 0.31 + 0.38 * vec2(float(hash & 255u), float((hash >> 8u) & 255u)) / 255.0;
+	radius *= 0.57 + 0.43 * vec2(float((hash >> 16u) & 255u), float((hash >> 23u) & 255u)) / 255.0;
+	float presence = sparse ? smoothstep(0.48, 0.94, float(hash >> 24u) / 255.0) : 1.0;
+	// Mark support lies within its cell. Both the height and slope vanish at
+	// its edge, including when a nearby pixel falls in a different cell.
+	vec2 q = (fract(p) - center) / radius;
+	float w = max(1.0 - dot(q, q), 0.0);
+	return vec3(-6.0 * w * w * q / radius, w * w * w) * presence;
+}
+
+vec4 SampleMaterialMicro(vec2 uv, vec2 dx, vec2 dy, float distanceToEye)
+{
+	if (u_DetailTextureMicroParams.z <= 0.0 || distanceToEye >= 48.0)
+		return vec4(0.0);
+
+	// Use the uploaded diffuse texel footprint as well as eye distance.
+	// The third band is useful when a source texel covers several pixels.
+	vec2 diffuseSize = vec2(textureSize(u_DiffuseMap, 0));
+	float texelFootprint = max(length(dx * diffuseSize), length(dy * diffuseSize));
+	float magnified = 1.0 - smoothstep(0.25, 0.65, texelFootprint);
+	float stretch = u_DetailTextureMicroParams.w;
+	vec2 axes = stretch >= 0.0 ? vec2(stretch, 1.0) : vec2(1.0, -stretch);
+	vec2 frequency = axes * u_DetailTextureMicroParams.y;
+	float footprint = max(length(dx * frequency), length(dy * frequency));
+	float weight = magnified * (1.0 - smoothstep(14.0, 48.0, distanceToEye)) *
+		(1.0 - smoothstep(0.06, 0.23, footprint)) * u_DetailTextureMicroParams.z;
+	if (weight <= 0.0)
+		return vec4(0.0);
+
+	// Generator IDs are defined by MicroPattern in tr_detail_texture.cpp.
+	int generator = int(u_DetailTextureMicroParams.x);
+	uint seed = uint(u_DetailTextureParams.x) * 0x9e3779b9u;
+	vec2 p = uv * frequency;
+	vec3 grain = DetailMicroNoise(p, seed);
+	vec2 slope = 0.55 * grain.xy;
+	float rough = 0.46 * grain.z;
+	float color = 0.56 * grain.z;
+	if (generator == 1) { // Granules and frost
+		vec3 grainTip = DetailMicroMark(p, seed ^ 0xa48de719u, vec2(0.29, 0.27), false);
+		slope += 0.16 * grainTip.xy;
+		rough += 0.28 * (grainTip.z - 0.13);
+	} else if (generator == 2 || generator == 5) { // Pits or elongated vessel pores
+		vec2 radius = generator == 2 ? vec2(0.27, 0.25) : vec2(0.29, 0.17);
+		vec3 pit = DetailMicroMark(p, seed ^ 0x3d5647acu, radius, true);
+		slope -= (generator == 2 ? 0.09 : 0.14) * pit.xy;
+		rough += 0.52 * (pit.z - 0.035);
+		color -= 0.32 * (pit.z - 0.035);
+	} else if (generator == 4) { // Abrasion on smooth metals and glass
+		vec3 scratch = DetailMicroMark(p, seed ^ 0xd05d50c9u, vec2(0.30, 0.12), true);
+		slope = 0.36 * grain.xy - 0.10 * scratch.xy;
+		rough += 0.60 * (scratch.z - 0.018);
+		color = 0.0;
+	} else if (generator == 6) { // Interwoven threads
+		vec2 phase = p * (2.0 * M_PI);
+		vec2 s = sin(phase), c = cos(phase);
+		slope = 0.56 * c * s.yx + 0.16 * grain.xy;
+		rough += 0.27 * s.x * s.y;
+	}
+
+	// A still finer, relatively low-amplitude band resolves only at the
+	// closest views. Fade by its own footprint before it can shimmer.
+	bool directional = generator >= 4;
+	float fineFrequency = directional ? 2.75 : 4.75;
+	float fineWeight = 1.0 - smoothstep(0.07, 0.24, footprint * fineFrequency);
+	if (fineWeight > 0.0) {
+		// Offset the lattice directions on isotropic mineral and coating grain.
+		// Keep machining and fiber directions aligned to the base UVs.
+		mat2 rotation = directional ? mat2(1.0) : mat2(0.8, 0.6, -0.6, 0.8);
+		vec3 fine = DetailMicroNoise(rotation * p * fineFrequency + vec2(0.37, 0.63), seed ^ 0x98b34c51u);
+		slope += (directional ? 0.22 : 0.43) * fineWeight * (transpose(rotation) * fine.xy);
+		rough += 0.24 * fineWeight * fine.z;
+		if (generator != 4)
+			color += 0.20 * fineWeight * fine.z;
+	}
+	return vec4(-slope * axes, rough, color) * weight;
+}
+#endif
+
+vec4 SampleMaterialDetail(vec2 uv, float distanceToEye)
+{
+	float repeat = u_DetailTextureParams.y;
+	if (repeat <= 0.0)
+		return vec4(0.0);
+  #if defined(USE_SILHOUETTE_POM)
+	vec2 dx = g_pomGradX, dy = g_pomGradY;
+  #else
+	vec2 dx = dFdx(uv), dy = dFdy(uv);
+  #endif
+	// Evaluate derivatives before the varying distance branches.
+	if (distanceToEye >= 256.0)
+		return vec4(0.0);
+
+	vec3 coord = vec3(uv * repeat, u_DetailTextureParams.x);
+	const float scale = 255.0 / 127.0;
+	const float zero = 128.0 / 127.0;
+	vec4 detail = textureGrad(u_DetailTextureMap, coord, dx * repeat, dy * repeat) * scale - zero;
+	float closeWeight = 1.0 - smoothstep(32.0, 96.0, distanceToEye);
+	if (closeWeight > 0.0) {
+		coord.xy = coord.xy * 3.0 + vec2(0.37, 0.61);
+		vec4 fine = textureGrad(u_DetailTextureMap, coord, dx * (3.0 * repeat), dy * (3.0 * repeat)) * scale - zero;
+		detail += fine * vec4(0.42, 0.42, 0.32, 0.32) * closeWeight;
+	}
+	detail *= 1.0 - smoothstep(96.0, 256.0, distanceToEye);
+  #if defined(USE_DETAIL_TEXTURE_MICRO)
+	detail += SampleMaterialMicro(uv, dx, dy, distanceToEye);
+  #endif
+	return detail;
+}
+
+vec3 ComposeDetailNormal(vec3 N, vec3 geoNormal, vec4 tangent, vec2 slopes)
+{
+	vec3 base = normalize(geoNormal);
+	vec3 T = tangent.xyz - base * dot(base, tangent.xyz);
+	float tangentLengthSq = dot(T, T);
+	if (tangentLengthSq < 1e-8)
+		return N;
+	T *= inversesqrt(tangentLengthSq);
+	vec3 B = cross(base, T) * (tangent.w < 0.0 ? -1.0 : 1.0);
+	vec3 detail = T * slopes.x + B * slopes.y;
+	// Rotate the UV tangent-plane slope from the geometric normal to the
+	// normal-map result. This keeps detail oriented on strongly bumped texels.
+	detail -= (base + N) * (dot(detail, N) / max(1.0 + dot(base, N), 1e-4));
+	return normalize(N + detail);
+}
+#endif
+
 vec3 CalcNormal( in vec3 vertexNormal, in vec4 vertexTangent, in vec2 texCoords
 #if defined(USE_GGX_SPECULAR_AA)
 	, out float normalMapMipVariance
@@ -4672,6 +4840,11 @@ void main()
 		vec3 slope = stoneSlope.x * var_Tangent.xyz + stoneSlope.y * bitangent;
 		N = normalize(N - (slope - N * dot(slope, N)));
 	}
+	#endif
+	#if defined(USE_DETAIL_TEXTURE)
+	vec4 detail = SampleMaterialDetail(texCoords, length(viewDir));
+	if (dot(detail.xy, detail.xy) > 0.0)
+		N = ComposeDetailNormal(N, vertexNormal, var_Tangent, detail.xy * u_DetailTextureParams.z);
 	#endif
 	int materialType = int(g_MaterialModel.x + 0.5);
 	vec3 materialT = var_Tangent.xyz - N * dot(N, var_Tangent.xyz);
@@ -5142,6 +5315,9 @@ void main()
   #endif
   #endif
 	// Public material domain from this point onward: perceptual roughness.
+  #if defined(USE_DETAIL_TEXTURE)
+	roughness += clamp(detail.z * u_DetailTextureParams.w, -0.18, 0.18);
+  #endif
 	roughness = clamp(roughness, 0.0, 1.0);
 	if (materialType != 0 && materialMask > 0.0)
 	{
@@ -5150,6 +5326,12 @@ void main()
 		diffuse.rgb = mix(diffuse.rgb, materialDiffuse, materialMask);
 		specular.rgb = mix(specular.rgb, vec3(0.04), materialMask);
 	}
+
+  #if defined(USE_DETAIL_TEXTURE)
+	// Color detail belongs to the diffuse lobe, after the authored metalness
+	// split. The resulting conductor F0 is independent of the detail color.
+	diffuse.rgb *= 1.0 + detail.w * u_DetailTextureColor;
+  #endif
 
   #if defined(USE_WETNESS)
 	if (wetness > 0.0)

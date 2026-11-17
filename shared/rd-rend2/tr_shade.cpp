@@ -2411,6 +2411,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 
 		if (pStage->glslShaderGroup == tr.lightallShader)
 		{
+			RB_SetDetailTexture(input->shader, pStage, stateBits, uniformDataWriter, samplerBindingsWriter);
 			uniformDataWriter.SetUniformInt(UNIFORM_DIFFUSEBRDF,
 				R_CompareOff(RC_DIFFUSEBRDF) ? 0 : r_diffuseBRDF->integer);
 			if (r_specularAA->integer)

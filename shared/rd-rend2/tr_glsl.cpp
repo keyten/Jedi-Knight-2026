@@ -246,6 +246,10 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_NormalScale",   GLSL_VEC4, 1 },
 	{ "u_SpecularScale", GLSL_VEC4, 1 },
 	{ "u_MaterialDebug",  GLSL_VEC4, 1 },
+	{ "u_DetailTextureMap", GLSL_INT, 1 },
+	{ "u_DetailTextureParams", GLSL_VEC4, 1 },
+	{ "u_DetailTextureColor", GLSL_FLOAT, 1 },
+	{ "u_DetailTextureMicroParams", GLSL_VEC4, 1 },
 	{ "u_MaterialModel",  GLSL_VEC4, 1 },
 	{ "u_FoliageDebug",   GLSL_VEC4, 1 },
 	{ "u_AutoGrass",      GLSL_VEC4, 1 },
@@ -4236,6 +4240,12 @@ static int GLSL_LoadGPUProgramLightAll(
 		if (lightType)
 		{
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIGHT\n");
+			if (tr.detailTextureArray)
+			{
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_DETAIL_TEXTURE\n");
+				if (r_detailTextureMicro->value > 0.0f)
+					Q_strcat(extradefines, sizeof(extradefines), "#define USE_DETAIL_TEXTURE_MICRO\n");
+			}
 			if (liquidLibrary)
 				Q_strcat(extradefines, sizeof(extradefines), "#define USE_LIQUIDS\n");
 			if (liquidLibrary && (r_waterCausticsLightMask->integer & 2))
@@ -4464,6 +4474,7 @@ static int GLSL_LoadGPUProgramLightAll(
 
 			qglUseProgram(program->program);
 			GLSL_SetUniformInt(program, UNIFORM_DIFFUSEMAP,  TB_DIFFUSEMAP);
+			GLSL_SetUniformInt(program, UNIFORM_DETAILTEXTUREMAP, TB_DETAILTEXTURE);
 			GLSL_SetUniformInt(program, UNIFORM_LIGHTMAP,    TB_LIGHTMAP);
 			GLSL_SetUniformInt(program, UNIFORM_NORMALMAP,   TB_NORMALMAP);
 			GLSL_SetUniformInt(program, UNIFORM_DELUXEMAP,   TB_DELUXEMAP);

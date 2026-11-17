@@ -38,6 +38,7 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_surface_material.h"
 	"${SharedDir}/rd-rend2/tr_surface_material.cpp"
 	"${SharedDir}/rd-rend2/tr_material_classification.cpp"
+	"${SharedDir}/rd-rend2/tr_detail_texture.cpp"
 	"${SharedDir}/rd-rend2/tr_foliage.cpp"
 	"${SharedDir}/rd-rend2/tr_leafflutter.cpp"
 	"${SharedDir}/rd-rend2/tr_foliageinteract.cpp"

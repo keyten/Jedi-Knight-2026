@@ -5637,6 +5637,7 @@ void R_InitImages( void ) {
 
 	// create default texture and white texture
 	R_CreateBuiltinImages();
+	R_InitDetailTextures();
 }
 
 /*
@@ -5645,6 +5646,7 @@ R_DeleteTextures
 ===============
 */
 void R_DeleteTextures( void ) {
+	tr.detailTextureArray = nullptr;
 	s_decodedSources.clear();
 	s_missingImages.clear();
 	R_SourceScratchFlush();
