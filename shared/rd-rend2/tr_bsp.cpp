@@ -5300,6 +5300,8 @@ void RE_LoadWorldMap( const char *name ) {
 	R_BuildBakedFogLighting(world);
 	// r_entitySunLight: the sun of the light grid
 	R_CalibrateEntitySun(world);
+	// r_sunShadowMode 2 / r_dlightMode 3: the BVH of the static world
+	R_RtSceneWorldLoaded();
 	R_LoadProfilePrint("world static lighting", staticLightingStart);
 	R_LoadProfilePrint("world post-BSP and lighting", postBspStart);
 

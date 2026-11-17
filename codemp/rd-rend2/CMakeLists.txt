@@ -57,6 +57,11 @@ set(MPRend2Files
 	"${SharedDir}/rd-rend2/tr_arealights.cpp"
 	"${SharedDir}/rd-rend2/tr_ltcshadow.cpp"
 	"${SharedDir}/rd-rend2/tr_ltcscreen.cpp"
+	"${SharedDir}/rd-rend2/tr_rtbvh.cpp"
+	"${SharedDir}/rd-rend2/tr_rtbvh.h"
+	"${SharedDir}/rd-rend2/tr_rtscene.cpp"
+	"${SharedDir}/rd-rend2/tr_rtshadows.cpp"
+	"${SharedDir}/rd-rend2/tr_rtshadows.h"
 	"${SharedDir}/rd-rend2/tr_ltc_data.h"
 	"${SharedDir}/rd-rend2/tr_screenspace.cpp"
 	"${SharedDir}/rd-rend2/tr_ssgi.cpp"
@@ -140,6 +145,7 @@ list(APPEND MPRend2GLSLFiles
 	"${SharedDir}/rd-rend2/glsl/water_interaction_field.glsl"
 	"${SharedDir}/rd-rend2/glsl/water_intersection.glsl"
 	"${SharedDir}/rd-rend2/glsl/fplus_cluster.glsl"
+	"${SharedDir}/rd-rend2/glsl/rt_shadows.glsl"
 	"${SharedDir}/rd-rend2/glsl/phong.glsl"
 	"${SharedDir}/rd-rend2/glsl/phong_interface.glsl")
 list(REMOVE_DUPLICATES MPRend2GLSLFiles)

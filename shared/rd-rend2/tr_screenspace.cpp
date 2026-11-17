@@ -132,6 +132,7 @@ void R_CreateScreenSpaceImages( int width, int height, int hdrFormat )
 		R_SSGISelectResources();
 		R_SkinSSSSelectResources();
 		R_LtcSaberScreenSelectResources();
+		R_RtShadowsSelectResources();
 		s_screenResources = (qboolean)(R_SSRResourcesEnabled() || R_SSGIResourcesEnabled() ||
 			R_SkinSSSResourcesEnabled());
 		s_screenDepthResources = (qboolean)(s_screenResources || R_LtcSaberScreenResourcesEnabled());
@@ -159,6 +160,7 @@ void R_CreateScreenSpaceImages( int width, int height, int hdrFormat )
 	R_CreateSSGIImages(width, height, hdrFormat);
 	R_CreateSkinSSSImages(width, height);
 	R_CreateLtcSaberScreenImages(width, height);
+	R_CreateRtShadowImages(width, height);
 
 	GL_SelectTexture(0);
 }
@@ -278,6 +280,7 @@ void R_CreateScreenSpaceFBOs( void )
 	R_CreateSSGIFBOs();
 	R_CreateSkinSSSFBOs();
 	R_CreateLtcSaberScreenFBOs();
+	R_CreateRtShadowFBOs();
 
 	if ( s_screenResources )
 	{

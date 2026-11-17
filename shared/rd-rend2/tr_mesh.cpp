@@ -407,6 +407,10 @@ void R_AddMD3Surfaces( trRefEntity_t *ent, int entityNum ) {
 	if ( lod > 0 && ( ent->plantCutDebris || R_PlantSimCutLod( ent ) ) )
 		lod = 0;
 
+	// ray traced shadows trace the mesh the camera draws
+	if ( tr.viewParms.viewParmType == VPT_MAIN && !(tr.viewParms.flags & VPF_DEPTHSHADOW) )
+		R_RtSceneNoteMeshLod( entityNum, lod );
+
 	model = tr.currentModel->data.mdv[lod];
 
 	//

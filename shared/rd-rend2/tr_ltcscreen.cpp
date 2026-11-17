@@ -42,7 +42,9 @@ void R_LtcSaberScreenSelectResources(void)
 {
 	GLint samplers = 0;
 	qglGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &samplers);
-	s_resources = (qboolean)(r_ltcAreaLights->integer && samplers > TB_LTC_SABER_SCREEN);
+	// r_dlightMode 3 takes the unit for the traced light shadows (tr_rtshadows.cpp)
+	s_resources = (qboolean)(r_ltcAreaLights->integer && samplers > TB_LTC_SABER_SCREEN &&
+		!(r_dlightMode->integer == 3 && r_depthPrepass->integer));
 	R_LtcSaberScreenInvalidate();
 }
 

@@ -832,6 +832,16 @@ extern cvar_t  *r_shadowCache;
 extern cvar_t  *r_shadowStaticCache;
 extern cvar_t  *r_dlightShadowBias;
 extern cvar_t  *r_contactShadowSoft;
+extern cvar_t  *r_rtShadowsSoft;
+extern cvar_t  *r_rtShadowsHalfRes;
+extern cvar_t  *r_rtShadowsResidual;
+extern cvar_t  *r_rtShadowsMaxCharacters;
+extern cvar_t  *r_rtShadowsCharacterDistance;
+extern cvar_t  *r_rtShadowsMaxLights;
+extern cvar_t  *r_rtShadowsLightRadius;
+extern cvar_t  *r_rtShadowsBias;
+extern cvar_t  *r_rtShadowsStats;
+extern cvar_t  *r_rtShadowsDebug;
 extern cvar_t  *r_entitySunLight;
 extern cvar_t  *r_entityShadowAmbient;
 extern cvar_t  *r_ignoreDstAlpha;
@@ -1927,6 +1937,10 @@ enum
 	// lightall only; these units overlap volume-only extinction/carry samplers
 	TB_LTC_SHADOW    = 27,
 	TB_LTC_SABER_SCREEN = 28,
+	// r_dlightMode 3: traced light visibility of lightall (tr_rtshadows.cpp). Takes the saber
+	// screen shadow unit: with it lightall is built without USE_LTC_SABER_SCREEN and a saber
+	// keeps its cube shadow
+	TB_RT_LIGHTSHADOW   = 28,
 
 	// per stage skin scatter mask of lightall (tr_skinsss.cpp, skinMask keyword).
 	// Needs GL_MAX_TEXTURE_IMAGE_UNITS > 22, else masks are ignored.
@@ -3151,6 +3165,15 @@ typedef enum
 	UNIFORM_PHONGVIEWPROJECTION,
 	UNIFORM_VORONOIHEIGHT,
 	UNIFORM_VORONOIVIEWORIGIN,
+	// ray traced shadows (tr_rtshadows.cpp, glsl/rt_shadows.glsl)
+	UNIFORM_RTSTATICBUFFER,
+	UNIFORM_RTDYNAMICBUFFER,
+	UNIFORM_RTSCENE,
+	UNIFORM_RTPARAMS,
+	UNIFORM_RTLIGHTS,
+	UNIFORM_RTHISTORY,
+	UNIFORM_RTVIEWTOWORLD,
+	UNIFORM_RTSHADOWMAP,		// traced sun visibility (ao_composite) / light visibility (lightall)
 	UNIFORM_COUNT
 } uniform_t;
 
@@ -4882,6 +4905,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t ssrDownsampleShader[2];	// 0: premultiplied mips, 1: masked mip 0
 	shaderProgram_t ssrTraceShader[SSRDEF_COUNT];
 	shaderProgram_t ltcSaberScreenShader[3];
+	shaderProgram_t rtShadowShader[4];		// trace sun, trace lights, resolve, filter (tr_rtshadows.cpp)
 	shaderProgram_t ssrResolveShader;
 	shaderProgram_t ssrRadianceShader;
 	shaderProgram_t ssrUpsampleShader;
@@ -7161,6 +7185,8 @@ int R_LtcShadowCacheSlots(void);
 void R_LtcShadowStats_f(void);
 void R_LtcSaberScreenStats_f(void);
 void R_LtcSaberScreenInvalidate(void);
+#include "tr_rtshadows.h"
+
 struct screenViewInfo_t;
 qboolean R_LtcSaberScreenResourcesEnabled(void);
 void R_LtcSaberScreenSelectResources(void);

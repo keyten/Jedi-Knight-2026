@@ -1053,6 +1053,9 @@ void RE_BeginScene(const refdef_t *fd)
 
 	//ri.Printf(PRINT_ALL, "RE_BeginScene Frame: %i, skyportal: %i, entities: %i\n", backEndData->realFrameNumber, int(tr.world->skyboxportal && (tr.refdef.rdflags & RDF_SKYBOXPORTAL)), tr.refdef.num_entities);
 	const auto gatherStart = std::chrono::steady_clock::now();
+	// ray traced shadows: the entities the tracer takes over, before the
+	// shadow map views decide what they still have to draw
+	R_RtScenePrepare(&tr.refdef);
 	R_GatherFrameViews(&tr.refdef);
 	if ( r_shadowStats->integer )
 		shadowStats.gatherUs += R_ShadowStatsUs(gatherStart);
