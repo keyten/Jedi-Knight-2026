@@ -4,6 +4,7 @@
 
 static cvar_t *r_softParticles, *r_softParticleDistance, *r_particleNearFade;
 static float particleTestDistance, particleTestRadius;
+static int particleTestCount;
 static bool particleTestSurface;
 
 void R_ParticleTest_f()
@@ -14,18 +15,28 @@ void R_ParticleTest_f()
 	particleTestRadius = ri.Cmd_Argc() > 2 ? atof(ri.Cmd_Argv(2)) : 24.0f;
 	particleTestDistance = Com_Clamp(0.0f, 1024.0f, particleTestDistance);
 	particleTestRadius = Com_Clamp(0.1f, 256.0f, particleTestRadius);
+	particleTestCount = ri.Cmd_Argc() > 3 ? Com_Clampi(1, 64, atoi(ri.Cmd_Argv(3))) : 1;
 }
 
 void R_AddParticleTest(const refdef_t *view)
 {
 	if (particleTestDistance <= 0.0f || (view->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL))) return;
-	refEntity_t puff = {};
-	puff.reType = RT_SPRITE;
-	puff.radius = particleTestRadius;
-	puff.customShader = RE_RegisterShader("gfx/misc/black_smoke");
-	VectorMA(view->vieworg, particleTestDistance, view->viewaxis[0], puff.origin);
-	for (int i = 0; i < 4; ++i) puff.shaderRGBA[i] = i == 3 ? 200 : 255;
-	RE_AddRefEntityToScene(&puff);
+	for (int i = 0; i < particleTestCount; ++i)
+	{
+		refEntity_t puff = {};
+		puff.reType = RT_SPRITE;
+		puff.radius = particleTestRadius;
+		puff.rotation = i * 37.0f;
+		puff.customShader = RE_RegisterShader("gfx/effects/alpha_smoke");
+		VectorMA(view->vieworg, particleTestDistance, view->viewaxis[0], puff.origin);
+		if (particleTestCount > 1)
+		{
+			VectorMA(puff.origin, ((i % 4) - 1.5f) * particleTestRadius * 0.2f, view->viewaxis[1], puff.origin);
+			VectorMA(puff.origin, ((i / 4) % 3 - 1.0f) * particleTestRadius * 0.2f, view->viewaxis[2], puff.origin);
+		}
+		for (int c = 0; c < 4; ++c) puff.shaderRGBA[c] = 255;
+		RE_AddRefEntityToScene(&puff);
+	}
 }
 
 void R_InitParticleCvars()

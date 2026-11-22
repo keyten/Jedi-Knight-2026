@@ -42,8 +42,13 @@ their legacy behavior. Setting `r_particleNearFade 0` restores legacy culling.
   claim of visual review of every gameplay effect. Normal captures require
   bit-identical A/B/A controls. MSAA permits at most 0.02% of pixels differing by one
   display code due to sparse FP16/resolve rounding; larger changes fail.
+  The visible fixture uses 12 overlapping stock alpha-smoke sprites. A separate
+  no-smoke control must differ by at least 12 display codes in 5,000 pixels,
+  with a peak difference of at least 24. The feature A/B must change at least
+  2,000 pixels with a peak of at least 12; merely detecting changed pixels is
+  insufficient. Captures are also inspected visually.
 
-Developer command `r_particleTest <distance> [radius]` draws one controlled puff
+Developer command `r_particleTest <distance> [radius] [count]` draws controlled smoke
 in front of the rendered view. `r_particleTest 0` removes it. With `surface`
 in place of distance it probes the center depth once and places
 the puff two units in front of that surface (developer-only GPU readback).

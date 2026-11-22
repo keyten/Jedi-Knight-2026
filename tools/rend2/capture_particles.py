@@ -59,10 +59,11 @@ def main():
         'con_notifytime 0', 'uimenu particle_unfreeze', 'fx_freeze 0', 'give all', 'wait 15', 'weapon 4', 'wait 90',
         'cam_disable', 'lock_disable', 'cg_thirdPerson 0', 'setviewpos 3464 700 40 90', 'wait 90', 'developer 1',
         'fx_freeze 1', 'uimenu particle_freeze', 'wait 30', 'cl_paused', 'sv_paused',
-        'r_particleTest surface 24', 'wait 8', 'developer 0']
+        'r_particleTest 0', 'wait 8', 'developer 0', 'screenshot_tga empty', 'wait 3',
+        'developer 1', 'r_particleTest surface 144 12', 'wait 12', 'developer 0']
     for label, distance in [('contact-before', 0), ('contact-after', 8), ('contact-repeat', 0)]:
         commands += ['r_softParticleDistance %d' % distance, 'wait 8', 'screenshot_tga ' + label, 'wait 3']
-    commands += ['developer 1', 'r_particleTest 12 6', 'wait 8', 'developer 0']
+    commands += ['developer 1', 'r_particleTest 12 6 8', 'wait 8', 'developer 0']
     for label, enabled in [('near-before', 0), ('near-after', 1), ('near-repeat', 0)]:
         commands += ['r_particleNearFade %d' % enabled, 'wait 8', 'screenshot_tga ' + label, 'wait 3']
     commands += ['echo PARTICLE_CAPTURE_DONE', 'wait 3', 'quit']
@@ -116,12 +117,19 @@ def main():
         assert repeat is None or (args.msaa and max_repeat <= 1 and changed_repeat <= repeat_limit), (kind, 'unstable A/B/A camera or simulation', repeat, max_repeat, changed_repeat)
         stimulus_pixels = sum(any(pixel) for pixel in delta.getdata())
         stimulus_max = max(high for low, high in delta.getextrema())
-        assert stimulus_max >= 4 and stimulus_pixels >= 100, (kind, 'no meaningful visible stimulus', stimulus_max, stimulus_pixels)
+        assert stimulus_max >= 12 and stimulus_pixels >= 2000, (kind, 'no clearly visible change', stimulus_max, stimulus_pixels)
         for label, im in zip(('before', 'after'), images):
             im.save(root / ('%s-%s.png' % (kind, label)))
         results[kind] = dict(repeat_identical=repeat is None, repeat_max_delta=max_repeat,
                              repeat_changed_pixels=changed_repeat, changed_bounds=delta.getbbox(),
                              stimulus_pixels=stimulus_pixels, stimulus_max_delta=stimulus_max)
+    empty = Image.open(home / 'screenshots/empty.tga').convert('RGB')
+    smoke = Image.open(root / 'contact-before.png').convert('RGB')
+    presence = ImageChops.difference(empty, smoke)
+    presence_pixels = sum(max(pixel) >= 12 for pixel in presence.getdata())
+    assert presence_pixels >= 5000 and max(high for low, high in presence.getextrema()) >= 24, ('smoke not clearly visible', presence_pixels)
+    empty.save(root / 'empty.png')
+    results['smoke_presence'] = dict(pixels_changed_by_12_or_more=presence_pixels)
     result = dict(msaa=args.msaa, hidden=True, visible_windows=visible, settings=config, captures=results,
                   driver=re.findall(r'GL_RENDERER:[^\r\n]*', text))
     (root / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
