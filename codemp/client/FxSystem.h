@@ -44,6 +44,7 @@ public:
 	int		mFrameTime;
 	bool	mTimeFrozen;
 	float	mRealTime;
+	bool mParticleNearFade = false;
 	refdef_t*	refdef;
 #ifdef _DEBUG
 	int		mMainRefs;

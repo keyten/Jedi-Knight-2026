@@ -2088,6 +2088,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_waterImpulse", R_WaterImpulse_f },
 	{ "r_waterOverride",	R_WaterOverride_f },
 	{ "r_volparticles",		R_VolParticles_f },
+	{ "r_particleTest", R_ParticleTest_f },
 	{ "rainlens_clear",		R_RainLensClear_f },
 	{ "rainlens_event",		R_RainLensEvent_f },
 	{ "rainlens_profile",	R_RainLensProfile_f },
@@ -2110,6 +2111,7 @@ R_Register
 */
 void R_Register( void )
 {
+	R_InitParticleCvars();
 	//
 	// latched and archived variables
 	//

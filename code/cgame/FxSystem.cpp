@@ -123,6 +123,9 @@ void SFxHelper::Print( const char *msg, ... )
 //------------------------------------------------------
 void SFxHelper::AdjustTime( int frameTime )
 {
+	static const cvar_t *nearFade = gi.cvar("r_particleNearFade", "1", 0);
+	static const cvar_t *renderer = gi.cvar("cl_renderer", "", 0);
+	mParticleNearFade = nearFade && nearFade->integer && renderer && strstr(renderer->string, "rend2");
 	mPhysicalSources.Enable(fx_physicalizationSources.integer == 1);
 	mPhysicalizationStrength = FxPhysical::Strength(fx_physicalizationStrength.value);
 	if (physicalOptIn && physicalOptOut)

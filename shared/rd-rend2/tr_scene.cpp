@@ -1293,6 +1293,7 @@ void RE_RenderScene( const refdef_t *fd )
 		ri.Error (ERR_DROP, "R_RenderScene: NULL worldmodel");
 	}
 
+	R_AddParticleTest(fd);
 	RE_BeginScene(fd);
 
 	// Store skyportal info and don't render yet

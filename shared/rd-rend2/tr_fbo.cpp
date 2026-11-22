@@ -599,6 +599,7 @@ void FBO_Init(void)
 
 	// modern water surface: copy of the scene under the water (tr_watersurface.cpp)
 	R_CreateWaterSurfaceFBOs();
+	R_CreateParticleFBOs();
 
 	// froxel volumetric fog (tr_volumetric.cpp)
 	R_CreateVolumetricFBOs();

@@ -28,6 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #include "cg_media.h"
+#include "fx/FxVisibility.h"
 
 extern int drawnFx;
 extern int mParticles;
@@ -121,6 +122,11 @@ bool CParticle::Cull()
 
 	// Get the direction to the view
 	VectorSubtract( mOrigin1, cg.refdef.vieworg, dir );
+	if (theFxHelper.mParticleNearFade && !(mFlags & FX_DEPTH_HACK))
+	{
+		// A camera-facing quad has no depth extent. Near fading is per fragment.
+		return DotProduct(cg.refdef.viewaxis[0], dir) <= 0.0f;
+	}
 
 	// Check if it's behind the viewer
 	if ( (DotProduct( cg.refdef.viewaxis[0], dir )) < 0 )
@@ -749,6 +755,11 @@ bool COrientedParticle::Cull()
 
 	// Get the direction to the view
 	VectorSubtract( mOrigin1, cg.refdef.vieworg, dir );
+	if (theFxHelper.mParticleNearFade && !(mFlags & FX_DEPTH_HACK))
+	{
+		// Keep a quad whose center is behind us while any corner may be visible.
+		return FxVisibility::BehindQuad(dir, cg.refdef.viewaxis[0], mSizeStart, mSizeEnd, mRefEnt.radius);
+	}
 
 	// Check if it's behind the viewer
 	if ( (DotProduct( cg.refdef.viewaxis[0], dir )) < 0 )

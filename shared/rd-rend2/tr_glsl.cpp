@@ -185,6 +185,8 @@ static uniformInfo_t uniformsInfo[] =
 
 	{ "u_ScreenImageMap", GLSL_INT, 1 },
 	{ "u_ScreenDepthMap", GLSL_INT, 1 },
+	{ "u_ParticleFade", GLSL_VEC4, 1 },
+	{ "u_ParticleDepth", GLSL_VEC4, 1 },
 
 	{ "u_EdgeMap", GLSL_INT, 1 },
 	{ "u_AreaMap", GLSL_INT, 1 },
@@ -3013,6 +3015,9 @@ void GLSL_DeleteGPUShader(shaderProgram_t *program)
 
 static bool GLSL_IsValidPermutationForGeneric (int shaderCaps)
 {
+	if ((shaderCaps & GENERICDEF_USE_PARTICLE_FADE) &&
+		(shaderCaps & ~(GENERICDEF_USE_PARTICLE_FADE | GENERICDEF_USE_FOG | GENERICDEF_USE_TCGEN_AND_TCMOD)))
+		return false;
 #ifdef REND2_SP_MD3
 	if ( (shaderCaps & GENERICDEF_USE_VERTEX_ANIMATION) &&
 			(shaderCaps & GENERICDEF_USE_SKELETAL_ANIMATION) )
@@ -3488,6 +3493,11 @@ static int GLSL_LoadGPUProgramGeneric(
 			Q_strcat(name, sizeof(name), "_FLARE");
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_FLARE_TEST\n");
 
+		}
+		if (i & GENERICDEF_USE_PARTICLE_FADE)
+		{
+			Q_strcat(name, sizeof(name), "_PARTICLE");
+			Q_strcat(extradefines, sizeof(extradefines), "#define USE_PARTICLE_FADE\n");
 		}
 
 		/*if (i & GENERICDEF_USE_ALPHA_TEST)
@@ -7511,5 +7521,8 @@ shaderProgram_t *GLSL_GetGenericShaderProgram(int stage)
 		shaderAttribs |= GENERICDEF_USE_GLOW_BUFFER;
 	}*/
 
+	if (!(shaderAttribs & ~(GENERICDEF_USE_FOG | GENERICDEF_USE_TCGEN_AND_TCMOD)) &&
+		RB_ParticleFadeStage(tess.shader, pStage))
+		shaderAttribs |= GENERICDEF_USE_PARTICLE_FADE;
 	return &tr.genericShader[shaderAttribs];
 }

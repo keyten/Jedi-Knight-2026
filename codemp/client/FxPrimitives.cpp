@@ -24,6 +24,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "cl_cgameapi.h"
 #include "FxScheduler.h"
 #include "fx/FxPhysicalizationEmission.h"
+#include "fx/FxVisibility.h"
 
 extern int		drawnFx;
 
@@ -87,6 +88,8 @@ bool CParticle::Cull(void)
 
 	// Get the direction to the view
 	VectorSubtract( mOrigin1, theFxHelper.refdef->vieworg, dir );
+	if (theFxHelper.mParticleNearFade && !(mFlags & FX_DEPTH_HACK))
+		return DotProduct(theFxHelper.refdef->viewaxis[0], dir) <= 0.0f;
 
 	// Check if it's behind the viewer
 	if ( (DotProduct( theFxHelper.refdef->viewaxis[0], dir )) < 0) // cg.cosHalfFOV * (len - mRadius) )
@@ -738,6 +741,10 @@ bool COrientedParticle::Cull(void)
 
 	// Get the direction to the view
 	VectorSubtract( mOrigin1, theFxHelper.refdef->vieworg, dir );
+	if (theFxHelper.mParticleNearFade && !(mFlags & (FX_DEPTH_HACK | FX_PLAYER_VIEW)))
+	{
+		return FxVisibility::BehindQuad(dir, theFxHelper.refdef->viewaxis[0], mSizeStart, mSizeEnd, mRefEnt.radius);
+	}
 
 	// Check if it's behind the viewer
 	if ( (DotProduct( theFxHelper.refdef->viewaxis[0], dir )) < 0 )

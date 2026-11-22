@@ -45,6 +45,7 @@ struct SFxHelper
 	int		mTime;
 	int		mFrameTime;
 	float	mFloatFrameTime;
+	bool mParticleNearFade = false;
 
 	void	Init();
 	void	AdjustTime( int time );

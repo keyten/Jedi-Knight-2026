@@ -2551,12 +2551,12 @@ enum
 	GENERICDEF_USE_RGBAGEN         		= 0x0008,
 	GENERICDEF_USE_SKELETAL_ANIMATION	= 0x0010,
 	GENERICDEF_USE_FLARE_TEST			= 0x0020,
-	// GENERICDEF_USE_ALPHA_TEST			= 0x0040,
+	GENERICDEF_USE_PARTICLE_FADE		= 0x0040,
 #ifdef REND2_SP_MD3
 	GENERICDEF_USE_VERTEX_ANIMATION		= 0x0080,
 	GENERICDEF_ALL						= 0x00FF,
 #else
-	GENERICDEF_ALL						= 0x003F,
+	GENERICDEF_ALL						= 0x007F,
 #endif // REND2_SP
 
 	GENERICDEF_COUNT                	= GENERICDEF_ALL + 1,
@@ -2839,6 +2839,8 @@ typedef enum
 
 	UNIFORM_SCREENIMAGEMAP,
 	UNIFORM_SCREENDEPTHMAP,
+	UNIFORM_PARTICLEFADE,
+	UNIFORM_PARTICLEDEPTH,
 
 	UNIFORM_EDGEMAP,
 	UNIFORM_AREAMAP,
@@ -4608,6 +4610,8 @@ typedef struct trGlobals_s {
 	image_t					*glowImageScaled[6];
 	image_t					*sunRaysImage;
 	image_t					*renderDepthImage;
+	image_t *particleDepthImage;
+	FBO_t *particleDepthFbo;
 	image_t					*pshadowArrayImage;
 	image_t					*textureScratchImage[2];
 	image_t                 *quarterImage[2];
@@ -6616,6 +6620,18 @@ bool RB_LeafFlutterDebugColor(vec4_t color);
 // tr_foliageinteract.cpp: character colliders bending grass and MD3 plants
 struct UniformBlockBinding;
 class SamplerBindingsWriter;
+
+void R_InitParticleCvars();
+void R_ParticleTest_f();
+void R_AddParticleTest(const refdef_t *view);
+void R_CreateParticleImages(int width, int height);
+void R_CreateParticleFBOs();
+bool RB_ParticleDepthView();
+bool RB_ParticleFadeStage(const shader_t *shader, const shaderStage_t *stage);
+bool R_ParticleEntity(const refEntity_t& ent);
+void RB_CopyParticleDepth();
+void RB_SetupParticleFade(const shader_t *shader, const shaderStage_t *stage,
+	UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
 bool R_FoliageInteractionActive(void);
 uint8_t R_FoliageMotionClass(const drawSurf_t *drawSurf);
 void RE_SetFoliageInteractors(const foliageInteractor_t *interactors, int count);

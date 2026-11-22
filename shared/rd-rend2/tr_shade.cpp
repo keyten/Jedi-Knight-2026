@@ -2200,6 +2200,10 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 				uniformDataWriter, samplerBindingsWriter);
 		}
 		// sprite particle lighting (r_particleLighting): lit smoke / dust sprites
+		if (pStage->glslShaderGroup != tr.lightallShader && !backEnd.depthFill)
+			RB_SetupParticleFade(input->shader, pStage, uniformDataWriter, samplerBindingsWriter);
+
+		// sprite particle lighting (r_particleLighting): lit smoke / dust sprites
 		// look the particle light field up, the fog is applied after it once
 		if (pStage->glslShaderGroup != tr.lightallShader && !backEnd.depthFill)
 			RB_ParticleLightSetupDraw(input->shader, pStage, uniformDataWriter, samplerBindingsWriter);

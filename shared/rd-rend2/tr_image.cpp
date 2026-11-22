@@ -5311,6 +5311,7 @@ void R_CreateBuiltinImages( void ) {
 
 	// modern water surface: scene / depth copies, wave slopes (tr_watersurface.cpp)
 	R_CreateWaterSurfaceImages(width, height, hdrFormat);
+	R_CreateParticleImages(width, height);
 
 	// froxel volumetric fog volumes (tr_volumetric.cpp)
 	R_CreateVolumetricImages(width, height);

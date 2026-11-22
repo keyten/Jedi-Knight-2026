@@ -555,6 +555,14 @@ void main()
 
 
 /*[Fragment]*/
+#if defined(USE_PARTICLE_FADE)
+uniform sampler2D u_ScreenDepthMap;
+// x: 1 straight alpha, 2 premultiplied/additive ONE; y: near fade range; z: inverse soft distance.
+uniform vec4 u_ParticleFade;
+// projection[10], projection[14], near plane, reserved
+uniform vec4 u_ParticleDepth;
+#endif
+
 #if defined(USE_FOG)
 struct Fog
 {
@@ -911,6 +919,26 @@ void main()
 		return;
 	}
 
+#if defined(USE_PARTICLE_FADE)
+	if (u_ParticleFade.x > 0.0)
+	{
+		float particleZ = u_ParticleDepth.y / (gl_FragCoord.z * 2.0 - 1.0 + u_ParticleDepth.x);
+		float fade = u_ParticleFade.y > 0.0 ?
+			smoothstep(u_ParticleDepth.z, u_ParticleDepth.z + u_ParticleFade.y, particleZ) : 1.0;
+		if (u_ParticleFade.z > 0.0)
+		{
+			float sceneDepth = texelFetch(u_ScreenDepthMap, ivec2(gl_FragCoord.xy), 0).r;
+			float sceneZ = u_ParticleDepth.y / (sceneDepth * 2.0 - 1.0 + u_ParticleDepth.x);
+			fade *= clamp((sceneZ - particleZ) * u_ParticleFade.z, 0.0, 1.0);
+		}
+		color.a *= fade;
+		if (u_ParticleFade.x > 1.5)
+		{
+			color.rgb *= fade;
+			emissive *= fade;
+		}
+	}
+#endif
 	out_Color = color;
 	out_Glow = mix(vec4(emissive, color.a), color, u_EnableTextures.x);
 }

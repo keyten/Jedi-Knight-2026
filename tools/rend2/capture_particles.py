@@ -1,0 +1,132 @@
+"""Isolated stock SP particle A/B captures; hidden window, no sound or mouse.
+
+Usage: python capture_particles.py --binaries <build> --installation <GameData> --output <private-dir>
+Only the four original archives are mounted. No files in the installation change.
+"""
+import argparse
+import ctypes as C
+import json
+import os
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import time
+
+from test_lightrecon_legacy_runtime import settings
+
+
+def main():
+    ap = argparse.ArgumentParser(__doc__)
+    ap.add_argument('--binaries', type=Path, required=True)
+    ap.add_argument('--installation', type=Path, required=True)
+    ap.add_argument('--output', type=Path, required=True)
+    ap.add_argument('--msaa', type=int, default=0)
+    ap.add_argument('--shared-stock', action='store_true', help='Reuse a prepared directory with only assets0-3.pk3')
+    ap.add_argument('--debug-context', action='store_true')
+    args = ap.parse_args()
+    root = args.output.resolve()
+    home = root / 'home/OpenJK'
+    base = root / 'base'
+    home.mkdir(parents=True, exist_ok=True)
+    base.mkdir(exist_ok=True)
+    if args.shared_stock:
+        assert sorted(p.name for p in (args.installation / 'base').iterdir()) == ['assets%d.pk3' % i for i in range(4)]
+    else:
+        for i in range(4):
+            dest = base / ('assets%d.pk3' % i)
+            if not dest.exists():
+                os.link(args.installation / 'base' / dest.name, dest)
+    for name in ('openjk_sp.x86_64.exe', 'rdsp-rend2_x86_64.dll', 'rend2_glslc.exe'):
+        shutil.copy2(args.binaries / name, root / name)
+    shutil.copy2(args.binaries / 'jagamex86_64.dll', home / 'jagamex86_64.dll')
+    source_root = Path(__file__).resolve().parents[2]
+    shutil.copy2(source_root / 'lib/SDL2/bin/x64/SDL2.dll', root / 'SDL2.dll')
+    ui = home / 'ui'
+    ui.mkdir(exist_ok=True)
+    (ui / 'particle_freeze.menu').write_text('menuDef { name particle_freeze fullScreen 0 visible 1 onOpen { setcvar "cl_paused" "1"; } }\n')
+    (ui / 'particle_unfreeze.menu').write_text('menuDef { name particle_unfreeze fullScreen 0 visible 1 onOpen { setcvar "cl_paused" "0"; } }\n')
+    (ui / 'ingame.txt').write_text('loadmenu { "ui/particle_freeze.menu" "ui/particle_unfreeze.menu" }\n')
+    config = settings('legacy', 0)
+    config.update(fs_basepath=str(args.installation.resolve() if args.shared_stock else root), fs_homepath=str(root / 'home'), fs_game='OpenJK',
+                  r_hiddenWindow=1, in_nograb=1, r_softParticles=1, r_particleNearFade=1,
+                  r_ext_multisample=args.msaa, r_particleLighting=0, r_softParticleDistance=8,
+                  cg_thirdPersonRange=80, cg_thirdPersonVertOffset=16, cg_thirdPersonAlpha=0,
+                  r_debugContext=int(args.debug_context), r_ignoreGLErrors=0, r_clear=0, r_weather=0, r_flares=0, r_bloom=0)
+    (home / 'openjk_sp.cfg').write_text(''.join('set %s "%s"\n' % item for item in config.items()))
+    commands = ['wait 20', 'devmap hoth3', 'wait 120', 'cam_disable', 'exitview',
+        'god', 'notarget', 'noclip', 'cg_draw2D 0', 'cg_drawGun 0', 'cg_thirdPerson 0',
+        'con_notifytime 0', 'uimenu particle_unfreeze', 'fx_freeze 0', 'give all', 'wait 15', 'weapon 4', 'wait 90',
+        'cam_disable', 'lock_disable', 'cg_thirdPerson 0', 'setviewpos 3464 700 40 90', 'wait 90', 'developer 1',
+        'fx_freeze 1', 'uimenu particle_freeze', 'wait 30', 'cl_paused', 'sv_paused',
+        'r_particleTest surface 24', 'wait 8', 'developer 0']
+    for label, distance in [('contact-before', 0), ('contact-after', 8), ('contact-repeat', 0)]:
+        commands += ['r_softParticleDistance %d' % distance, 'wait 8', 'screenshot_tga ' + label, 'wait 3']
+    commands += ['developer 1', 'r_particleTest 12 6', 'wait 8', 'developer 0']
+    for label, enabled in [('near-before', 0), ('near-after', 1), ('near-repeat', 0)]:
+        commands += ['r_particleNearFade %d' % enabled, 'wait 8', 'screenshot_tga ' + label, 'wait 3']
+    commands += ['echo PARTICLE_CAPTURE_DONE', 'wait 3', 'quit']
+    (home / 'autoexec_sp.cfg').write_text('\n'.join(commands) + '\n')
+    command = [str(root / 'openjk_sp.x86_64.exe')]
+    for key in ('fs_basepath', 'fs_homepath', 'fs_game', 'r_hiddenWindow', 's_initsound', 'in_mouse', 'in_nograb', 'r_fullscreen'):
+        command += ['+set', key, str(config[key])]
+    startup = subprocess.STARTUPINFO()
+    startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startup.wShowWindow = 0
+    env = os.environ.copy()
+    env['SHIM_MCCOMPAT'] = '0x800000001'
+    visible = []
+    with (root / 'launch.log').open('w') as log:
+        child = subprocess.Popen(command, cwd=root, startupinfo=startup, env=env, stdout=log, stderr=subprocess.STDOUT)
+        deadline = time.monotonic() + 240
+        callback_type = C.WINFUNCTYPE(C.c_bool, C.c_void_p, C.c_void_p)
+        def check(hwnd, unused):
+            pid = C.c_ulong()
+            C.windll.user32.GetWindowThreadProcessId(C.c_void_p(hwnd), C.byref(pid))
+            if pid.value == child.pid and C.windll.user32.IsWindowVisible(C.c_void_p(hwnd)):
+                visible.append(int(hwnd))
+            return True
+        callback = callback_type(check)
+        while child.poll() is None and time.monotonic() < deadline:
+            C.windll.user32.EnumWindows(callback, 0)
+            if visible:
+                child.terminate()
+                child.wait()
+                raise RuntimeError('Owned process created a visible window')
+            time.sleep(0.2)
+        if child.poll() is None:
+            child.terminate()
+            child.wait()
+            raise TimeoutError(root)
+    text = (home / 'qconsole.log').read_text(errors='replace')
+    errors = [line for line in text.splitlines() if re.search('GL_INVALID|GLSL shader.*error|FBO.*incomplete|Could not load.*shader', line)]
+    assert child.returncode == 0 and 'PARTICLE_CAPTURE_DONE' in text and not errors, (child.returncode, errors, text[-2500:])
+    from PIL import Image, ImageChops
+    results = {}
+    for kind in ('contact', 'near'):
+        images = [Image.open(home / ('screenshots/%s-%s.tga' % (kind, label))).convert('RGB')
+                  for label in ('before', 'after', 'repeat')]
+        repeat_delta = ImageChops.difference(images[0], images[2])
+        repeat = repeat_delta.getbbox()
+        max_repeat = max(high for low, high in repeat_delta.getextrema())
+        changed_repeat = sum(any(pixel) for pixel in repeat_delta.getdata())
+        delta = ImageChops.difference(images[0], images[1])
+        # FP16/MSAA resolve can differ by one display code at sparse rounding ties.
+        repeat_limit = max(1, images[0].width * images[0].height // 5000)
+        assert repeat is None or (args.msaa and max_repeat <= 1 and changed_repeat <= repeat_limit), (kind, 'unstable A/B/A camera or simulation', repeat, max_repeat, changed_repeat)
+        stimulus_pixels = sum(any(pixel) for pixel in delta.getdata())
+        stimulus_max = max(high for low, high in delta.getextrema())
+        assert stimulus_max >= 4 and stimulus_pixels >= 100, (kind, 'no meaningful visible stimulus', stimulus_max, stimulus_pixels)
+        for label, im in zip(('before', 'after'), images):
+            im.save(root / ('%s-%s.png' % (kind, label)))
+        results[kind] = dict(repeat_identical=repeat is None, repeat_max_delta=max_repeat,
+                             repeat_changed_pixels=changed_repeat, changed_bounds=delta.getbbox(),
+                             stimulus_pixels=stimulus_pixels, stimulus_max_delta=stimulus_max)
+    result = dict(msaa=args.msaa, hidden=True, visible_windows=visible, settings=config, captures=results,
+                  driver=re.findall(r'GL_RENDERER:[^\r\n]*', text))
+    (root / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
+    print(json.dumps(result, indent=2), flush=True)
+
+
+if __name__ == '__main__':
+    main()

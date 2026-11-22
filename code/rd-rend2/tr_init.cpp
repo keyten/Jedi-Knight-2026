@@ -2130,6 +2130,7 @@ static consoleCommand_t	commands[] = {
 	{ "r_waterImpulse", R_WaterImpulse_f },
 	{ "r_waterOverride",	R_WaterOverride_f },
 	{ "r_volparticles",		R_VolParticles_f },
+	{ "r_particleTest", R_ParticleTest_f },
 	{ "rainlens_clear",		R_RainLensClear_f },
 	{ "rainlens_event",		R_RainLensEvent_f },
 	{ "rainlens_profile",	R_RainLensProfile_f },
@@ -2152,6 +2153,7 @@ R_Register
 */
 void R_Register( void ) 
 {
+	R_InitParticleCvars();
 	R_Cvar( "r_loadProfile", "0", 0, "Print nested map load timings of engine, renderer and game: 0 off, 1 on" );
 	//
 	// latched and archived variables

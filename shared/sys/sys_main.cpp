@@ -246,7 +246,13 @@ void NORETURN QDECL Sys_Error( const char *error, ... )
 	// server binary is meant to be a command line program so you would
 	// expect to see the error printed.
 #if !defined(DEDICATED)
-	Sys_ErrorDialog( string );
+	if (!Cvar_VariableIntegerValue("r_hiddenWindow"))
+		Sys_ErrorDialog( string );
+	else
+	{
+		ConsoleLogWriteOut(stderr);
+		fflush(stderr);
+	}
 #endif
 
 	Sys_Exit( 3 );

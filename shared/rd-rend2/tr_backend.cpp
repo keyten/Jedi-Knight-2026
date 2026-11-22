@@ -1721,7 +1721,9 @@ static void RB_SubmitDrawSurfs(
 				foliageDebugClass != oldFoliageDebugClass ||
 				foliageMotion != oldFoliageMotion ||
 				drawSurf->waterKey != oldWaterKey ||
-				(entityNum != oldEntityNum && !tess.entityMergable)) )
+				(entityNum != oldEntityNum && (!tess.entityMergable ||
+				 R_ParticleEntity(backEnd.currentEntity->e) != R_ParticleEntity(
+				 entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e)))) )
 		{
 			if ( oldShader != nullptr )
 			{
@@ -1823,7 +1825,8 @@ static void RB_SubmitRenderPass(
 	const qboolean froxelFog = (qboolean)(!materialDebug && RB_VolumetricCompositeActive());
 	const qboolean atmosphere = (qboolean)(!materialDebug && RB_AtmosphereActive());
 	const qboolean clouds = (qboolean)(!materialDebug && RB_CloudsActive());
-	if (!ssr && !froxelFog && !atmosphere && !clouds && !water)
+	const bool particleDepth = !materialDebug && RB_ParticleDepthView();
+	if (!ssr && !froxelFog && !atmosphere && !clouds && !water && !particleDepth)
 	{
 		RB_DrawItems(renderPass.numDrawItems, renderPass.drawItems, drawOrder);
 		return;
@@ -1860,7 +1863,7 @@ static void RB_SubmitRenderPass(
 	// The water slot follows the same layers: the water reads the opaque scene,
 	// decals and fog volume passes, and writes depth before the composites.
 	uint32_t numFoggedItems = numOpaqueItems;
-	if (froxelFog || atmosphere || clouds || water)
+	if (froxelFog || atmosphere || clouds || water || particleDepth)
 	{
 		numFoggedItems = numDrawItems;
 		for ( uint32_t i = numOpaqueItems; i < numDrawItems; ++i )
@@ -1916,6 +1919,8 @@ static void RB_SubmitRenderPass(
 	}
 	if (froxelFog)
 		RB_VolumetricComposite();
+	if (particleDepth)
+		RB_CopyParticleDepth();
 	RB_DrawItems(numDrawItems - numFoggedItems, renderPass.drawItems, drawOrder + numFoggedItems);
 }
 
