@@ -57,5 +57,24 @@ from the start and reports fatal errors to the log without a dialog. Capture
 launches also set `s_initsound 0`, `in_mouse 0`, `in_nograb 1`, `r_fullscreen 0`;
 the harness checks that its process creates no visible windows.
 
-This does not solve general transparent-surface ordering or reconstruct 3D
-smoke from the texture. Sorting and performance work are separate stages.
+## Stage 2: alpha-particle order
+
+`r_particleSort 1` (default, live toggle) sorts compatible world sprites and
+oriented quads back to front by view depth. Each authored render layer remains
+separate. Ordinary surfaces retain their slots; particle passes are kept in
+their authored stage order, instead of sorting all first passes before all
+second passes. Entity-merge batches are split where independent particle
+ordering is needed. Pure additive layers retain their previous batching/order.
+
+Depth-writing, modulate, deformed, refraction, forced-post, view-model and
+shadow draws retain their existing handling. This is center-depth particle
+sorting, not general order-independent transparency for intersecting geometry.
+
+`tests/particle_order_tests.cpp` checks 1,000 shuffled multi-pass layers,
+depth order and preservation of ordinary slots. `capture_particles.py --sorting`
+adds near red/far blue stock-smoke clouds. It requires a clear color change,
+an A/B/A repeat and the same corrected image when the cloud submission order
+is reversed. Developer fixtures: `r_particleTest sort` / `sort-reverse`.
+
+Neither stage reconstructs 3D smoke from its texture. Performance work is a
+separate stage.

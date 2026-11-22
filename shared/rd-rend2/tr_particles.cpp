@@ -3,13 +3,17 @@
 #include "tr_local.h"
 
 static cvar_t *r_softParticles, *r_softParticleDistance, *r_particleNearFade;
+static cvar_t *r_particleSort;
 static float particleTestDistance, particleTestRadius;
 static int particleTestCount;
 static bool particleTestSurface;
+static int particleTestKind;
 
 void R_ParticleTest_f()
 {
 	if (!ri.Cvar_VariableIntegerValue("developer")) return;
+	particleTestKind = !Q_stricmp(ri.Cmd_Argv(1), "sort") ? 1 :
+		(!Q_stricmp(ri.Cmd_Argv(1), "sort-reverse") ? 2 : 0);
 	particleTestSurface = ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "surface");
 	particleTestDistance = ri.Cmd_Argc() > 1 ? atof(ri.Cmd_Argv(1)) : 0.0f;
 	particleTestRadius = ri.Cmd_Argc() > 2 ? atof(ri.Cmd_Argv(2)) : 24.0f;
@@ -20,7 +24,29 @@ void R_ParticleTest_f()
 
 void R_AddParticleTest(const refdef_t *view)
 {
-	if (particleTestDistance <= 0.0f || (view->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL))) return;
+	if (view->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)) return;
+	if (particleTestKind)
+	{
+		for (int n = 0; n < 16; ++n)
+		{
+			const int i = particleTestKind == 2 ? (n < 8 ? n + 8 : n - 8) : n;
+			const bool farCloud = i >= 8;
+			const float distance = farCloud ? 64.0f : 32.0f;
+			refEntity_t puff = {};
+			puff.reType = RT_SPRITE;
+			puff.radius = distance * 0.35f;
+			puff.rotation = (i % 8) * 37.0f;
+			puff.customShader = RE_RegisterShader(farCloud ? "gfx/effects/alpha_smoke2" : "gfx/effects/alpha_smoke");
+			VectorMA(view->vieworg, distance, view->viewaxis[0], puff.origin);
+			puff.shaderRGBA[0] = farCloud ? 20 : 255;
+			puff.shaderRGBA[1] = farCloud ? 100 : 70;
+			puff.shaderRGBA[2] = farCloud ? 255 : 20;
+			puff.shaderRGBA[3] = 255;
+			RE_AddRefEntityToScene(&puff);
+		}
+		return;
+	}
+	if (particleTestDistance <= 0.0f) return;
 	for (int i = 0; i < particleTestCount; ++i)
 	{
 		refEntity_t puff = {};
@@ -43,6 +69,7 @@ void R_InitParticleCvars()
 {
 	particleTestDistance = 0.0f;
 	particleTestSurface = false;
+	particleTestKind = 0;
 	r_softParticles = R_Cvar("r_softParticles", "1", CVAR_ARCHIVE | CVAR_LATCH,
 		"Soft intersections: 0 off, 1 alpha sprites, 2 also additive sprites; vid_restart");
 	R_CvarRange(r_softParticles, 0, 2, qtrue);
@@ -51,6 +78,9 @@ void R_InitParticleCvars()
 	R_CvarRange(r_softParticleDistance, 0.0f, 64.0f, qfalse);
 	r_particleNearFade = R_Cvar("r_particleNearFade", "1", CVAR_ARCHIVE,
 		"Smooth world FX near the camera instead of legacy distance culling");
+	r_particleSort = R_Cvar("r_particleSort", "1", CVAR_ARCHIVE,
+		"Order compatible world FX sprites back to front within their authored render layer");
+	R_CvarRange(r_particleSort, 0, 1, qtrue);
 }
 
 void R_CreateParticleImages(int width, int height)
@@ -129,6 +159,28 @@ bool RB_ParticleFadeStage(const shader_t *shader, const shaderStage_t *stage)
 			return r_particleNearFade->integer || RB_ParticleDepthView();
 	}
 	return false;
+}
+
+int RB_ParticleSortClass(const shader_t *shader, const refEntity_t& ent)
+{
+	if (!r_particleSort->integer || !R_ParticleEntity(ent) || !shader ||
+		(ent.renderfx & (RF_FORCEPOST | RF_ALPHA_FADE)) ||
+		shader->sort <= SS_FOG || shader->isSky || shader->numDeforms || shader->useDistortion ||
+		!shader->numUnfoggedPasses || backEnd.depthFill || backEnd.refractionFill ||
+		(backEnd.viewParms.flags & (VPF_DEPTHSHADOW | VPF_ORTHOGRAPHIC)) ||
+		(backEnd.refdef.rdflags & RDF_NOWORLDMODEL)) return 0;
+	int kind = 1;
+	for (int i = 0; i < shader->numUnfoggedPasses; ++i)
+	{
+		const shaderStage_t *s = shader->stages[i];
+		if (!s || (s->stateBits & (GLS_DEPTHMASK_TRUE | GLS_DEPTHTEST_DISABLE))) return 0;
+		const uint32_t src = s->stateBits & GLS_SRCBLEND_BITS;
+		const uint32_t dst = s->stateBits & GLS_DSTBLEND_BITS;
+		if ((src != GLS_SRCBLEND_SRC_ALPHA && src != GLS_SRCBLEND_ONE) ||
+			(dst != GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA && dst != GLS_DSTBLEND_ONE)) return 0;
+		if (dst == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA) kind = 2;
+	}
+	return kind;
 }
 
 void RB_SetupParticleFade(const shader_t *shader, const shaderStage_t *stage,

@@ -24,6 +24,7 @@ def main():
     ap.add_argument('--msaa', type=int, default=0)
     ap.add_argument('--shared-stock', action='store_true', help='Reuse a prepared directory with only assets0-3.pk3')
     ap.add_argument('--debug-context', action='store_true')
+    ap.add_argument('--sorting', action='store_true')
     args = ap.parse_args()
     root = args.output.resolve()
     home = root / 'home/OpenJK'
@@ -66,6 +67,12 @@ def main():
     commands += ['developer 1', 'r_particleTest 12 6 8', 'wait 8', 'developer 0']
     for label, enabled in [('near-before', 0), ('near-after', 1), ('near-repeat', 0)]:
         commands += ['r_particleNearFade %d' % enabled, 'wait 8', 'screenshot_tga ' + label, 'wait 3']
+    if args.sorting:
+        commands += ['r_softParticleDistance 0', 'r_particleNearFade 0', 'developer 1', 'r_particleTest sort']
+        for label, enabled, scene in [('sort-before', 0, 'sort'), ('sort-after', 1, 'sort'),
+                                       ('sort-reverse', 1, 'sort-reverse'), ('sort-repeat', 0, 'sort')]:
+            commands += ['r_particleTest ' + scene, 'r_particleSort %d' % enabled, 'wait 12',
+                         'screenshot_tga ' + label, 'wait 3']
     commands += ['echo PARTICLE_CAPTURE_DONE', 'wait 3', 'quit']
     (home / 'autoexec_sp.cfg').write_text('\n'.join(commands) + '\n')
     command = [str(root / 'openjk_sp.x86_64.exe')]
@@ -130,6 +137,22 @@ def main():
     assert presence_pixels >= 5000 and max(high for low, high in presence.getextrema()) >= 24, ('smoke not clearly visible', presence_pixels)
     empty.save(root / 'empty.png')
     results['smoke_presence'] = dict(pixels_changed_by_12_or_more=presence_pixels)
+    if args.sorting:
+        shots = {}
+        for label in ('before', 'after', 'reverse', 'repeat'):
+            shots[label] = Image.open(home / ('screenshots/sort-%s.tga' % label)).convert('RGB')
+            shots[label].save(root / ('sort-%s.png' % label))
+        for a, b in [('before', 'repeat'), ('after', 'reverse')]:
+            diff = ImageChops.difference(shots[a], shots[b])
+            maximum = max(high for low, high in diff.getextrema())
+            count = sum(any(pixel) for pixel in diff.getdata())
+            assert not diff.getbbox() or (args.msaa and maximum <= 1 and count <= repeat_limit), ('sort control', a, b, maximum, count)
+        diff = ImageChops.difference(shots['before'], shots['after'])
+        count = sum(max(pixel) >= 12 for pixel in diff.getdata())
+        maximum = max(high for low, high in diff.getextrema())
+        assert count >= 5000 and maximum >= 24, ('sort stimulus too weak', maximum, count)
+        results['sorting'] = dict(changed_pixels_by_12_or_more=count, max_delta=maximum,
+                                   reversed_submission_identical=not ImageChops.difference(shots['after'], shots['reverse']).getbbox())
     result = dict(msaa=args.msaa, hidden=True, visible_windows=visible, settings=config, captures=results,
                   driver=re.findall(r'GL_RENDERER:[^\r\n]*', text))
     (root / 'result.json').write_text(json.dumps(result, indent=2) + '\n')

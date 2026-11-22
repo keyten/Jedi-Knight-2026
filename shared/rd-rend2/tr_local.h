@@ -6629,6 +6629,7 @@ void R_CreateParticleFBOs();
 bool RB_ParticleDepthView();
 bool RB_ParticleFadeStage(const shader_t *shader, const shaderStage_t *stage);
 bool R_ParticleEntity(const refEntity_t& ent);
+int RB_ParticleSortClass(const shader_t *shader, const refEntity_t& ent);
 void RB_CopyParticleDepth();
 void RB_SetupParticleFade(const shader_t *shader, const shaderStage_t *stage,
 	UniformDataWriter& uniforms, SamplerBindingsWriter& samplers);
@@ -7522,6 +7523,8 @@ struct RenderState
 struct DrawItem
 {
 	RenderState renderState;
+	float particleDepth;
+	uint32_t particleOwner; // 0: ordinary draw, otherwise a whole particle's stages
 
 	IBO_t *ibo;
 	shaderProgram_t *program;

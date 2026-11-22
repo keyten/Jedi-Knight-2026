@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 #include "tr_local.h"
+#include "fx/ParticleOrder.h"
 #include "tr_allocator.h"
 #include "tr_lightrecon.h"
 #include "tr_pbr_contract.h"
@@ -1188,6 +1189,9 @@ SamplerBinding *SamplerBindingsWriter::Finish( Allocator& destHeap, uint32_t* nu
 	return result;
 }
 
+static bool rb_particleSortView;
+static uint16_t rb_particleSortLayers;
+
 struct Pass
 {
 	int maxDrawItems;
@@ -1468,6 +1472,19 @@ void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 		pass->sortKeys[pass->numDrawItems] = sortKey;
 		DrawItem& added = pass->drawItems[pass->numDrawItems++];
 		added = drawItem;
+		added.particleOwner = 0;
+		added.particleDepth = 0.0f;
+		const uintptr_t entity = (uintptr_t)backEnd.currentEntity;
+		const uintptr_t first = (uintptr_t)backEnd.refdef.entities;
+		if (rb_particleSortView && (rb_particleSortLayers & (1u << (sortKey >> 28))) && entity >= first &&
+			entity < first + backEnd.refdef.num_entities * sizeof(trRefEntity_t) &&
+			RB_ParticleSortClass(tess.shader, backEnd.currentEntity->e))
+		{
+			vec3_t offset;
+			VectorSubtract(backEnd.currentEntity->e.origin, backEnd.viewParms.ori.origin, offset);
+			added.particleDepth = DotProduct(offset, backEnd.viewParms.ori.axis[0]);
+			added.particleOwner = (uint32_t)((entity - first) / sizeof(trRefEntity_t)) + 1;
+		}
 		added.cubeFaceMask = cubeFaceMask;
 		// modern water surface: its slot of the main pass / the split view clip
 		if ( backEnd.waterItemTag )
@@ -1655,6 +1672,7 @@ static void RB_SubmitDrawSurfs(
 	uint8_t oldFoliageMotion = 0;
 	uint32_t oldWaterKey = ~0u;
 	CBoneCache *oldBoneCache = nullptr;
+	bool oldParticleSort = false;
 
 	drawSurf_t *drawSurf = drawSurfs;
 	for ( int i = 0; i < numDrawSurfs; i++, drawSurf++ )
@@ -1668,6 +1686,9 @@ static void RB_SubmitDrawSurfs(
 
 		R_DecomposeSort(drawSurf->sort, &entityNum, &shader, &cubemapIndex, &postRender);
 		assert(shader != nullptr);
+		const bool particleSort = rb_particleSortView &&
+			(rb_particleSortLayers & (1u << Q_min((int)shader->sort, 15))) && RB_ParticleSortClass(shader,
+			entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e);
 		fogNum = drawSurf->fogIndex;
 		dlighted = drawSurf->dlightBits;
 		int foliageDebugClass = 0;
@@ -1721,7 +1742,7 @@ static void RB_SubmitDrawSurfs(
 				foliageDebugClass != oldFoliageDebugClass ||
 				foliageMotion != oldFoliageMotion ||
 				drawSurf->waterKey != oldWaterKey ||
-				(entityNum != oldEntityNum && (!tess.entityMergable ||
+				(entityNum != oldEntityNum && (!tess.entityMergable || particleSort || oldParticleSort ||
 				 R_ParticleEntity(backEnd.currentEntity->e) != R_ParticleEntity(
 				 entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e)))) )
 		{
@@ -1740,6 +1761,7 @@ static void RB_SubmitDrawSurfs(
 			oldFoliageDebugClass = foliageDebugClass;
 			oldFoliageMotion = foliageMotion;
 			oldWaterKey = drawSurf->waterKey;
+			oldParticleSort = particleSort;
 			tess.foliageDebugClass = foliageDebugClass;
 			tess.foliageMotion = foliageMotion;
 			tess.dlightBits = dlighted;
@@ -1784,6 +1806,22 @@ static void RB_SubmitRenderPass(
 	{
 		return sortKeys[a] < sortKeys[b];
 	});
+	if (rb_particleSortView)
+	{
+		uint32_t *scratch = ojkAllocArray<uint32_t>(allocator, numDrawItems * 2);
+		for (uint32_t begin = 0, end; begin < numDrawItems; begin = end)
+		{
+			end = begin + 1;
+			while (end < numDrawItems && (sortKeys[drawOrder[end]] >> 28) == (sortKeys[drawOrder[begin]] >> 28)) ++end;
+			if (rb_particleSortLayers & (1u << (sortKeys[drawOrder[begin]] >> 28)))
+			{
+				ParticleOrder::SortLayer(drawOrder + begin, end - begin, scratch, [&](uint32_t i) {
+					const DrawItem& item = renderPass.drawItems[i];
+					return ParticleOrder::Entry{item.particleDepth, item.particleOwner, (sortKeys[i] >> 24) & 15};
+				});
+			}
+		}
+	}
 
 	// modern water surface (tr_watersurface.cpp): its items leave the sorted
 	// order (kept in it) and get their own slot below
@@ -1931,6 +1969,21 @@ RB_RenderDrawSurfList
 */
 static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 {
+	rb_particleSortView = false;
+	rb_particleSortLayers = 0;
+	if (!backEnd.depthFill && !backEnd.refractionFill)
+		for (int i = 0; i < numDrawSurfs; ++i)
+		{
+			if (*drawSurfs[i].surface != SF_ENTITY) continue;
+			int entity, cube, post;
+			shader_t *shader;
+			R_DecomposeSort(drawSurfs[i].sort, &entity, &shader, &cube, &post);
+			if (entity != REFENTITYNUM_WORLD && RB_ParticleSortClass(shader, backEnd.refdef.entities[entity].e) == 2)
+			{
+				rb_particleSortView = true;
+				rb_particleSortLayers |= 1u << Q_min((int)shader->sort, 15);
+			}
+		}
 	const auto recordStart = rb_shadowProfileActive ?
 		std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
 	/*
@@ -2062,6 +2115,7 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 
 	backEndData->perFrameMemory->ResetTo(allocMark);
 	backEndData->currentPass = nullptr;
+	rb_particleSortView = false;
 
 	// Reset things to how they were
 	backEnd.refdef.floatTime = originalTime;
