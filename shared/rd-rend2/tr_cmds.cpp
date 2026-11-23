@@ -32,6 +32,7 @@ void R_PerformanceCounters( void ) {
 
 	// main view GPU time for r_forwardPlusStats / r_forwardPlusBenchmark
 	R_ForwardPlusCollectGpuTimes(currentFrame);
+	R_ParticleProfilePrint();
 
 	if ( !r_speeds->integer ) {
 		// clear the counters even if we aren't printing

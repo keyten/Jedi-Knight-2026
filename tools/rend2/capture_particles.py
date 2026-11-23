@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import statistics
 import time
 
 from test_lightrecon_legacy_runtime import settings
@@ -25,6 +26,8 @@ def main():
     ap.add_argument('--shared-stock', action='store_true', help='Reuse a prepared directory with only assets0-3.pk3')
     ap.add_argument('--debug-context', action='store_true')
     ap.add_argument('--sorting', action='store_true')
+    ap.add_argument('--benchmark', action='store_true')
+    ap.add_argument('--batching', action='store_true')
     args = ap.parse_args()
     root = args.output.resolve()
     home = root / 'home/OpenJK'
@@ -51,7 +54,7 @@ def main():
     config = settings('legacy', 0)
     config.update(fs_basepath=str(args.installation.resolve() if args.shared_stock else root), fs_homepath=str(root / 'home'), fs_game='OpenJK',
                   r_hiddenWindow=1, in_nograb=1, r_softParticles=1, r_particleNearFade=1,
-                  r_ext_multisample=args.msaa, r_particleLighting=0, r_softParticleDistance=8,
+                  r_ext_multisample=args.msaa, r_particleLighting=0, r_softParticleDistance=8, r_particleBatching=0,
                   cg_thirdPersonRange=80, cg_thirdPersonVertOffset=16, cg_thirdPersonAlpha=0,
                   r_debugContext=int(args.debug_context), r_ignoreGLErrors=0, r_clear=0, r_weather=0, r_flares=0, r_bloom=0)
     (home / 'openjk_sp.cfg').write_text(''.join('set %s "%s"\n' % item for item in config.items()))
@@ -71,8 +74,24 @@ def main():
         commands += ['r_softParticleDistance 0', 'r_particleNearFade 0', 'developer 1', 'r_particleTest sort']
         for label, enabled, scene in [('sort-before', 0, 'sort'), ('sort-after', 1, 'sort'),
                                        ('sort-reverse', 1, 'sort-reverse'), ('sort-repeat', 0, 'sort')]:
-            commands += ['r_particleTest ' + scene, 'r_particleSort %d' % enabled, 'wait 12',
+            commands += ['developer 1', 'r_particleTest ' + scene, 'r_particleSort %d' % enabled, 'wait 12', 'developer 0', 'wait 8',
                          'screenshot_tga ' + label, 'wait 3']
+    if args.batching:
+        commands += ['r_particleSort 1', 'r_softParticleDistance 8', 'r_particleNearFade 1', 'developer 1']
+        for label, enabled, scene in [('before', 0, 'batch'), ('after', 1, 'batch'),
+                                       ('reverse', 1, 'batch-reverse'), ('repeat', 0, 'batch')]:
+            commands += ['developer 1', 'r_particleTest ' + scene, 'r_particleBatching %d' % enabled, 'wait 12', 'developer 0', 'wait 8',
+                         'screenshot_tga batch-' + label, 'wait 3']
+    benchmark_cases = [(name, count, batch) for name, count in [('empty', 0), ('p64', 64), ('p512', 512)]
+                       for batch in (0, 1, 0)]
+    if args.benchmark:
+        for case, (name, count, batch) in enumerate(benchmark_cases):
+            name = '%s_%d_%d' % (name, batch, case)
+            commands += ['r_particleProfile 0', 'r_speeds 0', 'developer 1',
+                         'r_particleTest %s' % ('128 2 %d' % count if count else '0'),
+                         'r_particleBatching %d' % batch, 'r_softParticleDistance 8', 'r_particleNearFade 1', 'r_particleSort 1', 'wait 120', 'developer 0',
+                         'echo PARTICLE_BENCH_%s_BEGIN' % name, 'r_particleProfile 1', 'r_speeds 100',
+                         'wait 240', 'r_particleProfile 0', 'r_speeds 0', 'echo PARTICLE_BENCH_%s_END' % name]
     commands += ['echo PARTICLE_CAPTURE_DONE', 'wait 3', 'quit']
     (home / 'autoexec_sp.cfg').write_text('\n'.join(commands) + '\n')
     command = [str(root / 'openjk_sp.x86_64.exe')]
@@ -119,9 +138,9 @@ def main():
         max_repeat = max(high for low, high in repeat_delta.getextrema())
         changed_repeat = sum(any(pixel) for pixel in repeat_delta.getdata())
         delta = ImageChops.difference(images[0], images[1])
-        # FP16/MSAA resolve can differ by one display code at sparse rounding ties.
+        # FP16 output/resolve can differ by one display code at sparse rounding ties.
         repeat_limit = max(1, images[0].width * images[0].height // 5000)
-        assert repeat is None or (args.msaa and max_repeat <= 1 and changed_repeat <= repeat_limit), (kind, 'unstable A/B/A camera or simulation', repeat, max_repeat, changed_repeat)
+        assert repeat is None or (max_repeat <= 1 and changed_repeat <= repeat_limit), (kind, 'unstable A/B/A camera or simulation', repeat, max_repeat, changed_repeat)
         stimulus_pixels = sum(any(pixel) for pixel in delta.getdata())
         stimulus_max = max(high for low, high in delta.getextrema())
         assert stimulus_max >= 12 and stimulus_pixels >= 2000, (kind, 'no clearly visible change', stimulus_max, stimulus_pixels)
@@ -146,15 +165,46 @@ def main():
             diff = ImageChops.difference(shots[a], shots[b])
             maximum = max(high for low, high in diff.getextrema())
             count = sum(any(pixel) for pixel in diff.getdata())
-            assert not diff.getbbox() or (args.msaa and maximum <= 1 and count <= repeat_limit), ('sort control', a, b, maximum, count)
+            assert not diff.getbbox() or (maximum <= 1 and count <= repeat_limit), ('sort control', a, b, maximum, count)
         diff = ImageChops.difference(shots['before'], shots['after'])
         count = sum(max(pixel) >= 12 for pixel in diff.getdata())
         maximum = max(high for low, high in diff.getextrema())
         assert count >= 5000 and maximum >= 24, ('sort stimulus too weak', maximum, count)
         results['sorting'] = dict(changed_pixels_by_12_or_more=count, max_delta=maximum,
                                    reversed_submission_identical=not ImageChops.difference(shots['after'], shots['reverse']).getbbox())
+    if args.batching:
+        shots = {}
+        for label in ('before', 'after', 'reverse', 'repeat'):
+            shots[label] = Image.open(home / ('screenshots/batch-%s.tga' % label)).convert('RGB')
+            shots[label].save(root / ('batch-%s.png' % label))
+        results['batching'] = {}
+        for label in ('after', 'reverse', 'repeat'):
+            diff = ImageChops.difference(shots['before'], shots[label])
+            maximum = max(high for low, high in diff.getextrema())
+            count = sum(any(pixel) for pixel in diff.getdata())
+            assert not diff.getbbox() or (maximum <= 1 and count <= repeat_limit), ('batch control', label, maximum, count)
+            results['batching'][label] = dict(identical=not diff.getbbox(), max_delta=maximum, changed_pixels=count)
     result = dict(msaa=args.msaa, hidden=True, visible_windows=visible, settings=config, captures=results,
                   driver=re.findall(r'GL_RENDERER:[^\r\n]*', text))
+    if args.benchmark:
+        result['benchmark'] = {}
+        for case, (name, count, batch) in enumerate(benchmark_cases):
+            name = '%s_%d_%d' % (name, batch, case)
+            section = re.search('PARTICLE_BENCH_%s_BEGIN(.*?)PARTICLE_BENCH_%s_END' % (name, name), text, re.S)
+            assert section, name
+            rows = re.findall(r'PARTICLE_PROFILE\|record=([\d.]+)\|submit=([\d.]+)\|sort=([\d.]+)\|items=(\d+)\|particles=(\d+)\|depthCopies=(\d+)', section[1])[20:]
+            assert len(rows) >= 50, (name, len(rows))
+            stats = {key: statistics.median(float(row[i]) for row in rows)
+                     for i, key in enumerate(('record_us', 'submit_us', 'sort_us', 'draw_items', 'particle_draw_items', 'depth_copies'))}
+            assert stats['depth_copies'] == (1 if count else 0), (name, 'unexpected depth-copy count', stats)
+            if count:
+                assert stats['particle_draw_items'] < count if batch else stats['particle_draw_items'] == count, (name, stats)
+            gpu = [float(x) for x in re.findall(r'Main View[^:\r\n]*:\s*([\d.]+)ms', section[1])][20:]
+            depth = [float(x) for x in re.findall(r'Particle depth:\s*([\d.]+)ms', section[1])][20:]
+            stats.update(samples=len(rows), gpu_main_ms=statistics.median(gpu) if gpu else None,
+                         gpu_depth_ms=statistics.median(depth) if depth else None,
+                         cpu_main_us=statistics.median(float(row[0]) + float(row[1]) for row in rows))
+            result['benchmark'][name] = stats
     (root / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2), flush=True)
 

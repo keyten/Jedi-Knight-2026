@@ -6622,6 +6622,12 @@ struct UniformBlockBinding;
 class SamplerBindingsWriter;
 
 void R_InitParticleCvars();
+bool R_ParticleProfileActive();
+bool R_ParticleBatching();
+bool RB_ParticleBatchable(const shader_t *shader, const refEntity_t& ent);
+bool R_ParticleDepthProbePending();
+void R_ParticleProfilePrint();
+void R_ParticleProfileFrame(double recordUs, double submitUs, double sortUs, unsigned items, unsigned particles);
 void R_ParticleTest_f();
 void R_AddParticleTest(const refdef_t *view);
 void R_CreateParticleImages(int width, int height);

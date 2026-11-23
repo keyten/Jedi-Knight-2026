@@ -1191,6 +1191,8 @@ SamplerBinding *SamplerBindingsWriter::Finish( Allocator& destHeap, uint32_t* nu
 
 static bool rb_particleSortView;
 static uint16_t rb_particleSortLayers;
+static double rb_particleSortUs;
+static ParticleOrder::Entry rb_particleBatchEntry;
 
 struct Pass
 {
@@ -1484,6 +1486,11 @@ void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 			VectorSubtract(backEnd.currentEntity->e.origin, backEnd.viewParms.ori.origin, offset);
 			added.particleDepth = DotProduct(offset, backEnd.viewParms.ori.axis[0]);
 			added.particleOwner = (uint32_t)((entity - first) / sizeof(trRefEntity_t)) + 1;
+			if (rb_particleBatchEntry.owner)
+			{
+				added.particleDepth = rb_particleBatchEntry.depth;
+				added.particleOwner = rb_particleBatchEntry.owner;
+			}
 		}
 		added.cubeFaceMask = cubeFaceMask;
 		// modern water surface: its slot of the main pass / the split view clip
@@ -1673,6 +1680,8 @@ static void RB_SubmitDrawSurfs(
 	uint32_t oldWaterKey = ~0u;
 	CBoneCache *oldBoneCache = nullptr;
 	bool oldParticleSort = false;
+	bool oldParticleBatchable = false;
+	rb_particleBatchEntry = {};
 
 	drawSurf_t *drawSurf = drawSurfs;
 	for ( int i = 0; i < numDrawSurfs; i++, drawSurf++ )
@@ -1689,6 +1698,10 @@ static void RB_SubmitDrawSurfs(
 		const bool particleSort = rb_particleSortView &&
 			(rb_particleSortLayers & (1u << Q_min((int)shader->sort, 15))) && RB_ParticleSortClass(shader,
 			entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e);
+		const refEntity_t& entity = entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e;
+		const bool particleBatchable = particleSort && RB_ParticleBatchable(shader, entity);
+		const bool mergeParticles = particleBatchable && oldParticleBatchable &&
+			entity.shaderTime == backEnd.currentEntity->e.shaderTime;
 		fogNum = drawSurf->fogIndex;
 		dlighted = drawSurf->dlightBits;
 		int foliageDebugClass = 0;
@@ -1742,7 +1755,7 @@ static void RB_SubmitDrawSurfs(
 				foliageDebugClass != oldFoliageDebugClass ||
 				foliageMotion != oldFoliageMotion ||
 				drawSurf->waterKey != oldWaterKey ||
-				(entityNum != oldEntityNum && (!tess.entityMergable || particleSort || oldParticleSort ||
+				(entityNum != oldEntityNum && !mergeParticles && (!tess.entityMergable || particleSort || oldParticleSort ||
 				 R_ParticleEntity(backEnd.currentEntity->e) != R_ParticleEntity(
 				 entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e)))) )
 		{
@@ -1752,6 +1765,16 @@ static void RB_SubmitDrawSurfs(
 			}
 
 			RB_BeginSurface(shader, fogNum, cubemapIndex, drawSurf->waterKey);
+			rb_particleBatchEntry = {};
+			if (particleBatchable)
+			{
+				vec3_t offset;
+				VectorSubtract(entity.origin, backEnd.viewParms.ori.origin, offset);
+				// Tag the batch by its first (farthest) particle. Only adjacent
+				// depth-sorted, single-stage particles enter this batch. Overflow
+				// splits keep this tag and their original draw-item index order.
+				rb_particleBatchEntry = {DotProduct(offset, backEnd.viewParms.ori.axis[0]), (uint32_t)entityNum + 1, 0};
+			}
 			backEnd.pc.c_surfBatches++;
 			oldShader = shader;
 			oldFogNum = fogNum;
@@ -1762,6 +1785,7 @@ static void RB_SubmitDrawSurfs(
 			oldFoliageMotion = foliageMotion;
 			oldWaterKey = drawSurf->waterKey;
 			oldParticleSort = particleSort;
+			oldParticleBatchable = particleBatchable;
 			tess.foliageDebugClass = foliageDebugClass;
 			tess.foliageMotion = foliageMotion;
 			tess.dlightBits = dlighted;
@@ -1804,10 +1828,13 @@ static void RB_SubmitRenderPass(
 	uint32_t *sortKeys = renderPass.sortKeys;
 	std::sort(drawOrder, drawOrder + numDrawItems, [sortKeys]( uint32_t a, uint32_t b )
 	{
-		return sortKeys[a] < sortKeys[b];
+		// A different number of particle batches must not permute unrelated
+		// translucent draws with equal state keys (e.g. stock bacta bubbles).
+		return sortKeys[a] != sortKeys[b] ? sortKeys[a] < sortKeys[b] : a < b;
 	});
 	if (rb_particleSortView)
 	{
+		const auto sortStart = R_ParticleProfileActive() ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
 		uint32_t *scratch = ojkAllocArray<uint32_t>(allocator, numDrawItems * 2);
 		for (uint32_t begin = 0, end; begin < numDrawItems; begin = end)
 		{
@@ -1821,6 +1848,7 @@ static void RB_SubmitRenderPass(
 				});
 			}
 		}
+		if (R_ParticleProfileActive()) rb_particleSortUs += RB_ShadowProfileUs(sortStart);
 	}
 
 	// modern water surface (tr_watersurface.cpp): its items leave the sorted
@@ -1863,7 +1891,18 @@ static void RB_SubmitRenderPass(
 	const qboolean froxelFog = (qboolean)(!materialDebug && RB_VolumetricCompositeActive());
 	const qboolean atmosphere = (qboolean)(!materialDebug && RB_AtmosphereActive());
 	const qboolean clouds = (qboolean)(!materialDebug && RB_CloudsActive());
-	const bool particleDepth = !materialDebug && RB_ParticleDepthView();
+	bool particleDepth = !materialDebug && RB_ParticleDepthView() && R_ParticleDepthProbePending();
+	if (!materialDebug && RB_ParticleDepthView() && !particleDepth)
+		for (uint32_t i = 0; i < numDrawItems && !particleDepth; ++i)
+		{
+			const DrawItem& item = renderPass.drawItems[drawOrder[i]];
+			for (uint32_t j = 0; j < item.numSamplerBindings; ++j)
+				if (item.samplerBindings[j].image == tr.particleDepthImage)
+				{
+					particleDepth = true;
+					break;
+				}
+		}
 	if (!ssr && !froxelFog && !atmosphere && !clouds && !water && !particleDepth)
 	{
 		RB_DrawItems(renderPass.numDrawItems, renderPass.drawItems, drawOrder);
@@ -1967,8 +2006,49 @@ static void RB_SubmitRenderPass(
 RB_RenderDrawSurfList
 ==================
 */
+static drawSurf_t *RB_OrderParticleSurfaces(drawSurf_t *surfaces, int count, Allocator& allocator)
+{
+	// Sort before tessellation as well as before submission: adjacent particles
+	// can then share a draw without losing their per-quad transparency order.
+	const auto start = R_ParticleProfileActive() ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
+	auto *entries = ojkAllocArray<ParticleOrder::Entry>(allocator, count);
+	auto *layers = ojkAllocArray<uint8_t>(allocator, count);
+	auto *order = ojkAllocArray<uint32_t>(allocator, count);
+	auto *scratch = ojkAllocArray<uint32_t>(allocator, count * 2);
+	for (int i = 0; i < count; ++i)
+	{
+		order[i] = i;
+		entries[i] = {};
+		layers[i] = 0;
+		if (*surfaces[i].surface != SF_ENTITY) continue;
+		int entity, cube, post;
+		shader_t *shader;
+		R_DecomposeSort(surfaces[i].sort, &entity, &shader, &cube, &post);
+		const int layer = Q_min((int)shader->sort, 15);
+		if (entity == REFENTITYNUM_WORLD || !(rb_particleSortLayers & (1u << layer)) ||
+			!RB_ParticleSortClass(shader, backEnd.refdef.entities[entity].e)) continue;
+		vec3_t offset;
+		VectorSubtract(backEnd.refdef.entities[entity].e.origin, backEnd.viewParms.ori.origin, offset);
+		entries[i] = {DotProduct(offset, backEnd.viewParms.ori.axis[0]), (uint32_t)entity + 1, 0};
+		layers[i] = layer;
+	}
+	for (int layer = 0; layer < 16; ++layer)
+		if (rb_particleSortLayers & (1u << layer))
+			ParticleOrder::SortLayer(order, count, scratch, [&](uint32_t i) {
+				return layers[i] == layer ? entries[i] : ParticleOrder::Entry{};
+			});
+	auto *sorted = ojkAllocArray<drawSurf_t>(allocator, count);
+	for (int i = 0; i < count; ++i) sorted[i] = surfaces[order[i]];
+	if (R_ParticleProfileActive()) rb_particleSortUs += RB_ShadowProfileUs(start);
+	return sorted;
+}
+
 static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 {
+	const bool particleProfile = R_ParticleProfileActive() && !backEnd.depthFill && !backEnd.refractionFill &&
+		backEnd.viewParms.viewParmType == VPT_MAIN && !(backEnd.refdef.rdflags & RDF_NOWORLDMODEL);
+	const auto particleStart = particleProfile ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
+	rb_particleSortUs = 0.0;
 	rb_particleSortView = false;
 	rb_particleSortLayers = 0;
 	if (!backEnd.depthFill && !backEnd.refractionFill)
@@ -2045,6 +2125,8 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 
 	backEnd.currentEntity = &tr.worldEntity;
 	backEnd.pc.c_surfaces += numDrawSurfs;
+	if (rb_particleSortView && R_ParticleBatching())
+		drawSurfs = RB_OrderParticleSurfaces(drawSurfs, numDrawSurfs, *backEndData->perFrameMemory);
 
 	if ( backEnd.depthFill )
 	{
@@ -2107,11 +2189,22 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 		rb_shadowSubmitProfile.surfaces += numDrawSurfs;
 		executeStart = std::chrono::steady_clock::now();
 	}
+	const double particleRecordUs = particleProfile ? RB_ShadowProfileUs(particleStart) : 0.0;
+	const auto particleSubmitStart = particleProfile ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point();
 	RB_SubmitRenderPass(
 		*backEndData->currentPass,
 		*backEndData->perFrameMemory);
 	if (rb_shadowProfileActive)
 		rb_shadowSubmitProfile.us[SHADOWPROF_EXECUTE] += RB_ShadowProfileUs(executeStart);
+	if (particleProfile)
+	{
+		const double submitUs = RB_ShadowProfileUs(particleSubmitStart);
+		unsigned particles = 0;
+		for (int i = 0; i < backEndData->currentPass->numDrawItems; ++i)
+			particles += backEndData->currentPass->drawItems[i].particleOwner != 0;
+		R_ParticleProfileFrame(particleRecordUs, submitUs, rb_particleSortUs,
+			backEndData->currentPass->numDrawItems, particles);
+	}
 
 	backEndData->perFrameMemory->ResetTo(allocMark);
 	backEndData->currentPass = nullptr;

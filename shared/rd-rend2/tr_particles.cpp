@@ -4,27 +4,79 @@
 
 static cvar_t *r_softParticles, *r_softParticleDistance, *r_particleNearFade;
 static cvar_t *r_particleSort;
+static cvar_t *r_particleProfile;
+static cvar_t *r_particleBatching;
+static unsigned particleDepthCopies;
+static double particleProfileTimes[3];
+static unsigned particleProfileCounts[3];
+static bool particleProfileFresh;
+
+bool R_ParticleProfileActive() { return r_particleProfile && r_particleProfile->integer != 0; }
+void R_ParticleProfileFrame(double recordUs, double submitUs, double sortUs, unsigned items, unsigned particles)
+{
+	particleProfileTimes[0] = recordUs; particleProfileTimes[1] = submitUs; particleProfileTimes[2] = sortUs;
+	particleProfileCounts[0] = items; particleProfileCounts[1] = particles; particleProfileCounts[2] = particleDepthCopies;
+	particleProfileFresh = true;
+	particleDepthCopies = 0;
+}
+
+void R_ParticleProfilePrint()
+{
+	if (!R_ParticleProfileActive() || !particleProfileFresh) return;
+	// Report outside Main View's GPU timestamp interval; log I/O must not be timed.
+	ri.Printf(PRINT_ALL, "PARTICLE_PROFILE|record=%.3f|submit=%.3f|sort=%.3f|items=%u|particles=%u|depthCopies=%u\n",
+		particleProfileTimes[0], particleProfileTimes[1], particleProfileTimes[2],
+		particleProfileCounts[0], particleProfileCounts[1], particleProfileCounts[2]);
+	particleProfileFresh = false;
+}
 static float particleTestDistance, particleTestRadius;
 static int particleTestCount;
 static bool particleTestSurface;
 static int particleTestKind;
 
+bool R_ParticleBatching() { return r_particleBatching->integer != 0; }
+bool R_ParticleDepthProbePending() { return particleTestSurface; }
+
 void R_ParticleTest_f()
 {
 	if (!ri.Cvar_VariableIntegerValue("developer")) return;
 	particleTestKind = !Q_stricmp(ri.Cmd_Argv(1), "sort") ? 1 :
-		(!Q_stricmp(ri.Cmd_Argv(1), "sort-reverse") ? 2 : 0);
+		(!Q_stricmp(ri.Cmd_Argv(1), "sort-reverse") ? 2 :
+		(!Q_stricmp(ri.Cmd_Argv(1), "batch") ? 3 :
+		(!Q_stricmp(ri.Cmd_Argv(1), "batch-reverse") ? 4 : 0)));
 	particleTestSurface = ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "surface");
 	particleTestDistance = ri.Cmd_Argc() > 1 ? atof(ri.Cmd_Argv(1)) : 0.0f;
 	particleTestRadius = ri.Cmd_Argc() > 2 ? atof(ri.Cmd_Argv(2)) : 24.0f;
 	particleTestDistance = Com_Clamp(0.0f, 1024.0f, particleTestDistance);
 	particleTestRadius = Com_Clamp(0.1f, 256.0f, particleTestRadius);
-	particleTestCount = ri.Cmd_Argc() > 3 ? Com_Clampi(1, 64, atoi(ri.Cmd_Argv(3))) : 1;
+	particleTestCount = ri.Cmd_Argc() > 3 ? Com_Clampi(1, 1024, atoi(ri.Cmd_Argv(3))) : 1;
 }
 
 void R_AddParticleTest(const refdef_t *view)
 {
 	if (view->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)) return;
+	if (particleTestKind >= 3)
+	{
+		// Interleaved materials, colors and unique depths exercise both the
+		// boundaries of merged runs and per-quad order inside each run.
+		for (int n = 0; n < 48; ++n)
+		{
+			const int i = particleTestKind == 4 ? 47 - n : n;
+			const float distance = 32.0f + ((i * 17) % 48) * 1.25f;
+			refEntity_t puff = {};
+			puff.reType = RT_SPRITE;
+			puff.radius = distance * 0.2f;
+			puff.rotation = i * 37.0f;
+			puff.customShader = RE_RegisterShader(i % 5 == 0 ? "gfx/effects/alpha_smoke2" : "gfx/effects/alpha_smoke");
+			VectorMA(view->vieworg, distance, view->viewaxis[0], puff.origin);
+			puff.shaderRGBA[0] = 40 + (i * 71) % 216;
+			puff.shaderRGBA[1] = 40 + (i * 43) % 216;
+			puff.shaderRGBA[2] = 40 + (i * 19) % 216;
+			puff.shaderRGBA[3] = 180;
+			RE_AddRefEntityToScene(&puff);
+		}
+		return;
+	}
 	if (particleTestKind)
 	{
 		for (int n = 0; n < 16; ++n)
@@ -36,7 +88,7 @@ void R_AddParticleTest(const refdef_t *view)
 			puff.reType = RT_SPRITE;
 			puff.radius = distance * 0.35f;
 			puff.rotation = (i % 8) * 37.0f;
-			puff.customShader = RE_RegisterShader(farCloud ? "gfx/effects/alpha_smoke2" : "gfx/effects/alpha_smoke");
+			puff.customShader = RE_RegisterShader(farCloud ? "gfx/effects/alpha_smoke" : "gfx/effects/alpha_smoke2");
 			VectorMA(view->vieworg, distance, view->viewaxis[0], puff.origin);
 			puff.shaderRGBA[0] = farCloud ? 20 : 255;
 			puff.shaderRGBA[1] = farCloud ? 100 : 70;
@@ -81,6 +133,13 @@ void R_InitParticleCvars()
 	r_particleSort = R_Cvar("r_particleSort", "1", CVAR_ARCHIVE,
 		"Order compatible world FX sprites back to front within their authored render layer");
 	R_CvarRange(r_particleSort, 0, 1, qtrue);
+	r_particleProfile = R_Cvar("r_particleProfile", "0", 0,
+		"Print main particle-pass CPU microseconds, draw items and depth copies (developer profiling)");
+	particleDepthCopies = 0;
+	particleProfileFresh = false;
+	r_particleBatching = R_Cvar("r_particleBatching", "1", CVAR_ARCHIVE,
+		"Batch adjacent compatible single-pass sprites after particle depth sorting");
+	R_CvarRange(r_particleBatching, 0, 1, qtrue);
 }
 
 void R_CreateParticleImages(int width, int height)
@@ -113,6 +172,8 @@ bool RB_ParticleDepthView()
 
 void RB_CopyParticleDepth()
 {
+	const int timer = R_ParticleProfileActive() ? RB_ScreenBeginTimer("Particle depth") : -1;
+	if (R_ParticleProfileActive()) ++particleDepthCopies;
 	FBO_t *old = glState.currentFBO;
 	// A distinct attachment avoids texture feedback, and resolves MSAA depth.
 	FBO_FastBlit(old, nullptr, tr.particleDepthFbo, nullptr, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
@@ -135,6 +196,7 @@ void RB_CopyParticleDepth()
 		ri.Printf(PRINT_ALL, "particleTest: contact distance %.3f\n", particleTestDistance);
 	}
 	FBO_Bind(old);
+	RB_ScreenEndTimer(timer);
 }
 
 bool R_ParticleEntity(const refEntity_t& ent)
@@ -181,6 +243,24 @@ int RB_ParticleSortClass(const shader_t *shader, const refEntity_t& ent)
 		if (dst == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA) kind = 2;
 	}
 	return kind;
+}
+
+bool RB_ParticleBatchable(const shader_t *shader, const refEntity_t& ent)
+{
+	// Sprite positions/colors are already in the vertex buffer. Only merge stages
+	// whose remaining uniforms are independent of the particular entity. Keep
+	// multi-pass and separate fog passes per particle, and all special FX flags.
+	if (!R_ParticleBatching() || ent.renderfx || ent.frame || ent.oldframe ||
+		shader->numUnfoggedPasses != 1 || shader->fogPass != FP_NONE ||
+		shader->cullType != CT_TWO_SIDED) return false;
+	const shaderStage_t *stage = shader->stages[0];
+	if (stage->ss || stage->glslShaderGroup == tr.lightallShader ||
+		(stage->rgbGen != CGEN_VERTEX && stage->rgbGen != CGEN_EXACT_VERTEX) ||
+		(stage->alphaGen != AGEN_VERTEX && stage->alphaGen != AGEN_IDENTITY)) return false;
+	for (const auto& bundle : stage->bundle)
+		if (bundle.numTexMods || bundle.isVideoMap ||
+			(bundle.image[0] && bundle.tcGen != TCGEN_TEXTURE)) return false;
+	return true;
 }
 
 void RB_SetupParticleFade(const shader_t *shader, const shaderStage_t *stage,

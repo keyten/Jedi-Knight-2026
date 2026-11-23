@@ -40,5 +40,40 @@ int main()
 	}
 	Entry invalid{std::numeric_limits<float>::quiet_NaN(),3,0};
 	assert(!ParticleOrder::Before(invalid, invalid));
-	std::puts("PASS: 1000 shuffled multi-pass layers, stable ordinary slots and depth order");
+	// Front-end batching sorts a full surface list once per authored layer.
+	// Layers may be interleaved by shader IDs; no layer may take another's slots.
+	for (unsigned trial = 0; trial < 1000; ++trial)
+	{
+		std::vector<Entry> entries(256);
+		std::vector<unsigned> layers(256);
+		std::vector<uint32_t> indices(256), work(512);
+		for (unsigned i = 0; i < 256; ++i)
+		{
+			indices[i] = i;
+			layers[i] = rng() % 16;
+			entries[i] = {float(rng() % 100), rng() % 5 ? i + 1 : 0, 0};
+		}
+		for (unsigned layer = 0; layer < 16; ++layer)
+			ParticleOrder::SortLayer(indices.data(), indices.size(), work.data(), [&](unsigned i) {
+				return layers[i] == layer ? entries[i] : Entry{};
+			});
+		for (unsigned slot = 0; slot < 256; ++slot)
+		{
+			if (!entries[slot].owner) assert(indices[slot] == slot);
+			assert(layers[indices[slot]] == layers[slot]);
+		}
+		for (unsigned layer = 0; layer < 16; ++layer)
+		{
+			Entry previous{};
+			bool havePrevious = false;
+			for (unsigned i : indices)
+				if (layers[i] == layer && entries[i].owner)
+				{
+					assert(!havePrevious || !ParticleOrder::Before(entries[i], previous));
+					previous = entries[i];
+					havePrevious = true;
+				}
+		}
+	}
+	std::puts("PASS: 1000 multi-pass layers and 1000 interleaved 16-layer surface lists");
 }
