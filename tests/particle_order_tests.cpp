@@ -13,6 +13,12 @@ int main()
 	ParticleOrder::SortLayer(order, 5, scratch, [&](unsigned i){return example[i];});
 	assert(order[0] == 0 && order[4] == 4); // ordinary surfaces retain their slots
 	assert(order[1] == 2 && order[2] == 3 && order[3] == 1); // whole far particle, then near stages
+	// Regression: a far glass reflection used to be drawn after the near smoke,
+	// because stage number preceded object depth in the global state sort.
+	const Entry glass[] = {{240,0x80000001u,0}, {32,2,0}, {240,0x80000001u,1}};
+	uint32_t glassOrder[] = {0,1,2}, glassWork[6];
+	ParticleOrder::SortLayer(glassOrder, 3, glassWork, [&](unsigned i){return glass[i];});
+	assert(glassOrder[0] == 0 && glassOrder[1] == 2 && glassOrder[2] == 1);
 	std::mt19937 rng(6432);
 	for (unsigned trial = 0; trial < 1000; ++trial)
 	{

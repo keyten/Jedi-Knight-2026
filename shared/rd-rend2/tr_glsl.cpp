@@ -3498,6 +3498,11 @@ static int GLSL_LoadGPUProgramGeneric(
 		{
 			Q_strcat(name, sizeof(name), "_PARTICLE");
 			Q_strcat(extradefines, sizeof(extradefines), "#define USE_PARTICLE_FADE\n");
+			if (R_ParticleShapeData())
+			{
+				attribs |= ATTR_TEXCOORD1;
+				Q_strcat(extradefines, sizeof(extradefines), "#define USE_PARTICLE_SHAPE\n");
+			}
 		}
 
 		/*if (i & GENERICDEF_USE_ALPHA_TEST)

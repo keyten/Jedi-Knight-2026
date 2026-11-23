@@ -13,6 +13,15 @@ in vec4 attr_BoneWeights;
 in vec4 attr_Color;
 in vec2 attr_TexCoord0;
 
+#if defined(USE_PARTICLE_SHAPE)
+uniform vec4 u_ParticleFade;
+uniform vec4 u_ParticleDepth;
+out vec4 var_ParticleShape; // original UV, radius, center view depth
+#if !defined(USE_TCGEN)
+in vec2 attr_TexCoord1;
+#endif
+#endif
+
 #if defined(USE_TCGEN)
 in vec2 attr_TexCoord1;
 in vec2 attr_TexCoord2;
@@ -501,6 +510,18 @@ void main()
 #endif
 	gl_Position = u_viewProjectionMatrix * wsPosition;
 
+#if defined(USE_PARTICLE_SHAPE)
+	var_ParticleShape = vec4(attr_TexCoord0, attr_TexCoord1.x, gl_Position.w);
+	if (u_ParticleFade.z > 0.0 && u_ParticleFade.w < 0.0 && attr_TexCoord1.x > 0.0)
+	{
+		// Conservative front depth only; coverage and texture coordinates stay
+		// those of the authored sprite. The fragment shader clips its thickness
+		// against opaque depth. Never write this proxy depth to the depth buffer.
+		float frontZ = max(gl_Position.w - attr_TexCoord1.x, u_ParticleDepth.z);
+		gl_Position.z = (-u_ParticleDepth.x + u_ParticleDepth.y / frontZ) * gl_Position.w;
+	}
+#endif
+
 	// r_sunShadowCache 2: scrolled cascade depth is reused at an
 	// integer texel translation. Snap the translation-free part to the 1/256
 	// pixel raster grid and add the grid-aligned translation, so every build
@@ -555,6 +576,9 @@ void main()
 
 
 /*[Fragment]*/
+#if defined(USE_PARTICLE_SHAPE)
+in vec4 var_ParticleShape;
+#endif
 #if defined(USE_PARTICLE_FADE)
 uniform sampler2D u_ScreenDepthMap;
 // x: 1 straight alpha, 2 premultiplied/additive ONE; y: near fade range; z: inverse soft distance.
@@ -923,13 +947,39 @@ void main()
 	if (u_ParticleFade.x > 0.0)
 	{
 		float particleZ = u_ParticleDepth.y / (gl_FragCoord.z * 2.0 - 1.0 + u_ParticleDepth.x);
+#if defined(USE_PARTICLE_SHAPE)
+		if (u_ParticleFade.w < 0.0 && var_ParticleShape.z > 0.0) particleZ = var_ParticleShape.w;
+#endif
 		float fade = u_ParticleFade.y > 0.0 ?
 			smoothstep(u_ParticleDepth.z, u_ParticleDepth.z + u_ParticleFade.y, particleZ) : 1.0;
 		if (u_ParticleFade.z > 0.0)
 		{
 			float sceneDepth = texelFetch(u_ScreenDepthMap, ivec2(gl_FragCoord.xy), 0).r;
 			float sceneZ = u_ParticleDepth.y / (sceneDepth * 2.0 - 1.0 + u_ParticleDepth.x);
-			fade *= clamp((sceneZ - particleZ) * u_ParticleFade.z, 0.0, 1.0);
+			float contact = clamp((sceneZ - particleZ) * u_ParticleFade.z, 0.0, 1.0);
+#if defined(USE_PARTICLE_SHAPE)
+			float radius = var_ParticleShape.z;
+			if (radius > 0.0 && u_ParticleFade.w < 0.0)
+			{
+				vec2 p = var_ParticleShape.xy * 2.0 - 1.0;
+				float halfThickness = radius * sqrt(max(1.0 - dot(p, p), 0.0001));
+				float visible = clamp((sceneZ - particleZ + halfThickness) / (2.0 * halfThickness), 0.0, 1.0);
+				// Preserve the fully visible authored alpha exactly. For a clipped
+				// interval, convert optical thickness back to opacity, not a linear
+				// washout at the billboard's center plane. Stock texture is retained.
+				contact = 1.0;
+				if (visible < 1.0)
+				{
+					float oldAlpha = clamp(color.a, 0.0, 1.0);
+					float newAlpha = 1.0 - pow(max(1.0 - oldAlpha, 0.000001), visible);
+					contact = oldAlpha > 0.000001 ? newAlpha / oldAlpha : visible;
+				}
+			}
+			else if (radius > 0.0 && u_ParticleFade.w > 0.0)
+				contact = clamp((sceneZ - particleZ) / max(min(1.0 / u_ParticleFade.z,
+					radius * u_ParticleFade.w), 0.01), 0.0, 1.0);
+#endif
+			fade *= contact;
 		}
 		color.a *= fade;
 		if (u_ParticleFade.x > 1.5)

@@ -14,21 +14,26 @@ def window_depth(z):
     return (B / z - A + 1.0) * 0.5
 
 
-def program(enabled):
+def program(enabled, shape=False):
     vertex = '''
     uniform float depth;
     out vec2 var_DiffuseTex;
     out vec4 var_Color;
     out float var_LeafFlutter;
+    uniform vec4 testShape;
+    out vec4 var_ParticleShape;
     void main() {
       vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
       gl_Position = vec4(p * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
       var_DiffuseTex = p; var_Color = vec4(1); var_LeafFlutter = 0;
+      var_ParticleShape = testShape;
     }'''
     p = gl('glCreateProgram', U)()
     for kind, body in [(0x8B31, vertex), (0x8B30, fragment('generic'))]:
         s = gl('glCreateShader', U, U)(kind)
         defines = '#define USE_PARTICLE_FADE\n' if enabled else ''
+        if shape:
+            defines += '#define USE_PARTICLE_SHAPE\n'
         src = C.c_char_p(('#version 150 core\n' + defines + body).encode())
         gl('glShaderSource', None, U, I, C.POINTER(C.c_char_p), P)(s, 1, C.byref(src), None)
         gl('glCompileShader', None, U)(s)
@@ -64,12 +69,13 @@ def depth_texture(z):
     return tex
 
 
-def draw(p, target, particle_z, scene_z, mode, near, soft, blend):
+def draw(p, target, particle_z, scene_z, mode, near, soft, blend, radius=0, shape_mode=0):
     target.clear()
     gl('glUseProgram', None, U)(p)
     uniform(p, 'depth', [window_depth(particle_z)])
     uniform(p, 'u_WeatherImpactClass', [-1])
-    uniform(p, 'u_ParticleFade', [mode, near, soft, 0])
+    uniform(p, 'u_ParticleFade', [mode, near, soft, shape_mode])
+    uniform(p, 'testShape', [0.5, 0.5, radius, particle_z])
     uniform(p, 'u_ParticleDepth', [A, B, N, 0])
     for unit, name, tex in [(0, 'u_DiffuseMap', texture2d(1, 1, [0.6, 0.4, 0.2, 0.5])),
                             (1, 'u_ScreenDepthMap', depth_texture(scene_z))]:
@@ -117,8 +123,28 @@ def main():
             actual = draw(p, target, particle_z, scene_z, mode, near, soft, blend)
             assert max(abs(a-b) for a, b in zip(actual, expected)) < 0.004, (mode, particle_z, scene_z, actual, expected)
             count += 1
+    shaped = program(True, True)
+    for mode, blend in [(1, (0x0302, 0x0303)), (2, (1, 0x0303))]:
+        for scene_z in (20, 24, 28, 32, 36, 40, 64):
+            visible = min(1, max(0, (scene_z - 32 + 8) / 16))
+            alpha = 1 - 0.5 ** visible
+            rgb = [v * (alpha / 0.5 if mode == 2 else 1) for v in (0.6, 0.4, 0.2)]
+            expected = [v * (alpha if mode == 1 else 1) + bg * (1-alpha)
+                        for v, bg in zip(rgb, (0.2, 0.3, 0.4))]
+            actual = draw(shaped, target, 32, scene_z, mode, 0, 0.125, blend, 8, -1)
+            assert max(abs(a-b) for a,b in zip(actual,expected)) < 0.004, ('volume',mode,scene_z,actual,expected)
+            count += 1
+        for scene_z in (31, 32, 32.5, 33, 36):
+            fade = min(1,max(0,scene_z-32)) # radius 10 * scale .1 = 1 unit
+            alpha = .5 * fade
+            rgb = [v * (fade if mode == 2 else 1) for v in (.6,.4,.2)]
+            expected = [v * (alpha if mode == 1 else 1) + bg * (1-alpha)
+                        for v,bg in zip(rgb,(.2,.3,.4))]
+            actual = draw(shaped,target,32,scene_z,mode,0,.125,blend,10,.1)
+            assert max(abs(a-b) for a,b in zip(actual,expected)) < .004, ('adaptive',scene_z,actual,expected)
+            count += 1
     assert gl('glGetError', U)() == 0
-    print('PASS: %d production-shader intersection/near/blend cases; ordinary generic compiles' % count)
+    print('PASS: %d production-shader flat/volume/adaptive/near/blend cases; ordinary generic compiles' % count)
     SDL.SDL_GL_DeleteContext(ctx)
     SDL.SDL_DestroyWindow(win)
     SDL.SDL_Quit()

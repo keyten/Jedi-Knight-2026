@@ -1618,6 +1618,9 @@ static void RB_FogPass( shaderCommands_t *input, const VertexArraysProperties *v
 static unsigned int RB_CalcShaderVertexAttribs( const shader_t *shader )
 {
 	unsigned int vertexAttribs = shader->vertexAttribs;
+	if (R_ParticleShapeShader(shader) && backEnd.currentEntity &&
+		backEnd.currentEntity->e.reType == RT_SPRITE && R_ParticleEntity(backEnd.currentEntity->e))
+		vertexAttribs |= ATTR_TEXCOORD1;
 #ifdef REND2_SP_MD3
 	if(glState.vertexAnimation)
 	{

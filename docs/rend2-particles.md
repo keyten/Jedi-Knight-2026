@@ -17,20 +17,33 @@ permutations. No new texture or stock EFX override is needed.
 | Control | Default | Meaning |
 | --- | --- | --- |
 | `r_softParticles` | 1 | 0 off, 1 alpha sprites, 2 includes additive sprites; restart |
-| `r_softParticleDistance` | 8 | Intersection fade distance in world units; 0 is a live A/B bypass |
+| `r_softParticleDistance` | 8 | Intersection fade distance/cap in world units; 0 disables contact fading |
 | `r_particleNearFade` | 1 | Fade from the actual near plane across the next 16 units |
+| `r_particleCulling` | 1 | Conservative near-camera FX culling; 0 restores the old cutoff |
+| `r_particleSort` | 1 | Particle-only ordering when general transparency sorting is disabled |
+| `r_transparencySort` | 1 | Compatible glass, sprites and translucent surface packets ordered together |
+| `r_particleVolume` | 1 | Rounded view-depth thickness for supported alpha billboards |
+| `r_particleSoftScale` | 0.1 | Flat fallback distance as a fraction of radius; 0 retains fixed-distance fading |
+| `r_particleBatching` | 1 | Batch adjacent compatible depth-ordered single-pass sprites |
+| `r_particleDepthOnDemand` | 1 | Skip the depth copy when no draw reads it |
+
+All controls in this table are **latched** and require `vid_restart`, including
+the controls introduced by the previous particle changes. See the complete
+`docs/samples/particles-legacy.cfg` and `particles-modern.cfg` presets. Diagnostic
+profiling and fixture placement commands remain immediate.
 
 In both JA SP and MP, near fading replaces the old distance cutoff for world
 FX particles when using rend2. Camera-facing quads are discarded behind the
 camera plane; oriented quads use a conservative corner bound, including the
 possible overshoot of size waves. Depth-hack/player-view exclusions retain
-their legacy behavior. Setting `r_particleNearFade 0` restores legacy culling.
+their legacy behavior. Setting `r_particleCulling 0` restores legacy culling,
+independently of the shader's near fade.
 
 ### Validation
 
 - `tests/fx_visibility_tests.cpp`: 20,000 geometry/size-wave cases, comparing
   the production culler with projected corners of independently rotated quads.
-- `python tools/rend2/test_particles_gl.py`: 44 hidden-context cases with the
+- `python tools/rend2/test_particles_gl.py`: 68 hidden-context cases with the
   production generic fragment shader, covering intersection, near fade,
   straight alpha, premultiplied alpha and both additive forms.
 - SP/MP engine, SP game and both rend2 DLLs built. This checkout's existing
@@ -43,11 +56,11 @@ their legacy behavior. Setting `r_particleNearFade 0` restores legacy culling.
   most 0.02% of pixels differing by one display code due to sparse FP16/output
   rounding (also observed at one pixel without MSAA); larger changes fail.
   Reports retain exact equality, maximum delta and changed-pixel counts.
-  The visible fixture uses 12 overlapping stock alpha-smoke sprites. A separate
-  no-smoke control must differ by at least 12 display codes in 5,000 pixels,
-  with a peak difference of at least 24. The feature A/B must change at least
-  2,000 pixels with a peak of at least 12; merely detecting changed pixels is
-  insufficient. Captures are also inspected visually.
+  Contact fixtures use stock alpha-smoke sprites. A separate no-smoke control
+  must differ by at least 12 display codes in 2,000 pixels, with a peak
+  difference of at least 24 (smaller thresholds for tiny particles and actual
+  stock EFX). The contact A/B must change at least 2,000 pixels by 12 codes,
+  with a peak of at least 24. Captures are also inspected visually.
 
 Developer command `r_particleTest <distance> [radius] [count]` draws controlled smoke
 in front of the rendered view. `r_particleTest 0` removes it. With `surface`
@@ -60,7 +73,7 @@ the harness checks that its process creates no visible windows.
 
 ## Stage 2: alpha-particle order
 
-`r_particleSort 1` (default, live toggle) sorts compatible world sprites and
+With `r_transparencySort 0`, `r_particleSort 1` sorts compatible world sprites and
 oriented quads back to front by view depth. Each authored render layer remains
 separate. Ordinary surfaces retain their slots; particle passes are kept in
 their authored stage order, instead of sorting all first passes before all
@@ -87,7 +100,7 @@ Empty scenes, near-fade-only sprites and additive-only scenes with the default
 alpha-only soft mode do not pay for an unused depth blit. Dependency scanning
 uses the remaining draw order after modern water items leave the main list.
 
-`r_particleBatching 1` (default, live toggle) depth-sorts the eligible surface
+`r_particleBatching 1` (default, latched) depth-sorts the eligible surface
 list before tessellation, then merges adjacent compatible single-stage sprites.
 Quad index order remains back to front. Each batch keeps its first/farthest
 particle's sorting tag; tessellation overflow splits retain this tag and their
@@ -114,16 +127,16 @@ outside the main-view GPU timestamps. With `r_speeds 100`, the existing Main Vie
 timestamp and a separate Particle depth timestamp are reported too; they are
 render-path elapsed times, not a gameplay FPS claim.
 
-`capture_particles.py --sorting --batching --benchmark` checks all visual
-fixtures, then measures empty/64/512-puff scenes with batching off/on/off in the
-same process. Each case warms up for 120 waits and samples for 240 waits; the
-first 20 timing records are discarded. The 48-puff batching fixture interleaves
+The original stage-3 capture harness checked all visual
+fixtures, then measured empty/64/512-puff scenes with batching off/on/off in the
+same process. Each case warmed up for 120 waits and sampled for 240 waits; the
+first 20 timing records were discarded. The 48-puff batching fixture interleaves
 two stock materials, distinct depths and vertex colors, and also reverses input
 order. Its complete output must agree with unbatched rendering within the
 rounding tolerance above. Controls: `r_particleTest batch` / `batch-reverse`.
 The unit test additionally checks 1,000 interleaved 16-layer surface lists.
 
-### Recorded result
+### Recorded result (historical: 52c2cf8be)
 
 960x540, stock Hoth3, isolated legacy lighting profile, NVIDIA RTX 2060,
 no MSAA. Medians of 100 records per case; the two unbatched controls bound
@@ -147,3 +160,46 @@ The final MSAA 4x run also passes: contact/near repeats differ at 45/41 pixels,
 and the batched/unbatched comparison at 54 pixels, all by at most one display
 code. See `build/ja-fx-evidence/msaa-final/`. Both renderer DLLs build; native
 game captures exercise SP, not a complete MP gameplay session.
+
+## Glass integration, contact shape and compatibility
+
+`r_transparencySort` extends the depth order to compatible transparent world
+surfaces and model surfaces. The center comes from each BSP surface's culling
+bounds (transformed for brush entities), polygon vertices, or model origin.
+All passes recorded for that surface share a packet owner. This fixes the stock
+Hoth infirmary glass tube's environment-reflection pass drawing over nearer
+smoke. Authored render layers remain separate; deformed, depth-writing,
+refraction and special entity passes retain their previous handling. This is
+surface-center ordering, not per-pixel OIT for arbitrary intersecting meshes.
+
+`r_particleVolume` retains the stock texture and estimates rounded thickness
+along view depth. The fragment integrates the visible fraction of that interval
+up to opaque scene depth, mapping the texture's opacity through optical depth.
+The raster proxy uses a conservative front depth without writing it to the
+depth buffer, so an opaque surface behind the billboard center can still see
+the front part of a club. Fully visible texels retain authored opacity exactly.
+Radius is supplied per quad in an existing texture-coordinate stream, preserving
+batching for different sizes. Oriented quads and modified UV stages retain the
+flat fallback. Multi-pass, auxiliary-texture, lighting, video and deformed
+materials also keep their original UV channels and flat fallback. This is a
+2.5D rendering approximation, not smoke simulation,
+collision response, or a reconstruction of 3D texture density.
+
+The flat fallback can cap its fade width by particle radius using
+`r_particleSoftScale`. Volume 0 plus scale 0 reproduces the previously introduced
+fixed-distance soft intersection. Disabling all controls with the legacy preset
+also restores the old state-sort tie handling and entity-merge boundaries;
+the former unconditional stable-sort and particle-isolation changes are gated.
+Normal legacy play allocates no particle depth image. Developer contact probes
+can allocate one lazily without enabling any rendering feature.
+
+`capture_particles.py` is now a compatible entry point to
+`capture_smoke_volume.py`. It starts separate processes per latched variant,
+compares repeated controls, requires visible smoke against an empty capture,
+and can collect median/p95 CPU and GPU timings across fifteen fixtures. `fxcam`
+is a developer-only fixed camera for SP, avoiding player-camera smoothing and
+the player model. `r_captureShaderTime` is a latched cheat diagnostic (-1 by
+default); captures hold only the shader clock to avoid animated stock materials
+invalidating comparisons. `r_particleTest info` reports active/pending settings
+and latch flags. The latch test checks that a pending change leaves the image
+unchanged and all ten controls become active only after `vid_restart`.

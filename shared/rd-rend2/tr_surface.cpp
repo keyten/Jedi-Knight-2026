@@ -159,6 +159,10 @@ void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, float color[4], 
 
 	VectorSet2(tess.texCoords[ndx+3][0], s1, t2);
 	VectorSet2(tess.texCoords[ndx+3][1], s1, t2);
+	if (R_ParticleShapeShader(tess.shader) && backEnd.currentEntity->e.reType == RT_SPRITE &&
+		R_ParticleEntity(backEnd.currentEntity->e))
+		for (int i = 0; i < 4; ++i)
+			VectorSet2(tess.texCoords[ndx+i][1], fabsf(backEnd.currentEntity->e.radius), 0.0f);
 
 	// constant color all the way around
 	// should this be identity and let the shader specify from entity?

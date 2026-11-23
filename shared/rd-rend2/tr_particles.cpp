@@ -6,6 +6,28 @@ static cvar_t *r_softParticles, *r_softParticleDistance, *r_particleNearFade;
 static cvar_t *r_particleSort;
 static cvar_t *r_particleProfile;
 static cvar_t *r_particleBatching;
+static cvar_t *r_transparencySort, *r_particleVolume, *r_particleSoftScale, *r_particleCulling;
+static cvar_t *r_particleDepthOnDemand;
+
+bool R_TransparencySort() { return r_transparencySort && r_transparencySort->integer != 0; }
+bool R_ParticleStableOrder() { return R_TransparencySort() || (r_particleSort && r_particleSort->integer); }
+bool R_ParticleStateIsolation() { return R_ParticleStableOrder() || r_softParticles->integer || r_particleNearFade->integer; }
+bool R_ParticleShapeData() { return r_softParticles->integer && (r_particleVolume->integer || r_particleSoftScale->value > 0.0f); }
+bool R_ParticleShapeShader(const shader_t *shader)
+{
+	// TexCoord1 is radius metadata only for simple billboard materials. Retain
+	// the original UV channel and flat fading for multi-pass/modded materials.
+	if (!R_ParticleShapeData() || !shader || shader->numUnfoggedPasses != 1 ||
+		shader->fogPass != FP_NONE || shader->numDeforms || shader->useDistortion) return false;
+	const shaderStage_t *stage = shader->stages[0];
+	if (!stage || stage->ss || stage->glslShaderGroup == tr.lightallShader ||
+		stage->bundle[0].tcGen != TCGEN_TEXTURE || stage->bundle[0].numTexMods ||
+		stage->bundle[0].isLightmap || stage->bundle[0].isVideoMap) return false;
+	for (size_t i = 1; i < ARRAY_LEN(stage->bundle); ++i)
+		if (stage->bundle[i].image[0]) return false;
+	return true;
+}
+bool R_ParticleDepthOnDemand() { return r_particleDepthOnDemand->integer != 0; }
 static unsigned particleDepthCopies;
 static double particleProfileTimes[3];
 static unsigned particleProfileCounts[3];
@@ -32,30 +54,70 @@ void R_ParticleProfilePrint()
 static float particleTestDistance, particleTestRadius;
 static int particleTestCount;
 static bool particleTestSurface;
+static bool particleFloorPending, particleFloorReady;
+static vec3_t particleFloorAnchor;
 static int particleTestKind;
+static bool RB_ParticleBaseView();
 
 bool R_ParticleBatching() { return r_particleBatching->integer != 0; }
-bool R_ParticleDepthProbePending() { return particleTestSurface; }
+bool R_ParticleDepthProbePending() { return (particleTestSurface || particleFloorPending) && RB_ParticleBaseView(); }
 
 void R_ParticleTest_f()
 {
 	if (!ri.Cvar_VariableIntegerValue("developer")) return;
+	if (!Q_stricmp(ri.Cmd_Argv(1), "info"))
+	{
+		cvar_t *vars[] = {r_softParticles, r_softParticleDistance, r_particleNearFade, r_particleCulling,
+			r_particleSort, r_particleBatching, r_transparencySort, r_particleVolume, r_particleSoftScale, r_particleDepthOnDemand};
+		for (const auto *v : vars) if (v)
+			ri.Printf(PRINT_ALL, "PARTICLE_SETTING|%s=%s|pending=%s|latched=%d\n", v->name, v->string,
+				v->latchedString ? v->latchedString : "none", (v->flags & CVAR_LATCH) != 0);
+		return;
+	}
 	particleTestKind = !Q_stricmp(ri.Cmd_Argv(1), "sort") ? 1 :
 		(!Q_stricmp(ri.Cmd_Argv(1), "sort-reverse") ? 2 :
 		(!Q_stricmp(ri.Cmd_Argv(1), "batch") ? 3 :
-		(!Q_stricmp(ri.Cmd_Argv(1), "batch-reverse") ? 4 : 0)));
+		(!Q_stricmp(ri.Cmd_Argv(1), "batch-reverse") ? 4 :
+		(!Q_stricmp(ri.Cmd_Argv(1), "floor") ? 5 :
+		(!Q_stricmp(ri.Cmd_Argv(1), "additive") ? 6 : 0)))));
 	particleTestSurface = ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "surface");
+	particleFloorPending = particleTestKind == 5;
+	particleFloorReady = false;
 	particleTestDistance = ri.Cmd_Argc() > 1 ? atof(ri.Cmd_Argv(1)) : 0.0f;
+	if (particleTestKind == 6) particleTestDistance = 96.0f;
 	particleTestRadius = ri.Cmd_Argc() > 2 ? atof(ri.Cmd_Argv(2)) : 24.0f;
 	particleTestDistance = Com_Clamp(0.0f, 1024.0f, particleTestDistance);
 	particleTestRadius = Com_Clamp(0.1f, 256.0f, particleTestRadius);
 	particleTestCount = ri.Cmd_Argc() > 3 ? Com_Clampi(1, 1024, atoi(ri.Cmd_Argv(3))) : 1;
+	ri.Printf(PRINT_ALL, "PARTICLE_FIXTURE|kind=%d|distance=%.3f|radius=%.3f|count=%d\n",
+		particleTestKind, particleTestDistance, particleTestRadius, particleTestCount);
 }
 
 void R_AddParticleTest(const refdef_t *view)
 {
 	if (view->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)) return;
-	if (particleTestKind >= 3)
+	if (particleTestKind == 5)
+	{
+		if (!particleFloorReady) return;
+		// Diagnostic floor-contact fixture anchored to actual visible floor depth.
+		// No EFX replacement: the real stock sprite/material path is used.
+		for (int i = 0; i < particleTestCount; ++i)
+		{
+			refEntity_t puff = {};
+			puff.reType = RT_SPRITE;
+			puff.radius = particleTestRadius;
+			puff.rotation = i * 67.0f;
+			puff.customShader = RE_RegisterShader("gfx/effects/alpha_smoke");
+			VectorCopy(particleFloorAnchor, puff.origin);
+			VectorMA(puff.origin, ((i % 3) - 1) * particleTestRadius * 0.65f, view->viewaxis[1], puff.origin);
+			puff.origin[2] += particleTestRadius * (0.20f + (i % 2) * 0.15f);
+			puff.shaderRGBA[0] = puff.shaderRGBA[1] = puff.shaderRGBA[2] = 10;
+			puff.shaderRGBA[3] = 255;
+			RE_AddRefEntityToScene(&puff);
+		}
+		return;
+	}
+	if (particleTestKind >= 3 && particleTestKind <= 4)
 	{
 		// Interleaved materials, colors and unique depths exercise both the
 		// boundaries of merged runs and per-quad order inside each run.
@@ -77,7 +139,7 @@ void R_AddParticleTest(const refdef_t *view)
 		}
 		return;
 	}
-	if (particleTestKind)
+	if (particleTestKind == 1 || particleTestKind == 2)
 	{
 		for (int n = 0; n < 16; ++n)
 		{
@@ -105,7 +167,7 @@ void R_AddParticleTest(const refdef_t *view)
 		puff.reType = RT_SPRITE;
 		puff.radius = particleTestRadius;
 		puff.rotation = i * 37.0f;
-		puff.customShader = RE_RegisterShader("gfx/effects/alpha_smoke");
+		puff.customShader = RE_RegisterShader(particleTestKind == 6 ? "gfx/effects/flamejet" : "gfx/effects/alpha_smoke");
 		VectorMA(view->vieworg, particleTestDistance, view->viewaxis[0], puff.origin);
 		if (particleTestCount > 1)
 		{
@@ -121,25 +183,40 @@ void R_InitParticleCvars()
 {
 	particleTestDistance = 0.0f;
 	particleTestSurface = false;
+	particleFloorPending = particleFloorReady = false;
 	particleTestKind = 0;
 	r_softParticles = R_Cvar("r_softParticles", "1", CVAR_ARCHIVE | CVAR_LATCH,
 		"Soft intersections: 0 off, 1 alpha sprites, 2 also additive sprites; vid_restart");
 	R_CvarRange(r_softParticles, 0, 2, qtrue);
-	r_softParticleDistance = R_Cvar("r_softParticleDistance", "8", CVAR_ARCHIVE,
+	r_softParticleDistance = R_Cvar("r_softParticleDistance", "8", CVAR_ARCHIVE | CVAR_LATCH,
 		"Soft particle intersection distance in world units; 0 disables fading for A/B");
 	R_CvarRange(r_softParticleDistance, 0.0f, 64.0f, qfalse);
-	r_particleNearFade = R_Cvar("r_particleNearFade", "1", CVAR_ARCHIVE,
+	r_particleNearFade = R_Cvar("r_particleNearFade", "1", CVAR_ARCHIVE | CVAR_LATCH,
 		"Smooth world FX near the camera instead of legacy distance culling");
-	r_particleSort = R_Cvar("r_particleSort", "1", CVAR_ARCHIVE,
+	r_particleSort = R_Cvar("r_particleSort", "1", CVAR_ARCHIVE | CVAR_LATCH,
 		"Order compatible world FX sprites back to front within their authored render layer");
 	R_CvarRange(r_particleSort, 0, 1, qtrue);
 	r_particleProfile = R_Cvar("r_particleProfile", "0", 0,
 		"Print main particle-pass CPU microseconds, draw items and depth copies (developer profiling)");
 	particleDepthCopies = 0;
 	particleProfileFresh = false;
-	r_particleBatching = R_Cvar("r_particleBatching", "1", CVAR_ARCHIVE,
+	r_particleBatching = R_Cvar("r_particleBatching", "1", CVAR_ARCHIVE | CVAR_LATCH,
 		"Batch adjacent compatible single-pass sprites after particle depth sorting");
 	R_CvarRange(r_particleBatching, 0, 1, qtrue);
+	r_particleCulling = R_Cvar("r_particleCulling", "1", CVAR_ARCHIVE | CVAR_LATCH,
+		"Conservative world FX near-camera culling; 0 restores legacy culling; vid_restart");
+	r_transparencySort = R_Cvar("r_transparencySort", "1", CVAR_ARCHIVE | CVAR_LATCH,
+		"Depth-order compatible translucent surfaces and keep each material's passes together; vid_restart");
+	R_CvarRange(r_transparencySort, 0, 1, qtrue);
+	r_particleVolume = R_Cvar("r_particleVolume", "1", CVAR_ARCHIVE | CVAR_LATCH,
+		"Rounded thickness for alpha sprite intersections, retaining stock texture detail; vid_restart");
+	R_CvarRange(r_particleVolume, 0, 1, qtrue);
+	r_particleSoftScale = R_Cvar("r_particleSoftScale", "0.1", CVAR_ARCHIVE | CVAR_LATCH,
+		"Flat sprite soft distance as a fraction of radius, capped by r_softParticleDistance; 0 uses fixed distance; vid_restart");
+	R_CvarRange(r_particleSoftScale, 0, 1, qfalse);
+	r_particleDepthOnDemand = R_Cvar("r_particleDepthOnDemand", "1", CVAR_ARCHIVE | CVAR_LATCH,
+		"Copy particle depth only when a draw needs it; 0 copies every supported soft-particle view; vid_restart");
+	R_CvarRange(r_particleDepthOnDemand, 0, 1, qtrue);
 }
 
 void R_CreateParticleImages(int width, int height)
@@ -161,13 +238,18 @@ void R_CreateParticleFBOs()
 	R_CheckFBO(tr.particleDepthFbo);
 }
 
-bool RB_ParticleDepthView()
+static bool RB_ParticleBaseView()
 {
-	return tr.renderFbo && tr.particleDepthFbo && !backEnd.depthFill && !backEnd.refractionFill &&
+	return tr.renderFbo && !backEnd.depthFill && !backEnd.refractionFill &&
 		!(backEnd.viewParms.flags & (VPF_DEPTHSHADOW | VPF_ORTHOGRAPHIC)) &&
 		!(backEnd.refdef.rdflags & RDF_NOWORLDMODEL) &&
 		!backEnd.viewParms.isSkyPortal &&
 		(!backEnd.viewParms.targetFbo || backEnd.viewParms.targetFbo == tr.renderFbo);
+}
+
+bool RB_ParticleDepthView()
+{
+	return r_softParticles->integer && tr.particleDepthFbo && RB_ParticleBaseView();
 }
 
 void RB_CopyParticleDepth()
@@ -175,9 +257,17 @@ void RB_CopyParticleDepth()
 	const int timer = R_ParticleProfileActive() ? RB_ScreenBeginTimer("Particle depth") : -1;
 	if (R_ParticleProfileActive()) ++particleDepthCopies;
 	FBO_t *old = glState.currentFBO;
+	if (!tr.particleDepthFbo)
+	{
+		// A diagnostic depth probe also works with every feature disabled. Allocate
+		// lazily in the backend; ordinary legacy play allocates no particle images.
+		tr.particleDepthImage = R_ScreenCreateImage("*particleProbeDepth", tr.renderFbo->width,
+			tr.renderFbo->height, GL_DEPTH24_STENCIL8, qfalse);
+		R_CreateParticleFBOs();
+	}
 	// A distinct attachment avoids texture feedback, and resolves MSAA depth.
 	FBO_FastBlit(old, nullptr, tr.particleDepthFbo, nullptr, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-	if (particleTestSurface)
+	if (particleTestSurface || particleFloorPending)
 	{
 		// Developer-only contact fixture: put its plane two units in front of
 		// the actual opaque surface under the viewport center. Never used in play.
@@ -186,12 +276,23 @@ void RB_CopyParticleDepth()
 		qglGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &packBuffer);
 		qglBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 		float depth;
+		const int probeY = particleFloorPending ? backEnd.viewParms.viewportHeight / 5 : backEnd.viewParms.viewportHeight / 2;
 		qglReadPixels(backEnd.viewParms.viewportX + backEnd.viewParms.viewportWidth / 2,
-			backEnd.viewParms.viewportY + backEnd.viewParms.viewportHeight / 2,
+			backEnd.viewParms.viewportY + probeY,
 			1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
 		qglBindBuffer(GL_PIXEL_PACK_BUFFER, packBuffer);
 		const float *p = backEnd.viewParms.projectionMatrix;
-		particleTestDistance = depth < 1.0f ? Com_Clamp(1.0f, 1024.0f, p[14] / (depth * 2.0f - 1.0f + p[10]) - 2.0f) : 0.0f;
+		const float viewZ = depth < 1.0f ? p[14] / (depth * 2.0f - 1.0f + p[10]) : 0.0f;
+		if (particleFloorPending)
+		{
+			VectorMA(backEnd.viewParms.ori.origin, viewZ, backEnd.viewParms.ori.axis[0], particleFloorAnchor);
+			const float ndcY = (probeY + 0.5f) * 2.0f / backEnd.viewParms.viewportHeight - 1.0f;
+			VectorMA(particleFloorAnchor, ndcY * viewZ / p[5], backEnd.viewParms.ori.axis[2], particleFloorAnchor);
+			particleFloorReady = viewZ > 0.0f;
+			particleFloorPending = false;
+			ri.Printf(PRINT_ALL, "PARTICLE_FLOOR|%.3f %.3f %.3f\n", particleFloorAnchor[0], particleFloorAnchor[1], particleFloorAnchor[2]);
+		}
+		else particleTestDistance = viewZ > 0 ? Com_Clamp(1.0f, 1024.0f, viewZ - 2.0f) : 0.0f;
 		particleTestSurface = false;
 		ri.Printf(PRINT_ALL, "particleTest: contact distance %.3f\n", particleTestDistance);
 	}
@@ -223,10 +324,10 @@ bool RB_ParticleFadeStage(const shader_t *shader, const shaderStage_t *stage)
 	return false;
 }
 
-int RB_ParticleSortClass(const shader_t *shader, const refEntity_t& ent)
+static int RB_CompatibleTransparency(const shader_t *shader, const refEntity_t& ent)
 {
-	if (!r_particleSort->integer || !R_ParticleEntity(ent) || !shader ||
-		(ent.renderfx & (RF_FORCEPOST | RF_ALPHA_FADE)) ||
+	if (!shader || (ent.renderfx & (RF_FORCEPOST | RF_ALPHA_FADE | RF_FORCE_ENT_ALPHA |
+		RF_DEPTHHACK | RF_FIRST_PERSON | RF_NODEPTH | RF_VOLUMETRIC)) ||
 		shader->sort <= SS_FOG || shader->isSky || shader->numDeforms || shader->useDistortion ||
 		!shader->numUnfoggedPasses || backEnd.depthFill || backEnd.refractionFill ||
 		(backEnd.viewParms.flags & (VPF_DEPTHSHADOW | VPF_ORTHOGRAPHIC)) ||
@@ -243,6 +344,16 @@ int RB_ParticleSortClass(const shader_t *shader, const refEntity_t& ent)
 		if (dst == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA) kind = 2;
 	}
 	return kind;
+}
+
+int RB_ParticleSortClass(const shader_t *shader, const refEntity_t& ent)
+{
+	return r_particleSort->integer && R_ParticleEntity(ent) ? RB_CompatibleTransparency(shader, ent) : 0;
+}
+
+int RB_OrderedSortClass(const shader_t *shader, const refEntity_t& ent)
+{
+	return R_TransparencySort() ? RB_CompatibleTransparency(shader, ent) : RB_ParticleSortClass(shader, ent);
 }
 
 bool RB_ParticleBatchable(const shader_t *shader, const refEntity_t& ent)
@@ -277,6 +388,9 @@ void RB_SetupParticleFade(const shader_t *shader, const shaderStage_t *stage,
 		const bool soft = RB_ParticleDepthView() && r_softParticleDistance->value > 0.0f &&
 			(dst == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA || r_softParticles->integer >= 2);
 		fade[2] = soft ? 1.0f / r_softParticleDistance->value : 0.0f;
+		const bool shape = soft && backEnd.currentEntity->e.reType == RT_SPRITE && R_ParticleShapeShader(shader);
+		fade[3] = shape ? ((r_particleVolume->integer && dst == GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA) ?
+			-1.0f : r_particleSoftScale->value) : 0.0f;
 		depth[0] = backEnd.viewParms.projectionMatrix[10];
 		depth[1] = backEnd.viewParms.projectionMatrix[14];
 		depth[2] = depth[1] / (depth[0] - 1.0f);

@@ -1194,6 +1194,46 @@ static uint16_t rb_particleSortLayers;
 static double rb_particleSortUs;
 static ParticleOrder::Entry rb_particleBatchEntry;
 
+static ParticleOrder::Entry RB_SurfaceOrderEntry(const drawSurf_t& surface, int entityNum, uint32_t id)
+{
+	const refEntity_t& ent = entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e;
+	vec3_t center;
+	if (*surface.surface == SF_ENTITY && R_ParticleEntity(ent))
+		VectorCopy(ent.origin, center);
+	else
+	{
+		if (!R_TransparencySort()) return {};
+		switch (*surface.surface)
+		{
+		case SF_FACE: case SF_GRID: case SF_TRIANGLES: case SF_VBO_MESH:
+			VectorCopy(((const srfBspSurface_t *)surface.surface)->cullOrigin, center);
+			if (entityNum != REFENTITYNUM_WORLD)
+			{
+				vec3_t local; VectorCopy(center, local); VectorCopy(ent.origin, center);
+				for (int j = 0; j < 3; ++j) VectorMA(center, local[j], ent.axis[j], center);
+			}
+			break;
+		case SF_POLY:
+		{
+			const auto *poly = (const srfPoly_t *)surface.surface;
+			if (!poly->numVerts) return {};
+			VectorClear(center);
+			for (int i = 0; i < poly->numVerts; ++i) VectorAdd(center, poly->verts[i].xyz, center);
+			VectorScale(center, 1.0f / poly->numVerts, center);
+			break;
+		}
+		default:
+			if (entityNum == REFENTITYNUM_WORLD || ent.reType != RT_MODEL) return {};
+			VectorCopy(ent.origin, center);
+			break;
+		}
+	}
+	vec3_t offset; VectorSubtract(center, backEnd.viewParms.ori.origin, offset);
+	const uint32_t owner = *surface.surface == SF_ENTITY && R_ParticleEntity(ent) ?
+		(uint32_t)entityNum + 1 : (0x80000000u | (id + 1));
+	return {DotProduct(offset, backEnd.viewParms.ori.axis[0]), owner, 0};
+}
+
 struct Pass
 {
 	int maxDrawItems;
@@ -1476,9 +1516,14 @@ void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 		added = drawItem;
 		added.particleOwner = 0;
 		added.particleDepth = 0.0f;
+		if (rb_particleSortView && rb_particleBatchEntry.owner && R_TransparencySort())
+		{
+			added.particleOwner = rb_particleBatchEntry.owner;
+			added.particleDepth = rb_particleBatchEntry.depth;
+		}
 		const uintptr_t entity = (uintptr_t)backEnd.currentEntity;
 		const uintptr_t first = (uintptr_t)backEnd.refdef.entities;
-		if (rb_particleSortView && (rb_particleSortLayers & (1u << (sortKey >> 28))) && entity >= first &&
+		if (!added.particleOwner && rb_particleSortView && (rb_particleSortLayers & (1u << (sortKey >> 28))) && entity >= first &&
 			entity < first + backEnd.refdef.num_entities * sizeof(trRefEntity_t) &&
 			RB_ParticleSortClass(tess.shader, backEnd.currentEntity->e))
 		{
@@ -1680,6 +1725,7 @@ static void RB_SubmitDrawSurfs(
 	uint32_t oldWaterKey = ~0u;
 	CBoneCache *oldBoneCache = nullptr;
 	bool oldParticleSort = false;
+	bool oldOrdered = false;
 	bool oldParticleBatchable = false;
 	rb_particleBatchEntry = {};
 
@@ -1695,10 +1741,12 @@ static void RB_SubmitDrawSurfs(
 
 		R_DecomposeSort(drawSurf->sort, &entityNum, &shader, &cubemapIndex, &postRender);
 		assert(shader != nullptr);
-		const bool particleSort = rb_particleSortView &&
-			(rb_particleSortLayers & (1u << Q_min((int)shader->sort, 15))) && RB_ParticleSortClass(shader,
-			entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e);
 		const refEntity_t& entity = entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e;
+		const bool ordered = rb_particleSortView &&
+			(rb_particleSortLayers & (1u << Q_min((int)shader->sort, 15))) && RB_OrderedSortClass(shader, entity);
+		const ParticleOrder::Entry surfaceOrder = ordered ? RB_SurfaceOrderEntry(*drawSurf, entityNum, i) : ParticleOrder::Entry{};
+		const bool transparentSurface = surfaceOrder.owner && R_TransparencySort() && !R_ParticleEntity(entity);
+		const bool particleSort = ordered && R_ParticleEntity(entity);
 		const bool particleBatchable = particleSort && RB_ParticleBatchable(shader, entity);
 		const bool mergeParticles = particleBatchable && oldParticleBatchable &&
 			entity.shaderTime == backEnd.currentEntity->e.shaderTime;
@@ -1727,7 +1775,7 @@ static void RB_SubmitDrawSurfs(
 			}
 		}
 
-		if (    shader == oldShader &&
+		if (    !transparentSurface && shader == oldShader &&
 				fogNum == oldFogNum &&
 				postRender == oldPostRender &&
 				cubemapIndex == oldCubemapIndex &&
@@ -1747,7 +1795,7 @@ static void RB_SubmitDrawSurfs(
 		// change the tess parameters if needed
 		// a "entityMergable" shader is a shader that can have surfaces from seperate
 		// entities merged into a single batch, like smoke and blood puff sprites
-		if ( (shader != oldShader ||
+		if ( (transparentSurface || ordered != oldOrdered || shader != oldShader ||
 				fogNum != oldFogNum ||
 				dlighted != oldDlighted ||
 				postRender != oldPostRender ||
@@ -1756,8 +1804,8 @@ static void RB_SubmitDrawSurfs(
 				foliageMotion != oldFoliageMotion ||
 				drawSurf->waterKey != oldWaterKey ||
 				(entityNum != oldEntityNum && !mergeParticles && (!tess.entityMergable || particleSort || oldParticleSort ||
-				 R_ParticleEntity(backEnd.currentEntity->e) != R_ParticleEntity(
-				 entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e)))) )
+				 (R_ParticleStateIsolation() && R_ParticleEntity(backEnd.currentEntity->e) != R_ParticleEntity(
+				 entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e))))) )
 		{
 			if ( oldShader != nullptr )
 			{
@@ -1765,16 +1813,9 @@ static void RB_SubmitDrawSurfs(
 			}
 
 			RB_BeginSurface(shader, fogNum, cubemapIndex, drawSurf->waterKey);
-			rb_particleBatchEntry = {};
-			if (particleBatchable)
-			{
-				vec3_t offset;
-				VectorSubtract(entity.origin, backEnd.viewParms.ori.origin, offset);
-				// Tag the batch by its first (farthest) particle. Only adjacent
-				// depth-sorted, single-stage particles enter this batch. Overflow
-				// splits keep this tag and their original draw-item index order.
-				rb_particleBatchEntry = {DotProduct(offset, backEnd.viewParms.ori.axis[0]), (uint32_t)entityNum + 1, 0};
-			}
+			// Whole material passes share this owner. A merged run keeps its
+			// first/farthest quad's tag, including tessellation overflow splits.
+			rb_particleBatchEntry = (R_TransparencySort() || particleBatchable) ? surfaceOrder : ParticleOrder::Entry{};
 			backEnd.pc.c_surfBatches++;
 			oldShader = shader;
 			oldFogNum = fogNum;
@@ -1785,6 +1826,7 @@ static void RB_SubmitDrawSurfs(
 			oldFoliageMotion = foliageMotion;
 			oldWaterKey = drawSurf->waterKey;
 			oldParticleSort = particleSort;
+			oldOrdered = ordered;
 			oldParticleBatchable = particleBatchable;
 			tess.foliageDebugClass = foliageDebugClass;
 			tess.foliageMotion = foliageMotion;
@@ -1826,11 +1868,12 @@ static void RB_SubmitRenderPass(
 		drawOrder[i] = i;
 
 	uint32_t *sortKeys = renderPass.sortKeys;
-	std::sort(drawOrder, drawOrder + numDrawItems, [sortKeys]( uint32_t a, uint32_t b )
+	const bool stableOrder = R_ParticleStableOrder();
+	std::sort(drawOrder, drawOrder + numDrawItems, [sortKeys, stableOrder]( uint32_t a, uint32_t b )
 	{
 		// A different number of particle batches must not permute unrelated
 		// translucent draws with equal state keys (e.g. stock bacta bubbles).
-		return sortKeys[a] != sortKeys[b] ? sortKeys[a] < sortKeys[b] : a < b;
+		return sortKeys[a] != sortKeys[b] ? sortKeys[a] < sortKeys[b] : (stableOrder && a < b);
 	});
 	if (rb_particleSortView)
 	{
@@ -1891,7 +1934,8 @@ static void RB_SubmitRenderPass(
 	const qboolean froxelFog = (qboolean)(!materialDebug && RB_VolumetricCompositeActive());
 	const qboolean atmosphere = (qboolean)(!materialDebug && RB_AtmosphereActive());
 	const qboolean clouds = (qboolean)(!materialDebug && RB_CloudsActive());
-	bool particleDepth = !materialDebug && RB_ParticleDepthView() && R_ParticleDepthProbePending();
+	bool particleDepth = !materialDebug && (R_ParticleDepthProbePending() ||
+		(RB_ParticleDepthView() && !R_ParticleDepthOnDemand()));
 	if (!materialDebug && RB_ParticleDepthView() && !particleDepth)
 		for (uint32_t i = 0; i < numDrawItems && !particleDepth; ++i)
 		{
@@ -2020,16 +2064,13 @@ static drawSurf_t *RB_OrderParticleSurfaces(drawSurf_t *surfaces, int count, All
 		order[i] = i;
 		entries[i] = {};
 		layers[i] = 0;
-		if (*surfaces[i].surface != SF_ENTITY) continue;
 		int entity, cube, post;
 		shader_t *shader;
 		R_DecomposeSort(surfaces[i].sort, &entity, &shader, &cube, &post);
 		const int layer = Q_min((int)shader->sort, 15);
-		if (entity == REFENTITYNUM_WORLD || !(rb_particleSortLayers & (1u << layer)) ||
-			!RB_ParticleSortClass(shader, backEnd.refdef.entities[entity].e)) continue;
-		vec3_t offset;
-		VectorSubtract(backEnd.refdef.entities[entity].e.origin, backEnd.viewParms.ori.origin, offset);
-		entries[i] = {DotProduct(offset, backEnd.viewParms.ori.axis[0]), (uint32_t)entity + 1, 0};
+		if (!(rb_particleSortLayers & (1u << layer)) ||
+			!RB_OrderedSortClass(shader, entity == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entity].e)) continue;
+		entries[i] = RB_SurfaceOrderEntry(surfaces[i], entity, i);
 		layers[i] = layer;
 	}
 	for (int layer = 0; layer < 16; ++layer)
@@ -2054,11 +2095,12 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 	if (!backEnd.depthFill && !backEnd.refractionFill)
 		for (int i = 0; i < numDrawSurfs; ++i)
 		{
-			if (*drawSurfs[i].surface != SF_ENTITY) continue;
+			if (!R_TransparencySort() && *drawSurfs[i].surface != SF_ENTITY) continue;
 			int entity, cube, post;
 			shader_t *shader;
 			R_DecomposeSort(drawSurfs[i].sort, &entity, &shader, &cube, &post);
-			if (entity != REFENTITYNUM_WORLD && RB_ParticleSortClass(shader, backEnd.refdef.entities[entity].e) == 2)
+			if (RB_OrderedSortClass(shader, entity == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entity].e) == 2 &&
+				RB_SurfaceOrderEntry(drawSurfs[i], entity, i).owner)
 			{
 				rb_particleSortView = true;
 				rb_particleSortLayers |= 1u << Q_min((int)shader->sort, 15);
@@ -2125,7 +2167,7 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 
 	backEnd.currentEntity = &tr.worldEntity;
 	backEnd.pc.c_surfaces += numDrawSurfs;
-	if (rb_particleSortView && R_ParticleBatching())
+	if (rb_particleSortView && (R_ParticleBatching() || R_TransparencySort()))
 		drawSurfs = RB_OrderParticleSurfaces(drawSurfs, numDrawSurfs, *backEndData->perFrameMemory);
 
 	if ( backEnd.depthFill )
@@ -2201,7 +2243,8 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 		const double submitUs = RB_ShadowProfileUs(particleSubmitStart);
 		unsigned particles = 0;
 		for (int i = 0; i < backEndData->currentPass->numDrawItems; ++i)
-			particles += backEndData->currentPass->drawItems[i].particleOwner != 0;
+			particles += backEndData->currentPass->drawItems[i].particleOwner != 0 &&
+				!(backEndData->currentPass->drawItems[i].particleOwner & 0x80000000u);
 		R_ParticleProfileFrame(particleRecordUs, submitUs, rb_particleSortUs,
 			backEndData->currentPass->numDrawItems, particles);
 	}

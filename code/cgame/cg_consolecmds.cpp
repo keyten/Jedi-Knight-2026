@@ -28,6 +28,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include "cg_media.h"	//just for cgs....
 #include "FxScheduler.h"	// fxplay
+#include "cg_camera.h"
 
 void CG_TargetCommand_f( void );
 extern qboolean	player_locked;
@@ -232,6 +233,28 @@ static void CG_FxSources_f(void)
     theFxHelper.ReportPhysicalSources();
 }
 
+static void CG_FxCamera_f()
+{
+	cgi_Cvar_Update(&cg_developer);
+	if (!cg_developer.integer || (cgi_Argc() != 5 && cgi_Argc() != 6))
+	{
+		CG_Printf("usage (developer): fxcam x y z yaw [pitch]\n");
+		return;
+	}
+	vec3_t origin, angles = {};
+	for (int i = 0; i < 3; ++i) origin[i] = atof(CG_Argv(i + 1));
+	angles[YAW] = atof(CG_Argv(4));
+	if (cgi_Argc() == 6) angles[PITCH] = atof(CG_Argv(5));
+	CGCam_Enable();
+	client_camera.info_state = 0;
+	client_camera.bar_alpha = client_camera.bar_height = 0;
+	CGCam_SetPosition(origin);
+	CGCam_SetAngles(angles);
+	vec4_t clear = {};
+	CGCam_Fade(clear, clear, 0);
+	CG_Printf("FX_CAMERA|%.3f %.3f %.3f|yaw=%.3f|pitch=%.3f\n", origin[0], origin[1], origin[2], angles[YAW], angles[PITCH]);
+}
+
 static void CG_FxPlay_f( void )
 {
 	if ( cgi_Argc() < 2 )
@@ -287,6 +310,7 @@ static consoleCommand_t	commands[] = {
 	{ "forcenext",			CG_NextForcePower_f },
 	{ "forceprev",			CG_PrevForcePower_f },
 	{ "fxaudit", CG_FxAudit_f },
+	{ "fxcam", CG_FxCamera_f },
 	{ "fxplay",				CG_FxPlay_f },
 	{ "fxsources", CG_FxSources_f },
 	{ "invnext",			CG_NextInventory_f },

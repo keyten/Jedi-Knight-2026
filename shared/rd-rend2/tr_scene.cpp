@@ -812,7 +812,11 @@ void RE_BeginScene(const refdef_t *fd)
 	VectorCopy( fd->viewaxis[1], tr.refdef.viewaxis[1] );
 	VectorCopy( fd->viewaxis[2], tr.refdef.viewaxis[2] );
 
-	tr.refdef.time = fd->time;
+	// Developer captures can hold only the shader clock, leaving the actual FX
+	// simulation and camera independent. Default -1 preserves the game clock.
+	static const cvar_t *captureTime = R_Cvar("r_captureShaderTime", "-1", CVAR_CHEAT | CVAR_LATCH,
+		"Developer capture shader clock in milliseconds; -1 follows game time; vid_restart");
+	tr.refdef.time = captureTime->integer >= 0 ? captureTime->integer : fd->time;
 	tr.refdef.rdflags = fd->rdflags;
 	tr.refdef.frameTime = MIN(fd->time - tr.refdef.lastTime, 50.f);
 	// r_<feature>Compare split line: world scenes only (R_RenderCubemapSide

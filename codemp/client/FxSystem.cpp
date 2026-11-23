@@ -178,7 +178,7 @@ void SFxHelper::Print( const char *msg, ... )
 //------------------------------------------------------
 void SFxHelper::AdjustTime( int frametime )
 {
-	mParticleNearFade = Cvar_VariableIntegerValue("r_particleNearFade") != 0 &&
+	mParticleNearFade = Cvar_VariableIntegerValue("r_particleCulling") != 0 &&
 		strstr(Cvar_VariableString("cl_renderer"), "rend2") != nullptr;
 	mPhysicalSources.Enable(fx_physicalizationSources && fx_physicalizationSources->integer == 1);
 	if (frametime > 0 && frametime < mTime) mPhysicalSources.Reset();
