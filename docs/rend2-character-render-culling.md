@@ -123,3 +123,17 @@ non-isolated inventory. `--benchmark` adds uncapped ABBA complete-frame windows
 with counters/GPU query logging disabled. The final combined-source check is
 recorded separately after integration.
 
+## Combined integration check (2026-11-25)
+
+Both worktree changes were merged into `rend2-unified-wip` at `898a2864978261846fc1468cc8fbb302e6d235f1`.
+The combined MSVC x64 Release SP/MP renderers, SP game, MP cgame and character
+policy test built successfully; all 25 CPU policy/history checks passed.
+A private hidden runtime run exercised GL4.3, the velocity prepass, modern sun
+shadows and exact sun-cache mode 1 together with character culling. All seven
+off/on/turn-back/near phases completed. All four capture comparisons had zero
+differing RGB channels, distant-body culling was exercised, and protected bodies
+remained present. Installed game files were not modified.
+
+The run observed foreign game processes and is correctness evidence only;
+no isolated FPS improvement is claimed. See the retained
+[combined receipt](../tools/rend2/optimization_defaults/integration-2026-11-25.json).

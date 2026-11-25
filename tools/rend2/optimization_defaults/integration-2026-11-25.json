@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-25",
+  "source_head": "898a2864978261846fc1468cc8fbb302e6d235f1",
+  "build": "MSVC x64 Release: SP/MP renderer, SP game, MP cgame, character policy test",
+  "policy_checks": 25,
+  "correctness_only": true,
+  "performance_isolated": false,
+  "renderer": [
+    "GL_RENDERER: Intel(R) UHD Graphics",
+    "GL_RENDERER: Intel(R) UHD Graphics",
+    "GL_RENDERER: Intel(R) UHD Graphics"
+  ],
+  "settings": {
+    "gl43": 1,
+    "velocity": true,
+    "sun_shadows": 1,
+    "sun_cache": 1
+  },
+  "capture_channel_differences": {
+    "far_off/far_on": 0,
+    "far_off/far_repeat": 0,
+    "visible_off/visible_on": 0,
+    "near_off/near_on": 0
+  },
+  "phases": {
+    "far_off": {
+      "min_skipped": 0,
+      "max_skipped": 0,
+      "max_submissions": 7,
+      "protected_observations": 28
+    },
+    "far_on": {
+      "min_skipped": 3,
+      "max_skipped": 3,
+      "max_submissions": 7,
+      "protected_observations": 36
+    },
+    "far_repeat": {
+      "min_skipped": 0,
+      "max_skipped": 0,
+      "max_submissions": 7,
+      "protected_observations": 32
+    },
+    "visible_off": {
+      "min_skipped": 0,
+      "max_skipped": 0,
+      "max_submissions": 7,
+      "protected_observations": 20
+    },
+    "visible_on": {
+      "min_skipped": 0,
+      "max_skipped": 0,
+      "max_submissions": 7,
+      "protected_observations": 40
+    },
+    "near_off": {
+      "min_skipped": 0,
+      "max_skipped": 0,
+      "max_submissions": 7,
+      "protected_observations": 44
+    },
+    "near_on": {
+      "min_skipped": 0,
+      "max_skipped": 0,
+      "max_submissions": 7,
+      "protected_observations": 56
+    }
+  },
+  "limitation": "Foreign game processes observed; no FPS speedup claim. MP gameplay not exercised."
+}
