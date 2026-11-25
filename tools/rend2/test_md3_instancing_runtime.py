@@ -36,11 +36,11 @@ def prepare(a):
         com_bootlogo=0,in_mouse=0,s_initsound=0,logfile=2,developer=0,r_gl43=a.gl43,
         cg_thirdPerson=0,cg_draw2D=0,cg_drawGun=0,cg_shadows=0,r_picmip=2,r_shaderProgramLazy=1,
         r_shaderCompileProcesses=0,r_captureShaderTime=0,r_autoExposure=0,r_depthPrepass=1,r_depthPrepassFast=1,
-        r_md3Instancing=0,r_md3InstancingStats=1,r_ssr=0,r_ssgi=0,r_smaa=0,r_motionBlur=0,
+        r_md3Instancing=0,r_md3InstancingStats=2,r_ssr=0,r_ssgi=0,r_smaa=0,r_motionBlur=1,r_motionBlurShutterAngle=0,
         r_volumetricFog=0,r_volumetricWater=0,r_waterSurface=0,r_atmosphere=0,r_clouds=0,r_autoGrass=0,
         r_ssao=0,r_aoMode=0,r_bloom=0,r_skinSSS=0,r_sunlightMode=0,r_sunShadows=0,r_phongTessellation=0,
         r_shadows=0,r_speeds=0,con_notifytime=-1,r_characterCull=1)
-    commands=['wait 60','devmap mp/ffa3','wait 180','god','notarget','noclip','setviewpos 655 -369 -70 270',
+    commands=['wait 60','devmap mp/ffa3','wait 180','exitview','cam_disable','lock_disable','cg_thirdPerson 0','god','notarget','noclip','setviewpos 655 -369 -70 270',
         'wait 30','uimenu md3_freeze','fx_freeze 1','wait 20']
     def phase(name,enabled):
         return [f'r_md3Instancing {enabled}',f'echo MD3_BEGIN_{name}','wait 120',
@@ -55,7 +55,7 @@ def prepare(a):
         commands+=['r_depthPrepassFast 1','r_md3InstancingStats 0','com_maxfps 0','com_maxfpsUnfocused 0','com_maxfpsMinimized 0']
         for i,enabled in enumerate((0,1,1,0)):
             commands+=[f'r_md3Instancing {enabled}','wait 120',f'echo MD3_BENCH_BEGIN_{i}_{enabled}',
-                       'r_sunShadowBenchmark 180','wait 220',f'echo MD3_BENCH_END_{i}_{enabled}']
+                       'r_sunShadowBenchmark 90','wait 600',f'echo MD3_BENCH_END_{i}_{enabled}']
     commands+=['echo MD3_RUNTIME_DONE','wait 10','quit']
     (home/'autoexec_sp.cfg').write_text('\n'.join([f'set {k} "{v}"' for k,v in settings.items()]+commands)+'\n')
     return run,home,[str(run/'openjk_sp.x86_64.exe'),'+set','fs_basepath',str(a.installation),'+set','fs_homepath',str(run/'home'),'+set','fs_game','OpenJK']

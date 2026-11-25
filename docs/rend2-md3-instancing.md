@@ -1,12 +1,12 @@
 # Repeated rigid MD3 instance draws
 
-`r_md3Instancing 1` batches eligible repeated rendered MD3 entities. `0` restores
+`r_md3Instancing` defaults to **0**; `1` batches eligible repeated rendered MD3 entities. `0` restores
 individual submission without a restart. The current implementation requires the
 renderer modern tier (`r_gl43 1` and SSBO capability), although instance data itself
 uses a portable std140 uniform block. It does not batch decor baked into BSP geometry.
 
 Each group reuses the existing model VBO and IBO. It issues one actual
-`glDrawElementsInstancedBaseVertex` with 2–32 instances. No mesh vertex/index data is
+`glDrawElementsInstancedBaseVertex` with 2â€“32 instances. No mesh vertex/index data is
 copied per entity. A 10,752-byte block carries 32 complete 336-byte `EntityBlock`
 records: matrices, ambient/directed light, light origins/directions, grid/SH lighting,
 split sunlight and the other entity constants. The vertex shader uses `gl_InstanceID`;
@@ -35,7 +35,8 @@ textures, all other uniform-block bindings and exact material uniform data. Cube
 selection, dynamic-light masks and material parameters consequently remain distinct
 when required. Hash collisions always undergo exact equality. Groups never cross an
 intervening opaque material, preserving the winner of coplanar depth ties. Capacity
-splits preserve every member once.
+splits preserve every member once. Large-divisor constant MD3 colour/UV attributes
+are allowed only when the whole bounded group still reads element zero.
 
 The main view's generic/lightall colour and legacy depth programs are supported.
 The default fast depth and motion-vector programs, previous-frame transforms,
@@ -65,9 +66,20 @@ SP and MP Release renderer builds and the CPU test pass. The private runtime har
 40 actual misc_model_static MD3s plus two excluded transforms, private binaries/home,
 read-only installed assets and a real UI/FX/shader-clock freeze. It compares enabled,
 disabled/repeated, default fast depth, velocity and moved-camera legacy depth captures.
-Runtime evidence is recorded below when the bounded case completes.
+The Intel runtime completed with **40 colour draws reduced to 2**, saving 38 calls
+per sampled frame and uploading 21,504 bytes. The 40 fused depth/velocity draws
+remain individual. Enabled/disabled/repeated, initialized velocity and moved-camera
+legacy-depth captures all have **zero differing channels**. The group split is the
+real 32 + 8 overflow case; two nonuniform/mirrored fixture transforms stay individual.
 
-`r_md3InstancingStats 1` samples the completed frame once per second: tagged draws,
+The bounded warmed 90-frame ABBA medians were 3.5347 / 3.4067 ms disabled and
+3.7877 / 3.6267 ms enabled at 640x360. These full-frame intervals include driver,
+game and presentation; resident MSBuild workers and background desktop activity
+limit interpretation. They do **not** establish a net win. Consequently the feature
+stays opt-in, pending a more profitable submission workload or batching refinement.
+No FPS improvement is claimed. See the [machine-readable receipt](rend2-md3-instancing-validation.json).
+
+`r_md3InstancingStats 2` additionally explains the first rejected program; `1` samples the completed frame once per second: tagged draws,
 material/pass fallbacks, groups, instances, saved calls, capacity fallbacks and uploaded
 bytes. These are actual grouped submissions, not an assumption based on shared VBOs.
 No FPS percentage is inferred from the call count.

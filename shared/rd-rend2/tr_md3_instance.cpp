@@ -2,6 +2,7 @@
 #include "tr_local.h"
 #include "tr_allocator.h"
 #include "tr_md3_instance_policy.h"
+#include <algorithm>
 #include <cstring>
 #include <vector>
 
@@ -16,9 +17,9 @@ static void PrintStats();
 
 void R_RegisterMd3InstanceCvars()
 {
-    s_enabled = R_CvarInt("r_md3Instancing", "1", CVAR_ARCHIVE, 0, 1,
+    s_enabled = R_CvarInt("r_md3Instancing", "0", CVAR_ARCHIVE, 0, 1,
         "Batch repeated rigid single-frame opaque MD3s; 0 restores individual draws");
-    s_stats = R_CvarInt("r_md3InstancingStats", "0", CVAR_CHEAT, 0, 1,
+    s_stats = R_CvarInt("r_md3InstancingStats", "0", CVAR_CHEAT, 0, 2,
         "Print MD3 candidates, instance groups, saved draw calls and capacity fallbacks for a sampled frame once per second");
 }
 static bool Enabled() {
@@ -92,10 +93,23 @@ void RB_Md3InstanceTag(DrawItem& item)
         material, backEnd.viewParms.viewParmType == VPT_MAIN && !backEnd.viewParms.isPortal &&
             !(backEnd.viewParms.flags & VPF_DEPTHSHADOW) &&
             !(backEnd.refdef.rdflags & RDF_NOWORLDMODEL), SupportedProgram(item.program)};
-    if (!Rend2Md3::Eligible(eligibility)) { ++s_counts.fallback; return; }
+    if (!Rend2Md3::Eligible(eligibility)) {
+        if (s_stats->integer >= 2) {
+            static std::vector<shaderProgram_t *> explained;
+            if (std::find(explained.begin(), explained.end(), item.program) == explained.end()) {
+                explained.push_back(item.program);
+                ri.Printf(PRINT_ALL, "md3Instancing reject %s: shader=%s sort=%.1f passes=%d deform=%d motion=%d pom=%d material=%d opaque=%d stable=%d view=%d program=%d internal=%d draw=%d instances=%d\n",
+                    item.program->name, tess.shader->name, tess.shader->sort, tess.shader->numUnfoggedPasses,
+                    tess.shader->numDeforms, tess.foliageMotion, tess.pomMode, material, opaque,
+                    eligibility.stableGeometry, eligibility.supportedView, eligibility.supportedProgram,
+                    tess.useInternalVBO, item.draw.type, item.draw.numInstances);
+            }
+        }
+        ++s_counts.fallback; return;
+    }
     for (uint32_t a = 0; a < item.numAttributes; ++a)
         if (!item.attributes[a].vbo || item.attributes[a].vbo == backEndData->currentFrame->dynamicVbo ||
-            item.attributes[a].stepRate) { ++s_counts.fallback; return; }
+            !Rend2Md3::ConstantInstanceAttribute(item.attributes[a].stepRate)) { ++s_counts.fallback; return; }
     item.md3InstanceEntity = s_entities[index];
     ++s_counts.tagged;
 }

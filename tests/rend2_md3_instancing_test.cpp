@@ -6,6 +6,8 @@
 static void Check(bool condition) { if (!condition) std::abort(); }
 int main() {
     using namespace Rend2Md3;
+    Check(ConstantInstanceAttribute(0) && ConstantInstanceAttribute(32) && ConstantInstanceAttribute(65535));
+    Check(!ConstantInstanceAttribute(1) && !ConstantInstanceAttribute(31) && !ConstantInstanceAttribute(-1));
     float axis[3][3] = {{0,1,0},{-1,0,0},{0,0,1}};
     float scale[3] = {0,0,0};
     Check(UniformPositiveTransform(axis, scale));

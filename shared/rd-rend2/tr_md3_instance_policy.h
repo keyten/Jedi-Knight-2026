@@ -7,6 +7,11 @@
 
 namespace Rend2Md3 {
 constexpr int MaxInstances = 32;
+inline bool ConstantInstanceAttribute(int divisor) {
+    // MD3's white colour / zero UV records use a large divisor. Every member
+    // in this bounded group still reads element zero, exactly as a single draw.
+    return divisor == 0 || divisor >= MaxInstances;
+}
 inline bool UniformPositiveTransform(const float axis[3][3], const float scale[3])
 {
     for (int i = 0; i < 3; ++i) if (!std::isfinite(scale[i])) return false;
