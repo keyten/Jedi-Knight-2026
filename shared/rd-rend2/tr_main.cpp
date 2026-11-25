@@ -1962,6 +1962,7 @@ qboolean R_IsStaticSunShadowCaster(
 		shader->foliageHint != FOLIAGE_NONE ||
 		shader->numSurfaceSpriteStages != 0 ||
 		shader->pomSilhouette ||
+		shader->voronoiRelief ||
 		shader->useDistortion ||
 		shader->polygonOffset ||
 		(shader->surfaceFlags & SURF_FORCESIGHT) ||
@@ -2568,6 +2569,21 @@ static void R_SkyPortalCollectOccluders( void )
 	if ( !r_skyPortalCull->integer || !tr.world ||
 		(tr.refdef.rdflags & RDF_NOWORLDMODEL) )
 		return;
+
+	// Non-opaque q3map_alphashadow stages currently write the camera prepass
+	// with modern sun alpha casters enabled. They can hide the opaque world
+	// behind them and then blend over the skyportal colour. Keep that legacy
+	// background intact until the camera-prepass policy is changed separately.
+	if (r_sunShadowMode->integer && r_sunShadowAlphaCasters->integer)
+		return;
+
+	// Entity-forced transparency/distortion can likewise keep an opaque
+	// material's prepass depth while its colour still needs the background.
+	if (r_drawentities->integer)
+		for (int i = 0; i < tr.refdef.num_entities; ++i)
+			if (tr.refdef.entities[i].e.reType == RT_MODEL &&
+				(tr.refdef.entities[i].e.renderfx & (RF_FORCE_ENT_ALPHA | RF_DISTORTION)))
+				return;
 
 	const viewParms_t *mainParms = nullptr;
 	for ( int i = 0; i < tr.numCachedViewParms; i++ )
@@ -4215,7 +4231,9 @@ static qboolean R_ShadowShaderTimeDependent(shader_t *shader)
 	shader = R_ShadowEffectiveShader(shader);
 	if (!shader || shader->sort != SS_OPAQUE)
 		return qfalse;
-	if (shader->numDeforms || shader->foliageHint != FOLIAGE_NONE)
+	if (shader->numDeforms || shader->foliageHint != FOLIAGE_NONE ||
+		shader->numSurfaceSpriteStages || shader->voronoiRelief ||
+		(shader->surfaceFlags & SURF_FORCESIGHT))
 		return qtrue;
 	for (int i = 0; i < shader->numUnfoggedPasses; ++i)
 	{
@@ -4292,7 +4310,10 @@ static void R_ShadowCacheBeginScene(const trRefdef_t *refdef)
 	hash = R_ShadowHashBytes(hash, r_shadowOffsetUnits->string,
 		strlen(r_shadowOffsetUnits->string));
 	hash = R_ShadowHashValue(hash, r_shadowCasterLod->integer);
-	hash = R_ShadowHashValue(hash, refdef->rdflags & RDF_NOWORLDMODEL);
+	// Both the full-slot and static-world cache must follow the same draw and
+	// culling controls as an uncached walk (including debug toggles).
+	hash = R_ShadowHashValue(hash, R_SunShadowCasterSettingsKey());
+	hash = R_ShadowHashValue(hash, refdef->rdflags & (RDF_NOWORLDMODEL | RDF_ForceSightOn));
 	s_shadowCacheWorldKey = hash;
 }
 
@@ -4346,6 +4367,21 @@ static uint64_t R_ShadowDynamicCasterKey(const trRefdef_t *refdef, const dlight_
 	qboolean *cacheable)
 {
 	uint64_t hash = s_shadowCacheWorldKey;
+	const cvar_t *modelSettings[] = { r_lodscale, r_lodbias, r_autolodscalevalue,
+		r_noServerGhoul2, r_phongTessellation, r_phongTessMaxCharacters,
+		r_phongTessDistance, r_phongTessGameplay, r_phongTessLevel,
+		r_phongTessStrength, r_phongTessMaxDisplacement };
+	for (const cvar_t *setting : modelSettings)
+		hash = R_ShadowHashBytes(hash, setting->string, strlen(setting->string) + 1);
+	// Frozen animation time does not freeze camera-selected caster LOD or
+	// character tessellation. Camera motion must not reuse their old depth.
+	if (r_shadowCasterLod->integer || r_phongTessellation->integer)
+	{
+		hash = R_ShadowHashBytes(hash, refdef->vieworg, sizeof(refdef->vieworg));
+		hash = R_ShadowHashBytes(hash, refdef->viewaxis, sizeof(refdef->viewaxis));
+		hash = R_ShadowHashValue(hash, refdef->fov_x);
+		hash = R_ShadowHashValue(hash, refdef->fov_y);
+	}
 	*cacheable = (refdef->rdflags & RDF_NOWORLDMODEL) ? qtrue : R_ShadowWorldCacheable(light);
 	if (!*cacheable)
 		return hash;
@@ -4543,10 +4579,15 @@ static void R_AppendPointShadowViews(const viewParms_t *views, int count, int sl
 {
 	// r_shadowStaticCache 2: after the cached passes, read the slot back and
 	// render it again in one ordinary pass (which is what the slot keeps)
-	const qboolean verify = (qboolean)(r_shadowStaticCache->integer == 2 &&
-		(plan == POINT_SHADOW_STATIC_BUILD || plan == POINT_SHADOW_STATIC_REUSE) &&
+	const qboolean verify = (qboolean)((r_shadowCache->integer == 2 ||
+		(r_shadowStaticCache->integer == 2 &&
+		 (plan == POINT_SHADOW_STATIC_BUILD || plan == POINT_SHADOW_STATIC_REUSE))) &&
 		s_numShadowStaticVerify < POINT_SHADOW_STATIC_MAX_SLOTS);
-	const int passes = (plan == POINT_SHADOW_STATIC_BUILD ? 2 : 1) + (verify ? 1 : 0);
+	// A full-cache hit needs no ordinary draw, only snapshot + reference while
+	// verifying. A miss is drawn normally before the same exact-depth check.
+	const int ordinaryPasses = plan == POINT_SHADOW_HIT ? 0 :
+		(plan == POINT_SHADOW_STATIC_BUILD ? 2 : 1);
+	const int passes = ordinaryPasses + (verify ? 1 : 0);
 	for (int pass = 0; pass < passes; ++pass)
 	{
 		int extraFlags = 0;
@@ -4586,7 +4627,7 @@ static void R_AppendPointShadowViews(const viewParms_t *views, int count, int sl
 // full render with the snapshot of its cached passes, then back to 1
 void R_QueuePointShadowStaticVerify(void)
 {
-	if (r_shadowStaticCache->integer != 2)
+	if (r_shadowStaticCache->integer != 2 && r_shadowCache->integer != 2)
 		return;
 	for (int i = 0; i < s_numShadowStaticVerify; ++i)
 	{
@@ -4597,9 +4638,12 @@ void R_QueuePointShadowStaticVerify(void)
 		R_QueuePointShadowSlotCmd(&view);
 	}
 	if (!s_numShadowStaticVerify)
-		ri.Printf(PRINT_ALL, "r_shadowStaticCache 2: no shadow slot used the static cache this frame\n");
+		ri.Printf(PRINT_ALL, "shadow cache verify: no eligible shadow slot this frame\n");
 	s_numShadowStaticVerify = 0;
-	ri.Cvar_Set("r_shadowStaticCache", "1");
+	if (r_shadowStaticCache->integer == 2)
+		ri.Cvar_Set("r_shadowStaticCache", "1");
+	if (r_shadowCache->integer == 2)
+		ri.Cvar_Set("r_shadowCache", "1");
 }
 
 void R_ShadowCacheInvalidate(void)
@@ -4779,13 +4823,13 @@ void R_GatherFrameViews(trRefdef_t *refdef)
 						shadowLight->spotShadowVP);
 					shadowLight->spotShadowSlot = i;
 					const pointShadowPlan_t plan = R_PointShadowPlan(i, refdef, shadowLight);
-					if (plan != POINT_SHADOW_HIT)
+					if (plan != POINT_SHADOW_HIT || r_shadowCache->integer == 2)
 						R_AppendPointShadowViews(&shadowParms, 1, i, plan);
 					continue;
 				}
 
 				const pointShadowPlan_t plan = R_PointShadowPlan(i, refdef, shadowLight);
-				if (plan == POINT_SHADOW_HIT)
+				if (plan == POINT_SHADOW_HIT && r_shadowCache->integer != 2)
 					continue;
 				viewParms_t faceParms[6];
 

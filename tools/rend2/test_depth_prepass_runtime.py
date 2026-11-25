@@ -46,6 +46,7 @@ def main():
     parser.add_argument('--installation', type=Path, required=True)
     parser.add_argument('--build', type=Path, default=ROOT / 'build/ssr-msvc/RelWithDebInfo')
     parser.add_argument('--label', required=True)
+    parser.add_argument('--cache-from', type=Path, help='Seed glslcache from another private home/OpenJK on the same GPU')
     parser.add_argument('--nvidia', action='store_true')
     parser.add_argument('--width', type=int, default=640)
     parser.add_argument('--height', type=int, default=360)
@@ -62,6 +63,8 @@ def main():
     if (home / 'screenshots').exists():
         shutil.rmtree(home / 'screenshots')
     home.mkdir(parents=True, exist_ok=True)
+    if args.cache_from and (args.cache_from/'glslcache').is_dir():
+        shutil.copytree(args.cache_from/'glslcache', home/'glslcache', dirs_exist_ok=True)
     for name in ('openjk_sp.x86_64.exe', 'rend2_glslc.exe', 'rdsp-rend2_x86_64.dll'):
         shutil.copy2(args.build / name, runtime / name)
     shutil.copy2(ROOT / 'lib/SDL2/bin/x64/SDL2.dll', runtime / 'SDL2.dll')
@@ -73,7 +76,7 @@ def main():
 
     view = 'setviewpos 671 -769 -70 290'
     cfg = ['wait 180', 'devmap mp/ffa3', 'wait 100', 'exitview', 'god', 'notarget', 'noclip',
-           'cg_draw2D 0', 'cg_drawGun 0', 'con_notifytime 0', view, 'wait 40',
+           'cg_draw2D 0', 'cg_drawGun 0', 'con_notifytime -1', view, 'wait 40',
            # skeletal (G2) models in view for the timing and the depth check
            *([] if args.no_npcs else ['npc spawn reborn', 'npc spawn stormtrooper']), 'wait 60',
            'com_maxfps 0', 'com_maxfpsUnfocused 0', 'com_maxfpsMinimized 0']

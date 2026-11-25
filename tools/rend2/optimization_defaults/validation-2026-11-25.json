@@ -1,0 +1,255 @@
+{
+  "schema": "org.openjk.rend2.optimization-default-audit.v1",
+  "baseline": "d6d239a659f0b0f9e417cec379501147931c90d3",
+  "timing_policy": "diagnostic only; no controlled FPS claim",
+  "cases": {
+    "prepass_intel": {
+      "renderer": [
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "other_games": 1,
+      "summary": {
+        "fast1": {
+          "prepass_medians": [
+            0.148,
+            0.144
+          ],
+          "prepass_median": 0.146
+        },
+        "fast0": {
+          "prepass_medians": [
+            0.252,
+            0.2645
+          ],
+          "prepass_median": 0.25825
+        }
+      },
+      "verify": {
+        "frames": 60,
+        "max_nearer_samples": 0,
+        "surfs": 265,
+        "nonzero": []
+      },
+      "captures": {
+        "fast_vs_repeat": {
+          "identical": false,
+          "changed_pixels": 4
+        },
+        "fast_vs_legacy": {
+          "identical": false,
+          "changed_pixels": 4
+        }
+      }
+    },
+    "prepass_nvidia": {
+      "renderer": [
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2"
+      ],
+      "other_games": 0,
+      "summary": {
+        "fast1": {
+          "prepass_medians": [
+            0.082
+          ],
+          "prepass_median": 0.082
+        },
+        "fast0": {
+          "prepass_medians": [
+            0.118
+          ],
+          "prepass_median": 0.118
+        }
+      },
+      "verify": {
+        "frames": 60,
+        "max_nearer_samples": 0,
+        "surfs": 265,
+        "nonzero": []
+      },
+      "captures": {
+        "fast_vs_repeat": {
+          "identical": true,
+          "changed_pixels": 0
+        },
+        "fast_vs_legacy": {
+          "identical": true,
+          "changed_pixels": 0
+        }
+      }
+    },
+    "sky_intel": {
+      "renderer": [
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "repeat_equal": false,
+      "captures": {
+        "sky": {
+          "equal": false,
+          "changed_pixels": 6
+        }
+      },
+      "foreign_game_pids": [
+        8472,
+        24740
+      ],
+      "performance_isolated": false
+    },
+    "sky_alpha_intel": {
+      "renderer": [
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics",
+        "GL_RENDERER: Intel(R) UHD Graphics"
+      ],
+      "repeat_equal": false,
+      "captures": {
+        "sky": {
+          "equal": false,
+          "changed_pixels": 3
+        }
+      },
+      "foreign_game_pids": [
+        8472,
+        24888
+      ],
+      "performance_isolated": false
+    },
+    "sky_nvidia": {
+      "renderer": [
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2"
+      ],
+      "repeat_equal": false,
+      "captures": {
+        "sky": {
+          "equal": false,
+          "changed_pixels": 10
+        }
+      },
+      "foreign_game_pids": [],
+      "performance_isolated": true
+    },
+    "cube_nvidia": {
+      "renderer": [
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2"
+      ],
+      "repeat_equal": true,
+      "captures": {
+        "full_baseline": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_worldoff": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_worldon": {
+          "equal": false,
+          "changed_pixels": 1
+        },
+        "full_curvesoff": {
+          "equal": false,
+          "changed_pixels": 8
+        },
+        "full_curveson": {
+          "equal": false,
+          "changed_pixels": 12
+        },
+        "full_planeculloff": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_planecullon": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_nocull": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_cull": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_entitiesoff": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_entitieson": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_lod": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_lodrestore": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_cameralod": {
+          "equal": true,
+          "changed_pixels": 0
+        },
+        "full_cameramove": {
+          "equal": true,
+          "changed_pixels": 0
+        }
+      },
+      "foreign_game_pids": [],
+      "performance_isolated": true,
+      "exact_cube_count": 32,
+      "cube_failures": [],
+      "image_classification": "diagnostic: running SP scene, only depth comparisons are correctness evidence",
+      "initial_harness_exit": "nonzero due overstrict earlier image assertion; corrected runner now separates same-scene depth from simulation image drift"
+    },
+    "sun_intel": {
+      "verification_count": 90,
+      "verification_failures": [],
+      "exact_comparisons": 90,
+      "max_depth_error": 0.0,
+      "foreign_game_pids": [
+        24888
+      ],
+      "performance_isolated": false,
+      "completed": true,
+      "errors": []
+    },
+    "full_point_cache_rejected": {
+      "comparison_count": 60,
+      "failure_count": 14,
+      "examples": [
+        "point shadow cache verify: slot 0, 6 layers, 778930 of 1572864 depth texels differ (max 212/65535)",
+        "point shadow cache verify: slot 0, 6 layers, 4271 of 1572864 depth texels differ (max 212/65535)"
+      ]
+    },
+    "static_point_cache_rejected": {
+      "comparison_count": 30,
+      "failure_count": 15,
+      "examples": [
+        "r_shadowStaticCache verify: slot 0, 6 layers, 668007 of 1572864 depth texels differ (max 475/65535)",
+        "r_shadowStaticCache verify: slot 0, 6 layers, 11492 of 1572864 depth texels differ (max 475/65535)"
+      ]
+    },
+    "cube_intel": {
+      "exact_cube_count": 8,
+      "failure_count": 0
+    },
+    "gl43_kernels_intel": {
+      "passed": true,
+      "adapter": "Intel(R) UHD Graphics / 4.3.0 - Build 27.20.100.8280"
+    },
+    "gl43_kernels_nvidia": {
+      "passed": true,
+      "adapter": "NVIDIA GeForce RTX 2060/PCIe/SSE2 / 4.3.0 NVIDIA 616.92"
+    }
+  },
+  "renderer_binary_sha256": {
+    "rd-rend2_x86_64.dll": "4cfdff529f4b1233d104eddab1002c7f80f5151ff2b0b39439dffcf8b2fc4932",
+    "rdsp-rend2_x86_64.dll": "c58cbfafa6eeda201eafd4289c31dc553ec2c324dbb15bf1e32aa5d8898a3bcc"
+  }
+}

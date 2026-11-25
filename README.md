@@ -7,7 +7,7 @@ This mod aims to:
 
 into Jedi Academy / Outcast. Most changes here are aiming to SP, but there can occasional MP improvements (mostly rend2, I guess) as side effects.
 
-It attempts to keep the full backward compatibility with the game and mods by introducing any changes only under commands. Therefore the game should behaving exactly same as before, until a specific command or a mod enables new functionality.
+Visual and gameplay extensions remain opt-in to preserve compatibility with the game and mods. The [reviewed rendering optimizations](docs/rend2-optimization-defaults.md) are enabled by default with capability and correctness fallbacks; explicit settings in existing configs are preserved.
 
 This is a fork of SomaZ/OpenJK:rend2-unified-wip.
 

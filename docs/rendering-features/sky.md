@@ -83,4 +83,4 @@ Design notes: [rend2-volumetric-clouds.md](../rend2-volumetric-clouds.md).
 
 On maps with a sky portal (a separate scene shown through the sky), the portal scene is shaded only where the main view leaves the sky visible. The image is unchanged, so there is no compare cvar.
 
-- `r_skyPortalCull 0` — 1 on: shade only the visible part of the portal view.
+- `r_skyPortalCull 1` — shade only the visible part of the portal view; 0 disables the optimization. It conservatively falls back when `r_sunShadowMode` and `r_sunShadowAlphaCasters` are both enabled, preserving the background of non-opaque alpha casters. Models with forced entity transparency or distortion also retain the full skyportal background.

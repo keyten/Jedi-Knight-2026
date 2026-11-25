@@ -4123,7 +4123,7 @@ static const void *RB_PointShadowSlot(const void *data)
 					maxDelta = Q_max(maxDelta, delta);
 				}
 			}
-			ri.Printf(PRINT_ALL, "r_shadowStaticCache verify: slot %d, %d layers, %u of %u depth texels differ (max %d/65535)\n",
+			ri.Printf(PRINT_ALL, "point shadow cache verify: slot %d, %d layers, %u of %u depth texels differ (max %d/65535)\n",
 				slot, layers, (unsigned)differ, (unsigned)current.size(), maxDelta);
 		}
 	}
