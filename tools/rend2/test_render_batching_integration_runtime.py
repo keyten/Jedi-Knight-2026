@@ -56,6 +56,14 @@ def main():
   commands+=phase('off',['r_worldSurfaceList 0','r_modelOcclusion 0','r_md3Instancing 0','r_surfaceSpritesCompute 0'])
   commands+=phase('restored',resets)
  commands+=['echo BATCH_INTEGRATION_DONE','wait 5','quit']
+ if a.enabled_defaults_smoke:
+  # Apply the private fixture's latched controls before the first GL context.
+  # This avoids compiling an unused startup configuration and a second restart.
+  settings='set r_shaderProgramCache "1"\n'+settings
+  startup=[]
+  for name,value in re.findall(r'^set (\S+) "([^"\n]*)"',settings,re.M):
+   startup+=['+set',name,value]
+  launch[1:1]=startup
  cfg.write_text(settings+'\n'.join(commands)+'\n')
  if a.run:
   foreign=foreign_games();assert not foreign,foreign
