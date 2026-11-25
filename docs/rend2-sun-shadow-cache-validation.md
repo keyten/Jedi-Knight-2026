@@ -1,3 +1,6 @@
+> Historical validation record. The current mode-1 default and new checks are in
+> [the 2026-11-23 optimization audit](rend2-optimization-defaults.md). Modes 2/3 remain experimental.
+
 # Проверка static sun-shadow cache
 
 Проверено 2026-10-21 в отдельном worktree `sun-shadow-cache`, база `6e6305f91`.

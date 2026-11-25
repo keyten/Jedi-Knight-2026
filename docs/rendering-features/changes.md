@@ -11,6 +11,10 @@ Reviewed range: `0387b3281..9787e7945`. This page describes committed work throu
 - **Reflections:** better emitter occlusion and foreground-safe rough blur; optional rough-surface ray sampling; fog along reflected rays, including water. Hit reuse now defaults off, and early pixel rejection defaults to automatic. [Controls](reflections.md).
 - **Offline lighting:** sun/sky and hidden-light proposals, several emitter shapes, intensity/position fitting, shadow evidence, bounced light, uncertainty checks, scene-wide sampling/scheduling, and per-source contribution records. Normal gameplay still does not consume these fitted assets. [Workflow](lighting-tools.md).
 
+## Performance defaults (2026-11-23)
+
+The [runtime optimization audit](../rend2-optimization-defaults.md) re-enables the GL 4.3 policy, fast depth-only prepass, point-shadow traversal/layered submission, guarded skyportal culling and exact sun-cache mode 1. Both point-shadow caches remain opt-in after unresolved depth-verifier differences. Saved explicit settings remain unchanged. Forward+, water tessellation and experimental scrolling/disk sun caches remain opt-in. The historical default-off list below describes November 2, not the current performance defaults.
+
 ## Compare cvars, help and defaults (2026-11-02)
 
 - **One compare cvar per feature**, `r_<feature>Compare`: 0 normal, 1 split screen (original left of `r_compareSplit`), 2 off without `vid_restart`, 3+ feature views. Not saved. `r_compare` lists them; `r_help <cvar>` explains any renderer cvar. [How it works](../rendering-features.md#comparing-with-the-original).

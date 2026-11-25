@@ -1,3 +1,7 @@
+> Historical measurements and implementation notes. Current defaults and fresh
+> validation are in [the performance-default audit](rend2-optimization-defaults.md);
+> old default-on/off statements below describe their original snapshots.
+
 > Historical planning/review document. The grid-reconstructed static sources and
 > portal shafts mentioned below have since been removed; current froxel lists
 > contain ordinary scene/dynamic lights. See [removal report](rend2-grid-reconstruction-removal.md).

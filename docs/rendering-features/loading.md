@@ -58,7 +58,7 @@ Design notes: [rend2-map-load.md](../rend2-map-load.md), [rend2-material-ddc.md]
 
 On cards with OpenGL 4.3 some work moves to compute shaders: building light lists for [Forward+](lighting.md#many-dynamic-lights-forward) and [volumetric fog](fog.md#volumetric-fog), and [water tessellation](water.md#wave-geometry). Features stay the same; older cards fall back automatically.
 
-- `r_gl43 0` *(restart)* — 1: use the OpenGL 4.3 paths where the card has them.
+- `r_gl43 1` *(restart)* — use the OpenGL 4.3 paths where the card has them; 0 forces the legacy policy. Context/capability failures retain the existing fallback.
 - `r_forwardPlusCompute 1` — build Forward+ light lists on the GPU; 0 on the CPU.
 - `r_volumetricFogLightCompute 1` — build volumetric fog light lists on the GPU.
 - `r_volumetricFogLightTile 8` — fog cells per side of a light tile (4, 8, 16).
