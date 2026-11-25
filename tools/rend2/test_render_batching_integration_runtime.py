@@ -16,6 +16,7 @@ def main():
  p.add_argument('--binaries',type=Path,default=ROOT/'build/msvc/Release')
  p.add_argument('--renderer',type=Path,default=ROOT/'build/msvc/Release')
  p.add_argument('--label',default='combined-yavin')
+ p.add_argument('--lightall-specialize',type=int,choices=(0,1),default=0,help='Fix shader specialization independently of batching defaults')
  p.add_argument('--enabled-defaults-smoke',action='store_true',help='Reset only the four batching cvars to registered defaults and test repeat/off/restore')
  p.add_argument('--run',action='store_true');p.add_argument('--analyze-only',action='store_true')
  a=p.parse_args()
@@ -29,6 +30,7 @@ def main():
                   f'"origin" "{x} {y} 144" "angles" "0 {i%4*30} 0" "modelscale" "{1+i%3*.125}"'+' }')
  (home/'maps').mkdir(exist_ok=True);(home/'maps/yavin1.ent').write_text('\n'.join(entities)+'\n')
  cfg=home/'autoexec_sp.cfg';settings=cfg.read_text().split('wait 60',1)[0]
+ settings+=f'set r_lightallSpecialize {a.lightall_specialize}\n'
  settings+='set r_characterCull 1\nset r_md3Instancing 0\nset r_md3InstancingStats 1\nset r_modelOcclusionDebug 1\nset r_worldSurfaceList 2\n'
  commands=['wait 60','devmap yavin1','wait 180','exitview','cam_disable','lock_disable','god','notarget','noclip','cg_thirdPerson 0']
  for i in range(6):
@@ -100,6 +102,6 @@ def main():
  if a.enabled_defaults_smoke:
   for name,value in [('r_worldSurfaceList',1),('r_modelOcclusion',1),('r_md3Instancing',1),('r_surfaceSpritesCompute',2)]:
    assert re.search(re.escape(name)+r'[^\n]*default \"'+str(value)+r'\"',log),('wrong registered default',name)
- report={'capture_channel_differences':differences,'md3_sampled_frames':md3,'sprite_sampled_frames':sprites,'far_model_queries':far_models,'near_model_queries':near_models,'initialized':['sun cascades','fused velocity'],'character_cull':1,'enabled_defaults_smoke':a.enabled_defaults_smoke,'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT).decode().strip()}
+ report={'capture_channel_differences':differences,'md3_sampled_frames':md3,'sprite_sampled_frames':sprites,'far_model_queries':far_models,'near_model_queries':near_models,'initialized':['sun cascades','fused velocity'],'character_cull':1,'enabled_defaults_smoke':a.enabled_defaults_smoke,'lightall_specialize':a.lightall_specialize,'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT).decode().strip()}
  (run/'results.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
 if __name__=='__main__':main()
