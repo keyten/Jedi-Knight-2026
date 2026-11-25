@@ -921,6 +921,7 @@ extern cvar_t	*r_marksOnTriangleMeshes;
 extern cvar_t	*r_aviMotionJpegQuality;
 extern cvar_t	*r_screenshotJpegQuality;
 extern cvar_t	*r_surfaceSprites;
+extern cvar_t *r_surfaceSpritesCompute;
 
 extern cvar_t	*r_maxpolys;
 extern int		max_polys;
@@ -2920,6 +2921,11 @@ typedef enum
 	UNIFORM_PLANTSKIN,			// FOLIAGE_PLANT: first bone texel, texels per pose, 1 = skinned, debug
 	UNIFORM_PLANTBONES,			// FOLIAGE_PLANT: bone buffer texture (TB_PLANTBONES)
 	UNIFORM_FOLIAGEINTERACT,	// surface sprites: interaction (0 / 1), contact heat debug (0 / 1)
+	UNIFORM_SPRITEDATA,
+	UNIFORM_SPRITECULLPLANES,
+	UNIFORM_SPRITECULLRANGE,
+	UNIFORM_SPRITECULLLOD,
+	UNIFORM_SPRITECULLSHAPE,
 	UNIFORM_GRASSSTRIP,		// surface sprites: strip segments (0 = quads), cards per sprite
 	UNIFORM_DIFFUSEBRDF,	// r_diffuseBRDF: 0 = Lambert, 1 = Burley/Disney
 	UNIFORM_SPECULARAAPARAMS,	// strength, max added roughness, debug view, unused
@@ -3629,6 +3635,7 @@ struct srfSprites_t
 	int numIndices;
 	VBO_t *vbo;
 	IBO_t *ibo;
+	image_t *spriteDataImage; // four RGBA32F texels per plant
 
 	int fogIndex;
 	AlphaTestType alphaTestType;
@@ -4881,6 +4888,7 @@ typedef struct trGlobals_s {
 	shaderProgram_t dglowUpsample;
 	shaderProgram_t bloomPrefilter;
 	shaderProgram_t spriteShader[SSDEF_COUNT];
+	shaderProgram_t spriteCullShader;
 	shaderProgram_t weatherUpdateShader;
 	shaderProgram_t weatherShader;
 	shaderProgram_t weatherSplashShader;
@@ -7486,7 +7494,9 @@ enum DrawCommandType
 {
 	DRAW_COMMAND_MULTI_INDEXED,
 	DRAW_COMMAND_INDEXED,
-	DRAW_COMMAND_ARRAYS
+	DRAW_COMMAND_ARRAYS,
+	DRAW_COMMAND_ARRAYS_INDIRECT,
+	DRAW_COMMAND_INDEXED_INDIRECT
 };
 
 struct DrawCommand
@@ -7517,6 +7527,13 @@ struct DrawCommand
 			glIndex_t firstVertex;
 			GLsizei numVertices;
 		} arrays;
+
+		struct DrawIndirect
+		{
+			GLenum indexType;
+			GLuint buffer;
+			size_t offset;
+		} indirect;
 	} params;
 };
 
@@ -7534,6 +7551,7 @@ struct RenderState
 	// modern water surface (tr_watersurface.cpp): drawn in the water slot of
 	// the main pass (RB_SubmitRenderPass), or a legacy water stage clipped to
 	// the left of the r_waterSurfaceDebug split
+	bool surfaceSprite;
 	bool waterSurface;
 	bool waterLegacyClip;
 	byte phongCompareSide; // 0 whole view, 1 original left, 2 tessellated right
@@ -7657,5 +7675,25 @@ uint32_t RB_CreateSkySortKey(const DrawItem& item, int stage, int skyNumber, int
 uint32_t RB_CreateSortKey( const DrawItem& item, int stage, int layer );
 void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem );
 DepthRange RB_GetDepthRange( const trRefEntity_t *re, const shader_t *shader );
+
+
+// Surface sprite compaction: quad/strip x 1/2/3 cards. A frame/scene/view cache
+// gives prepass, velocity and color the same lists and deformation.
+struct spriteCullResult_t
+{
+    VBO_t *listVbo;
+    GLuint indirectBuffer;
+    size_t commandOffset;
+    int listOffset;
+    int numSprites;
+    int stripSegments;
+    unsigned int binMask;
+    int uses;
+};
+image_t *R_CreateSpriteDataImage(VBO_t *vbo);
+void R_ShutdownSpriteCull();
+const spriteCullResult_t *RB_CullSurfaceSprites(const srfSprites_t *surf,
+    const vec3_t viewOrigin, const vec4_t autoGrass, uint32_t shaderFlags,
+    int stripSegments, int cards);
 
 #endif //TR_LOCAL_H

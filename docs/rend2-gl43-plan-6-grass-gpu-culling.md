@@ -1,3 +1,7 @@
+> Implemented: see [current GPU culling and LOD](rend2-grass-culling.md). The text below is the
+> original design proposal; record layout, material guards and indexed-quad commands differ
+> where needed to preserve geometry and blending order.
+
 # План 6. GPU-отсечение и LOD спрайтов травы (compute + indirect)
 
 Относится к [rend2-gl43-review.md](rend2-gl43-review.md), строка «Foliage: auto grass, wind, flutter». Объём:

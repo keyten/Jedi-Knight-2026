@@ -4,6 +4,13 @@ in vec3 attr_Normal;
 in vec3 attr_Color;
 in vec4 attr_Position2; // width, height, skew.x, skew.y
 
+uniform samplerBuffer u_SpriteData;
+vec4 sprite_Position;
+vec3 sprite_Normal;
+vec3 sprite_Color;
+vec4 sprite_Position2;
+
+
 layout(std140) uniform Scene
 {
 	vec4 u_PrimaryLightOrigin;
@@ -69,7 +76,7 @@ uniform vec4 u_GrassStrip;
 // (strips, one instance per card and sprite)
 int SpriteCardIndex()
 {
-	return u_GrassStrip.x > 0.5 ? gl_InstanceID % max(int(u_GrassStrip.y + 0.5), 1) : gl_InstanceID;
+	return (u_GrassStrip.x > 0.5 || u_GrassStrip.w > 0.5) ? gl_InstanceID % max(int(u_GrassStrip.y + 0.5), 1) : gl_InstanceID;
 }
 
 #if defined(VELOCITY_PASS)
@@ -102,7 +109,7 @@ out vec3 var_WSPosition;
 // so current and previous frame poses match.
 vec2 AutoGrassCardDir()
 {
-	vec2 base = normalize(attr_Normal.xy);
+	vec2 base = normalize(sprite_Normal.xy);
 	float angle = float(SpriteCardIndex()) * (3.14159265 / max(u_AutoGrass.x, 1.0));
 	float c = cos(angle);
 	float s = sin(angle);
@@ -210,14 +217,14 @@ void SpriteVertex(out int vertex_id, out float side, out float s)
 
 vec3 CalculateVertexOffset( in int vertex_id, in float side, in float s, in float sprite_time, in float wind_time, in float fadeScale)
 {
-	float width = attr_Position2.x;
-	float height = attr_Position2.y;
-	vec2 skew = attr_Position2.zw;
+	float width = sprite_Position2.x;
+	float height = sprite_Position2.y;
+	vec2 skew = sprite_Position2.zw;
 
 	width += u_FadeScale * fadeScale * width;
 
 #if defined(FX_SPRITE)
-	var_Effectpos = fract((sprite_time+10000.0*attr_Position.w) / u_FxDuration);
+	var_Effectpos = fract((sprite_time+10000.0*sprite_Position.w) / u_FxDuration);
 	width += var_Effectpos * width * u_FxGrow.x;
 	height += var_Effectpos * height * u_FxGrow.y;
 #endif
@@ -236,7 +243,7 @@ vec3 CalculateVertexOffset( in int vertex_id, in float side, in float s, in floa
 	float halfWidth = width * 0.5;
 	vec3 offset = vec3(side * halfWidth, side < 0.0 ? 0.2 * s : 0.0, height * s);
 #else
-	float offsetValue = mix(width, height, attr_Position.w);
+	float offsetValue = mix(width, height, sprite_Position.w);
 	vec3 offset = vec3(side * offsetValue, side < 0.0 ? 0.2 * s : 0.0, height * s);
 #endif
 
@@ -244,8 +251,8 @@ vec3 CalculateVertexOffset( in int vertex_id, in float side, in float s, in floa
 	offset = (offset.x * normalize(u_SpriteViewLeft)) + (offset.z * normalize(u_SpriteViewUp));
 #elif defined(FACE_FLATTENED)
 	// Make this sprite face in some direction
-	vec3 fwdVec = cross(attr_Normal, vec3(0.0, 0.0, 1.0));
-	offset.xy = (offset.x * attr_Normal.xy) + (offset.y * width * fwdVec.xy);
+	vec3 fwdVec = cross(sprite_Normal, vec3(0.0, 0.0, 1.0));
+	offset.xy = (offset.x * sprite_Normal.xy) + (offset.y * width * fwdVec.xy);
 #elif defined(AUTO_GRASS)
 	// Cards share the anchor, so the instances form a cross / tri-card tuft
 	vec2 cardDir = AutoGrassCardDir();
@@ -255,7 +262,7 @@ vec3 CalculateVertexOffset( in int vertex_id, in float side, in float s, in floa
 	// Make this sprite face in some direction in direction of the camera
 	vec3 lftVec = normalize(u_SpriteViewLeft);
 	vec3 fwdVec = cross(lftVec, vec3(0.0, 0.0, 1.0));
-	offset.xy = (offset.x * normalize(attr_Normal.xy + 2.0 * lftVec.xy)) + (offset.y * width * fwdVec.xy);
+	offset.xy = (offset.x * normalize(sprite_Normal.xy + 2.0 * lftVec.xy)) + (offset.y * width * fwdVec.xy);
 #endif
 
 #if !defined(FACE_UP) && !defined(FX_SPRITE)
@@ -270,12 +277,12 @@ vec3 CalculateVertexOffset( in int vertex_id, in float side, in float s, in floa
 	}
 	else if (u_FoliageWindParams.x < 0.5)
 	{
-		float angle = (attr_Position.x + attr_Position.y) * 0.02 + (sprite_time * 0.0015);
+		float angle = (sprite_Position.x + sprite_Position.y) * 0.02 + (sprite_time * 0.0015);
 		windTip = vec2(cos(angle), sin(angle)) * (height * u_WindIdle * 0.075);
 	}
 	else if (u_WindIdle > 0.0)
 	{
-		windTip = FoliageWind(attr_Position.xy, attr_Position.w, wind_time, height).xy;
+		windTip = FoliageWind(sprite_Position.xy, sprite_Position.w, wind_time, height).xy;
 	}
 
 	// r_foliageInteraction: the grass state of the bend field at the tuft
@@ -284,7 +291,7 @@ vec3 CalculateVertexOffset( in int vertex_id, in float side, in float s, in floa
 	vec2 delta = vec2(0.0);
 	if (interaction)
 	{
-		delta = FoliageFieldDisplacement(attr_Position.xy, g_FoliagePrevious);
+		delta = FoliageFieldDisplacement(sprite_Position.xy, g_FoliagePrevious);
 		g_FoliageHeat = clamp(length(delta) * (1.0 / 16.0), 0.0, 1.0);
 	}
 
@@ -296,7 +303,22 @@ vec3 CalculateVertexOffset( in int vertex_id, in float side, in float s, in floa
 
 void main()
 {
-	vec3 V = u_SpriteViewOrigin - attr_Position.xyz;
+    if (u_GrassStrip.z > 0.5)
+    {
+        int first = int(attr_Position.x) * 4;
+        sprite_Position = texelFetch(u_SpriteData, first);
+        sprite_Normal = texelFetch(u_SpriteData, first + 1).xyz;
+        sprite_Color = texelFetch(u_SpriteData, first + 2).xyz;
+        sprite_Position2 = texelFetch(u_SpriteData, first + 3);
+    }
+    else
+    {
+        sprite_Position = attr_Position;
+        sprite_Normal = attr_Normal;
+        sprite_Color = attr_Color;
+        sprite_Position2 = attr_Position2;
+    }
+	vec3 V = u_SpriteViewOrigin - sprite_Position.xyz;
 	float distanceToCamera = length(V);
 	float fadeScale = smoothstep(u_FadeStartDistance, u_FadeEndDistance,
 						distanceToCamera);
@@ -335,7 +357,7 @@ void main()
 	vec2 windBend = g_WindBend;
 #endif
 
-	vec4 worldPos = vec4(attr_Position.xyz + offset, 1.0);
+	vec4 worldPos = vec4(sprite_Position.xyz + offset, 1.0);
 	gl_Position = u_viewProjectionMatrix * worldPos;
 #if defined(USE_FOG)
 	var_WSPosition = worldPos.xyz;
@@ -353,7 +375,7 @@ void main()
 	g_FoliagePrevious = true;
 #endif
 	offset = CalculateVertexOffset(vertex_id, side, s, sprite_time, wind_time, fadeScale);
-	worldPos = vec4(attr_Position.xyz + offset, 1.0);
+	worldPos = vec4(sprite_Position.xyz + offset, 1.0);
 	var_prevPosition = u_previousViewProjectionMatrix * worldPos;
 #endif
 
@@ -369,7 +391,7 @@ void main()
 	// along the blade: v from the bottom (1) to the top (0)
 	var_TexCoords = vec2(side > 0.0 ? 1.0 : 0.0, 1.0 - s);
 #endif
-	var_Color = attr_Color;
+	var_Color = sprite_Color;
 	var_Alpha = 1.0 - fadeScale;
 
 #if !defined(FACE_UP) && !defined(FX_SPRITE)

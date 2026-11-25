@@ -1335,6 +1335,23 @@ static void RB_ExecuteDrawCommand(const DrawCommand& draw)
 			break;
 		}
 
+		case DRAW_COMMAND_INDEXED_INDIRECT:
+		{
+			qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, draw.params.indirect.buffer);
+			qglDrawElementsIndirect(draw.primitiveType, draw.params.indirect.indexType,
+				(const void *)draw.params.indirect.offset);
+			qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+			break;
+		}
+
+		case DRAW_COMMAND_ARRAYS_INDIRECT:
+		{
+			qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, draw.params.indirect.buffer);
+			qglDrawArraysIndirect(draw.primitiveType, (const void *)draw.params.indirect.offset);
+			qglBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+			break;
+		}
+
 		case DRAW_COMMAND_ARRAYS:
 		{
 			GL_Draw(
@@ -1361,6 +1378,8 @@ static void RB_DrawItems(
 	// Weather update and render items are sorted into separate runs. Time the
 	// actual GPU submissions here, rather than their construction in
 	// RB_SurfaceWeather.
+	int spriteTimer = -1;
+	bool timedSprites = false;
 	int weatherTimer = -1;
 	shaderProgram_t *timedWeatherProgram = nullptr;
 	for ( int i = 0; i < numDrawItems; ++i )
@@ -1370,6 +1389,12 @@ static void RB_DrawItems(
 			(uintptr_t)drawItem.program < (uintptr_t)(tr.waterSurfaceShader + WATERDEF_COUNT);
 		if (waterReflection && !waterProgram)
 			continue;
+		if (drawItem.renderState.surfaceSprite != timedSprites)
+		{
+			RB_ScreenEndTimer(spriteTimer);
+			timedSprites = drawItem.renderState.surfaceSprite;
+			spriteTimer = timedSprites ? RB_ScreenBeginTimer("Surface sprites") : -1;
+		}
 		shaderProgram_t *weatherProgram =
 			drawItem.program == &tr.weatherUpdateSplashShader ? &tr.weatherUpdateShader :
 			drawItem.program == &tr.weatherSplashSurfaceShader ? &tr.weatherSplashShader :
@@ -1503,6 +1528,7 @@ static void RB_DrawItems(
 				backEnd.viewParms.viewportWidth, backEnd.viewParms.viewportHeight);
 	}
 	RB_ScreenEndTimer(weatherTimer);
+	RB_ScreenEndTimer(spriteTimer);
 	if (timedWeatherProgram == &tr.weatherSplashShader)
 		RB_RainSplashQuery(false);
 
@@ -2246,9 +2272,13 @@ static void RB_RenderDrawSurfList( drawSurf_t *drawSurfs, int numDrawSurfs )
 		backEndData->currentFrame->currentScene == 0 &&
 		backEnd.viewParms.viewParmType > VPT_POINT_SHADOWS ?
 			(r_weatherDebugChunks->integer ? 95 : 50) : 0;
+	int spriteItemReserve = 0;
+	if (r_surfaceSpritesCompute->integer)
+		for (int i = 0; i < numDrawSurfs; ++i)
+			if (*drawSurfs[i].surface == SF_SPRITES) spriteItemReserve += 5;
 	backEndData->currentPass = RB_CreatePass(
 		*backEndData->perFrameMemory,
-		numDrawSurfs * estimatedNumShaderStages + weatherItemReserve);
+		numDrawSurfs * estimatedNumShaderStages + weatherItemReserve + spriteItemReserve);
 
 	// save original time for entity shader offsets
 	float originalTime = backEnd.refdef.floatTime;

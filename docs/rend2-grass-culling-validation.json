@@ -1,0 +1,129 @@
+{
+  "base_commit": "81676a6c1eb1659e04749ddbc53fdc0c9b1463cb",
+  "date": "2026-11-25",
+  "builds": {
+    "SP_Release": "passed",
+    "MP_Release": "passed"
+  },
+  "cpu": {
+    "test": "rend2_sprite_cull",
+    "configuration": "Release with assertions enabled",
+    "result": "passed"
+  },
+  "gpu_contracts": {
+    "Intel_UHD_27.20.100.8280": {
+      "list_and_indirect_commands": "passed",
+      "raster_shader_variants": 196,
+      "old_compact_list_vertex_and_velocity_parity": "exact",
+      "extreme_current_previous_deformation_bounds": "passed"
+    },
+    "RTX_2060_616.92": {
+      "list_and_indirect_commands": "passed",
+      "raster_shader_variants": 196,
+      "old_compact_list_vertex_and_velocity_parity": "exact",
+      "extreme_current_previous_deformation_bounds": "not rerun after additional extreme-input assertions"
+    }
+  },
+  "runtime": {
+    "map": "yavin1",
+    "pose": "1024 -4700 210 90",
+    "gl43": 1,
+    "shadows": true,
+    "cards": 3,
+    "phases": {
+      "off": {
+        "gpu_samples": 35,
+        "draw_median_ms": 1.858,
+        "cull_median_ms": 0,
+        "total_median_ms": 1.858,
+        "counter_median": null
+      },
+      "cull": {
+        "gpu_samples": 36,
+        "draw_median_ms": 1.1625,
+        "cull_median_ms": 0.7004999999999999,
+        "total_median_ms": 1.8775,
+        "counter_median": [
+          5852.0,
+          774.0,
+          5078.0,
+          2277.0,
+          22230.0,
+          28.0,
+          7.0
+        ]
+      },
+      "off_repeat": {
+        "gpu_samples": 35,
+        "draw_median_ms": 1.199,
+        "cull_median_ms": 0,
+        "total_median_ms": 1.199,
+        "counter_median": null
+      },
+      "lod": {
+        "gpu_samples": 36,
+        "draw_median_ms": 1.1905000000000001,
+        "cull_median_ms": 0.603,
+        "total_median_ms": 1.7995,
+        "counter_median": [
+          5852.0,
+          774.0,
+          5078.0,
+          1858.0,
+          13312.0,
+          28.0,
+          7.0
+        ]
+      }
+    },
+    "pixel_differences": {
+      "off/off_repeat": {
+        "channels": 0,
+        "pixels": 0,
+        "max": 0,
+        "mean": 0.0
+      },
+      "off/cull": {
+        "channels": 0,
+        "pixels": 0,
+        "max": 0,
+        "mean": 0.0
+      },
+      "off/lod": {
+        "channels": 0,
+        "pixels": 0,
+        "max": 0,
+        "mean": 0.0
+      }
+    },
+    "metadata": {
+      "foreign_before": [],
+      "foreign_after": []
+    },
+    "bend_distance": 350,
+    "card_distance": 300,
+    "resolution": [
+      640,
+      360
+    ],
+    "shader_clock_ms": 1300,
+    "gpu": "Intel UHD Graphics, driver 27.20.100.8280",
+    "renderer_sha256": "5e53de9fb10c26e540eaa1a220c637bd8116d24e9327ac3d171b5aa4b77f1475",
+    "log_sha256": "1f680fda89852cbda3b6a6a90f1b33cb7609636361bb652234be397e54ba806b",
+    "captures_sha256": {
+      "sprite_cull.tga": "756c81d489bcf3d31ad71549b801c6309947b97943cbe9941faa1a462e17687f",
+      "sprite_lod.tga": "756c81d489bcf3d31ad71549b801c6309947b97943cbe9941faa1a462e17687f",
+      "sprite_off.tga": "756c81d489bcf3d31ad71549b801c6309947b97943cbe9941faa1a462e17687f",
+      "sprite_off_repeat.tga": "756c81d489bcf3d31ad71549b801c6309947b97943cbe9941faa1a462e17687f"
+    }
+  },
+  "decision": {
+    "r_surfaceSpritesCompute_default": 0,
+    "reason": "Large real vertex reduction is proven, but this isolated diagnostic run did not establish a net GPU time improvement. Baseline repeat timing drifted materially. Keep opt-in; do not claim an FPS or percentage gain."
+  },
+  "limits": [
+    "One native Yavin camera on Intel with sun cascades and fused velocity; no MP game or RTX game timing.",
+    "The intentional mode-2 geometry reduction affected submitted work but no pixels in this occluded view; general distant LOD appearance is not established by that image.",
+    "Diagnostic counters and timer queries can wait for GPU completion. These timings are not an uncapped FPS benchmark."
+  ]
+}
