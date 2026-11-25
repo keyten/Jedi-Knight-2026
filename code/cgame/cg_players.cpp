@@ -7297,7 +7297,17 @@ extern vmCvar_t	cg_thirdPersonAlpha;
 			}
 		}
 		ent.renderfx |= RF_CHARACTER;
+		if (cent->gent && (cent->gent->s.number == 0 || G_ControlledByPlayer(cent->gent)))
+			ent.renderfx |= RF_CHARACTER_PLAYER;
+		if (cent->gent && cent->gent->client &&
+			(cent->gent->client->moveType == MT_FLYSWIM ||
+			cent->gent->client->NPC_class == CLASS_BOBAFETT ||
+			cent->gent->client->NPC_class == CLASS_ROCKETTROOPER ||
+			cent->gent->client->NPC_class == CLASS_ATST))
+			ent.renderfx |= RF_CHARACTER_NO_CULL;
 		CG_AddRefEntityWithPowerups( &ent, cent->currentState.powerups, cent );
+		// Subsequent saber/weapon/FX work must never inherit the body policy.
+		ent.renderfx &= ~(RF_CHARACTER | RF_CHARACTER_PLAYER | RF_CHARACTER_NO_CULL);
 		VectorCopy( tempAngles, cent->renderAngles );
 
 		//Initialize all these to *some* valid data

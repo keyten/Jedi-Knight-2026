@@ -454,7 +454,7 @@ Ghoul2 Insert Start
 		// add the weapon
 		VectorCopy( parent->lightingOrigin, gun.lightingOrigin );
 		gun.shadowPlane = parent->shadowPlane;
-		gun.renderfx = parent->renderfx;
+		gun.renderfx = parent->renderfx & ~(RF_CHARACTER | RF_CHARACTER_PLAYER | RF_CHARACTER_NO_CULL);
 
 		if (ps)
 		{	// this player, in first person view
@@ -510,7 +510,7 @@ Ghoul2 Insert Start
 				memset( &barrel, 0, sizeof( barrel ) );
 				VectorCopy( parent->lightingOrigin, barrel.lightingOrigin );
 				barrel.shadowPlane = parent->shadowPlane;
-				barrel.renderfx = parent->renderfx;
+				barrel.renderfx = parent->renderfx & ~(RF_CHARACTER | RF_CHARACTER_PLAYER | RF_CHARACTER_NO_CULL);
 
 				if (i == 0)
 				{
@@ -554,7 +554,7 @@ Ghoul2 Insert Start
 				memset( &barrel, 0, sizeof( barrel ) );
 				VectorCopy( parent->lightingOrigin, barrel.lightingOrigin );
 				barrel.shadowPlane = parent->shadowPlane;
-				barrel.renderfx = parent->renderfx;
+				barrel.renderfx = parent->renderfx & ~(RF_CHARACTER | RF_CHARACTER_PLAYER | RF_CHARACTER_NO_CULL);
 
 				barrel.hModel = weapon->barrelModel;
 				angles[YAW] = 0;

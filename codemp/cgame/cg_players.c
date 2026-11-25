@@ -9353,6 +9353,12 @@ void CG_Player( centity_t *cent ) {
 	VectorCopy( cent->lerpOrigin, legs.lightingOrigin );
 	legs.shadowPlane = shadowPlane;
 	legs.renderfx = renderfx | RF_CHARACTER;
+	if (cg.snap && cent->currentState.number == cg.snap->ps.clientNum)
+		legs.renderfx |= RF_CHARACTER_PLAYER;
+	if ((cent->currentState.eFlags & (EF_JETPACK | EF_JETPACK_ACTIVE)) ||
+		cent->currentState.NPC_class == CLASS_BOBAFETT ||
+		cent->currentState.NPC_class == CLASS_ATST)
+		legs.renderfx |= RF_CHARACTER_NO_CULL;
 	if (cg_shadows.integer == 2 && (renderfx & RF_THIRD_PERSON))
 	{ //can see own shadow
 		legs.renderfx |= RF_SHADOW_ONLY;
