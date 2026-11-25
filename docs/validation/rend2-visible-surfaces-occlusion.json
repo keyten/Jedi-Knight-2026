@@ -1,0 +1,137 @@
+{
+  "renderer": "Intel UHD Graphics",
+  "gl_path": "r_gl43 0, GL3.x path",
+  "runtime": "private SP, mp/ffa3, 12 stormtroopers, UI pause and fixed shader clock",
+  "sp_mp_renderer_builds": "passed",
+  "default_query_protocol": "core GL_SAMPLES_PASSED + GL_QUERY_NO_WAIT",
+  "no_geometry_disappearance_observed": true,
+  "pixel_differences": {
+    "reference/compact": {
+      "changed_channels": 0,
+      "maximum_channel_difference": 0
+    },
+    "reference/compact_default": {
+      "changed_channels": 0,
+      "maximum_channel_difference": 0
+    },
+    "reference/occlusion": {
+      "changed_channels": 0,
+      "maximum_channel_difference": 0
+    },
+    "reference/repeat": {
+      "changed_channels": 0,
+      "maximum_channel_difference": 0
+    },
+    "curves_reference/curves_compact": {
+      "changed_channels": 0,
+      "maximum_channel_difference": 0
+    },
+    "no_prepass_reference/no_prepass_enabled": {
+      "changed_channels": 0,
+      "maximum_channel_difference": 0
+    },
+    "near_reference/near_enabled": {
+      "changed_channels": 1,
+      "maximum_channel_difference": 1
+    }
+  },
+  "phase_query_counts": {
+    "reference": {
+      "resolved_queries": 300,
+      "hidden_queries": 45,
+      "guarded_draws": 465,
+      "confirmed_skipped_draws": 0,
+      "confirmed_skipped_indices": 0
+    },
+    "compact": {
+      "resolved_queries": 0,
+      "hidden_queries": 0,
+      "guarded_draws": 0,
+      "confirmed_skipped_draws": 0,
+      "confirmed_skipped_indices": 0
+    },
+    "compact_default": {
+      "resolved_queries": 0,
+      "hidden_queries": 0,
+      "guarded_draws": 0,
+      "confirmed_skipped_draws": 0,
+      "confirmed_skipped_indices": 0
+    },
+    "occlusion": {
+      "resolved_queries": 520,
+      "hidden_queries": 78,
+      "guarded_draws": 806,
+      "confirmed_skipped_draws": 1,
+      "confirmed_skipped_indices": 1200
+    },
+    "repeat": {
+      "resolved_queries": 380,
+      "hidden_queries": 57,
+      "guarded_draws": 589,
+      "confirmed_skipped_draws": 0,
+      "confirmed_skipped_indices": 0
+    },
+    "curves_reference": {
+      "resolved_queries": 0,
+      "hidden_queries": 0,
+      "guarded_draws": 0,
+      "confirmed_skipped_draws": 0,
+      "confirmed_skipped_indices": 0
+    },
+    "curves_compact": {
+      "resolved_queries": 520,
+      "hidden_queries": 78,
+      "guarded_draws": 806,
+      "confirmed_skipped_draws": 4,
+      "confirmed_skipped_indices": 4800
+    },
+    "no_prepass_reference": {
+      "resolved_queries": 380,
+      "hidden_queries": 57,
+      "guarded_draws": 589,
+      "confirmed_skipped_draws": 7,
+      "confirmed_skipped_indices": 8520
+    },
+    "no_prepass_enabled": {
+      "resolved_queries": 0,
+      "hidden_queries": 0,
+      "guarded_draws": 0,
+      "confirmed_skipped_draws": 0,
+      "confirmed_skipped_indices": 0
+    },
+    "near_reference": {
+      "resolved_queries": 390,
+      "hidden_queries": 71,
+      "guarded_draws": 600,
+      "confirmed_skipped_draws": 12,
+      "confirmed_skipped_indices": 14880
+    },
+    "near_enabled": {
+      "resolved_queries": 988,
+      "hidden_queries": 190,
+      "guarded_draws": 1520,
+      "confirmed_skipped_draws": 3,
+      "confirmed_skipped_indices": 3240
+    }
+  },
+  "limitations": [
+    "One near-camera player-hair channel differs by 1/255 between ordinary and split/query draw batching. Its source was not isolated in this runtime. Query-only mode 2 has been added for exact matching-batching comparison.",
+    "No isolated frame-time or FPS claim; concurrent compiler load contaminated the preliminary CPU benchmark.",
+    "Runtime did not initialize velocity or modern shadow FBOs; policy excludes shadow/portal views and hidden GL tests cover query clipping/conservativeness."
+  ],
+  "hidden_gl_test": {
+    "renderer": "Intel UHD Graphics",
+    "version": "3.3.0 Build 27.20.100.8280",
+    "passed_cases": [
+      "fully hidden",
+      "partial",
+      "visible",
+      "coplanar",
+      "near intersection",
+      "hidden after cut",
+      "visible after cut"
+    ],
+    "hidden_conditional_primitives": 0,
+    "visible_conditional_primitives": 2
+  }
+}

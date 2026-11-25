@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 
 #include <vector>
+#include "WorldSurfaceList.h"
 
 
 world_t *R_GetWorld(int worldIndex)
@@ -46,8 +47,26 @@ struct sunShadowDynamicWorld_t
 
 static sunShadowDynamicWorld_t s_sunShadowDynamicWorld;
 
+// The same view can first walk the BSP for zFar / portal bounds. Keep its
+// compact membership until viewCount changes, including those preliminary walks.
+static WorldSurfaceList s_visibleWorld, s_visibleMerged;
+static world_t *s_visibleWorldOwner;
+static int s_visibleWorldView;
+static void R_BeginVisibleWorld()
+{
+	if (s_visibleWorldOwner != tr.world || s_visibleWorldView != tr.viewCount)
+	{
+		s_visibleWorld.Begin(tr.world->numWorldSurfaces);
+		s_visibleMerged.Begin(tr.world->numMergedSurfaces);
+		s_visibleWorldOwner = tr.world;
+		s_visibleWorldView = tr.viewCount;
+	}
+}
+
+
 void R_ResetSunShadowDynamicWorld(void)
 {
+	s_visibleWorldOwner = nullptr;
 	s_sunShadowDynamicWorld.world = NULL;
 	s_sunShadowDynamicWorld.casterGeneration = -1;
 	s_sunShadowDynamicWorld.surfaces.clear();
@@ -632,6 +651,7 @@ R_RecursiveWorldNode
 */
 void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, int pshadowBits )
 {
+	R_BeginVisibleWorld();
 	do {
 		int			newDlights[2];
 		unsigned int newPShadows[2];
@@ -792,9 +812,15 @@ void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, int psh
 			surf = *view;
 			if (surf < 0)
 			{
-				if (tr.world->mergedSurfacesViewCount[-surf - 1] != tr.viewCount)
+				const bool first = r_worldSurfaceList->integer == 1 ? s_visibleMerged.Mark(-surf - 1) :
+					tr.world->mergedSurfacesViewCount[-surf - 1] != tr.viewCount;
+				if (first)
 				{
-					tr.world->mergedSurfacesViewCount[-surf - 1]  = tr.viewCount;
+					if (r_worldSurfaceList->integer != 1)
+					{
+						tr.world->mergedSurfacesViewCount[-surf - 1] = tr.viewCount;
+						if (r_worldSurfaceList->integer >= 2) s_visibleMerged.Mark(-surf - 1);
+					}
 					tr.world->mergedSurfacesDlightBits[-surf - 1] = dlightBits;
 					tr.world->mergedSurfacesPshadowBits[-surf - 1] = pshadowBits;
 				}
@@ -806,9 +832,15 @@ void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits, int psh
 			}
 			else
 			{
-				if (tr.world->surfacesViewCount[surf] != tr.viewCount)
+				const bool first = r_worldSurfaceList->integer == 1 ? s_visibleWorld.Mark(surf) :
+					tr.world->surfacesViewCount[surf] != tr.viewCount;
+				if (first)
 				{
-					tr.world->surfacesViewCount[surf] = tr.viewCount;
+					if (r_worldSurfaceList->integer != 1)
+					{
+						tr.world->surfacesViewCount[surf] = tr.viewCount;
+						if (r_worldSurfaceList->integer >= 2) s_visibleWorld.Mark(surf);
+					}
 					tr.world->surfacesDlightBits[surf] = dlightBits;
 					tr.world->surfacesPshadowBits[surf] = pshadowBits;
 				}
@@ -997,6 +1029,32 @@ static uint8_t R_ShadowCubeSurfaceMask( const msurface_t *surf )
 	return 0x3F;
 }
 
+// Snapshot just the visible portal candidates before R_MirrorViewBySurface
+// starts a nested BSP walk and changes the compact-list generation.
+void R_GetVisibleWorldPortalSurfaces(std::vector<msurface_t *>& portals)
+{
+	auto world = [&](int id) {
+		if (tr.world->surfaces[id].shader->sort == SS_PORTAL)
+			portals.push_back(&tr.world->surfaces[id]);
+	};
+	auto merged = [&](int id) {
+		if (tr.world->mergedSurfaces[id].shader->sort == SS_PORTAL)
+			portals.push_back(&tr.world->mergedSurfaces[id]);
+	};
+	if (!r_worldSurfaceList->integer)
+	{
+		for (int i = 0; i < tr.world->numWorldSurfaces; ++i)
+			if (tr.world->surfacesViewCount[i] == tr.viewCount) world(i);
+		for (int i = 0; i < tr.world->numMergedSurfaces; ++i)
+			if (tr.world->mergedSurfacesViewCount[i] == tr.viewCount) merged(i);
+	}
+	else
+	{
+		s_visibleWorld.ForEach(world);
+		s_visibleMerged.ForEach(merged);
+	}
+}
+
 void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef ) {
 	int planeBits, dlightBits, pshadowBits;
 
@@ -1077,16 +1135,14 @@ void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef ) {
 	// now add all the potentially visible surfaces
 	R_RotateForEntity(&tr.worldEntity, &tr.viewParms, &tr.ori);
 
-	for (int i = 0; i < tr.world->numWorldSurfaces; i++)
+	auto addWorld = [&](int i)
 	{
-		if (tr.world->surfacesViewCount[i] != tr.viewCount)
-			continue;
 
 		if (viewParms->flags & VPF_CUBESHADOW)
 		{
 			tr.shadowCube.mask = R_ShadowCubeSurfaceMask(tr.world->surfaces + i);
 			if (!tr.shadowCube.mask)
-				continue;
+				return;
 		}
 
 		R_AddWorldSurface(
@@ -1095,18 +1151,16 @@ void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef ) {
 			REFENTITYNUM_WORLD,
 			tr.world->surfacesDlightBits[i],
 			tr.world->surfacesPshadowBits[i]);
-	}
+	};
 
-	for (int i = 0; i < tr.world->numMergedSurfaces; i++)
+	auto addMerged = [&](int i)
 	{
-		if (tr.world->mergedSurfacesViewCount[i] != tr.viewCount)
-			continue;
 
 		if (viewParms->flags & VPF_CUBESHADOW)
 		{
 			tr.shadowCube.mask = R_ShadowCubeSurfaceMask(tr.world->mergedSurfaces + i);
 			if (!tr.shadowCube.mask)
-				continue;
+				return;
 		}
 
 		R_AddWorldSurface(
@@ -1115,5 +1169,31 @@ void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef ) {
 			REFENTITYNUM_WORLD,
 			tr.world->mergedSurfacesDlightBits[i],
 			tr.world->mergedSurfacesPshadowBits[i]);
+	};
+
+	// 0 is the reference path, 2 compares membership before submitting the
+	// compact list. Both paths keep ascending original IDs and then merged IDs,
+	// preserving insertion order for equal-key and translucent sorts.
+	if (r_worldSurfaceList->integer == 0)
+	{
+		for (int i = 0; i < tr.world->numWorldSurfaces; ++i)
+			if (tr.world->surfacesViewCount[i] == tr.viewCount) addWorld(i);
+		for (int i = 0; i < tr.world->numMergedSurfaces; ++i)
+			if (tr.world->mergedSurfacesViewCount[i] == tr.viewCount) addMerged(i);
 	}
+	else
+	{
+		if (r_worldSurfaceList->integer >= 2)
+		{
+			for (int i = 0; i < tr.world->numWorldSurfaces; ++i)
+				if (s_visibleWorld.Contains(i) != (tr.world->surfacesViewCount[i] == tr.viewCount))
+					ri.Error(ERR_DROP, "world surface list mismatch: %d", i);
+			for (int i = 0; i < tr.world->numMergedSurfaces; ++i)
+				if (s_visibleMerged.Contains(i) != (tr.world->mergedSurfacesViewCount[i] == tr.viewCount))
+					ri.Error(ERR_DROP, "merged surface list mismatch: %d", i);
+		}
+		s_visibleWorld.ForEach(addWorld);
+		s_visibleMerged.ForEach(addMerged);
+	}
+
 }

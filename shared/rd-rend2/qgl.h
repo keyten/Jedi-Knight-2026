@@ -562,6 +562,8 @@ extern PFNGLDRAWBUFFERSPROC qglDrawBuffers;
 extern PFNGLCLEARBUFFERFVPROC qglClearBufferfv;
 
 // Query objects
+extern PFNGLBEGINCONDITIONALRENDERPROC qglBeginConditionalRender;
+extern PFNGLENDCONDITIONALRENDERPROC qglEndConditionalRender;
 extern PFNGLGENQUERIESPROC qglGenQueries;
 extern PFNGLDELETEQUERIESPROC qglDeleteQueries;
 extern PFNGLISQUERYPROC qglIsQuery;

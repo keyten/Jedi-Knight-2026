@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include <chrono>
 #include <cmath>
 #include <vector>
+#include "tr_modelocclusion.h"
 
 // r_shadowStats: backend phases of point light cube face commands
 shadowSubmitProfile_t rb_shadowSubmitProfile;
@@ -1428,6 +1429,27 @@ static void RB_DrawItems(
 				view.viewportHeight);
 		}
 
+		ModelOcclusionQuery *modelQuery = drawItem.modelOcclusion && RB_ModelOcclusionDrawCompatible(drawItem) ?
+			&rb_modelQueries[drawItem.modelOcclusion - 1] : nullptr;
+		const bool queryDepth = modelQuery && backEnd.depthFill && modelQuery->depthItems == 1 &&
+			!(drawItem.renderState.stateBits & GLS_DEPTHFUNC_BITS);
+		const bool conditional = r_modelOcclusion->integer == 1 && modelQuery && !backEnd.depthFill &&
+			modelQuery->pending && modelQuery->depthItems == 1;
+		if (queryDepth) qglBeginQuery(GL_SAMPLES_PASSED, modelQuery->name);
+		bool modelQueryReady = false;
+		if (conditional)
+		{
+			// A zero result alone does not prove a NO_WAIT draw was skipped:
+			// unresolved conditions may draw. Count only the confirmed lower bound.
+			if (r_modelOcclusionDebug->integer)
+			{
+				GLint available = 0;
+				qglGetQueryObjectiv(modelQuery->name, GL_QUERY_RESULT_AVAILABLE, &available);
+				modelQueryReady = available != 0;
+			}
+			qglBeginConditionalRender(modelQuery->name, GL_QUERY_NO_WAIT);
+		}
+
 		if (drawItem.cubeFaceMask)
 		{
 			// r_shadowLayered: the item once per cube face it covers
@@ -1447,6 +1469,26 @@ static void RB_DrawItems(
 		else
 		{
 			RB_ExecuteDrawCommand(drawItem.draw);
+		}
+
+		if (queryDepth)
+		{
+			qglEndQuery(GL_SAMPLES_PASSED);
+			modelQuery->pending = true;
+		}
+		if (conditional)
+		{
+			qglEndConditionalRender();
+			++modelQuery->guardedDraws;
+			if (modelQueryReady)
+			{
+				++modelQuery->readyDraws;
+				if (drawItem.draw.type == DRAW_COMMAND_INDEXED)
+					modelQuery->readyIndices += drawItem.draw.params.indexed.numIndices;
+				else if (drawItem.draw.type == DRAW_COMMAND_MULTI_INDEXED)
+					for (int j = 0; j < drawItem.draw.params.multiIndexed.numDraws; ++j)
+						modelQuery->readyIndices += drawItem.draw.params.multiIndexed.numIndices[j];
+			}
 		}
 
 		if (drawItem.renderState.transformFeedback)
@@ -1514,6 +1556,9 @@ void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 		pass->sortKeys[pass->numDrawItems] = sortKey;
 		DrawItem& added = pass->drawItems[pass->numDrawItems++];
 		added = drawItem;
+		added.modelOcclusion = rb_modelOcclusionTag;
+		if (rb_modelOcclusionTag && backEnd.depthFill)
+			++rb_modelQueries[rb_modelOcclusionTag - 1].depthItems;
 		added.particleOwner = 0;
 		added.particleDepth = 0.0f;
 		if (rb_particleSortView && rb_particleBatchEntry.owner && R_TransparencySort())
@@ -1547,7 +1592,9 @@ void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 	else
 	{
 		uint32_t drawOrder[] = {0};
-		RB_DrawItems(1, &drawItem, drawOrder);
+		DrawItem direct = drawItem;
+		direct.modelOcclusion = 0;
+		RB_DrawItems(1, &direct, drawOrder);
 	}
 }
 
@@ -1651,6 +1698,17 @@ static void RB_SubmitDrawSurfsForDepthFill(
 			oldShader = nullptr;
 		}
 
+		// Isolate only queried surfaces; the ordinary batching path is unchanged.
+		const unsigned modelSlot = RB_ModelOcclusionSlot(drawSurf->surface);
+		if (modelSlot)
+		{
+			RB_EndSurface();
+			oldShader = nullptr;
+			oldEntityNum = -1;
+			oldBoneCache = nullptr;
+			rb_modelOcclusionTag = modelSlot;
+		}
+
 		if (*drawSurf->surface == SF_MDX)
 		{
 			if (((CRenderableSurface*)drawSurf->surface)->boneCache != oldBoneCache)
@@ -1700,6 +1758,14 @@ static void RB_SubmitDrawSurfsForDepthFill(
 		// add the triangles for this surface
 		assert(drawSurf->surface != nullptr);
 		rb_surfaceTable[*drawSurf->surface](drawSurf->surface);
+		if (modelSlot)
+		{
+			RB_EndSurface();
+			rb_modelOcclusionTag = 0;
+			oldShader = nullptr;
+			oldEntityNum = -1;
+			oldBoneCache = nullptr;
+		}
 	}
 
 	// draw the contents of the last shader batch
@@ -1741,6 +1807,17 @@ static void RB_SubmitDrawSurfs(
 
 		R_DecomposeSort(drawSurf->sort, &entityNum, &shader, &cubemapIndex, &postRender);
 		assert(shader != nullptr);
+		// Isolate only queried surfaces; the ordinary batching path is unchanged.
+		const unsigned modelSlot = RB_ModelOcclusionSlot(drawSurf->surface);
+		if (modelSlot)
+		{
+			RB_EndSurface();
+			oldShader = nullptr;
+			oldEntityNum = -1;
+			oldBoneCache = nullptr;
+			rb_modelOcclusionTag = modelSlot;
+		}
+
 		const refEntity_t& entity = entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e;
 		const bool ordered = rb_particleSortView &&
 			(rb_particleSortLayers & (1u << Q_min((int)shader->sort, 15))) && RB_OrderedSortClass(shader, entity);
@@ -1851,6 +1928,14 @@ static void RB_SubmitDrawSurfs(
 
 		// add the triangles for this surface
 		rb_surfaceTable[*drawSurf->surface](drawSurf->surface);
+		if (modelSlot)
+		{
+			RB_EndSurface();
+			rb_modelOcclusionTag = 0;
+			oldShader = nullptr;
+			oldEntityNum = -1;
+			oldBoneCache = nullptr;
+		}
 	}
 
 	// draw the contents of the last shader batch
@@ -2847,6 +2932,7 @@ static const void *RB_PrefilterEnvMap(const void *data) {
 
 static void RB_RenderDepthOnly( drawSurf_t *drawSurfs, int numDrawSurfs )
 {
+	RB_PrepareModelOcclusion(drawSurfs, numDrawSurfs);
 	backEnd.depthFill = qtrue;
 
 	bool needVelocityBuffer = 
@@ -4999,6 +5085,8 @@ static const void *RB_DrawSurfs(const void *data) {
 
 	backEnd.refdef = cmd->refdef;
 	backEnd.viewParms = cmd->viewParms;
+
+	RB_ResetModelOcclusion();
 
 	// r_shadowLayered: all faces of a point light cube (R_RenderCubeShadowView)
 	backEnd.cubeLayerView = (qboolean)((backEnd.viewParms.flags & VPF_CUBELAYERED) != 0);

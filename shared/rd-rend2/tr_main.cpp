@@ -3502,36 +3502,13 @@ qboolean R_AddPortalView(const trRefdef_t *refdef)
 	if (!tr.world || refdef->rdflags & RDF_NOWORLDMODEL)
 		return qfalse;
 
-	for (int i = 0; i < tr.world->numWorldSurfaces; i++)
+	std::vector<msurface_t *> portals;
+	R_GetVisibleWorldPortalSurfaces(portals);
+	for (msurface_t *surface : portals)
 	{
-		if (tr.world->surfacesViewCount[i] != tr.viewCount)
-			continue;
-
-		msurface_t	*surface = tr.world->surfaces + i;
-		if (surface->shader->sort != SS_PORTAL) {
-			continue;
-		}
-
-		// if the mirror was completely clipped away, we may need to check another surface
-		if (R_MirrorViewBySurface(surface, REFENTITYNUM_WORLD)) {
-			return qtrue;		// only one mirror view at a time
-		}
-	}
-
-	for (int i = 0; i < tr.world->numMergedSurfaces; i++)
-	{
-		if (tr.world->mergedSurfacesViewCount[i] != tr.viewCount)
-			continue;
-
-		msurface_t	*surface = tr.world->mergedSurfaces + i;
-		if (surface->shader->sort != SS_PORTAL) {
-			continue;
-		}
-
-		// if the mirror was completely clipped away, we may need to check another surface
-		if (R_MirrorViewBySurface(surface, REFENTITYNUM_WORLD)) {
-			return qtrue;		// only one mirror view at a time
-		}
+		// Only one mirror view at a time. The snapshot remains valid when
+		// the recursive view changes tr.viewCount / the compact visible lists.
+		if (R_MirrorViewBySurface(surface, REFENTITYNUM_WORLD)) return qtrue;
 	}
 
 	for (int i = 0; i < refdef->num_entities; i++)

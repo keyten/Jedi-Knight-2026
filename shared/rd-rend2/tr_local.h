@@ -5204,6 +5204,8 @@ extern  cvar_t  *r_forceAutoExposureMax;
 
 extern  cvar_t  *r_cameraExposure;
 
+extern cvar_t *r_worldSurfaceList, *r_modelOcclusion, *r_modelOcclusionDebug;
+void RB_ShutdownModelOcclusion();
 extern  cvar_t  *r_depthPrepass;
 extern  cvar_t  *r_depthPrepassFast;
 extern  cvar_t  *r_depthPrepassVerify;
@@ -5743,6 +5745,7 @@ void R_AddBrushModelSurfaces( trRefEntity_t *e, int entityNum );
 void R_AddWorldSurfaces( viewParms_t *viewParms, trRefdef_t *refdef );
 void R_MarkLeaves(void);
 void R_RecursiveWorldNode(mnode_t *node, int planeBits, int dlightBits, int pshadowBits);
+void R_GetVisibleWorldPortalSurfaces(std::vector<msurface_t *>& portals);
 qboolean R_inPVS( const vec3_t p1, const vec3_t p2, byte *mask );
 
 /*
@@ -7538,6 +7541,7 @@ struct RenderState
 
 struct DrawItem
 {
+	unsigned modelOcclusion; // current-view exact depth query slot; 0 = unconditional
 	RenderState renderState;
 	float particleDepth;
 	uint32_t particleOwner; // 0: ordinary draw, otherwise a whole particle's stages

@@ -358,6 +358,9 @@ cvar_t  *r_colorGradingLUT;
 cvar_t  *r_colorGradingIntensity;
 cvar_t  *r_autoEmissive;
 
+cvar_t *r_worldSurfaceList;
+cvar_t *r_modelOcclusion;
+cvar_t *r_modelOcclusionDebug;
 cvar_t  *r_depthPrepass;
 cvar_t  *r_depthPrepassFast;
 cvar_t  *r_depthPrepassVerify;
@@ -2366,6 +2369,9 @@ void R_Register( void )
 	r_autoEmissive = R_Cvar( "r_autoEmissive", "0", CVAR_ARCHIVE, "Automatically use legacy glow and unlit additive stages as emissive sources" );
 	R_CvarRange( r_autoEmissive, 0, 1, qtrue );
 
+	r_worldSurfaceList = R_Cvar("r_worldSurfaceList", "1", CVAR_ARCHIVE, "BSP surface submission: 0 full-array reference, 1 compact ordered list, 2 compare membership");
+	r_modelOcclusion = R_Cvar("r_modelOcclusion", "1", CVAR_ARCHIVE, "Current-frame no-wait occlusion of expensive opaque Ghoul2 surfaces: 0 off, 1 on, 2 queries and identical batching without conditional rejection");
+	r_modelOcclusionDebug = R_Cvar("r_modelOcclusionDebug", "0", CVAR_TEMP, "Report current-frame model query coverage and confirmed skipped GPU draws (no synchronous wait)");
 	r_depthPrepass = R_Cvar( "r_depthPrepass", "1", CVAR_ARCHIVE, "Depth pre-pass before the main pass (needed by SSAO, GTAO, SSR, SSGI, contact shadows, volumetric fog): 0 off, 1 on" );
 	r_depthPrepassFast = R_Cvar( "r_depthPrepassFast", "1", CVAR_ARCHIVE, "Depth prepass without a velocity buffer: 1 = depth-only velocity programs (cheap), 0 = lightall / generic programs" );
 	R_CvarRange( r_depthPrepassFast, 0, 1, qtrue );
@@ -4186,6 +4192,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 	
 	if (r_inited)
 	{
+		RB_ShutdownModelOcclusion();
 		R_ShutDownQueries();
 		FBO_Shutdown();
 		R_DeleteTextures();
