@@ -1198,6 +1198,7 @@ typedef struct trRefEntity_s {
 	qboolean	ghoulCameraLodCalculated;
 	float		ghoulCameraProjectedRadius;
 	float       phongTessStrength; // scene snapshot, shared by all body surfaces/passes
+	qboolean    characterRenderCulled; // render-only scene decision, before bones and shadow planning
 	qboolean	mirrored;		// mirrored matrix, needs reversed culling
 	vec3_t		lightDir;		// normalized direction towards light, in world space
 	vec3_t      modelLightDir;  // normalized direction towards light, in model space
@@ -3294,6 +3295,7 @@ typedef struct {
 	stereoFrame_t	stereoFrame;
 
 	int			time;				// time in milliseconds for shader effects and other time dependent rendering issues
+	qboolean    characterCullEnabled; // scene snapshot; off keeps legacy render history
 	int			rdflags;			// RDF_NOWORLDMODEL, etc
 
 	// 1 bits will prevent the associated area from rendering at all
@@ -5950,6 +5952,7 @@ void RE_AddMiniRefEntityToScene( const miniRefEntity_t *miniRefEnt );
 void RE_AddPolyToScene(qhandle_t hShader, int numVerts, const polyVert_t *verts, int num = 1);
 void RE_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b );
 void RE_AddAdditiveLightToScene( const vec3_t org, float intensity, float r, float g, float b );
+void R_RegisterCharacterCullCvars();
 void RE_BeginScene( const refdef_t *fd );
 void RE_RenderScene( const refdef_t *fd );
 void RE_EndScene( void );

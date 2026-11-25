@@ -4,6 +4,16 @@
 
 How characters, NPCs and other models are lit, skin and hair materials, and how bodies move at joint limits.
 
+## Distant offscreen bodies
+
+`r_characterCull 1` skips distant offscreen NPC bodies and their shadows before
+renderer bone/lighting work. Gameplay, projectiles, Force powers and thrown
+sabers continue normally. `r_characterCullDistance 256` keeps nearby bodies;
+large/elevated bodies get more range, flying enemies and AT-ST are exempt.
+Cinematics and portal/mirror scenes retain the full path. Set `r_characterCull 0`
+for exact legacy behavior. This is an approximation for distant shadows; see
+[policy and validation](../rend2-character-render-culling.md).
+
 ## Light across the body
 
 Characters aren't lit by the map's lightmaps. Instead the map stores a 3D grid of light samples (the light grid), each with an ambient color, a main light color and that light's direction. The original game picks **one** sample at the character's position and lights the whole body with it, so a character walking through a doorway changes brightness all at once, and an arm in a beam of light is no brighter than the rest.

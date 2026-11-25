@@ -1,5 +1,6 @@
 #include "client/client.h"	//FIXME!! EVIL - just include the definitions needed
 #include "tr_local.h"
+#include "tr_character_cull.h"
 #include "qcommon/matcomp.h"
 #include "qcommon/qcommon.h"
 #include "ghoul2/G2.h"
@@ -3623,6 +3624,8 @@ R_AddGHOULSurfaces
 
 void R_AddGhoulSurfaces( trRefEntity_t *ent, int entityNum )
 {
+	if (ent->characterRenderCulled)
+		return;
 #ifdef G2_PERFORMANCE_ANALYSIS
 	G2PerformanceTimer_R_AddGHOULSurfaces.Start();
 #endif
@@ -4000,6 +4003,15 @@ void RB_TransformBones(const trRefEntity_t *ent, const trRefdef_t *refdef, int c
 		CBoneCache *bc = g2Info.mBoneCache;
 		if (bc->uboGPUFrame == currentFrameNum)
 			return;
+
+        // A body can return after its render pose was deliberately skipped.
+        // Do not blend the new pose with stale render-only smoothing matrices.
+        // Gameplay bones/touches remain owned by the normal Ghoul2 API.
+        if ((ent->e.renderfx & RF_CHARACTER) &&
+            CharacterCull::RenderHistoryStale(bc->uboGPUFrame, currentFrameNum, refdef->characterCullEnabled != qfalse)) {
+            for (auto& bone : bc->mSmoothBones) bone.touch = 0;
+            bc->uboPreviousOffset = -1;
+        }
 
 		for (int bone = 0; bone < (int)bc->mBones.size(); bone++)
 		{

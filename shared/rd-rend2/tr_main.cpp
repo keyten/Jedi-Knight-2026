@@ -1997,6 +1997,8 @@ static qboolean R_SunShadowSplitActive(void)
 
 static qboolean R_IsSunHardShadowEntity(const trRefEntity_t *ent)
 {
+	if (ent->characterRenderCulled)
+		return qfalse;
 	if (ent->e.reType != RT_MODEL)
 		return qfalse;
 	if (ent->e.ghoul2 && G2API_HaveWeGhoul2Models(*((CGhoul2Info_v *)ent->e.ghoul2)))
@@ -2215,6 +2217,8 @@ void R_SortAndSubmitDrawSurfs( drawSurf_t *drawSurfs, int numDrawSurfs ) {
 
 static void R_AddEntitySurface(const trRefdef_t *refdef, trRefEntity_t *ent, int entityNum)
 {
+	if (ent->characterRenderCulled)
+		return;
 	shader_t		*shader;
 
 	ent->needDlights = qfalse;
@@ -3215,7 +3219,7 @@ void R_SetupPshadowMaps(trRefdef_t *refdef)
 	{
 		trRefEntity_t *ent = &refdef->entities[i];
 
-		if((ent->e.renderfx & (RF_FIRST_PERSON | RF_NOSHADOW | RF_DEPTHHACK)))
+		if (ent->characterRenderCulled || (ent->e.renderfx & (RF_FIRST_PERSON | RF_NOSHADOW | RF_DEPTHHACK)))
 			continue;
 
 		if((ent->e.renderfx & RF_THIRD_PERSON))
@@ -4351,7 +4355,7 @@ static uint64_t R_ShadowDynamicCasterKey(const trRefdef_t *refdef, const dlight_
 	for (int i = 0; i < numEntities; ++i)
 	{
 		const trRefEntity_t *ent = &refdef->entities[i];
-		if ((ent->e.renderfx & RF_FIRST_PERSON) || R_IsPostRenderEntity(ent) ||
+		if (ent->characterRenderCulled || (ent->e.renderfx & RF_FIRST_PERSON) || R_IsPostRenderEntity(ent) ||
 			ent->e.reType == RT_PORTALSURFACE)
 			continue;
 		if (ent->e.reType != RT_MODEL)
@@ -4636,7 +4640,7 @@ static void R_GatherSunShadowCharacters(trRefdef_t *refdef)
 	for (int i = first; i < refdef->num_entities; ++i)
 	{
 		const refEntity_t& ent = refdef->entities[i].e;
-		if (ent.reType != RT_MODEL || !ent.ghoul2 || (ent.renderfx & RF_FIRST_PERSON) ||
+		if (refdef->entities[i].characterRenderCulled || ent.reType != RT_MODEL || !ent.ghoul2 || (ent.renderfx & RF_FIRST_PERSON) ||
 			!G2API_HaveWeGhoul2Models(*((CGhoul2Info_v *)ent.ghoul2)))
 			continue;
 		float scale = Q_max(fabsf(ent.modelScale[0]),

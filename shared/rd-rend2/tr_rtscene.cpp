@@ -428,6 +428,8 @@ void R_RtSceneNoteMeshLod( int entityNum, int lod )
 
 static bool R_RtEntityIsCaster( const trRefEntity_t *ent )
 {
+	if (ent->characterRenderCulled)
+		return false;
 	if ( ent->e.reType != RT_MODEL )
 		return false;
 	// the view model is drawn with a hacked depth range, the shadow views skip it too
