@@ -7696,5 +7696,89 @@
         ]
       }
     }
+  },
+  "final_integration": {
+    "original_branch_commit": "898a28649",
+    "merge_commit": "3f2d9c624",
+    "sp_mp_build": "passed",
+    "native": {
+      "variant": "volume",
+      "controls": {
+        "r_softParticles": 1,
+        "r_softParticleDistance": 8,
+        "r_particleNearFade": 1,
+        "r_particleCulling": 1,
+        "r_particleSort": 1,
+        "r_particleBatching": 1,
+        "r_transparencySort": 1,
+        "r_particleVolume": 1,
+        "r_particleSoftScale": 0.1,
+        "r_particleDepthOnDemand": 1
+      },
+      "lighting": "legacy",
+      "msaa": 0,
+      "width": 960,
+      "height": 540,
+      "debug_context": false,
+      "hidden": true,
+      "visible_windows": [],
+      "capture_status": {
+        "outcome": "clean_exit",
+        "visible_windows": []
+      },
+      "driver": [
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2"
+      ],
+      "cases": {
+        "glass": {
+          "control": {
+            "max_delta": 0,
+            "changed_pixels": 0,
+            "changed_by_12": 0
+          },
+          "presence": {
+            "max_delta": 180,
+            "changed_pixels": 121653,
+            "changed_by_12": 89334
+          }
+        },
+        "floor_mix": {
+          "control": {
+            "max_delta": 0,
+            "changed_pixels": 0,
+            "changed_by_12": 0
+          },
+          "presence": {
+            "max_delta": 147,
+            "changed_pixels": 97818,
+            "changed_by_12": 66307
+          }
+        }
+      },
+      "latch_check": {
+        "pending_image": {
+          "max_delta": 0,
+          "changed_pixels": 0,
+          "changed_by_12": 0
+        },
+        "applied_after_restart": true,
+        "controls_checked": [
+          "r_softParticles",
+          "r_softParticleDistance",
+          "r_particleNearFade",
+          "r_particleCulling",
+          "r_particleSort",
+          "r_particleBatching",
+          "r_transparencySort",
+          "r_particleVolume",
+          "r_particleSoftScale",
+          "r_particleDepthOnDemand"
+        ]
+      }
+    }
   }
 }

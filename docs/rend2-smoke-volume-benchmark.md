@@ -13,6 +13,11 @@ culling checks, and native glass/mixed-quad scenes passed. The integrated run
 also verified all ten latch transitions and a hidden, clean process exit.
 These final integration checks are not additional performance measurements.
 
+The subsequently committed rendering defaults `898a28649` were also preserved
+in `3f2d9c624`. The final combined SP/MP build and the same two native scenes
+passed again, including all ten latch transitions and a hidden clean exit.
+Performance tables continue to describe the isolated FX snapshot above.
+
 ## Method
 
 - Native JA SP, stock Hoth3 and assets0–3 only; isolated home for every variant.
