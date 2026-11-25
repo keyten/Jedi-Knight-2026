@@ -17,7 +17,7 @@ static void PrintStats();
 
 void R_RegisterMd3InstanceCvars()
 {
-    s_enabled = R_CvarInt("r_md3Instancing", "0", CVAR_ARCHIVE, 0, 1,
+    s_enabled = R_CvarInt("r_md3Instancing", "1", CVAR_ARCHIVE, 0, 1,
         "Batch repeated rigid single-frame opaque MD3s; 0 restores individual draws");
     s_stats = R_CvarInt("r_md3InstancingStats", "0", CVAR_CHEAT, 0, 2,
         "Print MD3 candidates, instance groups, saved draw calls and capacity fallbacks for a sampled frame once per second");
