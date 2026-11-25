@@ -30,6 +30,12 @@ bounds draw, no approximate skeletal box, and no preceding-frame visibility
 rejection. Current frame/view depth and the exact currently deformed mesh define
 the decision. Occluders submitted later may cause missed culling, which is safe.
 
+Models whose entity origin is within 256 world units of the camera (including
+the boundary) retain the original batching and unconditional rendering. Invalid
+distances also bypass admission. This explicit close-camera fallback avoids
+changing close-model submission while distant candidates still use exact mesh
+queries. It is an admission rule, not an approximate visibility bound.
+
 Only a single ordinary LEQUAL depth draw can guard the surface. Deformation,
 displacement, tessellation, gore, depth hacks, post-render and unknown entity
 render effects bypass admission. MD3 remains on its ordinary/instanced path.
@@ -117,3 +123,7 @@ once the machine is otherwise idle.
 Machine-readable capture differences, query counts and limitations are in
 [`validation/rend2-visible-surfaces-occlusion.json`](validation/rend2-visible-surfaces-occlusion.json).
 
+
+A follow-up adds the explicit 256-unit near-camera bypass and its production-policy
+regression gate. The combined integration build/runtime validates this change;
+the initial one-LSB capture above predates the bypass.

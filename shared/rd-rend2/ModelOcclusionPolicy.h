@@ -16,14 +16,14 @@ inline bool Eligible(const View& view)
 struct Surface
 {
 	bool ghoul, world, post, opaque, simpleDepth, deforms, offset, distortion;
-	bool matchingCull, safeFlags, tessellation, gore, buffers;
+	bool matchingCull, safeFlags, tessellation, gore, buffers, nearCamera;
 	unsigned indices;
 };
 inline bool Eligible(const Surface& surface)
 {
 	return surface.ghoul && !surface.world && !surface.post && surface.opaque && surface.simpleDepth &&
 		!surface.deforms && !surface.offset && !surface.distortion && surface.matchingCull &&
-		surface.safeFlags && !surface.tessellation && !surface.gore && surface.buffers && surface.indices >= 1024;
+		surface.safeFlags && !surface.tessellation && !surface.gore && surface.buffers && !surface.nearCamera && surface.indices >= 1024;
 }
 }
 #endif
