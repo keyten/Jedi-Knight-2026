@@ -207,6 +207,8 @@ PFNGLCLEARBUFFERFVPROC qglClearBufferfv;
 PFNGLDRAWBUFFERSPROC qglDrawBuffers;
 
 // Query objects
+PFNGLBEGINCONDITIONALRENDERPROC qglBeginConditionalRender;
+PFNGLENDCONDITIONALRENDERPROC qglEndConditionalRender;
 PFNGLGENQUERIESPROC qglGenQueries;
 PFNGLDELETEQUERIESPROC qglDeleteQueries;
 PFNGLISQUERYPROC qglIsQuery;
@@ -537,6 +539,8 @@ void GLimp_InitCoreFunctions()
 	GetGLFunction (qglStencilOpSeparate, "glStencilOpSeparate", qtrue);
 
 	// Queries
+	GetGLFunction(qglBeginConditionalRender, "glBeginConditionalRender", qtrue);
+	GetGLFunction(qglEndConditionalRender, "glEndConditionalRender", qtrue);
 	GetGLFunction (qglGenQueries, "glGenQueries", qtrue);
 	GetGLFunction (qglDeleteQueries, "glDeleteQueries", qtrue);
 	GetGLFunction (qglIsQuery, "glIsQuery", qtrue);
