@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "tr_local.h"
 #include "tr_pbr_contract.h"
+#include "tr_character_cull.h"
 
 #include <chrono>
 #include <vector>
@@ -439,6 +440,7 @@ void RE_AddRefEntityToScene( const refEntity_t *ent ) {
 	backEndData->entities[r_numentities].ghoulCameraLodCalculated = qfalse;
 	backEndData->entities[r_numentities].ghoulCameraProjectedRadius = 0.0f;
 	backEndData->entities[r_numentities].phongTessStrength = 0.0f;
+	backEndData->entities[r_numentities].characterRenderCulled = qfalse;
 	backEndData->entities[r_numentities].plantBoneOffset = -1;
 	backEndData->entities[r_numentities].plantBoneTexels = 0;
 	backEndData->entities[r_numentities].plantCutDraw = NULL;
@@ -798,6 +800,97 @@ static void R_SelectPhongCharacters(const refdef_t *fd)
 	}
 }
 
+static cvar_t *s_characterCull, *s_characterCullDistance, *s_characterCullStats;
+
+void R_RegisterCharacterCullCvars()
+{
+    s_characterCull = R_CvarInt("r_characterCull", "1", CVAR_ARCHIVE, 0, 1,
+        "Skip distant offscreen character bodies and their shadows (render only); 0 restores full rendering");
+    s_characterCullDistance = R_CvarInt("r_characterCullDistance", "256", CVAR_ARCHIVE, 0, 8192,
+        "Keep offscreen characters this close to player/camera, plus size/height guards; 0 disables culling");
+    s_characterCullStats = R_CvarInt("r_characterCullStats", "0", CVAR_CHEAT, 0, 2,
+        "Print character culling once per second: 1 counts, 2 per-body decisions");
+}
+
+// Snapshot the decision before shadow-cache keys, RT selection and bone upload.
+// Never stop CG_Player/gameplay: bolts, projectiles and FX still get submitted.
+static void R_CharacterCullBeginScene(const refdef_t *fd)
+{
+    const cvar_t *enabled = s_characterCull;
+    const cvar_t *distance = s_characterCullDistance;
+    const cvar_t *stats = s_characterCullStats;
+    tr.refdef.characterCullEnabled = enabled->integer && distance->integer > 0 ? qtrue : qfalse;
+    bool allow = tr.refdef.characterCullEnabled && !r_nocull->integer &&
+        !(fd->rdflags & (RDF_CINEMATIC | RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL |
+                        RDF_AUTOMAP | RDF_ForceSightOn));
+    // Portal shaders can produce a different color camera. Keep the entire scene
+    // exact while one is loaded; shadow planning runs before portal-view gathering.
+    static const world_t *portalWorld = nullptr;
+    static uint64_t portalGeneration = 0;
+    static int scannedShaders = 0;
+    static bool hasPortalShader = false;
+    if (portalWorld != tr.world || portalGeneration != tr.sunShadowCasterGeneration ||
+        tr.numShaders < scannedShaders) {
+        portalWorld = tr.world;
+        portalGeneration = tr.sunShadowCasterGeneration;
+        scannedShaders = 0;
+        hasPortalShader = false;
+    }
+    for (int i = scannedShaders; !hasPortalShader && i < tr.numShaders; ++i)
+        hasPortalShader = tr.shaders[i]->isPortal ||
+            (tr.shaders[i]->remappedShader && tr.shaders[i]->remappedShader->isPortal);
+    scannedShaders = tr.numShaders;
+    if (hasPortalShader) allow = false;
+    CharacterCull::View view = {};
+    Com_Memcpy(view.origin, fd->vieworg, sizeof(view.origin));
+    Com_Memcpy(view.axis, fd->viewaxis, sizeof(view.axis));
+    view.fovX = fd->fov_x;
+    view.fovY = fd->fov_y;
+    const float *playerOrigin = fd->vieworg;
+    float nearestPlayer = 1e30f;
+    for (int i = 0; i < tr.refdef.num_entities; ++i) {
+        const refEntity_t& e = tr.refdef.entities[i].e;
+        if (e.reType == RT_PORTALSURFACE) allow = false;
+        if (e.reType == RT_MODEL && (e.renderfx & RF_CHARACTER_PLAYER)) {
+            const float d = CharacterCull::DistanceSquared(e.origin, fd->vieworg);
+            if (d < nearestPlayer) { nearestPlayer = d; playerOrigin = e.origin; }
+        }
+    }
+    int bodies = 0, culled = 0;
+    const int first = tr.world && tr.world->skyboxportal ? tr.skyPortalEntities : 0;
+    for (int i = 0; i < tr.refdef.num_entities; ++i) {
+        trRefEntity_t& ent = tr.refdef.entities[i];
+        ent.characterRenderCulled = qfalse;
+        const refEntity_t& e = ent.e;
+        if (i < first || e.reType != RT_MODEL || !e.ghoul2 || !(e.renderfx & RF_CHARACTER)) continue;
+        ++bodies;
+        CharacterCull::Body body = {};
+        Com_Memcpy(body.origin, e.origin, sizeof(body.origin));
+        body.radius = std::max(64.0f, e.radius) * std::max(1.0f, ent.maxModelScale);
+        body.character = true;
+        body.protectedBody = (e.renderfx & (RF_CHARACTER_PLAYER | RF_CHARACTER_NO_CULL |
+            RF_FIRST_PERSON | RF_THIRD_PERSON | RF_DEPTHHACK | RF_NODEPTH | RF_SHADOW_ONLY |
+            RF_FORCEPOST)) != 0;
+        ent.characterRenderCulled = CharacterCull::Cull(body, view, playerOrigin,
+            (float)distance->integer, allow) ? qtrue : qfalse;
+        culled += ent.characterRenderCulled != qfalse;
+    }
+    static int lastPrint = 0;
+    if (stats->integer && (ri.Milliseconds() - lastPrint >= 1000 || !lastPrint)) {
+        lastPrint = ri.Milliseconds();
+        ri.Printf(PRINT_ALL, "characterCull: %d/%d bodies skipped before bones/UBOs/RT/shadows, policy %s\n",
+            culled, bodies, allow ? "on" : "bypassed");
+        if (stats->integer >= 2)
+            for (int i = first; i < tr.refdef.num_entities; ++i) {
+                const trRefEntity_t& ent = tr.refdef.entities[i];
+                if (ent.e.reType == RT_MODEL && ent.e.ghoul2 && (ent.e.renderfx & RF_CHARACTER))
+                    ri.Printf(PRINT_ALL, "characterCull body %d: flags %08x, origin %.1f %.1f %.1f, skipped %d\n",
+                        i, ent.e.renderfx, ent.e.origin[0], ent.e.origin[1], ent.e.origin[2],
+                        (int)ent.characterRenderCulled);
+            }
+    }
+}
+
 void RE_BeginScene(const refdef_t *fd)
 {
 	tr.refdef.x = fd->x;
@@ -818,6 +911,7 @@ void RE_BeginScene(const refdef_t *fd)
 		"Developer capture shader clock in milliseconds; -1 follows game time; vid_restart");
 	tr.refdef.time = captureTime->integer >= 0 ? captureTime->integer : fd->time;
 	tr.refdef.rdflags = fd->rdflags;
+	tr.refdef.characterCullEnabled = qfalse;
 	tr.refdef.frameTime = MIN(fd->time - tr.refdef.lastTime, 50.f);
 	// r_<feature>Compare split line: world scenes only (R_RenderCubemapSide
 	// clears it for its captures)
@@ -1059,6 +1153,7 @@ void RE_BeginScene(const refdef_t *fd)
 	const auto gatherStart = std::chrono::steady_clock::now();
 	// ray traced shadows: the entities the tracer takes over, before the
 	// shadow map views decide what they still have to draw
+	R_CharacterCullBeginScene(fd);
 	R_RtScenePrepare(&tr.refdef);
 	R_GatherFrameViews(&tr.refdef);
 	if ( r_shadowStats->integer )

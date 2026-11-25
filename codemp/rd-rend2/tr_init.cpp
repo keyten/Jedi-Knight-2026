@@ -2111,6 +2111,7 @@ R_Register
 */
 void R_Register( void )
 {
+	R_RegisterCharacterCullCvars();
 	R_InitParticleCvars();
 	//
 	// latched and archived variables

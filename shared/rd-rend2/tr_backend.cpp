@@ -3806,6 +3806,8 @@ static void RB_UpdateEntityConstants(
 	for (int i = 0; i < refdef->num_entities; i++)
 	{
 		ent = &refdef->entities[i];
+		if (ent->characterRenderCulled)
+			continue;
 
 		if (ent->e.reType != RT_MODEL 
 			&& ent->e.shaderTime == -worldEntityBlock.entityTime
@@ -3922,6 +3924,8 @@ static void RB_UpdateGhoul2Constants(gpuFrame_t *frame, const trRefdef_t *refdef
 	for (int i = 0; i < refdef->num_entities; i++)
 	{
 		const trRefEntity_t *ent = &refdef->entities[i];
+		if (ent->characterRenderCulled)
+			continue;
 		if (ent->e.reType != RT_MODEL)
 			continue;
 

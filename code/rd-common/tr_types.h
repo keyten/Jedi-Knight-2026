@@ -82,6 +82,8 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #define RF_PULSATE			0x1000000	// for things like a dropped saber, where we want to add an extra visual clue
 #define RF_G2MINLOD			0x2000000	// force Lowest lod on g2
 #define RF_CHARACTER        0x08000000 // player/NPC body; renderer close-up effects
+#define RF_CHARACTER_PLAYER 0x10000000 // local/controlled player body; render-cull anchor
+#define RF_CHARACTER_NO_CULL 0x20000000 // flying/large body: retain offscreen shadows
 #define RDF_CINEMATIC       0x40000000 // scripted camera, explicitly set by cgame
 
 #define RF_MORELIGHT		0x4000000	// allways have some light (viewmodel, some items) | SP version which is different from MP
