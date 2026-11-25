@@ -18,7 +18,7 @@ Characters, props and the world cast realtime sun shadows that move with them. S
 - `r_shadowPCSS 1` — soft shadows that harden near contact; 0 uniformly soft edges.
 - `r_shadowPCSSQuality 1` — 0 low, 1 high, 2 ultra.
 - `r_sunShadowAlphaCasters 1` *(restart)* — leaves, grates, grass and other see-through textures cast shadows with holes, not solid blocks.
-- `r_sunShadowCache 0` *(restart)* — reuse static world shadows instead of redrawing them every frame: **0** off, **1** exact reuse (safe), **2** scrolling cache, **3** scrolling cache with saved pages. 2 and 3 are experimental.
+- `r_sunShadowCache 1` *(restart)* — reuse static world shadows instead of redrawing them every frame: **0** off, **1** exact reuse (default), **2** scrolling cache, **3** scrolling cache with saved pages. 2 and 3 are experimental.
 
 **Compare:** `r_shadowPCSSCompare` — 1 split screen (uniformly soft edges left), 2 uniformly soft edges. The improved shadows themselves have no compare cvar: the two kinds use different shadow maps, so only `vid_restart` switches `r_sunShadowMode`.
 
@@ -91,18 +91,18 @@ Sabers, explosions and other dynamic lights can cast realtime shadows. This is a
 - `r_dlightMode 1` *(restart)* — 2 dynamic lights cast shadows. With [Forward+](lighting.md#many-dynamic-lights-forward), `r_forwardPlusMaxShadowLights` limits how many.
 - `r_dlightShadowBias 0` — 1 a more consistent offset, with less shadow acne and fewer detached shadows.
 
-These keep the same shadows but redraw less. They are off by default, like every new option; turning them on is safe and faster. They have no compare cvar (the picture is the same); switch them directly, none needs a restart:
+The scene-walk and layered-submission optimizations below are enabled by default. Both point-shadow caches remain opt-in after fresh exact-depth checks reported unresolved differences. Their capability checks retain the per-face/full-redraw fallback. Switch them directly; none needs a restart. A saved explicit 0 in an existing config is preserved. See the [2026-11-23 audit](../rend2-optimization-defaults.md) for coverage and limitations:
 
-- `r_shadowCache 0` — 1: reuse a light's shadow while nothing in it changes.
+- `r_shadowCache 0` — 1: reuse a light's shadow while nothing in it changes; 2 compares one frame with a full redraw.
 - `r_shadowStaticCache 0` — 1: keep the static world part and redraw only moving objects over it. Needs OpenGL 4.3 or `ARB_copy_image`.
-- `r_shadowSinglePass 0` — 1: walk the scene once per light instead of once per cube face.
-- `r_shadowLayered 0` — 1: draw all six cube faces in one call where supported.
+- `r_shadowSinglePass 1` — 1: walk the scene once per light instead of once per cube face.
+- `r_shadowLayered 1` — 1: share submission and a layered target across cube faces where supported. The geometry is still drawn once per covered face.
 
 **How it works.** Each shadowed light renders the scene into a cube of six depth images. The caches above skip redrawing parts that haven't changed.
 
 **Debug**
 
 - `r_shadowDebug 10` — point-light shadow visibility.
-- `r_shadowStaticCache 2` — compare one frame with a full redraw (slow).
+- `r_shadowCache 2`, `r_shadowStaticCache 2` — compare full-slot reuse or static-world split with a full redraw in the same scene (slow). Both reset to 1 after the check; set them back to 0 to return to the default.
 - `r_shadowVerify 1` — draw every cube both ways on the next frame and print differences.
 - `r_shadowStats 1` — CPU cost of shadow and camera views, once per second.

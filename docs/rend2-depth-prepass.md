@@ -21,7 +21,7 @@ path as about 3x slower than the velocity prepass (`docs/rend2-ssr-validation.md
   impact class to colour). This covers the main view, portals, cubemaps and
   the sky portal occluders. POM silhouette shells and surface sprites keep
   their own depth programs.
-- `r_depthPrepassFast` (default 0 since the 11-15 merge into rend2-unified-wip, archived): 1 uses the depth-only velocity programs, 0 keeps the old programs.
+- `r_depthPrepassFast` (default 1 after the [2026-11-23 audit](rend2-optimization-defaults.md), archived): 1 uses the depth-only velocity programs, 0 keeps the old programs.
 - `r_depthPrepassVerify 1` (debug): after the prepass, draws the same surfaces
   again with the other program family, using depth test LESS and no depth
   write, inside a `GL_SAMPLES_PASSED` query. The order alternates each frame.

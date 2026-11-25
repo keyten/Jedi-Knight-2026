@@ -2200,7 +2200,7 @@ void R_Register( void )
 	r_bloomSceneIntensity = R_Cvar("r_bloomSceneIntensity", "0", CVAR_ARCHIVE, "Optional HDR scene bloom, independent of emissive bloom");
 	R_CvarRange(r_bloomSceneIntensity, 0.f, 2.f, qfalse);
 
-	r_gl43 = R_Cvar( "r_gl43", "0", CVAR_ARCHIVE | CVAR_LATCH,
+	r_gl43 = R_Cvar( "r_gl43", "1", CVAR_ARCHIVE | CVAR_LATCH,
 		"Prefer GL 4.3 and allow modern paths; 0 forces legacy paths after vid_restart" );
 	r_debugContext						= R_Cvar( "r_debugContext", "0", CVAR_LATCH, "Create an OpenGL debug context and print driver messages: 0 off, 1 on" );
 	r_debugWeather						= R_Cvar( "r_debugWeather", "0", CVAR_ARCHIVE, "Weather debug: 1 particle info, 2 show the top-down weather depth map" );
@@ -2410,7 +2410,7 @@ void R_Register( void )
 	R_CvarRange( r_autoEmissive, 0, 1, qtrue );
 
 	r_depthPrepass = R_Cvar( "r_depthPrepass", "1", CVAR_ARCHIVE, "Depth pre-pass before the main pass (needed by SSAO, GTAO, SSR, SSGI, contact shadows, volumetric fog): 0 off, 1 on" );
-	r_depthPrepassFast = R_Cvar( "r_depthPrepassFast", "0", CVAR_ARCHIVE, "Depth prepass without a velocity buffer: 1 = depth-only velocity programs (cheap), 0 = lightall / generic programs" );
+	r_depthPrepassFast = R_Cvar( "r_depthPrepassFast", "1", CVAR_ARCHIVE, "Depth prepass without a velocity buffer: 1 = depth-only velocity programs (cheap), 0 = lightall / generic programs" );
 	R_CvarRange( r_depthPrepassFast, 0, 1, qtrue );
 	r_depthPrepassVerify = R_Cvar( "r_depthPrepassVerify", "0", CVAR_TEMP, "Depth prepass check: 1 = draw the prepass a second time with the other program family and print the samples nearer than the first (0 = bit-identical); alternates the order each frame" );
 	R_CvarRange( r_depthPrepassVerify, 0, 1, qtrue );
@@ -3484,7 +3484,7 @@ void R_Register( void )
 	r_shadowCascadeZBias = R_Cvar( "r_shadowCascadeZBias", "-320", CVAR_ARCHIVE | CVAR_LATCH, "Depth bias of the sun shadow cascades" );
 	r_sunShadowMode = R_Cvar( "r_sunShadowMode", "0", CVAR_ARCHIVE | CVAR_LATCH, "Sun shadows: 0 legacy, 1 stabilized blended PCSS, 2 ray traced (world, brush models, md3 and skinned Ghoul2 models through a BVH; the shadow maps of mode 1 stay for fog, water and whatever is not traced; r_rtShadows* cvars)" );
 	R_CvarRange( r_sunShadowMode, 0, 2, qtrue );
-	r_sunShadowCache = R_Cvar( "r_sunShadowCache", "0", CVAR_ARCHIVE | CVAR_LATCH, "Static BSP sun cache: 0 off, 1 exact reuse, 2 scrolling clipmaps (experimental), 3 persistent world-space disk pages (experimental)" );
+	r_sunShadowCache = R_Cvar( "r_sunShadowCache", "1", CVAR_ARCHIVE | CVAR_LATCH, "Static BSP sun cache: 0 off, 1 exact reuse, 2 scrolling clipmaps (experimental), 3 persistent world-space disk pages (experimental)" );
 	R_CvarRange( r_sunShadowCache, 0, 3, qtrue );
 	r_sunShadowVerify = R_Cvar( "r_sunShadowVerify", "0", CVAR_CHEAT, "Compare cached sun depth with a full render: 1 next scene, 2 continuous (slow readbacks)" );
 	R_CvarRange( r_sunShadowVerify, 0, 2, qtrue );
@@ -3517,12 +3517,12 @@ void R_Register( void )
 	r_shadowCasterLod = R_Cvar( "r_shadowCasterLod", "0", CVAR_ARCHIVE, "Ghoul2 models in sun cascades and dlight shadow cubes use the LOD of the camera view (0 = LOD of the shadow view)" );
 	R_CvarRange( r_shadowCasterLod, 0, 1, qtrue );
 	r_shadowCasterStats = R_Cvar( "r_shadowCasterStats", "0", CVAR_CHEAT, "Print Ghoul2 shadow caster counts and LODs per view type once per second" );
-	r_shadowSinglePass = R_Cvar( "r_shadowSinglePass", "0", CVAR_ARCHIVE, "Point light shadows: 1 = one scene walk per light, filtered per cube face (same depth as 0)" );
-	r_skyPortalCull = R_Cvar( "r_skyPortalCull", "0", CVAR_ARCHIVE, "1 = the skyportal view only shades the pixels the opaque world of the main view leaves uncovered" );
+	r_shadowSinglePass = R_Cvar( "r_shadowSinglePass", "1", CVAR_ARCHIVE, "Point light shadows: 1 = one scene walk per light, filtered per cube face (same depth as 0)" );
+	r_skyPortalCull = R_Cvar( "r_skyPortalCull", "1", CVAR_ARCHIVE, "1 = the skyportal view only shades the pixels the opaque world of the main view leaves uncovered" );
 	r_shadowVerify = R_Cvar( "r_shadowVerify", "0", CVAR_CHEAT, "1 = next frame, render every point light shadow cube both ways (r_shadowSinglePass 0 and 1) and print the depth texels that differ" );
-	r_shadowLayered = R_Cvar( "r_shadowLayered", "0", CVAR_ARCHIVE, "With r_shadowSinglePass 1: 1 = all 6 faces of a point light cube in one layered draw command when supported" );
-	r_shadowCache = R_Cvar( "r_shadowCache", "0", CVAR_ARCHIVE, "Reuse unchanged point/spot shadow maps; conservative around animated world surfaces and dynamic casters" );
-	R_CvarRange( r_shadowCache, 0, 1, qtrue );
+	r_shadowLayered = R_Cvar( "r_shadowLayered", "1", CVAR_ARCHIVE, "With r_shadowSinglePass 1: 1 = share submission and a layered target across the cube faces when supported" );
+	r_shadowCache = R_Cvar( "r_shadowCache", "0", CVAR_ARCHIVE, "Reuse unchanged point/spot shadow maps; 2 verifies one frame against a full redraw" );
+	R_CvarRange( r_shadowCache, 0, 2, qtrue );
 	r_shadowStaticCache = R_Cvar( "r_shadowStaticCache", "0", CVAR_ARCHIVE, "Point/spot shadows: keep a copy of the static world depth per shadow slot and redraw only moving casters over it when the light is unchanged (needs GL 4.3 / ARB_copy_image); 2 = verify one frame against a full render" );
 	R_CvarRange( r_shadowStaticCache, 0, 2, qtrue );
 	r_shadowStats = R_Cvar( "r_shadowStats", "0", CVAR_CHEAT, "Print per-frame CPU front-end / submit cost of shadow and camera views once per second" );

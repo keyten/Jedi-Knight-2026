@@ -53,7 +53,7 @@ def commands(map_name, mode, verify, benchmark_frames):
     x, y, z = origin
     result = ['wait 90', 'cam_disable', 'exitview', 'wait 10', 'noclip', 'god',
               'give weapons', 'wait 90', 'weapon 5', 'wait 90',
-              'cg_draw2D 0', 'cg_drawGun 0', 'cg_thirdPerson 0', 'con_notifytime 0',
+              'cg_draw2D 0', 'cg_drawGun 0', 'cg_thirdPerson 0', 'con_notifytime -1',
               'cg_bobup 0', 'cg_bobpitch 0', 'cg_bobroll 0', 'cg_runpitch 0', 'cg_runroll 0',
               'r_forceSun 1', 'setviewpos %d %d %d 90' % origin, 'wait 180',
               'echo SUN_STATIONARY_BEGIN', 'r_shadowStats 1', 'r_speeds 100',
@@ -155,6 +155,8 @@ def run_case(args, mode, run_index):
         shutil.copy2(args.binaries/name, runtime/name)
     shutil.copy2(args.binaries/'jagamex86_64.dll', base/'jagamex86_64.dll')
     shutil.copy2(repo/'lib/SDL2/bin/x64/SDL2.dll', runtime/'SDL2.dll')
+    if args.cache_from and (args.cache_from/'glslcache').is_dir():
+        shutil.copytree(args.cache_from/'glslcache', base/'glslcache', dirs_exist_ok=True)
     (base/'sun-test.cfg').write_text('\n'.join(commands(args.map, mode, not args.no_verify, args.benchmark_frames))+'\n', encoding='ascii')
     (base/'autoexec_sp.cfg').write_text('wait 120\ndevmap %s\nwait 60\nexec sun-test.cfg\n' % args.map, encoding='ascii')
     log_path = base/'qconsole.log'
@@ -167,7 +169,7 @@ def run_case(args, mode, run_index):
         r_depthPrepass='1', r_forceSun='1', r_cubeMapping='0', r_diffuseIBL='0', r_ssr='0', r_ssgi='0',
         r_volumetricFog='0', r_clouds='0', r_atmosphere='0', r_postProcess='1',
         r_normalMapping='1', r_specularMapping='1', r_hdr='1', r_contactShadows='0',
-        r_dynamiclight='0', r_shaderProgramCache='1', r_sunShadowVerify='0', r_shadowStats='1',
+        r_dynamiclight='0', r_shaderProgramCache='1', r_shaderProgramLazy=str(int(args.lazy_shaders)), r_sunShadowVerify='0', r_shadowStats='1',
         developer='0', logfile='2', com_maxfps=str(args.maxfps),
         com_maxfpsMinimized=str(args.maxfps), com_maxfpsUnfocused=str(args.maxfps))
     # The SP engine accepts at most 32 startup command lines. Passing every
@@ -225,11 +227,13 @@ def main():
     parser.add_argument('--installation', type=Path, required=True)
     parser.add_argument('--binaries', type=Path, default=repo/'build/sun-shadow-cache/Release')
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--cache-from', type=Path, help='Seed glslcache from another private home/OpenJK on the same GPU')
     parser.add_argument('--modes', type=int, nargs='+', choices=range(4), default=[0, 1, 2, 3, 3])
     parser.add_argument('--map', default='mp/ffa3')
     parser.add_argument('--shadow-size', type=int, default=1024)
     parser.add_argument('--timeout', type=int, default=420)
     parser.add_argument('--no-verify', action='store_true')
+    parser.add_argument('--lazy-shaders', action='store_true', help='Compile scene-used lightall variants on demand')
     parser.add_argument('--maxfps', type=int, default=0)
     # Correctness-only runs next to other game instances: e.g. --window 480 270 --maxfps 60
     parser.add_argument('--window', type=int, nargs=2, default=[960, 540], metavar=('WIDTH', 'HEIGHT'))
