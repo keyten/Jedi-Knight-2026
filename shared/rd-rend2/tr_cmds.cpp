@@ -22,6 +22,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "tr_local.h"
 #include "tr_allocator.h"
 
+// Shared with particle CPU records; mode 2 defers diagnostic I/O until dump.
+extern void R_ParticleProfileLog(const char *format, ...);
+
 /*
 =====================
 R_PerformanceCounters
@@ -127,15 +130,15 @@ void R_PerformanceCounters( void ) {
 			diffInNs = endTime - startTime;
 			diffInMs = diffInNs / 1e6f;
 
-			ri.Printf( PRINT_ALL, "%s: %.3fms ", timedBlock->name, diffInMs );
+			R_ParticleProfileLog( "%s: %.3fms ", timedBlock->name, diffInMs );
 
 			if ( (i % 7) == 6 )
 			{
-				ri.Printf( PRINT_ALL, "\n" );
+				R_ParticleProfileLog( "\n" );
 			}
 		}
 
-		ri.Printf( PRINT_ALL, "\n" );
+		R_ParticleProfileLog( "\n" );
 	}
 
 	Com_Memset( &tr.pc, 0, sizeof( tr.pc ) );

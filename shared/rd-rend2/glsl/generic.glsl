@@ -961,18 +961,26 @@ void main()
 			float radius = var_ParticleShape.z;
 			if (radius > 0.0 && u_ParticleFade.w < 0.0)
 			{
-				vec2 p = var_ParticleShape.xy * 2.0 - 1.0;
-				float halfThickness = radius * sqrt(max(1.0 - dot(p, p), 0.0001));
-				float visible = clamp((sceneZ - particleZ + halfThickness) / (2.0 * halfThickness), 0.0, 1.0);
 				// Preserve the fully visible authored alpha exactly. For a clipped
 				// interval, convert optical thickness back to opacity, not a linear
 				// washout at the billboard's center plane. Stock texture is retained.
 				contact = 1.0;
-				if (visible < 1.0)
+				float separation = sceneZ - particleZ;
+				// The maximum half-thickness is radius. Most overdraw is wholly
+				// in front of the scene: avoid sqrt/divide/pow for that interval.
+				if (separation <= -radius) contact = 0.0;
+				else if (separation < radius)
 				{
-					float oldAlpha = clamp(color.a, 0.0, 1.0);
-					float newAlpha = 1.0 - pow(max(1.0 - oldAlpha, 0.000001), visible);
-					contact = oldAlpha > 0.000001 ? newAlpha / oldAlpha : visible;
+					vec2 p = var_ParticleShape.xy * 2.0 - 1.0;
+					float halfThickness = radius * sqrt(max(1.0 - dot(p, p), 0.0001));
+					float visible = clamp((separation + halfThickness) / (2.0 * halfThickness), 0.0, 1.0);
+					if (visible <= 0.0) contact = 0.0;
+					else if (visible < 1.0)
+					{
+						float oldAlpha = clamp(color.a, 0.0, 1.0);
+						float newAlpha = 1.0 - pow(max(1.0 - oldAlpha, 0.000001), visible);
+						contact = oldAlpha > 0.000001 ? newAlpha / oldAlpha : visible;
+					}
 				}
 			}
 			else if (radius > 0.0 && u_ParticleFade.w > 0.0)

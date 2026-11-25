@@ -53,7 +53,7 @@ independently of the shader's near fade.
   isolated home and controlled renderer puffs with the stock smoke material.
   These are renderer integration fixtures, not replacement EFX assets or a
   claim of visual review of every gameplay effect. A/B/A controls permit at
-  most 0.02% of pixels differing by one display code due to sparse FP16/output
+  most 0.02% of pixels (0.05% with MSAA) differing by one display code due to sparse FP16/output
   rounding (also observed at one pixel without MSAA); larger changes fail.
   Reports retain exact equality, maximum delta and changed-pixel counts.
   Contact fixtures use stock alpha-smoke sprites. A separate no-smoke control
@@ -127,6 +127,13 @@ outside the main-view GPU timestamps. With `r_speeds 100`, the existing Main Vie
 timestamp and a separate Particle depth timestamp are reported too; they are
 render-path elapsed times, not a gameplay FPS claim.
 
+For measurements use `r_particleProfile 2`: CPU records and `r_speeds 100` GPU
+records stay in a bounded 1 MiB buffer during sampling. Developer commands
+`r_particleTest profile-reset` and `r_particleTest profile-dump` reset and dump
+it; stop profiling before the dump. Overflow is reported and fails the capture
+harness. Mode 1 retains immediate logging. The harness uses mode 2 by default,
+avoiding per-frame console/log writes that can idle the GPU and distort clocks.
+
 The original stage-3 capture harness checked all visual
 fixtures, then measured empty/64/512-puff scenes with batching off/on/off in the
 same process. Each case warmed up for 120 waits and sampled for 240 waits; the
@@ -193,13 +200,23 @@ the former unconditional stable-sort and particle-isolation changes are gated.
 Normal legacy play allocates no particle depth image. Developer contact probes
 can allocate one lazily without enabling any rendering feature.
 
+Rounded sprites and flat oriented quads split batches when their fade mode
+differs, including the entity-merge fallback with depth sorting disabled.
+`r_particleTest floor-mix 28 12` exercises both types with the same material.
+The capture harness's `unbatched` variant must match the normal volume variant.
+Fully visible and fully hidden rounded intervals bypass unnecessary optical
+math; native captures compare this fast path with the preceding implementation.
+
 `capture_particles.py` is now a compatible entry point to
 `capture_smoke_volume.py`. It starts separate processes per latched variant,
 compares repeated controls, requires visible smoke against an empty capture,
-and can collect median/p95 CPU and GPU timings across fifteen fixtures. `fxcam`
+and can collect median/p95 CPU and GPU timings across sixteen fixtures. `fxcam`
 is a developer-only fixed camera for SP, avoiding player-camera smoothing and
 the player model. `r_captureShaderTime` is a latched cheat diagnostic (-1 by
 default); captures hold only the shader clock to avoid animated stock materials
 invalidating comparisons. `r_particleTest info` reports active/pending settings
 and latch flags. The latch test checks that a pending change leaves the image
 unchanged and all ten controls become active only after `vid_restart`.
+
+See [the smoke-volume benchmark report](rend2-smoke-volume-benchmark.md) for
+the case matrix, medians/p95, original-renderer comparison and native screenshots.

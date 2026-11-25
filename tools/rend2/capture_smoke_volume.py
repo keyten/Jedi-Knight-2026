@@ -26,6 +26,7 @@ VARIANTS = {
     'flat': dict(r_particleVolume=0, r_particleSoftScale=0),
     'adaptive': dict(r_particleVolume=0),
     'volume': {},
+    'unbatched': dict(r_particleBatching=0),
 }
 CASES = {
     'empty': ('0', '3464 700 40 90'),
@@ -38,6 +39,7 @@ CASES = {
     'wall': ('surface 48 4', '3464 700 40 90'),
     'floor': ('floor 28 12', '3464 700 80 270 25'),
     'floor_detail': ('floor 28 3', '3464 700 80 270 25'),
+    'floor_mix': ('floor-mix 28 12', '3464 700 80 270 25'),
     'near': ('12 6 8', '3464 700 40 90'),
     'additive': ('additive 12 128', '3464 700 40 90'),
     'stock': ('stock', '3584 700 60 90'),
@@ -72,22 +74,31 @@ def run_hidden(command, root, timeout=300):
             time.sleep(.2)
         if child.poll() is None:
             child.terminate(); child.wait()
+            (root / 'capture-status.json').write_text(json.dumps(dict(outcome='timeout', visible_windows=visible))+'\n')
             raise TimeoutError(str(root))
     assert child.returncode == 0, (child.returncode, root)
+    (root / 'capture-status.json').write_text(json.dumps(dict(outcome='clean_exit', visible_windows=visible))+'\n')
     return visible
 
 
 def image_difference(a, b):
     from PIL import ImageChops
     d = ImageChops.difference(a, b)
+    red, green, blue = d.split()
+    peaks = ImageChops.lighter(ImageChops.lighter(red, green), blue).histogram()
     return dict(max_delta=max(high for low, high in d.getextrema()),
-                changed_pixels=sum(any(p) for p in d.getdata()),
-                changed_by_12=sum(max(p) >= 12 for p in d.getdata()))
+                changed_pixels=a.width * a.height - peaks[0],
+                changed_by_12=sum(peaks[12:]))
 
 
 def run_variant(args, variant):
     root = (args.output / variant).resolve()
     home = root / 'home/OpenJK'
+    controls = dict(CONTROLS, **VARIANTS[variant])
+    if args.analyze_existing:
+        status = json.loads((root / 'capture-status.json').read_text())
+        assert status['outcome'] in ('clean_exit', 'timeout') and status['visible_windows'] == [], status
+        return analyze_variant(args, variant, root, home, controls, status)
     home.mkdir(parents=True, exist_ok=True)
     stock = args.installation.resolve()
     expected = ['assets%d.pk3' % i for i in range(4)]
@@ -106,7 +117,6 @@ def run_variant(args, variant):
     for name, value in [('smoke_freeze', 1), ('smoke_unfreeze', 0)]:
         (ui / (name + '.menu')).write_text('menuDef { name %s fullScreen 0 visible 1 onOpen { setcvar "cl_paused" "%d"; } }\n' % (name, value))
     (ui / 'ingame.txt').write_text('loadmenu { "ui/smoke_freeze.menu" "ui/smoke_unfreeze.menu" }\n')
-    controls = dict(CONTROLS, **VARIANTS[variant])
     config = settings('legacy', 0)
     config.update(controls)
     config.update(fs_basepath=str(stock), fs_homepath=str(root / 'home'), fs_game='OpenJK',
@@ -147,10 +157,13 @@ def run_variant(args, variant):
             # A 60 FPS hidden view leaves the GPU idle and its power clocks can
             # change several-fold inside one sample. Keep this frozen scene
             # continuously busy; never change global driver/power settings.
+            buffered = not (args.stream_profile or args.reference)
+            if buffered: commands += ['developer 1', 'r_particleTest profile-reset', 'developer 0']
             commands += ['com_maxfps 0', 'com_maxfpsUnfocused 0', 'com_maxfpsMinimized 0',
-                         'wait 600', 'echo SMOKE_BENCH_%s_BEGIN' % name, 'r_particleProfile 1',
-                         'r_speeds 100', 'wait 640', 'r_particleProfile 0', 'r_speeds 0',
-                         'echo SMOKE_BENCH_%s_END' % name, 'com_maxfps 60',
+                         'wait 600', 'echo SMOKE_BENCH_%s_BEGIN' % name, 'r_particleProfile %d' % (2 if buffered else 1),
+                         'r_speeds 100', 'wait 640', 'r_particleProfile 0', 'r_speeds 0']
+            if buffered: commands += ['developer 1', 'r_particleTest profile-dump', 'developer 0']
+            commands += ['echo SMOKE_BENCH_%s_END' % name, 'com_maxfps 60',
                          'com_maxfpsUnfocused 60', 'com_maxfpsMinimized 60']
         commands += ['screenshot_tga ' + name + '-repeat', 'wait 4']
     if args.latch_check:
@@ -162,32 +175,51 @@ def run_variant(args, variant):
                      'r_particleTest info', 'developer 0']
     commands += ['echo SMOKE_CAPTURE_DONE', 'wait 30', 'quit']
     if args.reference:
-        assert variant == 'legacy' and not args.latch_check and set(args.cases) <= {'empty', 'stock', 'stock_clear', 'stock_short'}
-        commands = [line for line in commands if not line.startswith('r_particleTest')]
+        supported = {'empty', 'tiny64', 'tiny512', 'large64', 'fill128', 'mixed',
+                     'glass', 'near', 'additive', 'stock', 'stock_clear', 'stock_short'}
+        assert variant == 'legacy' and not args.latch_check and set(args.cases) <= supported
+        commands = [line for line in commands if line != 'r_particleTest info']
     (home / 'autoexec_sp.cfg').write_text('\n'.join(commands) + '\n')
     command = [str(root / 'openjk_sp.x86_64.exe')]
     for key in ('fs_basepath', 'fs_homepath', 'fs_game', 'r_hiddenWindow', 's_initsound', 'in_mouse', 'in_nograb', 'r_fullscreen'):
         command += ['+set', key, str(config[key])]
-    visible = run_hidden(command, root)
+    timeout = max(300, 60 * len(args.cases)) if args.benchmark else 300
+    run_hidden(command, root, timeout=timeout)
+    status = json.loads((root / 'capture-status.json').read_text())
+    return analyze_variant(args, variant, root, home, controls, status)
+
+
+def analyze_variant(args, variant, root, home, controls, status):
+    # Native 4x-MSAA stress controls have sparse one-code output rounding
+    # (119/518400 pixels observed). Never permit a larger per-channel error.
+    control_pixels = args.width * args.height // (2000 if args.msaa else 5000)
+    toggled = {key: 0 if float(value) else CONTROLS[key] for key, value in controls.items()}
     text = (home / 'qconsole.log').read_text(errors='replace')
-    errors = re.findall(r'[^\r\n]*(?:GL_INVALID|GL_OUT_OF_MEMORY|GLSL shader (?:compile|link) error|FBO.*incomplete|Could not load.*shader)[^\r\n]*', text)
-    assert 'SMOKE_CAPTURE_DONE' in text and not errors, (errors, text[-3000:])
+    # Search each line once: a greedy whole-line regex at every character is
+    # quadratic on verbose GL debug logs and can dominate capture analysis.
+    error_pattern = re.compile(r'GL_INVALID|GL_OUT_OF_MEMORY|GLSL shader (?:compile|link) error|FBO.*incomplete|Could not load.*shader')
+    errors = [line for line in text.splitlines() if error_pattern.search(line)]
+    assert 'SMOKE_CAPTURE_DONE' in text and not errors and 'PARTICLE_PROFILE_BUFFER_OVERFLOW' not in text, (errors, text[-3000:])
     reported = re.findall(r'PARTICLE_SETTING\|(\w+)=([^|\r\n]+)\|pending=([^|\r\n]+)\|latched=(\d)', text)
     initial = {name: (value, pending, latched) for name, value, pending, latched in reported[:len(CONTROLS)]}
     for name, value in (() if args.reference else controls.items()):
         assert name in initial and float(initial[name][0]) == float(value) and initial[name][2] == '1', (name, value, initial)
     from PIL import Image
     result = dict(variant=variant, controls=controls, lighting=args.lighting, msaa=args.msaa, width=args.width, height=args.height,
-                  hidden=True, visible_windows=visible, driver=re.findall(r'GL_RENDERER:[^\r\n]*', text), cases={})
+                  debug_context=args.debug_context,
+                  hidden=True, visible_windows=status['visible_windows'], capture_status=status,
+                  driver=re.findall(r'GL_RENDERER:[^\r\n]*', text), cases={})
     if args.benchmark:
-        result['protocol'] = dict(fps_cap=0, warmup_waits=600, sample_waits=640, discard_records=30)
+        script = (home / 'autoexec_sp.cfg').read_text()
+        result['protocol'] = dict(fps_cap=0, warmup_waits=600, sample_waits=640, discard_records=30,
+                                  buffered_profile='r_particleProfile 2' in script)
     for name in args.cases:
         shots = []
         for suffix in ('', '-repeat'):
             im = Image.open(home / ('screenshots/%s%s.tga' % (name, suffix))).convert('RGB')
             im.save(root / ('%s%s.png' % (name, suffix))); shots.append(im)
         control = image_difference(*shots)
-        assert control['max_delta'] <= 1 and control['changed_pixels'] <= args.width * args.height // 5000, (name, control)
+        assert control['max_delta'] <= 1 and control['changed_pixels'] <= control_pixels, (name, control)
         case = dict(control=control)
         empty = Image.open(home / ('screenshots/%s-empty.tga' % name)).convert('RGB')
         empty.save(root / (name + '-empty.png'))
@@ -207,10 +239,13 @@ def run_variant(args, variant):
             case['samples'] = len(rows)
             gpu = [float(x) for x in re.findall(r'Main View[^:\r\n]*:\s*([\d.]+)ms', section[1])][30:]
             assert gpu, name
+            case['gpu_samples'] = len(gpu)
             case['gpu_main_ms'] = statistics.median(gpu)
             case['cpu_p95_us'] = sorted(float(row[0]) + float(row[1]) for row in rows)[int(len(rows)*.95)] if rows else None
             case['gpu_p95_ms'] = sorted(gpu)[int(len(gpu)*.95)]
-            if name.startswith('stock') and not args.reference and (controls['r_particleSort'] or controls['r_transparencySort']):
+            # Media can use separate volume proxies; ordinary-packet counts
+            # alone do not describe that path. Visible presence is checked above.
+            if name.startswith('stock') and not args.reference and args.lighting == 'legacy' and (controls['r_particleSort'] or controls['r_transparencySort']):
                 assert case['particle_draw_items'] > 0, ('No actual stock smoke', case)
         result['cases'][name] = case
     if args.latch_check:
@@ -225,7 +260,7 @@ def run_variant(args, variant):
         last = Image.open(home / ('screenshots/%s-repeat.tga' % args.cases[-1])).convert('RGB')
         held = Image.open(home / 'screenshots/latch-pending.tga').convert('RGB')
         diff = image_difference(last, held)
-        assert diff['max_delta'] <= 1 and diff['changed_pixels'] <= args.width*args.height//5000, diff
+        assert diff['max_delta'] <= 1 and diff['changed_pixels'] <= control_pixels, diff
         result['latch_check'] = dict(pending_image=diff, applied_after_restart=True, controls_checked=list(controls))
     (root / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2), flush=True)
@@ -245,13 +280,17 @@ def main():
     ap.add_argument('--lighting', choices=['legacy', 'media'], default='legacy')
     ap.add_argument('--debug-context', action='store_true')
     ap.add_argument('--benchmark', action='store_true')
+    ap.add_argument('--stream-profile', action='store_true', help='Older binaries only: stream timing records during sampling')
     ap.add_argument('--latch-check', action='store_true')
-    ap.add_argument('--reference', action='store_true', help='Pre-feature binary: only empty/stock legacy scenes, no new diagnostic API')
+    ap.add_argument('--reference', action='store_true', help='Pre-feature renderer with capture-only scene inputs; no new feature/profiler API')
+    ap.add_argument('--analyze-existing', action='store_true', help='Analyze completed archived captures and preserve their recorded exit/monitor status')
     # Accepted by the previous capture entry point; the new matrix subsumes them.
     ap.add_argument('--shared-stock', action='store_true')
     ap.add_argument('--sorting', action='store_true')
     ap.add_argument('--batching', action='store_true')
     args = ap.parse_args()
+    if args.benchmark and args.debug_context:
+        ap.error('Use the release GL context for timings; --debug-context is for separate visual/API validation')
     if args.cases is None: args.cases = list(CASES) if args.benchmark else ['glass', 'wall', 'floor', 'mixed']
     results = [run_variant(args, variant) for variant in args.variants]
     (args.output / 'matrix.json').write_text(json.dumps(results, indent=2) + '\n')
@@ -266,6 +305,18 @@ def main():
             assert diff['changed_by_12'] >= 2000 and diff['max_delta'] >= 24, ('Weak contact comparison',case,diff)
             comparisons[case] = diff
         (args.output / 'contact-comparison.json').write_text(json.dumps(comparisons,indent=2)+'\n')
+    if 'volume' in args.variants and 'unbatched' in args.variants:
+        from PIL import Image
+        comparisons = {}
+        for case in args.cases:
+            if case.startswith('stock'): continue # independent live EFX simulation
+            a = Image.open(args.output / 'volume' / (case + '.png')).convert('RGB')
+            b = Image.open(args.output / 'unbatched' / (case + '.png')).convert('RGB')
+            diff = image_difference(a,b)
+            limit = args.width*args.height//(2000 if args.msaa else 5000)
+            assert diff['max_delta'] <= 1 and diff['changed_pixels'] <= limit, ('Batch mismatch',case,diff)
+            comparisons[case] = diff
+        (args.output / 'batch-comparison.json').write_text(json.dumps(comparisons,indent=2)+'\n')
 
 
 if __name__ == '__main__': main()

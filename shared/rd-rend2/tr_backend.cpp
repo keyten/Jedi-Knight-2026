@@ -1748,8 +1748,12 @@ static void RB_SubmitDrawSurfs(
 		const bool transparentSurface = surfaceOrder.owner && R_TransparencySort() && !R_ParticleEntity(entity);
 		const bool particleSort = ordered && R_ParticleEntity(entity);
 		const bool particleBatchable = particleSort && RB_ParticleBatchable(shader, entity);
+		// Rounded billboards and flat oriented quads need different fade uniforms,
+		// even when their material and all ordinary batch keys are identical.
+		const bool shapeChange = (entity.reType == RT_SPRITE) != (backEnd.currentEntity->e.reType == RT_SPRITE) &&
+			R_ParticleShapeShader(shader);
 		const bool mergeParticles = particleBatchable && oldParticleBatchable &&
-			entity.shaderTime == backEnd.currentEntity->e.shaderTime;
+			!shapeChange && entity.shaderTime == backEnd.currentEntity->e.shaderTime;
 		fogNum = drawSurf->fogIndex;
 		dlighted = drawSurf->dlightBits;
 		int foliageDebugClass = 0;
@@ -1803,7 +1807,7 @@ static void RB_SubmitDrawSurfs(
 				foliageDebugClass != oldFoliageDebugClass ||
 				foliageMotion != oldFoliageMotion ||
 				drawSurf->waterKey != oldWaterKey ||
-				(entityNum != oldEntityNum && !mergeParticles && (!tess.entityMergable || particleSort || oldParticleSort ||
+				(entityNum != oldEntityNum && !mergeParticles && (!tess.entityMergable || particleSort || oldParticleSort || shapeChange ||
 				 (R_ParticleStateIsolation() && R_ParticleEntity(backEnd.currentEntity->e) != R_ParticleEntity(
 				 entityNum == REFENTITYNUM_WORLD ? tr.worldEntity.e : backEnd.refdef.entities[entityNum].e))))) )
 		{

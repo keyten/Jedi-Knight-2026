@@ -1,6 +1,7 @@
 // Copyright (C) 2026 OpenJK contributors
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "tr_local.h"
+#include <string>
 
 static cvar_t *r_softParticles, *r_softParticleDistance, *r_particleNearFade;
 static cvar_t *r_particleSort;
@@ -32,6 +33,42 @@ static unsigned particleDepthCopies;
 static double particleProfileTimes[3];
 static unsigned particleProfileCounts[3];
 static bool particleProfileFresh;
+static std::string particleProfileBuffer;
+static bool particleProfileOverflow;
+
+// Diagnostic mode 2 keeps console/file I/O out of the sampled frame loop.
+// GPU timers use this same sink, then profile-dump writes complete lines.
+void R_ParticleProfileLog(const char *format, ...)
+{
+	char line[1024];
+	va_list args;
+	va_start(args, format);
+	Q_vsnprintf(line, sizeof(line), format, args);
+	va_end(args);
+	if (r_particleProfile && r_particleProfile->integer == 2)
+	{
+		const size_t count = strlen(line);
+		if (particleProfileBuffer.size() + count <= 1024 * 1024)
+			particleProfileBuffer.append(line, count);
+		else particleProfileOverflow = true;
+	}
+	else ri.Printf(PRINT_ALL, "%s", line);
+}
+
+static void R_ParticleProfileDump()
+{
+	if (particleProfileOverflow) ri.Printf(PRINT_ALL, "PARTICLE_PROFILE_BUFFER_OVERFLOW\n");
+	for (size_t offset = 0; offset < particleProfileBuffer.size();)
+	{
+		size_t count = std::min(size_t(2000), particleProfileBuffer.size() - offset);
+		const size_t newline = particleProfileBuffer.rfind('\n', offset + count - 1);
+		if (newline != std::string::npos && newline >= offset) count = newline + 1 - offset;
+		ri.Printf(PRINT_ALL, "%.*s", int(count), particleProfileBuffer.data() + offset);
+		offset += count;
+	}
+	particleProfileBuffer.clear();
+	particleProfileOverflow = false;
+}
 
 bool R_ParticleProfileActive() { return r_particleProfile && r_particleProfile->integer != 0; }
 void R_ParticleProfileFrame(double recordUs, double submitUs, double sortUs, unsigned items, unsigned particles)
@@ -46,7 +83,7 @@ void R_ParticleProfilePrint()
 {
 	if (!R_ParticleProfileActive() || !particleProfileFresh) return;
 	// Report outside Main View's GPU timestamp interval; log I/O must not be timed.
-	ri.Printf(PRINT_ALL, "PARTICLE_PROFILE|record=%.3f|submit=%.3f|sort=%.3f|items=%u|particles=%u|depthCopies=%u\n",
+	R_ParticleProfileLog("PARTICLE_PROFILE|record=%.3f|submit=%.3f|sort=%.3f|items=%u|particles=%u|depthCopies=%u\n",
 		particleProfileTimes[0], particleProfileTimes[1], particleProfileTimes[2],
 		particleProfileCounts[0], particleProfileCounts[1], particleProfileCounts[2]);
 	particleProfileFresh = false;
@@ -65,6 +102,18 @@ bool R_ParticleDepthProbePending() { return (particleTestSurface || particleFloo
 void R_ParticleTest_f()
 {
 	if (!ri.Cvar_VariableIntegerValue("developer")) return;
+	if (!Q_stricmp(ri.Cmd_Argv(1), "profile-reset"))
+	{
+		particleProfileBuffer.clear();
+		particleProfileBuffer.reserve(1024 * 1024);
+		particleProfileOverflow = false;
+		return;
+	}
+	if (!Q_stricmp(ri.Cmd_Argv(1), "profile-dump"))
+	{
+		R_ParticleProfileDump();
+		return;
+	}
 	if (!Q_stricmp(ri.Cmd_Argv(1), "info"))
 	{
 		cvar_t *vars[] = {r_softParticles, r_softParticleDistance, r_particleNearFade, r_particleCulling,
@@ -79,9 +128,10 @@ void R_ParticleTest_f()
 		(!Q_stricmp(ri.Cmd_Argv(1), "batch") ? 3 :
 		(!Q_stricmp(ri.Cmd_Argv(1), "batch-reverse") ? 4 :
 		(!Q_stricmp(ri.Cmd_Argv(1), "floor") ? 5 :
-		(!Q_stricmp(ri.Cmd_Argv(1), "additive") ? 6 : 0)))));
+		(!Q_stricmp(ri.Cmd_Argv(1), "additive") ? 6 :
+		(!Q_stricmp(ri.Cmd_Argv(1), "floor-mix") ? 7 : 0))))));
 	particleTestSurface = ri.Cmd_Argc() > 1 && !Q_stricmp(ri.Cmd_Argv(1), "surface");
-	particleFloorPending = particleTestKind == 5;
+	particleFloorPending = particleTestKind == 5 || particleTestKind == 7;
 	particleFloorReady = false;
 	particleTestDistance = ri.Cmd_Argc() > 1 ? atof(ri.Cmd_Argv(1)) : 0.0f;
 	if (particleTestKind == 6) particleTestDistance = 96.0f;
@@ -96,7 +146,7 @@ void R_ParticleTest_f()
 void R_AddParticleTest(const refdef_t *view)
 {
 	if (view->rdflags & (RDF_NOWORLDMODEL | RDF_SKYBOXPORTAL)) return;
-	if (particleTestKind == 5)
+	if (particleTestKind == 5 || particleTestKind == 7)
 	{
 		if (!particleFloorReady) return;
 		// Diagnostic floor-contact fixture anchored to actual visible floor depth.
@@ -105,6 +155,11 @@ void R_AddParticleTest(const refdef_t *view)
 		{
 			refEntity_t puff = {};
 			puff.reType = RT_SPRITE;
+			if (particleTestKind == 7 && i % 2)
+			{
+				puff.reType = RT_ORIENTED_QUAD;
+				for (int axis = 0; axis < 3; ++axis) VectorCopy(view->viewaxis[axis], puff.axis[axis]);
+			}
 			puff.radius = particleTestRadius;
 			puff.rotation = i * 67.0f;
 			puff.customShader = RE_RegisterShader("gfx/effects/alpha_smoke");
@@ -197,7 +252,7 @@ void R_InitParticleCvars()
 		"Order compatible world FX sprites back to front within their authored render layer");
 	R_CvarRange(r_particleSort, 0, 1, qtrue);
 	r_particleProfile = R_Cvar("r_particleProfile", "0", 0,
-		"Print main particle-pass CPU microseconds, draw items and depth copies (developer profiling)");
+		"Developer profiler: 1 stream CPU/GPU records, 2 buffer until r_particleTest profile-dump");
 	particleDepthCopies = 0;
 	particleProfileFresh = false;
 	r_particleBatching = R_Cvar("r_particleBatching", "1", CVAR_ARCHIVE | CVAR_LATCH,
