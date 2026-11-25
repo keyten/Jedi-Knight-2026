@@ -93,6 +93,7 @@ const refFoliageCutExport_t	*reFoliageCut = NULL;	// optional, see tr_public.h
 const refVolParticleExport_t	*reVolParticles = NULL;	// optional, see tr_public.h
 const refSpotLightExport_t	*reSpotLights = NULL;	// optional, see tr_public.h
 const refLensWaterExport_t	*reLensWater = NULL;	// optional, see tr_public.h
+const refFxEventExport_t	*reFxEvents = NULL;	// optional, see tr_public.h
 const refWaterInteractionExport_t *reWaterInteraction = NULL;
 static void *rendererLib = NULL;
 
@@ -927,6 +928,8 @@ static void CL_ShutdownRef( qboolean restarting ) {
 	reWaterInteraction = NULL;
 	Cvar_Set2( "cl_rendererWaterInteraction", "0", qtrue );
 	Cvar_Set2( "cl_rendererLensWater", "0", qtrue );
+	reFxEvents = NULL;
+	Cvar_Set2( "cl_rendererFxEvents", "0", qtrue );
 
 	if ( rendererLib != NULL ) {
 		Sys_UnloadDll (rendererLib);
@@ -1257,9 +1260,14 @@ void CL_InitRef( void ) {
 	Cvar_Set2( "cl_rendererSpotLights", !reSpotLights ? "0" : reSpotLights->RegisterLightCookie ? "2" : "1", qtrue );
 	GetRefLensWaterAPI_t GetRefLensWaterAPI = (GetRefLensWaterAPI_t)Sys_LoadFunction( rendererLib, "GetRefLensWaterAPI" );
 	reLensWater = GetRefLensWaterAPI ? GetRefLensWaterAPI() : NULL;
+	GetRefFxEventAPI_t GetRefFxEventAPI = (GetRefFxEventAPI_t)Sys_LoadFunction( rendererLib, "GetRefFxEventAPI" );
+	reFxEvents = GetRefFxEventAPI ? GetRefFxEventAPI() : NULL;
 	// the cgame calls CG_R_ADDLENSWATEREVENT only when set (lens water events)
 	Cvar_Get( "cl_rendererLensWater", "0", CVAR_ROM );
 	Cvar_Set2( "cl_rendererLensWater", reLensWater ? "1" : "0", qtrue );
+	// the cgame calls CG_R_ADDFXEVENT only when set (FX upgrade events)
+	Cvar_Get( "cl_rendererFxEvents", "0", CVAR_ROM );
+	Cvar_Set2( "cl_rendererFxEvents", reFxEvents ? "1" : "0", qtrue );
 	GetRefWaterInteractionAPI_t GetRefWaterInteractionAPI = (GetRefWaterInteractionAPI_t)Sys_LoadFunction( rendererLib, "GetRefWaterInteractionAPI" );
 	reWaterInteraction = GetRefWaterInteractionAPI ? GetRefWaterInteractionAPI() : NULL;
 	Cvar_Get( "cl_rendererWaterInteraction", "0", CVAR_ROM );

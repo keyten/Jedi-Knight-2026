@@ -2118,6 +2118,7 @@ void R_Register( void )
 	R_RegisterCharacterCullCvars();
 	R_RegisterMd3InstanceCvars();
 	R_InitParticleCvars();
+	R_FxUpgradesRegister();
 	//
 	// latched and archived variables
 	//
@@ -4211,6 +4212,7 @@ void RE_Shutdown( qboolean destroyWindow, qboolean restarting ) {
 		R_ShutdownPomSilhouette();
 		R_ShutdownVolumetric();
 		R_ShutdownRainLens();
+		R_FxUpgradesShutdown();
 		R_WaterSurfaceShutdown();
 		R_WaterParticlesShutdown();
 
@@ -4454,6 +4456,17 @@ extern "C" Q_EXPORT const refLensWaterExport_t* QDECL GetRefLensWaterAPI ( void 
 	return &lensWater;
 }
 
+/*
+@@@@@@@@@@@@@@@@@@@@@
+GetRefFxEventAPI
+
+Optional extension (tr_public.h): played efx events, tr_fxupgrades.cpp
+@@@@@@@@@@@@@@@@@@@@@
+*/
+extern "C" Q_EXPORT const refFxEventExport_t* QDECL GetRefFxEventAPI ( void ) {
+	static const refFxEventExport_t fxEvents = { RE_AddFxEvent, RE_FxEventsWanted };
+	return &fxEvents;
+}
 extern "C" Q_EXPORT const refWaterInteractionExport_t* QDECL GetRefWaterInteractionAPI ( void ) {
 	static const refWaterInteractionExport_t waterInteraction = { RE_AddWaterImpulse, RE_SetWaterSources };
 	return &waterInteraction;

@@ -290,6 +290,18 @@ void SFxHelper::CameraShake( vec3_t origin, float intensity, int radius, int tim
 }
 
 //------------------------------------------------------
+bool SFxHelper::FxEventsWanted( void )
+{
+	return cl_rendererFxEvents.integer && ( cg_rendererFxGpuParticles.integer || cg_rendererFxLayering.integer );
+}
+
+//------------------------------------------------------
+void SFxHelper::AddFxEvent( const refFxEvent_t &event )
+{
+	cgi_R_AddFxEvent( &event );
+}
+
+//------------------------------------------------------
 void SFxHelper::AddLensWaterEvent( const vec3_t origin, int type, float strength, float radius, int lifeMs )
 {
 	CG_LensWaterEvent( type, origin, radius > 0.0f ? LENSWATER_F_ORIGIN : 0, radius,

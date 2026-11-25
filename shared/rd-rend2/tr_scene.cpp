@@ -1098,6 +1098,10 @@ void RE_BeginScene(const refdef_t *fd)
 	R_WaterBodiesDebugDraw(fd);
 	R_LuxelDebugDraw(fd);
 
+	// r_fxLights / r_fxDistortion / r_fxGpuParticles / r_fxLayering (tr_fxupgrades.cpp):
+	// FX lights and layers of this scene, before it takes its lights and decals
+	R_FxUpgradesBeginScene(fd, r_firstSceneEntity, r_numentities, r_firstSceneDlight,
+		r_numdlights - r_firstSceneDlight);
 	tr.refdef.num_dlights = r_numdlights - r_firstSceneDlight;
 	tr.refdef.dlights = &backEndData->dlights[r_firstSceneDlight];
 

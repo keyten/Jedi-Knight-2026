@@ -469,6 +469,16 @@ typedef struct refLensWaterExport_s {
 
 typedef	const refLensWaterExport_t* (QDECL *GetRefLensWaterAPI_t) ( void );
 
+// Optional renderer extension (rend2 FX upgrades), looked up as
+// "GetRefFxEventAPI". Posts one played FX event; ignored while r_fxGpuParticles
+// and r_fxLayering are off. Other renderers lack it and callers skip it.
+typedef struct refFxEventExport_s {
+	void		(*AddFxEvent)( const refFxEvent_t *event );
+	qboolean	(*FxEventsWanted)( void );	// cheap: skip classification when qfalse
+} refFxEventExport_t;
+
+typedef	const refFxEventExport_t* (QDECL *GetRefFxEventAPI_t) ( void );
+
 // Optional modern-water interaction extension.  SetWaterSources replaces the
 // complete moving-source list for the next rendered frame; count zero clears
 // it. The renderer tracks stable IDs and injects by distance travelled, making

@@ -133,6 +133,7 @@ const refFoliageCutExport_t	*reFoliageCut = NULL;	// optional, see tr_public.h
 const refVolParticleExport_t	*reVolParticles = NULL;	// optional, see tr_public.h
 const refSpotLightExport_t	*reSpotLights = NULL;	// optional, see tr_public.h
 const refLensWaterExport_t	*reLensWater = NULL;	// optional, see tr_public.h
+const refFxEventExport_t	*reFxEvents = NULL;	// optional, see tr_public.h
 const refWaterInteractionExport_t *reWaterInteraction = NULL;
 static void	*rendererLib = NULL;
 
@@ -2335,6 +2336,7 @@ static void CL_ShutdownRef( qboolean restarting ) {
 	reSpotLights = NULL;
 	reLensWater = NULL;
 	reWaterInteraction = NULL;
+	reFxEvents = NULL;
 
 	if ( rendererLib != NULL ) {
 		Sys_UnloadDll (rendererLib);
@@ -2569,6 +2571,8 @@ void CL_InitRef( void ) {
 	reSpotLights = GetRefSpotLightAPI ? GetRefSpotLightAPI() : NULL;
 	GetRefLensWaterAPI_t GetRefLensWaterAPI = (GetRefLensWaterAPI_t)Sys_LoadFunction( rendererLib, "GetRefLensWaterAPI" );
 	reLensWater = GetRefLensWaterAPI ? GetRefLensWaterAPI() : NULL;
+	GetRefFxEventAPI_t GetRefFxEventAPI = (GetRefFxEventAPI_t)Sys_LoadFunction( rendererLib, "GetRefFxEventAPI" );
+	reFxEvents = GetRefFxEventAPI ? GetRefFxEventAPI() : NULL;
 	GetRefWaterInteractionAPI_t GetRefWaterInteractionAPI = (GetRefWaterInteractionAPI_t)Sys_LoadFunction( rendererLib, "GetRefWaterInteractionAPI" );
 	reWaterInteraction = GetRefWaterInteractionAPI ? GetRefWaterInteractionAPI() : NULL;
 

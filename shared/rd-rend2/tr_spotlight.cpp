@@ -138,6 +138,8 @@ qboolean R_SpotProjectedShadow( const dlight_t *dl )
 // false: the light casts no shadow at all (SPOTLIGHT_NOSHADOW, r_spotLightShadows 0)
 qboolean R_DlightCastsShadow( const dlight_t *dl )
 {
+	if ( dl->noShadow )
+		return qfalse;
 	if ( !dl->spot )
 		return qtrue;
 	return (qboolean)(!dl->spotNoShadow && r_spotLightShadows->integer);

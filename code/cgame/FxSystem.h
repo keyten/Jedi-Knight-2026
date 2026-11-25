@@ -104,6 +104,9 @@ struct SFxHelper
 	// water onto the camera lens (rend2 lens water, engine + renderer
 	// extension): nothing without it
 	void	AddLensWaterEvent( const vec3_t origin, int type, float strength, float radius, int lifeMs );
+	// rend2 FX upgrades (GetRefFxEventAPI): a played, classified effect
+	bool	FxEventsWanted( void );
+	void	AddFxEvent( const refFxEvent_t &event );
 };
 
 extern SFxHelper	theFxHelper;

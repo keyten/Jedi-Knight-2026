@@ -1146,6 +1146,8 @@ typedef struct dlight_s {
 	float	spotCosInner;		// full intensity at and above
 	float	spotCosOuter;		// zero at and below
 	qboolean spotNoShadow;
+	// FX lights (tr_fxupgrades.cpp) and other cheap lights: never shadowed
+	qboolean noShadow;
 	// cookie (tr_lightcookie.cpp): layer of tr.lightCookieArray, -1 = none
 	// (factor 1); roll of the cookie around the axis, radians, from the
 	// stable basis of R_SpotShadowAxis
@@ -3200,6 +3202,8 @@ typedef enum
 	UNIFORM_RTCASCADEMVP,
 	UNIFORM_RTCASCADEINFO,
 	UNIFORM_RTHYBRID,
+	UNIFORM_FXMATRIX,			// tr_fxupgrades.cpp: [0] world to clip, [1] its inverse
+	UNIFORM_FXPARAMS,			// tr_fxupgrades.cpp: 4 vec4, see the fx_*.glsl programs
 	UNIFORM_COUNT
 } uniform_t;
 
@@ -4912,6 +4916,10 @@ typedef struct trGlobals_s {
 	shaderProgram_t motionBlurShader[MOTIONBLURDEF_COUNT];
 	shaderProgram_t rainLensShader[RAINLENSDEF_COUNT];
 	shaderProgram_t rainLensCompositeShader[RAINLENSCOMPOSITE_COUNT];
+	// r_fxDistortion (0 offsets, 1 composite), r_fxGpuParticles draw and simulation
+	shaderProgram_t fxDistortionShader[2];
+	shaderProgram_t fxParticleShader;
+	shaderProgram_t fxParticleSimShader;
 	shaderProgram_t volumetricInjectShader;
 	shaderProgram_t volumetricIntegrateShader;
 	shaderProgram_t volumetricInjectComputeShader;
@@ -6772,6 +6780,16 @@ void RB_RainLensDebugOverlay(void);
 void R_RainLensClear_f(void);
 void RE_AddLensWaterEvent(const refLensWaterEvent_t *event);
 void R_ShutdownRainLens(void);
+
+// tr_fxupgrades.cpp: r_fxLights, r_fxDistortion, r_fxGpuParticles, r_fxLayering
+void R_FxUpgradesRegister(void);
+void R_FxUpgradesShutdown(void);
+qboolean R_FxDistortionProgramsWanted(void);
+qboolean R_FxParticleProgramsWanted(void);
+qboolean RE_FxEventsWanted(void);
+void RE_AddFxEvent(const refFxEvent_t *event);
+void R_FxUpgradesBeginScene(const refdef_t *fd, int firstEntity, int numEntities, int firstDlight, int numDlights);
+void RB_FxUpgradesView(void);
 float R_RainLensRefractionScale(void);
 void R_LensWaterCommand(const char *args);
 void R_LoadLensWaterEmittersJson(world_t *world, const char *json, const char *jsonEnd, const char *filename);

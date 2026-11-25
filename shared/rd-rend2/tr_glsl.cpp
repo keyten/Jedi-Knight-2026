@@ -541,6 +541,8 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_RtCascadeMvp",			GLSL_MAT4x4, 3 },
 	{ "u_RtCascadeInfo",			GLSL_VEC4, 3 },
 	{ "u_RtHybrid",				GLSL_VEC4, 1 },
+	{ "u_FxMatrix",				GLSL_MAT4x4, 2 },
+	{ "u_FxParams",				GLSL_VEC4, 4 },
 };
 
 static_assert(ARRAY_LEN(uniformsInfo) == UNIFORM_COUNT,
@@ -5112,6 +5114,56 @@ static int GLSL_LoadGPUProgramScreenSpaceAO(
 	return numPrograms;
 }
 
+// r_fxDistortion / r_fxGpuParticles / r_fxLayering (tr_fxupgrades.cpp): built
+// only while the latched cvars want them, so the default costs no compile time
+static int GLSL_LoadGPUProgramFxUpgrades(
+	ShaderProgramBuilder& builder,
+	Allocator& scratchAlloc )
+{
+	int numPrograms = 0;
+	if (R_FxDistortionProgramsWanted())
+	{
+		static const char *defines[2] = { nullptr, "#define USE_COMPOSITE\n" };
+		for (int i = 0; i < 2; i++)
+		{
+			shaderProgram_t *sp = &tr.fxDistortionShader[i];
+			GLSL_LoadGPUProgramBasicWithDefinitions(builder, scratchAlloc, sp,
+				"fx_distortion", fallback_fx_distortionProgram, defines[i], 0);
+			GLSL_InitUniforms(sp);
+			qglUseProgram(sp->program);
+			GLSL_SetUniformInt(sp, i ? UNIFORM_SCREENIMAGEMAP : UNIFORM_TEXTUREMAP, TB_COLORMAP);
+			GLSL_SetUniformInt(sp, i ? UNIFORM_LIGHTMAP : UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+			qglUseProgram(0);
+			GLSL_FinishGPUShader(sp);
+			++numPrograms;
+		}
+	}
+	if (R_FxParticleProgramsWanted() &&
+		GLSL_LoadComputeProgram(&tr.fxParticleSimShader, "fx_particles_sim",
+			fallback_fx_particles_simProgram, "", scratchAlloc, MODERN_SSBO | MODERN_IMAGE_LOAD_STORE))
+	{
+		qglUseProgram(tr.fxParticleSimShader.program);
+		GLSL_SetUniformInt(&tr.fxParticleSimShader, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		qglUseProgram(0);
+		++numPrograms;
+
+		shaderProgram_t *sp = &tr.fxParticleShader;
+		GLSL_LoadGPUProgramBasicWithDefinitions(builder, scratchAlloc, sp,
+			"fx_particles", fallback_fx_particlesProgram, nullptr, 0);
+		GLSL_InitUniforms(sp);
+		qglUseProgram(sp->program);
+		GLSL_SetUniformInt(sp, UNIFORM_TEXTUREMAP, TB_COLORMAP);
+		GLSL_SetUniformInt(sp, UNIFORM_SCREENDEPTHMAP, TB_LIGHTMAP);
+		qglUseProgram(0);
+		GLSL_FinishGPUShader(sp);
+		++numPrograms;
+	}
+	else if (R_FxParticleProgramsWanted())
+	{
+		ri.Printf(PRINT_ALL, "r_fxGpuParticles: needs r_gl43 1 and GL 4.3 compute; secondary particles disabled\n");
+	}
+	return numPrograms;
+}
 static int GLSL_LoadGPUProgramRainLens(
 	ShaderProgramBuilder& builder,
 	Allocator& scratchAlloc )
@@ -7008,6 +7060,7 @@ static void GLSL_RunStartupLoaders( ShaderProgramBuilder& builder, Allocator& al
 	numEtc += GLSL_LoadGPUProgramScreenSpaceAO(builder, allocator);
 	numEtc += GLSL_LoadGPUProgramMotionBlur(builder, allocator);
 	numEtc += GLSL_LoadGPUProgramRainLens(builder, allocator);
+	numEtc += GLSL_LoadGPUProgramFxUpgrades(builder, allocator);
 	numEtc += GLSL_LoadGPUProgramScreenSpace(builder, allocator);
 	numEtc += GLSL_LoadGPUProgramRtShadows(builder, allocator);
 	numEtc += GLSL_LoadGPUProgramVolumetric(builder, allocator);
@@ -7242,6 +7295,10 @@ void GLSL_ShutdownGPUShaders(void)
 		GLSL_DeleteGPUShader(&tr.rainLensShader[i]);
 	for ( i = 0; i < RAINLENSCOMPOSITE_COUNT; i++)
 		GLSL_DeleteGPUShader(&tr.rainLensCompositeShader[i]);
+	for ( i = 0; i < 2; i++ )
+		GLSL_DeleteGPUShader(&tr.fxDistortionShader[i]);
+	GLSL_DeleteGPUShader(&tr.fxParticleShader);
+	GLSL_DeleteGPUShader(&tr.fxParticleSimShader);
 
 	GLSL_DeleteGPUShader(&tr.volumetricInjectShader);
 	GLSL_DeleteGPUShader(&tr.volumetricIntegrateShader);

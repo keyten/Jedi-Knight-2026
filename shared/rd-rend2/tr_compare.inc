@@ -87,6 +87,10 @@ COMPARE_FEATURE(RC_PUDDLERIPPLES, "r_weatherPuddleRipplesCompare", "r_weatherPud
 COMPARE_FEATURE(RC_RUNOFF, "r_weatherRunoffCompare", "r_weatherRunoff", 1, qtrue, "water running down walls (r_weatherRunoff)", "no runoff", NULL)
 COMPARE_FEATURE(RC_RAINSPLASHES, "r_rainSplashesCompare", "r_rainSplashes", 1, qtrue, "rain splashes (r_rainSplashes)", "no splashes", NULL)
 COMPARE_FEATURE(RC_RAINLENS, "r_rainLensCompare", "r_rainLens", 1, qtrue, "water on the camera lens (r_rainLens)", "a dry lens", NULL)
+COMPARE_FEATURE(RC_FXLIGHTS, "r_fxLightsCompare", "r_fxLights", 1, qfalse, "FX sprites as lights (r_fxLights)", "FX that light nothing", "a light falls on the whole scene, both sides of a split")
+COMPARE_FEATURE(RC_FXDISTORTION, "r_fxDistortionCompare", "r_fxDistortion", 1, qtrue, "FX heat haze and shock distortion (r_fxDistortion)", "no distortion", NULL)
+COMPARE_FEATURE(RC_FXGPUPARTICLES, "r_fxGpuParticlesCompare", "r_fxGpuParticles", 1, qtrue, "GPU secondary sparks and embers (r_fxGpuParticles)", "only the efx particles", NULL)
+COMPARE_FEATURE(RC_FXLAYERING, "r_fxLayeringCompare", "r_fxLayering", 1, qfalse, "automatic FX layers (r_fxLayering)", "the stock effects", "the added decals and lights belong to the world, not to one side")
 COMPARE_FEATURE(RC_ACIDRAIN, "r_acidRainCompare", "r_acidRainVisuals", 1, qfalse, "the acid rain tint (r_acidRainVisuals)", "each effect's own color", "the tint is chosen once per frame for every rain effect")
 
 // water

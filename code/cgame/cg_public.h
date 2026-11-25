@@ -256,6 +256,10 @@ Ghoul2 Insert End
 	// one step of an attacking saber blade, cuts the foliage (rend2 foliage
 	// cut extension); only called with cl_rendererFoliageCut set by the engine
 	CG_R_ADDFOLIAGESABERCUT,
+
+	// one played efx event (rend2 r_fxGpuParticles / r_fxLayering); only
+	// called with cl_rendererFxEvents set by the engine
+	CG_R_ADDFXEVENT,
 } cgameImport_t;
 
 #ifdef JK2_MODE

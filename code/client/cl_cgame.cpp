@@ -1045,6 +1045,10 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		if ( reFoliageWaves && reFoliageWaves->AddFoliageForceWave )
 			reFoliageWaves->AddFoliageForceWave( (const foliageForceWave_t *) VMA(1) );
 		return 0;
+	case CG_R_ADDFXEVENT:
+		if ( reFxEvents && reFxEvents->AddFxEvent )
+			reFxEvents->AddFxEvent( (const refFxEvent_t *) VMA(1) );
+		return 0;
 	case CG_R_ADDFOLIAGESABERCUT:
 		if ( reFoliageCut && reFoliageCut->AddFoliageSaberCut )
 			reFoliageCut->AddFoliageSaberCut( (const foliageSaberCut_t *) VMA(1) );

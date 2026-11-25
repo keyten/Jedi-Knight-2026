@@ -347,6 +347,9 @@ int		cgi_R_RegisterLightCookie( const char *name ) {
 	return Q_syscall( CG_R_REGISTERLIGHTCOOKIE, name );
 }
 
+void	cgi_R_AddFxEvent( const refFxEvent_t *event ) {
+	Q_syscall( CG_R_ADDFXEVENT, event );
+}
 void	cgi_R_AddLensWaterEvent( const refLensWaterEvent_t *event ) {
 	Q_syscall( CG_R_ADDLENSWATEREVENT, event );
 }

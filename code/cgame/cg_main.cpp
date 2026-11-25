@@ -253,6 +253,9 @@ vmCvar_t fx_physicalizationStrength;
 vmCvar_t fx_physicalizationComposite, fx_physicalizationAdaptive, fx_physicalizationEmission, fx_physicalizationSources;
 vmCvar_t	cl_rendererSpotLights;	// engine: the renderer has spot lights (CG_R_ADDSPOTLIGHT)
 vmCvar_t	cl_rendererLensWater;	// engine: the renderer has lens water (CG_R_ADDLENSWATEREVENT)
+vmCvar_t	cl_rendererFxEvents;	// engine: the renderer takes FX events (CG_R_ADDFXEVENT)
+vmCvar_t	cg_rendererFxGpuParticles;	// mirrors of the renderer's r_fxGpuParticles / r_fxLayering
+vmCvar_t	cg_rendererFxLayering;
 vmCvar_t	cl_rendererWaterInteraction;	// engine: modern-water interaction syscalls are available
 vmCvar_t	cl_rendererFoliageWaves;	// engine: the renderer takes Force push / pull waves (CG_R_ADDFOLIAGEFORCEWAVE)
 vmCvar_t	cl_rendererFoliageCut;	// engine: the renderer takes saber cuts of the foliage (CG_R_ADDFOLIAGESABERCUT)
@@ -397,6 +400,9 @@ static cvarTable_t cvarTable[] = {
 	{ &fx_physicalizationSources, "fx_physicalizationSources", "0", CVAR_ARCHIVE },
 	{ &cl_rendererSpotLights, "cl_rendererSpotLights", "0", 0 },
 	{ &cl_rendererLensWater, "cl_rendererLensWater", "0", 0 },
+	{ &cl_rendererFxEvents, "cl_rendererFxEvents", "0", 0 },
+	{ &cg_rendererFxGpuParticles, "r_fxGpuParticles", "0", CVAR_ARCHIVE | CVAR_LATCH },
+	{ &cg_rendererFxLayering, "r_fxLayering", "0", CVAR_ARCHIVE | CVAR_LATCH },
 	{ &cl_rendererWaterInteraction, "cl_rendererWaterInteraction", "0", 0 },
 	{ &cl_rendererFoliageWaves, "cl_rendererFoliageWaves", "0", 0 },
 	{ &cl_rendererFoliageCut, "cl_rendererFoliageCut", "0", 0 },

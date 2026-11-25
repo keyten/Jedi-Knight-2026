@@ -29,6 +29,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include "fx/FxLayering.h"
 
 CFxScheduler	theFxScheduler;
 
@@ -800,6 +801,49 @@ void GetRGB_Colors( CPrimitiveTemplate *fx, vec3_t outStartRGB, vec3_t outEndRGB
 // Return:
 //	none
 //------------------------------------------------------
+//------------------------------------------------------
+// rend2 FX upgrades (r_fxGpuParticles / r_fxLayering): one classified event
+// per played effect, with the layers the template already has
+// (shared/fx/FxLayering.h, docs/rend2-fx-upgrades.md)
+static void FX_PostLayerEvent( const SEffectTemplate *fx, const vec3_t origin, const vec3_t dir, bool isPortal )
+{
+	if ( isPortal || !theFxHelper.FxEventsWanted() )
+		return;
+	const int fxClass = FxLayering::Classify( fx->mEffectName );
+	if ( fxClass == FxLayering::ClassNone )
+		return;
+	int has = 0;
+	for ( int i = 0; i < fx->mPrimitiveCount; i++ )
+	{
+		const CPrimitiveTemplate *prim = fx->mPrimitives[i];
+		switch ( prim->mType )
+		{
+		case Light: has |= FxLayering::HasLight; break;
+		case Decal: has |= FxLayering::HasDecal; break;
+		case Line: case Tail: case Electricity: has |= FxLayering::HasSparks; break;
+		case Cylinder: has |= FxLayering::HasDistortion; break;
+		case Particle: case OrientedParticle:
+			if ( FxLayering::Contains( prim->mName, "spark" ) ) has |= FxLayering::HasSparks;
+			if ( FxLayering::Contains( prim->mName, "dust" ) || FxLayering::Contains( prim->mName, "smoke" ) ||
+				FxLayering::Contains( prim->mName, "debris" ) )
+				has |= FxLayering::HasDust;
+			if ( FxLayering::Contains( prim->mName, "shock" ) || FxLayering::Contains( prim->mName, "wave" ) )
+				has |= FxLayering::HasDistortion;
+			break;
+		default: break;
+		}
+	}
+	refFxEvent_t ev = {};
+	VectorCopy( origin, ev.origin );
+	if ( dir )
+		VectorCopy( dir, ev.dir );
+	ev.fxClass = fxClass;
+	ev.has = has;
+	ev.scale = 1.0f;
+	theFxHelper.AddFxEvent( ev );
+}
+
+
 void CFxScheduler::PlayEffect( int id, vec3_t origin, matrix3_t axis, const int boltInfo, CGhoul2Info_v *ghoul2, int fxParm /*-1*/, int vol, int rad, bool isPortal/*false*/, int iLoopTime/*0*/,  bool isRelative )
 {
 	SEffectTemplate			*fx;
@@ -856,6 +900,7 @@ void CFxScheduler::PlayEffect( int id, vec3_t origin, matrix3_t axis, const int 
 
 	// Get the effect.
 	fx = &mEffectTemplates[id];
+	FX_PostLayerEvent( fx, origin, axis ? axis[0] : NULL, isPortal );
 
 #ifndef FINAL_BUILD
 	if ( fx_debug->integer == 2 )

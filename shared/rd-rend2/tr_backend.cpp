@@ -3097,6 +3097,9 @@ static void RB_RenderMainPass( drawSurf_t *drawSurfs, int numDrawSurfs )
 		FBO_Bind(oldFbo);
 	}
 
+	// r_fxGpuParticles / r_fxDistortion (tr_fxupgrades.cpp): after every
+	// transparent surface of the main view, before the stencil shadows
+	RB_FxUpgradesView();
 	// darken down any stencil shadows
 	RB_ShadowFinish();
 

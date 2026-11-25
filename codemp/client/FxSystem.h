@@ -230,6 +230,9 @@ public:
 	// water onto the camera lens (rend2 lens water renderer extension):
 	// nothing without it
 	void	AddLensWaterEvent( const vec3_t origin, int type, float strength, float radius, int lifeMs );
+	// rend2 FX upgrades (GetRefFxEventAPI): a played, classified effect
+	bool	FxEventsWanted( void );
+	void	AddFxEvent( const refFxEvent_t &event );
 	qboolean GetOriginAxisFromBolt(CGhoul2Info_v *pGhoul2, int mEntNum, int modelNum, int boltNum, vec3_t /*out*/origin, vec3_t /*out*/axis[3]);
 };
 

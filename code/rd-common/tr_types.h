@@ -492,6 +492,31 @@ typedef struct {
 	float		duration;		// seconds, LENSWATER_SPRAY only (0 = default)
 } refLensWaterEvent_t;
 
+// One played FX event for the rend2 FX upgrades (docs/rend2-fx-upgrades.md):
+// r_fxGpuParticles secondary sparks / embers and r_fxLayering missing layers.
+// Posted by the FX scheduler through the optional renderer extension
+// GetRefFxEventAPI; the class comes from shared/fx/FxLayering.h.
+#define FXEV_CLASS_NONE			0
+#define FXEV_CLASS_IMPACT_METAL	1
+#define FXEV_CLASS_IMPACT_STONE	2
+#define FXEV_CLASS_IMPACT_ENERGY	3
+#define FXEV_CLASS_EXPLOSION	4
+#define FXEV_CLASS_MUZZLE		5
+#define FXEV_CLASS_FIRE			6
+#define FXEV_CLASS_SPARKS		7
+#define FXEV_HAS_LIGHT			1
+#define FXEV_HAS_DECAL			2
+#define FXEV_HAS_SPARKS			4
+#define FXEV_HAS_DUST			8
+#define FXEV_HAS_DISTORTION		16
+typedef struct refFxEvent_s {
+	float		origin[3];
+	float		dir[3];			// effect forward (impact normal), unit or zero
+	int			fxClass;		// FXEV_CLASS_*
+	int			has;			// FXEV_HAS_*: layers the effect already has
+	float		scale;			// 1 = stock size
+} refFxEvent_t;
+
 // World-space disturbances for the modern water surface.  The leading fields
 // retain the original interaction API layout; the remaining fields describe a
 // physical splash event.  A zero bodyId asks the renderer to resolve the water

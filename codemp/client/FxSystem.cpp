@@ -214,6 +214,18 @@ void SFxHelper::AdjustTime( int frametime )
 }
 
 //------------------------------------------------------
+bool SFxHelper::FxEventsWanted( void )
+{
+	return reFxEvents && reFxEvents->AddFxEvent && reFxEvents->FxEventsWanted && reFxEvents->FxEventsWanted();
+}
+
+//------------------------------------------------------
+void SFxHelper::AddFxEvent( const refFxEvent_t &event )
+{
+	reFxEvents->AddFxEvent( &event );
+}
+
+//------------------------------------------------------
 void SFxHelper::AddLensWaterEvent( const vec3_t origin, int type, float strength, float radius, int lifeMs )
 {
 	if ( !reLensWater || !reLensWater->AddLensWaterEvent )

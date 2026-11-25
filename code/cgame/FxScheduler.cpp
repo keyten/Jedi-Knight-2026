@@ -44,6 +44,7 @@ along with this program; if not, see <http://www.gnu.org/licenses/>.
 #include "qcommon/safe/string.h"
 #include <cmath>
 #include "qcommon/ojk_saved_game_helper.h"
+#include "fx/FxLayering.h"
 
 CFxScheduler	theFxScheduler;
 
@@ -1225,6 +1226,49 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, int clientID, int delay
 // Return:
 //	none
 //------------------------------------------------------
+//------------------------------------------------------
+// rend2 FX upgrades (r_fxGpuParticles / r_fxLayering): one classified event
+// per played effect, with the layers the template already has
+// (shared/fx/FxLayering.h, docs/rend2-fx-upgrades.md)
+static void FX_PostLayerEvent( const SEffectTemplate *fx, const vec3_t origin, const vec3_t dir, bool isPortal )
+{
+	if ( isPortal || !theFxHelper.FxEventsWanted() )
+		return;
+	const int fxClass = FxLayering::Classify( fx->mEffectName );
+	if ( fxClass == FxLayering::ClassNone )
+		return;
+	int has = 0;
+	for ( int i = 0; i < fx->mPrimitiveCount; i++ )
+	{
+		const CPrimitiveTemplate *prim = fx->mPrimitives[i];
+		switch ( prim->mType )
+		{
+		case Light: has |= FxLayering::HasLight; break;
+		case Decal: has |= FxLayering::HasDecal; break;
+		case Line: case Tail: case Electricity: has |= FxLayering::HasSparks; break;
+		case Cylinder: has |= FxLayering::HasDistortion; break;
+		case Particle: case OrientedParticle:
+			if ( FxLayering::Contains( prim->mName, "spark" ) ) has |= FxLayering::HasSparks;
+			if ( FxLayering::Contains( prim->mName, "dust" ) || FxLayering::Contains( prim->mName, "smoke" ) ||
+				FxLayering::Contains( prim->mName, "debris" ) )
+				has |= FxLayering::HasDust;
+			if ( FxLayering::Contains( prim->mName, "shock" ) || FxLayering::Contains( prim->mName, "wave" ) )
+				has |= FxLayering::HasDistortion;
+			break;
+		default: break;
+		}
+	}
+	refFxEvent_t ev = {};
+	VectorCopy( origin, ev.origin );
+	if ( dir )
+		VectorCopy( dir, ev.dir );
+	ev.fxClass = fxClass;
+	ev.has = has;
+	ev.scale = 1.0f;
+	theFxHelper.AddFxEvent( ev );
+}
+
+
 void CFxScheduler::PlayEffect( int id, vec3_t origin, vec3_t axis[3], const int boltInfo, const int entNum, bool isPortal, int iLoopTime, bool isRelative )
 {
 	SEffectTemplate			*fx;
@@ -1280,6 +1324,7 @@ void CFxScheduler::PlayEffect( int id, vec3_t origin, vec3_t axis[3], const int 
 
 	// Get the effect.
 	fx = &mEffectTemplates[id];
+	FX_PostLayerEvent( fx, origin, axis ? axis[0] : NULL, isPortal );
 
 	// Loop through the primitives and schedule each bit
 	for ( i = 0; i < fx->mPrimitiveCount; i++ )

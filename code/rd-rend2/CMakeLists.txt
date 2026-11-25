@@ -54,6 +54,7 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_waterparticles.cpp"
 	"${SharedDir}/rd-rend2/tr_volparticle.cpp"
 	"${SharedDir}/rd-rend2/tr_particles.cpp"
+	"${SharedDir}/rd-rend2/tr_fxupgrades.cpp"
 	"${SharedDir}/rd-rend2/tr_spotlight.cpp"
 	"${SharedDir}/rd-rend2/tr_lightcookie.cpp"
 	"${SharedDir}/rd-rend2/tr_forwardplus.cpp"
