@@ -127,3 +127,15 @@ Machine-readable capture differences, query counts and limitations are in
 A follow-up adds the explicit 256-unit near-camera bypass and its production-policy
 regression gate. The combined integration build/runtime validates this change;
 the initial one-LSB capture above predates the bypass.
+
+
+## Final combined validation
+
+The [integration receipt](rend2-render-batching-integration.md) supersedes the
+outstanding initial velocity/shadow coverage note: initialized sun cascades and
+fused velocity passed in the combined Yavin scene with native grass, repeated MD3s
+and character culling enabled. Query-only/conditional captures, including the moved
+near camera, matched every channel. The near view issued zero model queries with
+the 256-unit bypass. Far current-frame queries were exercised; the combined CPU-ready
+skip lower bound was zero, so no additional avoided draws are inferred from its
+hidden-result count. Four CPU tests and both renderer builds passed after merging.

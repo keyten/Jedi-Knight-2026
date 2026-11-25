@@ -1,0 +1,117 @@
+{
+  "capture_channel_differences": {
+    "reference/compact": 0,
+    "compact/instances": 0,
+    "instances/grass": 0,
+    "query_reference/conditional": 0,
+    "reference/repeat": 0,
+    "near_query/near_conditional": 0
+  },
+  "md3_sampled_frames": [
+    [
+      40,
+      155,
+      2,
+      40,
+      38,
+      0,
+      21504
+    ]
+  ],
+  "sprite_sampled_frames": [
+    [
+      5852,
+      774,
+      5078,
+      2277,
+      22230,
+      28,
+      7
+    ]
+  ],
+  "initialized": [
+    "sun cascades",
+    "fused velocity"
+  ],
+  "character_cull": 1,
+  "head": "52b5e367b2116136451e1c102b9613f12972981f",
+  "far_model_queries": [
+    [
+      756,
+      126,
+      144,
+      0,
+      0
+    ]
+  ],
+  "near_model_queries": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  ],
+  "date": "2026-11-25",
+  "driver": "Intel UHD Graphics 27.20.100.8280",
+  "defaults": {
+    "r_worldSurfaceList": 1,
+    "r_surfaceSpritesCompute": 0,
+    "r_modelOcclusion": 1,
+    "r_md3Instancing": 0
+  },
+  "builds": [
+    "SP Release renderer",
+    "MP Release renderer"
+  ],
+  "cpu_tests_passed": [
+    "world_surface_list",
+    "sprite_cull",
+    "md3_instancing",
+    "character_cull"
+  ],
+  "merged_gl_checks_passed": [
+    "md3 ordinary/instance ABI + exact draw parity",
+    "native sprite compute/list/indirect/deformation/velocity parity",
+    "current-frame query protocol/clipping"
+  ],
+  "world_surface_mark_enumerate_us": {
+    "200/200000": [
+      150.15,
+      4.26
+    ],
+    "20000/200000": [
+      451.33,
+      146.02
+    ],
+    "180000/200000": [
+      943.76,
+      812.36
+    ]
+  },
+  "notes": [
+    "CPU microbenchmark covers mark+enumerate only, not full-frame FPS.",
+    "Combined lower-bound CPU-ready model skip counter was zero; no additional avoided calls inferred from hidden queries. Earlier controlled/runtime evidence proves actual conditional rejection.",
+    "Near view admits no model queries after the 256-unit bypass; comparison is byte exact.",
+    "GPU culling and MD3 remain opt-in because full-frame/GPU measurements did not establish a net gain."
+  ],
+  "sha256": {
+    "rdsp-rend2_x86_64.dll": "c0c8e1d772f3f7366025fbf50d104c0f367842bc5a10026e2d017fb10e86a135",
+    "openjk_sp.x86_64.exe": "1ee8499480c3996bc1385e7d0ad0748a343b23b219a47e354b7daa1b0072e9cb",
+    "jagamex86_64.dll": "29b1e03101f32a2bc221b23e65248aca93be5c6a50de6d5f2e4e431a635d5211",
+    "home\\OpenJK\\autoexec_sp.cfg": "e196c8132fd90acbad3893c702f46a04249784a5ad9489d3e31fcc6612692ef4",
+    "home\\OpenJK\\maps\\yavin1.ent": "078f1bc753f83069f350d59e7efeb8f5b988f692d5b0799a9347cb9dec9df83e",
+    "home\\OpenJK\\qconsole.log": "5d399a4a803e022ffdc98c2668d81596263eba97252fb3d0b30cb67431965099",
+    "home\\OpenJK\\screenshots\\batch_compact.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0",
+    "home\\OpenJK\\screenshots\\batch_conditional.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0",
+    "home\\OpenJK\\screenshots\\batch_grass.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0",
+    "home\\OpenJK\\screenshots\\batch_instances.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0",
+    "home\\OpenJK\\screenshots\\batch_lod.tga": "34f6d4042a42fee24266bb5b7385c01650c5e3a25ee8714a194b1a81ee9351d6",
+    "home\\OpenJK\\screenshots\\batch_near_conditional.tga": "34f6d4042a42fee24266bb5b7385c01650c5e3a25ee8714a194b1a81ee9351d6",
+    "home\\OpenJK\\screenshots\\batch_near_query.tga": "34f6d4042a42fee24266bb5b7385c01650c5e3a25ee8714a194b1a81ee9351d6",
+    "home\\OpenJK\\screenshots\\batch_query_reference.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0",
+    "home\\OpenJK\\screenshots\\batch_reference.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0",
+    "home\\OpenJK\\screenshots\\batch_repeat.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0"
+  }
+}
