@@ -17,13 +17,13 @@ int main()
 	for (bool View::* field : {&View::comparison, &View::shadow, &View::portal, &View::sky,
 		&View::skyOccluders, &View::refraction, &View::noWorld})
 	{ View view = allowed; view.*field = true; assert(!Eligible(view)); }
-	Surface expensive = {true,false,false,true,true,false,false,false,true,true,false,false,true,1024};
+	Surface expensive = {true,false,false,true,true,false,false,false,true,true,false,false,true,false,1024};
 	assert(Eligible(expensive));
 	for (bool Surface::* field : {&Surface::ghoul, &Surface::opaque, &Surface::simpleDepth,
 		&Surface::matchingCull, &Surface::safeFlags, &Surface::buffers})
 	{ Surface surface = expensive; surface.*field = false; assert(!Eligible(surface)); }
 	for (bool Surface::* field : {&Surface::world, &Surface::post, &Surface::deforms, &Surface::offset,
-		&Surface::distortion, &Surface::tessellation, &Surface::gore})
+		&Surface::distortion, &Surface::tessellation, &Surface::gore, &Surface::nearCamera})
 	{ Surface surface = expensive; surface.*field = true; assert(!Eligible(surface)); }
 	expensive.indices = 1023; assert(!Eligible(expensive));
 	WorldSurfaceList list;

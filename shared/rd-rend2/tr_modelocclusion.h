@@ -88,6 +88,12 @@ static void RB_PrepareModelOcclusion(drawSurf_t *surfaces, int count)
 		const auto& entity = backEnd.refdef.entities[entityNum];
 		const int safeFlags = RF_MINLIGHT | RF_THIRD_PERSON | RF_NOSHADOW | RF_LIGHTING_ORIGIN |
 			RF_RGB_TINT | RF_CHARACTER | RF_CHARACTER_PLAYER | RF_CHARACTER_NO_CULL | RF_G2MINLOD | RF_MORELIGHT;
+		// Keep close models on the original batching/submission path. This is an
+		// admission fallback, never a guessed visibility or skeletal bound.
+		vec3_t cameraOffset;
+		VectorSubtract(entity.e.origin, backEnd.viewParms.ori.origin, cameraOffset);
+		const float cameraDistanceSquared = DotProduct(cameraOffset, cameraOffset);
+		const bool nearCamera = !std::isfinite(cameraDistanceSquared) || cameraDistanceSquared <= 256.0f * 256.0f;
 		const auto *ghoul = (const CRenderableSurface *)surface.surface;
 		bool gore = false;
 #ifdef _G2_GORE
@@ -98,7 +104,7 @@ static void RB_PrepareModelOcclusion(drawSurf_t *surfaces, int count)
 			shader->numDeforms != 0, shader->polygonOffset != 0, shader->useDistortion != 0,
 			shader->cullType == tr.defaultShader->cullType, (entity.e.renderfx & ~safeFlags) == 0,
 			entity.phongTessStrength > 0.0f, gore,
-			ghoul->vboMesh && ghoul->vboMesh->vbo && ghoul->vboMesh->ibo,
+			ghoul->vboMesh && ghoul->vboMesh->vbo && ghoul->vboMesh->ibo, nearCamera,
 			ghoul->vboMesh ? (unsigned)ghoul->vboMesh->numIndexes : 0};
 		if (!ModelOcclusionPolicy::Eligible(policy)) continue;
 		while (next < MODEL_OCCLUSION_QUERIES && rb_modelQueries[next].pending) ++next;
