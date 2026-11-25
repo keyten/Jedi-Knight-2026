@@ -6,6 +6,13 @@ packets, adds a rounded view-depth contact approximation for simple stock
 billboards, and makes all ten particle feature controls latched. Complex
 materials keep their original UV streams and flat contact path.
 
+The measurements and source hashes refer to FX snapshot `01c027c1b` on the
+`d6d239a65` base. After measurement, the independent character-culling update
+`0704783af` was integrated in `3bfcb4d16`. The combined SP/MP build, 25 character
+culling checks, and native glass/mixed-quad scenes passed. The integrated run
+also verified all ten latch transitions and a hidden, clean process exit.
+These final integration checks are not additional performance measurements.
+
 ## Method
 
 - Native JA SP, stock Hoth3 and assets0–3 only; isolated home for every variant.

@@ -7610,5 +7610,91 @@
     "wall-after.png": "73c0ead018650706b81797be80263c3581e29eda027c4c8fa9fbadaf2a2a68ee",
     "glass-before.png": "cb340a36ef44e27eb10ee40bbe8b41def47fad40a2517b004b623b6c8393886a",
     "glass-after.png": "b4a7733934f970999261f71c7ca504c63dbff85a7145f5b48c31654d34fd232f"
+  },
+  "measured_fx_commit": "01c027c1b",
+  "post_measurement_integration": {
+    "character_cull_commit": "0704783af",
+    "merge_commit": "3bfcb4d16",
+    "sp_mp_build": "passed",
+    "character_unit_checks": 25,
+    "native": {
+      "variant": "volume",
+      "controls": {
+        "r_softParticles": 1,
+        "r_softParticleDistance": 8,
+        "r_particleNearFade": 1,
+        "r_particleCulling": 1,
+        "r_particleSort": 1,
+        "r_particleBatching": 1,
+        "r_transparencySort": 1,
+        "r_particleVolume": 1,
+        "r_particleSoftScale": 0.1,
+        "r_particleDepthOnDemand": 1
+      },
+      "lighting": "legacy",
+      "msaa": 0,
+      "width": 960,
+      "height": 540,
+      "debug_context": false,
+      "hidden": true,
+      "visible_windows": [],
+      "capture_status": {
+        "outcome": "clean_exit",
+        "visible_windows": []
+      },
+      "driver": [
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "GL_RENDERER: NVIDIA GeForce RTX 2060/PCIe/SSE2"
+      ],
+      "cases": {
+        "glass": {
+          "control": {
+            "max_delta": 0,
+            "changed_pixels": 0,
+            "changed_by_12": 0
+          },
+          "presence": {
+            "max_delta": 180,
+            "changed_pixels": 121653,
+            "changed_by_12": 89334
+          }
+        },
+        "floor_mix": {
+          "control": {
+            "max_delta": 0,
+            "changed_pixels": 0,
+            "changed_by_12": 0
+          },
+          "presence": {
+            "max_delta": 147,
+            "changed_pixels": 97818,
+            "changed_by_12": 66307
+          }
+        }
+      },
+      "latch_check": {
+        "pending_image": {
+          "max_delta": 0,
+          "changed_pixels": 0,
+          "changed_by_12": 0
+        },
+        "applied_after_restart": true,
+        "controls_checked": [
+          "r_softParticles",
+          "r_softParticleDistance",
+          "r_particleNearFade",
+          "r_particleCulling",
+          "r_particleSort",
+          "r_particleBatching",
+          "r_transparencySort",
+          "r_particleVolume",
+          "r_particleSoftScale",
+          "r_particleDepthOnDemand"
+        ]
+      }
+    }
   }
 }
