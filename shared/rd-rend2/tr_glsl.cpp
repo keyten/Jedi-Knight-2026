@@ -155,6 +155,7 @@ const uniformBlockInfo_t uniformBlocksInfo[UNIFORM_BLOCK_COUNT] = {
 	{ 12, "FoliageInteraction", sizeof(FoliageInteractionBlock) },
 	{ 13, "VolumetricParticles", sizeof(VolumetricParticlesBlock) },
 	{ 14, "Liquids", sizeof(LiquidsBlock) },
+	{ 15, "Md3Instances", sizeof(Md3InstancesBlock) },
 };
 
 typedef struct uniformInfo_s
@@ -2260,6 +2261,37 @@ enum permutationResult_t
 	PERMUTATION_FAILED,
 };
 
+static const GPUProgramDesc *LoadProgramSource(
+    const char *programName, Allocator& allocator, const GPUProgramDesc& fallback);
+
+// The ordinary families keep their original preprocessed source and register
+// pressure. Only a repeated eligible group requests this lazy variant.
+static bool GLSL_LoadMd3InstanceGPUShader(ShaderProgramBuilder& builder,
+    shaderProgram_t *program, const char *name, uint32_t attribs,
+    const char *extra, const GPUProgramDesc& desc,
+    const GPUShaderDesc *fragmentLibrary, const GPUShaderDesc *vertexLibrary)
+{
+    Allocator allocator(128 * 1024);
+    const GPUProgramDesc *instances = LoadProgramSource("md3_instance", allocator,
+        fallback_md3_instanceProgram);
+    const std::string variantName = std::string(name) + "_MD3_INSTANCED";
+    const std::string defines = std::string(extra ? extra : "") + "\n#define USE_MD3_INSTANCING\n";
+    builder.Start(variantName.c_str(), attribs, NO_XFB_VARS);
+    for (size_t i = 0; i < desc.numShaders; ++i)
+    {
+        GPUShaderDesc stage = desc.shaders[i];
+        const GPUShaderDesc *library = stage.type == GPUSHADER_VERTEX ? vertexLibrary : fragmentLibrary;
+        const GPUShaderDesc *instanceStage = nullptr;
+        for (size_t j = 0; j < instances->numShaders; ++j)
+            if (instances->shaders[j].type == stage.type) instanceStage = &instances->shaders[j];
+        if (!instanceStage) return false;
+        const std::string source = std::string(instanceStage->source) + "\n" + stage.source;
+        stage.source = source.c_str();
+        if (!builder.AddShader(stage, defines.c_str(), library)) return false;
+    }
+    return builder.Build(program);
+}
+
 static permutationResult_t GLSL_LoadPermutation(
 	const GLSL_PermutationFilter& filter,
 	ShaderProgramBuilder& builder,
@@ -2274,6 +2306,9 @@ static permutationResult_t GLSL_LoadPermutation(
 {
 	if (filter.variantDestination)
 	{
+        if (filter.variant == GLSLV_MD3_INSTANCING)
+            return GLSL_LoadMd3InstanceGPUShader(builder, program, name, attribs,
+                extra, programDesc, fragmentLibrary, vertexLibrary) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
 		if (filter.variant == GLSLV_STONE_SURFACE)
 		{
 			const std::string surfaceName = std::string(name) + "_STONE";
@@ -2514,6 +2549,40 @@ void GLSL_FinishGPUShader(shaderProgram_t *program)
 	GLSL_ShowProgramUniforms(program->program);
 	GL_CheckErrors();
 #endif
+}
+
+static size_t GLSL_UniformDataBytes(const UniformData *data)
+{
+    static const size_t components[] = {1, 1, 2, 3, 4, 12, 16};
+    return sizeof(float) * components[uniformsInfo[data->index].type] * data->numElements;
+}
+
+bool GLSL_UniformDataEqual(const UniformData *a, const UniformData *b)
+{
+    if (!a || !b) return a == b;
+    while (a->index != UNIFORM_COUNT && b->index != UNIFORM_COUNT)
+    {
+        if (a->index != b->index || a->numElements != b->numElements) return false;
+        const size_t bytes = GLSL_UniformDataBytes(a);
+        if (memcmp(a + 1, b + 1, bytes)) return false;
+        a = reinterpret_cast<const UniformData *>(reinterpret_cast<const char *>(a + 1) + bytes);
+        b = reinterpret_cast<const UniformData *>(reinterpret_cast<const char *>(b + 1) + bytes);
+    }
+    return a->index == b->index;
+}
+
+uint64_t GLSL_UniformDataHash(const UniformData *data)
+{
+    uint64_t hash = 1469598103934665603ull;
+    if (!data) return hash;
+    while (data->index != UNIFORM_COUNT)
+    {
+        const size_t bytes = sizeof(*data) + GLSL_UniformDataBytes(data);
+        const unsigned char *p = reinterpret_cast<const unsigned char *>(data);
+        for (size_t i = 0; i < bytes; ++i) hash = (hash ^ p[i]) * 1099511628211ull;
+        data = reinterpret_cast<const UniformData *>(p + bytes);
+    }
+    return hash;
 }
 
 void GLSL_SetUniforms( shaderProgram_t *program, UniformData *uniformData )
@@ -3520,6 +3589,7 @@ static int GLSL_LoadGPUProgramGeneric(
 			continue;
 		if (result == PERMUTATION_FAILED)
 		{
+            if (filter.variantDestination && filter.variant == GLSLV_MD3_INSTANCING) continue;
 			ri.Error(ERR_FATAL, "Could not load generic shader!");
 		}
 
@@ -4459,6 +4529,7 @@ static int GLSL_LoadGPUProgramLightAll(
 			continue;
 		if (result == PERMUTATION_FAILED)
 		{
+            if (filter.variantDestination && filter.variant == GLSLV_MD3_INSTANCING) continue;
 			ri.Error(ERR_FATAL, "Could not load lightall shader!");
 		}
 
@@ -6572,7 +6643,8 @@ shaderProgram_t *GLSL_GetDrawVariant(shaderProgram_t *base, glslVariant_t varian
 	auto*& cached = base->variants[variant];
 	if (cached)
 		return cached->program ? cached : base;
-	const int lastFamily = variant == GLSLV_STONE_SURFACE ? LAZY_LIGHTALL : LAZY_REFRACTION;
+	const int lastFamily = variant == GLSLV_MD3_INSTANCING ? LAZY_GENERIC :
+        variant == GLSLV_STONE_SURFACE ? LAZY_LIGHTALL : LAZY_REFRACTION;
 	for (int f = LAZY_LIGHTALL; f <= lastFamily; ++f)
 	{
 		const lazyFamily_t& family = GLSL_LazyFamily(f);
@@ -6589,7 +6661,7 @@ shaderProgram_t *GLSL_GetDrawVariant(shaderProgram_t *base, glslVariant_t varian
 		filter.variantIndex = (int)(base - family.programs);
 		filter.variant = variant;
 		family.load(builder, allocator, filter);
-		target.voronoiFracturing = variant != GLSLV_PHONG;
+		target.voronoiFracturing = variant == GLSLV_STONE_GEOMETRY || variant == GLSLV_STONE_SURFACE;
 		if (target.voronoiFracturing && target.program)
 		{
 			qglUseProgram(target.program);

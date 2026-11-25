@@ -56,6 +56,7 @@ layout(std140) uniform Camera
 	vec4 u_SunShadowSnap;  // grid steps per NDC unit x/y (0 = off), translation on that grid
 };
 
+#if !defined(USE_MD3_INSTANCING)
 layout(std140) uniform Entity
 {
 	mat4 u_ModelMatrix;
@@ -76,6 +77,7 @@ layout(std140) uniform Entity
 	vec4 u_EntitySun;		// r_entitySunLight: sun rgb, w 1 = split (0 = legacy light)
 	#endif
 };
+#endif
 
 #if defined(USE_SKELETAL_ANIMATION)
 layout(std140) uniform Bones
@@ -259,6 +261,10 @@ mat4x3 GetBoneMatrix(uint index)
 
 void main()
 {
+#if defined(USE_MD3_INSTANCING)
+	var_Md3Instance = gl_InstanceID;
+#endif
+
 #if defined(USE_VERTEX_ANIMATION)
 	vec3 position  = mix(attr_Position,    attr_Position2,    u_VertexLerp);
 	vec3 normal    = mix(attr_Normal,      attr_Normal2,      u_VertexLerp);
@@ -512,6 +518,7 @@ layout(std140) uniform Camera
 	vec4 u_SunShadowSnap;  // grid steps per NDC unit x/y (0 = off), translation on that grid
 };
 
+#if !defined(USE_MD3_INSTANCING)
 layout(std140) uniform Entity
 {
 	mat4 u_ModelMatrix;
@@ -532,6 +539,7 @@ layout(std140) uniform Entity
 	vec4 u_EntitySun;		// r_entitySunLight: sun rgb, w 1 = split (0 = legacy light)
 	#endif
 };
+#endif
 
 struct Light
 {

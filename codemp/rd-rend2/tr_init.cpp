@@ -2116,6 +2116,7 @@ R_Register
 void R_Register( void )
 {
 	R_RegisterCharacterCullCvars();
+	R_RegisterMd3InstanceCvars();
 	R_InitParticleCvars();
 	//
 	// latched and archived variables

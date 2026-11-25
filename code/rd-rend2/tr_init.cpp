@@ -2158,6 +2158,7 @@ R_Register
 void R_Register( void ) 
 {
 	R_RegisterCharacterCullCvars();
+	R_RegisterMd3InstanceCvars();
 	R_InitParticleCvars();
 	R_Cvar( "r_loadProfile", "0", 0, "Print nested map load timings of engine, renderer and game: 0 off, 1 on" );
 	//

@@ -1380,11 +1380,14 @@ static void RB_DrawItems(
 	// RB_SurfaceWeather.
 	int spriteTimer = -1;
 	bool timedSprites = false;
+	std::vector<DrawItem> md3Prepared;
+	RB_Md3InstancePrepare(numDrawItems, drawItems, drawOrder, md3Prepared);
 	int weatherTimer = -1;
 	shaderProgram_t *timedWeatherProgram = nullptr;
 	for ( int i = 0; i < numDrawItems; ++i )
 	{
-		const DrawItem& drawItem = drawItems[drawOrder[i]];
+		const DrawItem& drawItem = md3Prepared.empty() ? drawItems[drawOrder[i]] : md3Prepared[i];
+		if (drawItem.md3InstanceEntity && drawItem.draw.numInstances == 0) continue;
 		const bool waterProgram = (uintptr_t)drawItem.program >= (uintptr_t)tr.waterSurfaceShader &&
 			(uintptr_t)drawItem.program < (uintptr_t)(tr.waterSurfaceShader + WATERDEF_COUNT);
 		if (waterReflection && !waterProgram)
@@ -1609,6 +1612,7 @@ void RB_AddDrawItem( Pass *pass, uint32_t sortKey, const DrawItem& drawItem )
 			}
 		}
 		added.cubeFaceMask = cubeFaceMask;
+		RB_Md3InstanceTag(added);
 		// modern water surface: its slot of the main pass / the split view clip
 		if ( backEnd.waterItemTag )
 			added.renderState.waterSurface = true;
@@ -3893,6 +3897,7 @@ void RB_AddShaderToShaderInstanceUBO(shader_t *shader)
 static void RB_UpdateEntityConstants(
 	gpuFrame_t *frame, const trRefdef_t *refdef)
 {
+	RB_Md3InstanceBeginScene();
 	R_UpdateEntityLightGridTextures(tr.world);
 	Rend2LightRecon::Snapshot irradiance;
 	if (r_lightReconUse->integer && r_lightReconEntities->integer && tr.world &&
@@ -3942,6 +3947,7 @@ static void RB_UpdateEntityConstants(
 		RB_UpdateEntityLightConstants(entityBlock, ent);
 		RB_UpdateEntityMatrixConstants(entityBlock, ent);
 		RB_UpdateEntityModelConstants(entityBlock, ent);
+		RB_Md3InstanceCacheEntity(i, *ent, entityBlock);
 
 		if (entityBlock == worldEntityBlock)
 			tr.entityUboOffsets[i] = tr.entityUboOffsets[REFENTITYNUM_WORLD];

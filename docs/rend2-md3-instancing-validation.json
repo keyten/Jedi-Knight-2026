@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-25",
+  "driver": "Intel UHD Graphics 27.20.100.8280",
+  "default": 0,
+  "scene": "mp/ffa3 external entity override: 40 rigid barrels + two excluded transforms",
+  "counts_per_enabled_sampled_frame": {
+    "tagged": 40,
+    "fallback_velocity": 40,
+    "groups": 2,
+    "instances": 40,
+    "saved_draws": 38,
+    "upload_bytes": 21504
+  },
+  "differing_channels": {
+    "off/on": 0,
+    "off/repeat": 0,
+    "velocity_off/velocity_on": 0,
+    "legacy_off/legacy_on": 0
+  },
+  "frame_median_ms": {
+    "disabled": [
+      3.5347,
+      3.4067
+    ],
+    "enabled": [
+      3.7877,
+      3.6267
+    ]
+  },
+  "timing_caveat": "Bounded 90-frame full-frame ABBA, 640x360 paused game; resident MSBuild workers and background desktop activity, no established net speedup.",
+  "gpu_checks": {
+    "Intel_UHD": "6 ordinary/instance pairs and exact 2/17/32 production generic draws passed",
+    "RTX2060_616_92": "same checks passed"
+  },
+  "sha256": {
+    "rdsp-rend2_x86_64.dll": "161e11c95bcd64264025a65ca2e7ae1f9d4aa332fa7edb0a97d766108cea12e2",
+    "openjk_sp.x86_64.exe": "1ee8499480c3996bc1385e7d0ad0748a343b23b219a47e354b7daa1b0072e9cb",
+    "jagamex86_64.dll": "29b1e03101f32a2bc221b23e65248aca93be5c6a50de6d5f2e4e431a635d5211",
+    "home\\OpenJK\\maps\\mp\\ffa3.ent": "6c5948bcf00d9edafec2e3c43868c7e40ca85a82abdad836fbc402fe83f71531",
+    "home\\OpenJK\\autoexec_sp.cfg": "3ca2d7b0fd626e086232743860248b4ed77f9488933f0c02cb5613926bac7a9d",
+    "home\\OpenJK\\qconsole.log": "b486e08774357a5f93ae0df5c12607b4f02efedcde379821d3df74e70eb81c0d",
+    "home\\OpenJK\\screenshots\\md3_legacy_off.tga": "e2d921ba7cb1b6597eddd04afcd77838a19d6f0a33e700436e668b3ccda2b755",
+    "home\\OpenJK\\screenshots\\md3_legacy_on.tga": "e2d921ba7cb1b6597eddd04afcd77838a19d6f0a33e700436e668b3ccda2b755",
+    "home\\OpenJK\\screenshots\\md3_off.tga": "c4b3003c695da71cdfe547ee2e4f546313cb230d25a212eee721ccf3000d78b3",
+    "home\\OpenJK\\screenshots\\md3_on.tga": "c4b3003c695da71cdfe547ee2e4f546313cb230d25a212eee721ccf3000d78b3",
+    "home\\OpenJK\\screenshots\\md3_repeat.tga": "c4b3003c695da71cdfe547ee2e4f546313cb230d25a212eee721ccf3000d78b3",
+    "home\\OpenJK\\screenshots\\md3_velocity_off.tga": "c4b3003c695da71cdfe547ee2e4f546313cb230d25a212eee721ccf3000d78b3",
+    "home\\OpenJK\\screenshots\\md3_velocity_on.tga": "c4b3003c695da71cdfe547ee2e4f546313cb230d25a212eee721ccf3000d78b3"
+  }
+}

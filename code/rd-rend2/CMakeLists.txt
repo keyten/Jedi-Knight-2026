@@ -81,6 +81,7 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_lightrecon.h"
 	"${SharedDir}/rd-rend2/tr_lightrecon_cvars.inc"
 	"${SharedDir}/rd-rend2/tr_lightrecon_register.inc"
+	"${SharedDir}/rd-rend2/tr_md3_instance.cpp"
 	"${SharedDir}/rd-rend2/tr_backend.cpp"
 	"${SharedDir}/rd-rend2/tr_glslhelper.cpp"
 	"${SharedDir}/rd-rend2/tr_glslhelper.h"
