@@ -55,6 +55,7 @@ option(BuildJK2SPRdRend2 "Whether to create projects for the EXPERIMENTAL jk2 SP
 
 option(BuildTests "Whether to build automatic unit tests (requires Boost)" OFF)
 option(BuildMaterialClassificationTests "Build dependency-free semantic material CPU tests" OFF)
+option(BuildMd3InstancingTests "Build dependency-free MD3 batching CPU tests" OFF)
 option(BuildCharacterCullTests "Build dependency-free character render culling tests" OFF)
 option(BuildLightReconTests "Build dependency-free reconstructed lighting CPU tests" OFF)
 option(UseAddressSanitizer "Whether to enable runtime address sanitizer" OFF)
@@ -463,6 +464,13 @@ if(BuildCharacterCullTests)
 	target_include_directories(rend2_character_cull_test PRIVATE "${SharedDir}/rd-rend2")
 	target_compile_features(rend2_character_cull_test PRIVATE cxx_std_11)
 	add_test(NAME rend2_character_cull COMMAND rend2_character_cull_test)
+endif()
+
+if(BuildMd3InstancingTests)
+    add_executable(rend2_md3_instancing_test "tests/rend2_md3_instancing_test.cpp")
+    target_include_directories(rend2_md3_instancing_test PRIVATE "${SharedDir}/rd-rend2")
+    target_compile_features(rend2_md3_instancing_test PRIVATE cxx_std_11)
+    add_test(NAME rend2_md3_instancing COMMAND rend2_md3_instancing_test)
 endif()
 
 if(BuildTests)

@@ -61,6 +61,7 @@ layout(std140) uniform Camera
 	vec4 u_SunShadowSnap;  // grid steps per NDC unit x/y (0 = off), translation on that grid
 };
 
+#if !defined(USE_MD3_INSTANCING)
 layout(std140) uniform Entity
 {
 	mat4 u_ModelMatrix;
@@ -72,6 +73,7 @@ layout(std140) uniform Entity
 	vec3 u_ModelLightDir;
 	float u_VertexLerp;
 };
+#endif
 
 #if defined(USE_DEFORM_VERTEXES) || defined(USE_RGBAGEN)
 layout(std140) uniform ShaderInstance
@@ -450,6 +452,10 @@ mat4x3 GetBoneMatrix(uint index)
 
 void main()
 {
+#if defined(USE_MD3_INSTANCING)
+	var_Md3Instance = gl_InstanceID;
+#endif
+
 #if defined(USE_VERTEX_ANIMATION)
 	vec3 position  = mix(attr_Position, attr_Position2, u_VertexLerp);
 	vec3 normal    = mix(attr_Normal,   attr_Normal2,   u_VertexLerp);
@@ -628,6 +634,7 @@ layout(std140) uniform Camera
 };
 #endif
 
+#if !defined(USE_MD3_INSTANCING)
 layout(std140) uniform Entity
 {
 	mat4 u_ModelMatrix;
@@ -639,6 +646,7 @@ layout(std140) uniform Entity
 	vec3 u_ModelLightDir;
 	float u_VertexLerp;
 };
+#endif
 
 uniform sampler2D u_DiffuseMap;
 uniform sampler2D u_EmissiveMap;

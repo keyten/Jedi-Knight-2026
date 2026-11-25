@@ -2770,6 +2770,7 @@ enum uniformBlock_t
 	UNIFORM_BLOCK_FOLIAGE_INTERACTION,
 	UNIFORM_BLOCK_VOLUMETRIC_PARTICLES,
 	UNIFORM_BLOCK_LIQUIDS,
+	UNIFORM_BLOCK_MD3_INSTANCES,
 	UNIFORM_BLOCK_COUNT
 };
 
@@ -3210,6 +3211,7 @@ enum glslVariant_t
 	GLSLV_PHONG,
 	GLSLV_STONE_GEOMETRY,
 	GLSLV_STONE_SURFACE,
+	GLSLV_MD3_INSTANCING,
 	GLSLV_COUNT
 };
 
@@ -7563,7 +7565,23 @@ struct DrawItem
 	// r_shadowLayered: the item is drawn once per set bit, into that cube face
 	// (gl_Layer, u_CubeFaceViewProj). 0 = an ordinary draw.
 	uint8_t cubeFaceMask;
+	// Eligible rigid MD3 only; every member retains its complete lighting/matrix block.
+	const EntityBlock *md3InstanceEntity;
 };
+
+// Static MD3 batching is performed after recording, separately in each pass.
+#define MAX_MD3_INSTANCES 32
+struct Md3InstancesBlock { EntityBlock entities[MAX_MD3_INSTANCES]; };
+void R_RegisterMd3InstanceCvars();
+void RB_Md3InstanceBeginScene();
+void RB_Md3InstanceCacheEntity(int index, const trRefEntity_t& entity, const EntityBlock& block);
+void RB_Md3InstanceTag(DrawItem& item);
+// A group leader contains the uploaded instance binding; consumed members have
+// numInstances == 0. No input item is modified, so fallback remains exact.
+void RB_Md3InstancePrepare(int count, const DrawItem *items, const uint32_t *order,
+    std::vector<DrawItem>& prepared);
+bool GLSL_UniformDataEqual(const UniformData *a, const UniformData *b);
+uint64_t GLSL_UniformDataHash(const UniformData *data);
 
 void DrawItemSetSamplerBindings(
 	DrawItem& drawItem,
