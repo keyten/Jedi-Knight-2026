@@ -100,10 +100,11 @@ not modified; no foreign game process overlapped the run.
 
 Measured median grass draw+cull times were 1.858 ms for the first direct reference, 1.199 ms for its
 repeat, 1.878 ms for mode 1 and 1.800 ms for mode 2. GPU counter/timer diagnostics may wait, and the direct
-reference drift is too large to establish a net improvement. **Default stays 0.** The compute path is
-complete and opt-in, with real submitted-work reduction; batching the current per-surface dispatches
+reference drift is too large to establish a net improvement. The original validation snapshot retained
+mode 0; the subsequent user-selected default is now mode 2. The compute path has real submitted-work
+reduction; batching the current per-surface dispatches
 is a further performance opportunity. No FPS or percentage speedup is claimed. MP and RTX game timing
 were not run.
 
 
-The user-selected enabled-default update sets mode 2 for fresh/unset cvars in both SP and MP. Previously archived values remain authoritative; no installed configuration is rewritten. Earlier validation timings below describe the prior opt-in decision and do not prove a net frame-time gain.
+The user-selected enabled-default update sets mode 2 for fresh/unset cvars in both SP and MP. Previously archived values remain authoritative; no installed configuration is rewritten. The earlier validation timings above describe the prior opt-in decision and do not prove a net frame-time gain.
