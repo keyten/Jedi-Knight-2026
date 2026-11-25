@@ -3672,7 +3672,7 @@ void R_Register( void )
 	r_aviMotionJpegQuality = R_Cvar( "r_aviMotionJpegQuality", "90", CVAR_ARCHIVE, "JPEG quality of recorded videos (0..100)" );
 	r_screenshotJpegQuality = R_Cvar( "r_screenshotJpegQuality", "90", CVAR_ARCHIVE, "JPEG quality of screenshots (0..100)" );
 	r_surfaceSprites = R_Cvar( "r_surfaceSprites", "1", CVAR_ARCHIVE, "Surface sprites (grass, flowers from map shaders): 0 off, 1 on" );
-	r_surfaceSpritesCompute = R_Cvar("r_surfaceSpritesCompute", "0", CVAR_ARCHIVE,
+	r_surfaceSpritesCompute = R_Cvar("r_surfaceSpritesCompute", "2", CVAR_ARCHIVE,
 		"Surface sprites: 0 CPU submission, 1 GPU frustum/fade culling, 2 GPU culling and per-plant LOD");
 	R_CvarRange(r_surfaceSpritesCompute, 0, 2, qtrue);
 

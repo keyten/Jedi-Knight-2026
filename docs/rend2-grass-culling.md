@@ -1,6 +1,6 @@
 # Surface sprite GPU culling and per-plant LOD
 
-`r_surfaceSpritesCompute` (default **0**) selects the draw path without a restart:
+`r_surfaceSpritesCompute` (default **2**) selects the draw path without a restart:
 
 | Value | Behavior |
 |---|---|
@@ -104,3 +104,6 @@ reference drift is too large to establish a net improvement. **Default stays 0.*
 complete and opt-in, with real submitted-work reduction; batching the current per-surface dispatches
 is a further performance opportunity. No FPS or percentage speedup is claimed. MP and RTX game timing
 were not run.
+
+
+The user-selected enabled-default update sets mode 2 for fresh/unset cvars in both SP and MP. Previously archived values remain authoritative; no installed configuration is rewritten. Earlier validation timings below describe the prior opt-in decision and do not prove a net frame-time gain.

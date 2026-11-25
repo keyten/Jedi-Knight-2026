@@ -1,6 +1,6 @@
 # Repeated rigid MD3 instance draws
 
-`r_md3Instancing` defaults to **0**; `1` batches eligible repeated rendered MD3 entities. `0` restores
+`r_md3Instancing` defaults to **1**; `1` batches eligible repeated rendered MD3 entities. `0` restores
 individual submission without a restart. The current implementation requires the
 renderer modern tier (`r_gl43 1` and SSBO capability), although instance data itself
 uses a portable std140 uniform block. It does not batch decor baked into BSP geometry.
@@ -75,8 +75,8 @@ real 32 + 8 overflow case; two nonuniform/mirrored fixture transforms stay indiv
 The bounded warmed 90-frame ABBA medians were 3.5347 / 3.4067 ms disabled and
 3.7877 / 3.6267 ms enabled at 640x360. These full-frame intervals include driver,
 game and presentation; resident MSBuild workers and background desktop activity
-limit interpretation. They do **not** establish a net win. Consequently the feature
-stays opt-in, pending a more profitable submission workload or batching refinement.
+limit interpretation. They do **not** establish a net win. The subsequent user-selected enabled-default update sets mode 1 for fresh/unset
+cvars despite this unproven timing benefit; existing archived settings stay authoritative.
 No FPS improvement is claimed. See the [machine-readable receipt](rend2-md3-instancing-validation.json).
 
 `r_md3InstancingStats 2` additionally explains the first rejected program; `1` samples the completed frame once per second: tagged draws,
