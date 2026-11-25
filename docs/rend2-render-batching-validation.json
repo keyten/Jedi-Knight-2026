@@ -112,6 +112,21 @@
     "home\\OpenJK\\screenshots\\batch_near_query.tga": "34f6d4042a42fee24266bb5b7385c01650c5e3a25ee8714a194b1a81ee9351d6",
     "home\\OpenJK\\screenshots\\batch_query_reference.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0",
     "home\\OpenJK\\screenshots\\batch_reference.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0",
-    "home\\OpenJK\\screenshots\\batch_repeat.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0"
+    "home\\OpenJK\\screenshots\\batch_repeat.tga": "75df0ffc307b3ae72a97ff07cf243edf020eeebb07fd34148596d59ab287e5c0",
+    "combined_build/rdsp-rend2_x86_64.dll": "c0c8e1d772f3f7366025fbf50d104c0f367842bc5a10026e2d017fb10e86a135",
+    "combined_build/rd-rend2_x86_64.dll": "3e952ea50e8722640eb6f7f811cd8cc382306e7c115f7f8af2004fc16a4ed9a1"
+  },
+  "preservation": {
+    "initial_dirty_untracked_files": 82,
+    "post_merge_all_original_hashes_unchanged": true,
+    "existing_staged_entries_preserved": true,
+    "fresh_final_snapshot_files": 82,
+    "concurrent_external_updates_preserved": [
+      "docs/rend2-relighting/solver-review-2026-11-16.md",
+      "tools/rend2/relight_probe/crop.py",
+      "tools/rend2/relight_probe/gridsun.py",
+      "tools/rend2/relight_probe/solve.py"
+    ],
+    "note": "Four unrelated files were edited by another active task after the merge preservation check; latest content snapshotted and retained, never restored from the older snapshot."
   }
 }

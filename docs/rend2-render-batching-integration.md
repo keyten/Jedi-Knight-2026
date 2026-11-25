@@ -57,8 +57,12 @@ still limits timing interpretation.
 
 Before integration, all 82 existing dirty/untracked files were copied and hashed,
 the binary staged/unstaged patches and index were saved, and staged entries were
-recorded. After the four sequential no-ff merges their bytes and staged entries
-were unchanged. No stash/reset/revert or unrelated commit was used. The source
+recorded. Immediately after the four sequential no-ff merges their bytes and
+staged entries were unchanged. During the subsequent validation another active task
+updated four unrelated relighting files. Their latest content was saved in a fresh
+82-file snapshot and retained; it was never overwritten from the older snapshot.
+Existing staged entries remained unchanged. No stash/reset/revert or unrelated
+commit was used. The source
 snapshot remains under the private MD3 worktree's `build/integration-preservation`.
 Private game processes exited normally; installed game assets and DLLs were read
 only. Source renderer outputs were rebuilt in the repository build directory.
