@@ -2679,10 +2679,6 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 
 	RB_EndSurface();
 
-	// TODO: Do we want a 2-level lod system where far away sprites are
-	// just flat surfaces?
-
-	// TODO: Check which pass (z-prepass/shadow/forward) we're rendering for?
 	shader_t *shader = surf->shader;
 	shaderStage_t *firstStage = shader->stages[0];
 	shaderProgram_t *programGroup = firstStage->glslShaderGroup;
@@ -2807,11 +2803,13 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 	// instance per card and sprite, the sprite data stepping per instance.
 	// The far quads lie on the same curve (its chord).
 	int stripSegments = 0;
+    int possibleStripSegments = 0;
 	if (r_grassBendSegments->integer > 1 &&
 		(ss->type == SURFSPRITE_VERTICAL || ss->type == SURFSPRITE_ORIENTED || ss->type == SURFSPRITE_FLATTENED) &&
 		ss->facing != SURFSPRITE_FACING_UP && !(shaderFlags & SSDEF_ADDITIVE) &&
 		(ss->windIdle > 0.0f || R_FoliageInteractionActive()))
 	{
+        possibleStripSegments = Com_Clampi(2, 8, r_grassBendSegments->integer);
 		const float lodDist = r_grassBendLodDist->value;
 		float dist2 = 0.0f;
 		for (int i = 0; i < 3; ++i)
@@ -2824,183 +2822,172 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 			stripSegments = Com_Clampi(2, 8, r_grassBendSegments->integer);
 	}
 
-	shaderProgram_t *program = programGroup + shaderFlags;
-	assert(program->uniformBlocks & (1 << UNIFORM_BLOCK_SURFACESPRITE));
-
-	UniformDataWriter uniformDataWriter;
-	uniformDataWriter.Start(program);
-
-	// FIXME: Use entity block for this
-	uniformDataWriter.SetUniformMatrix4x4(
-		UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
-
-	if (shaderFlags & SSDEF_AUTO_GRASS)
-		uniformDataWriter.SetUniformVec4(UNIFORM_AUTOGRASS, autoGrass);
-
-	// r_foliageWind: global breeze.  The shader evaluates it from the sprite
-	// anchor, seed and time only, so every pass and both velocity frames agree.
+	const spriteCullResult_t *culled = RB_CullSurfaceSprites(surf, *spriteViewOrigin,
+		autoGrass, shaderFlags, r_surfaceSpritesCompute->integer >= 2 ? possibleStripSegments : stripSegments, numInstances);
+	const int surfaceCards = numInstances;
+	const int surfaceSegments = stripSegments;
+	for (int bin = 0; bin < (culled ? 6 : 1); ++bin)
 	{
-		static float frozenTime = -1.0f;
-		const int windDebug = r_foliageWindDebug->integer;
-		if (windDebug != 3)
-			frozenTime = -1.0f;
-		else if (frozenTime < 0.0f)
-			frozenTime = backEnd.refdef.floatTime;
-
-		const float yaw = DEG2RAD(r_foliageWindDirection->value);
-		vec4_t foliageWind = {
-			cosf(yaw), sinf(yaw),
-			r_foliageWindStrength->value * (windDebug == 1 ? 4.0f : 1.0f),
-			r_foliageWindSpeed->value };
-		// r_foliageWindCompare 2: the original sway
-		vec4_t foliageWindParams = {
-			R_CompareOff(RC_FOLIAGEWIND) ? 0.0f : (float)r_foliageWind->integer, 0.0f,
-			MAX(frozenTime, 0.0f), (windDebug == 3) ? 1.0f : 0.0f };
-		if ((windDebug == 2 || windDebug == 4) &&
+		if (culled && !(culled->binMask & (1u << bin))) continue;
+		numInstances = culled ? bin % 3 + 1 : surfaceCards;
+		stripSegments = culled ? (bin >= 3 ? culled->stripSegments : 0) : surfaceSegments;
+		if ((shaderFlags & SSDEF_AUTO_GRASS) && r_grassCardDebug->integer == 6 &&
 			!backEnd.depthFill && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW))
-			foliageWindParams[1] = (float)windDebug;
-		uniformDataWriter.SetUniformVec4(UNIFORM_FOLIAGEWIND, foliageWind);
-		uniformDataWriter.SetUniformVec4(UNIFORM_FOLIAGEWINDPARAMS, foliageWindParams);
-	}
-	// r_foliageInteraction: the character colliders bend the tufts (every
-	// sprite draw writes it, the value sticks per program)
-	RB_SetSpriteInteractionUniforms(uniformDataWriter);
-	uniformDataWriter.SetUniformVec4(UNIFORM_GRASSSTRIP, (float)stripSegments, (float)numInstances, 0.0f, 0.0f);
-	uniformDataWriter.SetUniformVec3(UNIFORM_SPRITEVIEWORIGIN, *spriteViewOrigin);
-	uniformDataWriter.SetUniformVec3(UNIFORM_SPRITEVIEWLEFT, *spriteViewLeft);
-	uniformDataWriter.SetUniformVec3(UNIFORM_SPRITEVIEWUP, *spriteViewUp);
+			autoGrass[2] = numInstances == 3 ? 6.0f : 7.0f;
 
-	uniformDataWriter.SetUniformInt(
-		UNIFORM_ALPHA_TEST_TYPE, surf->alphaTestType);
-	vec4_t foliageDebug = {};
-	if (r_autoFoliage->integer && r_autoFoliageDebug->integer &&
-		!backEnd.depthFill && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW))
-		R_FoliageDebugColor(ss->foliageClass, foliageDebug);
-	uniformDataWriter.SetUniformVec4(UNIFORM_FOLIAGEDEBUG, foliageDebug);
-	vec4_t materialDebug = {};
-	const bool surfaceDebug = R_SurfaceMaterialDebugColor(shader, materialDebug) != qfalse;
-	uniformDataWriter.SetUniformVec4(UNIFORM_MATERIALDEBUG, materialDebug);
+		shaderProgram_t *program = programGroup + shaderFlags;
+		assert(program->uniformBlocks & (1 << UNIFORM_BLOCK_SURFACESPRITE));
 
-	if (surf->fogIndex != -1)
-	{
-		uniformDataWriter.SetUniformInt(UNIFORM_FOGINDEX, surf->fogIndex - 1);
+		UniformDataWriter uniformDataWriter;
+		uniformDataWriter.Start(program);
 
-		if (r_volumetricFog->integer)
+		// FIXME: Use entity block for this
+		uniformDataWriter.SetUniformMatrix4x4(
+			UNIFORM_MODELVIEWPROJECTIONMATRIX, glState.modelviewProjection);
+
+		if (shaderFlags & SSDEF_AUTO_GRASS)
+			uniformDataWriter.SetUniformVec4(UNIFORM_AUTOGRASS, autoGrass);
+
+		// r_foliageWind: global breeze.  The shader evaluates it from the sprite
+		// anchor, seed and time only, so every pass and both velocity frames agree.
 		{
-			if (tr.world)
+			static float frozenTime = -1.0f;
+			const int windDebug = r_foliageWindDebug->integer;
+			if (windDebug != 3)
+				frozenTime = -1.0f;
+			else if (frozenTime < 0.0f)
+				frozenTime = backEnd.refdef.floatTime;
+
+			const float yaw = DEG2RAD(r_foliageWindDirection->value);
+			vec4_t foliageWind = {
+				cosf(yaw), sinf(yaw),
+				r_foliageWindStrength->value * (windDebug == 1 ? 4.0f : 1.0f),
+				r_foliageWindSpeed->value };
+			// r_foliageWindCompare 2: the original sway
+			vec4_t foliageWindParams = {
+				R_CompareOff(RC_FOLIAGEWIND) ? 0.0f : (float)r_foliageWind->integer, 0.0f,
+				MAX(frozenTime, 0.0f), (windDebug == 3) ? 1.0f : 0.0f };
+			if ((windDebug == 2 || windDebug == 4) &&
+				!backEnd.depthFill && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW))
+				foliageWindParams[1] = (float)windDebug;
+			uniformDataWriter.SetUniformVec4(UNIFORM_FOLIAGEWIND, foliageWind);
+			uniformDataWriter.SetUniformVec4(UNIFORM_FOLIAGEWINDPARAMS, foliageWindParams);
+		}
+		// r_foliageInteraction: the character colliders bend the tufts (every
+		// sprite draw writes it, the value sticks per program)
+		RB_SetSpriteInteractionUniforms(uniformDataWriter);
+		uniformDataWriter.SetUniformVec4(UNIFORM_GRASSSTRIP, (float)stripSegments, (float)numInstances, culled ? 1.0f : 0.0f, 1.0f);
+		uniformDataWriter.SetUniformVec3(UNIFORM_SPRITEVIEWORIGIN, *spriteViewOrigin);
+		uniformDataWriter.SetUniformVec3(UNIFORM_SPRITEVIEWLEFT, *spriteViewLeft);
+		uniformDataWriter.SetUniformVec3(UNIFORM_SPRITEVIEWUP, *spriteViewUp);
+
+		uniformDataWriter.SetUniformInt(
+			UNIFORM_ALPHA_TEST_TYPE, surf->alphaTestType);
+		vec4_t foliageDebug = {};
+		if (r_autoFoliage->integer && r_autoFoliageDebug->integer &&
+			!backEnd.depthFill && !(backEnd.viewParms.flags & VPF_DEPTHSHADOW))
+			R_FoliageDebugColor(ss->foliageClass, foliageDebug);
+		uniformDataWriter.SetUniformVec4(UNIFORM_FOLIAGEDEBUG, foliageDebug);
+		vec4_t materialDebug = {};
+		const bool surfaceDebug = R_SurfaceMaterialDebugColor(shader, materialDebug) != qfalse;
+		uniformDataWriter.SetUniformVec4(UNIFORM_MATERIALDEBUG, materialDebug);
+
+		if (surf->fogIndex != -1)
+		{
+			uniformDataWriter.SetUniformInt(UNIFORM_FOGINDEX, surf->fogIndex - 1);
+
+			if (r_volumetricFog->integer)
 			{
-				vec3_t sampleOrigin;
-				VectorMA(tr.world->lightGridOrigin, -0.5f, tr.world->lightGridSize, sampleOrigin);
-				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, sampleOrigin);
-				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDCELLINVERSESIZE, tr.world->lightGridInverseSize);
+				if (tr.world)
+				{
+					vec3_t sampleOrigin;
+					VectorMA(tr.world->lightGridOrigin, -0.5f, tr.world->lightGridSize, sampleOrigin);
+					uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, sampleOrigin);
+					uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDCELLINVERSESIZE, tr.world->lightGridInverseSize);
+				}
+				else
+				{
+					const vec3_t origin = { 0.0f, 0.0f, 0.0f };
+					const vec3_t size = { 1.0f, 1.0f, 1.0f };
+					uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, origin);
+					uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDCELLINVERSESIZE, size);
+				}
+			}
+		}
+		Allocator& frameAllocator = *backEndData->perFrameMemory;
+
+		SamplerBindingsWriter samplerBindingsWriter;
+		samplerBindingsWriter.AddAnimatedImage(&firstStage->bundle[0], TB_COLORMAP);
+		if (culled) samplerBindingsWriter.AddStaticImage(surf->spriteDataImage, TB_FPLUS_LIGHTS);
+
+		// froxel volumetric fog (tr_volumetric.cpp)
+		{
+			const int froxelFogMode = RB_VolumetricFogMode(surf->shader->sort);
+			RB_VolumetricSetupFogDraw(
+				(shaderFlags & SSDEF_USE_FOG) ? froxelFogMode : (froxelFogMode == 0 ? 0 : 2),
+				uniformDataWriter, samplerBindingsWriter);
+		}
+
+		if (surf->fogIndex != -1 && r_volumetricFog->integer)
+		{
+			if (tr.world && tr.world->lightGridData)
+			{
+				samplerBindingsWriter.AddStaticImage(tr.world->volumetricLightMaps[0], 2);
 			}
 			else
 			{
-				const vec3_t origin = { 0.0f, 0.0f, 0.0f };
-				const vec3_t size = { 1.0f, 1.0f, 1.0f };
-				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDORIGIN, origin);
-				uniformDataWriter.SetUniformVec3(UNIFORM_LIGHTGRIDCELLINVERSESIZE, size);
+				samplerBindingsWriter.AddStaticImage(tr.whiteImage3D, 2);
 			}
 		}
-	}
-	Allocator& frameAllocator = *backEndData->perFrameMemory;
 
-	SamplerBindingsWriter samplerBindingsWriter;
-	samplerBindingsWriter.AddAnimatedImage(&firstStage->bundle[0], TB_COLORMAP);
+		const byte currentFrameScene = backEndData->currentFrame->currentScene;
+		const GLuint currentFrameUbo = backEndData->currentFrame->ubo[currentFrameScene];
+		const GLuint currentSpriteUbo = shader->spriteUbo;
+		const UniformBlockBinding uniformBlockBindings[] = {
+			{ currentSpriteUbo, ss->spriteUboOffset, UNIFORM_BLOCK_SURFACESPRITE },
+			{ currentFrameUbo, (size_t)tr.sceneUboOffset, UNIFORM_BLOCK_SCENE },
+			{ currentFrameUbo, (size_t)tr.cameraUboOffsets[tr.viewParms.currentViewParm], UNIFORM_BLOCK_CAMERA },
+			{ currentFrameUbo, (size_t)tr.fogsUboOffset, UNIFORM_BLOCK_FOGS },
+			{ currentFrameUbo, (size_t)tr.temporalInfoUboOffset, UNIFORM_BLOCK_TEMPORAL_INFO },
+			RB_GetVolumetricFogBlockUniformBinding(),
+			RB_GetFoliageInteractionBlockUniformBinding()
+		};
 
-	// froxel volumetric fog (tr_volumetric.cpp)
-	{
-		const int froxelFogMode = RB_VolumetricFogMode(surf->shader->sort);
-		RB_VolumetricSetupFogDraw(
-			(shaderFlags & SSDEF_USE_FOG) ? froxelFogMode : (froxelFogMode == 0 ? 0 : 2),
-			uniformDataWriter, samplerBindingsWriter);
-	}
+		uint32_t numBindings;
+		UniformData *spriteUniformData = uniformDataWriter.Finish(frameAllocator);
+		SamplerBinding *spriteSamplerBinding = samplerBindingsWriter.Finish(
+			frameAllocator, &numBindings);
 
-	if (surf->fogIndex != -1 && r_volumetricFog->integer)
-	{
-		if (tr.world && tr.world->lightGridData)
+		vertexAttribute_t attributes[4];
+		int numAttributes;
+		if (culled)
 		{
-			samplerBindingsWriter.AddStaticImage(tr.world->volumetricLightMaps[0], 2);
+			// The small integer index converts exactly to a float (batch indices
+			// are below the GL texture-buffer limit), then selects the plant TBO.
+			attributes[0] = {};
+			attributes[0].vbo = culled->listVbo;
+			attributes[0].index = ATTR_INDEX_POSITION;
+			attributes[0].numComponents = 1;
+			attributes[0].type = GL_UNSIGNED_INT;
+			attributes[0].stride = sizeof(GLuint);
+			attributes[0].offset = (culled->listOffset + bin * culled->numSprites) * sizeof(GLuint);
+			attributes[0].stepRate = numInstances;
+			numAttributes = 1;
 		}
 		else
 		{
-			samplerBindingsWriter.AddStaticImage(tr.whiteImage3D, 2);
+			// One compact record per plant on GL 3.2 as well. The VS generates the
+			// old quad's six indexed corners, or the configured strip vertices.
+			numAttributes = MIN(surf->numAttributes, (int)ARRAY_LEN(attributes));
+			for (int i = 0; i < numAttributes; ++i)
+			{
+				attributes[i] = surf->attributes[i];
+				attributes[i].offset += surf->baseVertex * attributes[i].stride;
+				attributes[i].stepRate = numInstances;
+			}
 		}
-	}
-
-	const byte currentFrameScene = backEndData->currentFrame->currentScene;
-	const GLuint currentFrameUbo = backEndData->currentFrame->ubo[currentFrameScene];
-	const GLuint currentSpriteUbo = shader->spriteUbo;
-	const UniformBlockBinding uniformBlockBindings[] = {
-		{ currentSpriteUbo, ss->spriteUboOffset, UNIFORM_BLOCK_SURFACESPRITE },
-		{ currentFrameUbo, (size_t)tr.sceneUboOffset, UNIFORM_BLOCK_SCENE },
-		{ currentFrameUbo, (size_t)tr.cameraUboOffsets[tr.viewParms.currentViewParm], UNIFORM_BLOCK_CAMERA },
-		{ currentFrameUbo, (size_t)tr.fogsUboOffset, UNIFORM_BLOCK_FOGS },
-		{ currentFrameUbo, (size_t)tr.temporalInfoUboOffset, UNIFORM_BLOCK_TEMPORAL_INFO },
-		RB_GetVolumetricFogBlockUniformBinding(),
-		RB_GetFoliageInteractionBlockUniformBinding()
-	};
-
-	uint32_t numBindings;
-	UniformData *spriteUniformData = uniformDataWriter.Finish(frameAllocator);
-	SamplerBinding *spriteSamplerBinding = samplerBindingsWriter.Finish(
-		frameAllocator, &numBindings);
-
-	if (stripSegments > 0)
-	{
-		// every sprite is stored 4 times (one per quad corner): read the first
-		// one per instance
-		vertexAttribute_t stripAttributes[8];
-		const int numStripAttributes = MIN(surf->numAttributes, (int)ARRAY_LEN(stripAttributes));
-		for (int i = 0; i < numStripAttributes; ++i)
-		{
-			stripAttributes[i] = surf->attributes[i];
-			stripAttributes[i].offset += (size_t)surf->baseVertex * surf->attributes[i].stride;
-			stripAttributes[i].stride *= 4;
-			stripAttributes[i].stepRate = numInstances;
-		}
-
 		DrawItem item = {};
-		item.renderState.stateBits = firstStage->stateBits;
-		if (surfaceDebug) item.renderState.stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
-		if (modernSunShadow)
-		{
-			item.renderState.stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
-			item.renderState.stateBits |= GLS_DEPTHMASK_TRUE;
-		}
-		item.renderState.cullType = CT_TWO_SIDED;
-		item.renderState.depthRange = DepthRange{ 0.0f, 1.0f };
-		item.program = program;
-		item.ibo = NULL;
-		item.uniformData = spriteUniformData;
-		item.samplerBindings = spriteSamplerBinding;
-		item.numSamplerBindings = numBindings;
-
-		DrawItemSetVertexAttributes(
-			item, stripAttributes, numStripAttributes, frameAllocator);
-		DrawItemSetUniformBlockBindings(
-			item, uniformBlockBindings, frameAllocator);
-
-		item.draw.type = DRAW_COMMAND_ARRAYS;
-		item.draw.primitiveType = GL_TRIANGLE_STRIP;
-		item.draw.numInstances = surf->numSprites * numInstances;
-		item.draw.params.arrays.firstVertex = 0;
-		item.draw.params.arrays.numVertices = 2 * (stripSegments + 1);
-
-		uint32_t RB_CreateSortKey(const DrawItem& item, int stage, int layer);
-		uint32_t key = RB_CreateSortKey(item, 0, surf->shader->sort);
-		RB_AddDrawItem(backEndData->currentPass, key, item);
-		backEnd.pc.c_spriteDraws++;
-		return;
-	}
-
-	int numDrawIndicesUndrawn = surf->numIndices;
-	int baseVertex = surf->baseVertex;
-	while (numDrawIndicesUndrawn > 5)
-	{
-		int drawIndices = numDrawIndicesUndrawn > 98298 ? 98298 : numDrawIndicesUndrawn;
-
-		DrawItem item = {};
+		item.renderState.surfaceSprite = true;
 		item.renderState.stateBits = firstStage->stateBits;
 		if (surfaceDebug) item.renderState.stateBits &= ~(GLS_SRCBLEND_BITS | GLS_DSTBLEND_BITS);
 		if (modernSunShadow)
@@ -3013,35 +3000,40 @@ static void RB_SurfaceSprites( srfSprites_t *surf )
 		item.renderState.cullType = CT_TWO_SIDED;
 		item.renderState.depthRange = DepthRange{ 0.0f, 1.0f };
 		item.program = program;
-		item.ibo = surf->ibo;
-
+		item.ibo = stripSegments > 0 ? nullptr : surf->ibo;
 		item.uniformData = spriteUniformData;
-
 		item.samplerBindings = spriteSamplerBinding;
 		item.numSamplerBindings = numBindings;
-
-		DrawItemSetVertexAttributes(
-			item, surf->attributes, surf->numAttributes, frameAllocator);
-		DrawItemSetUniformBlockBindings(
-			item, uniformBlockBindings, frameAllocator);
-
-		item.draw.type = DRAW_COMMAND_INDEXED;
-		item.draw.primitiveType = GL_TRIANGLES;
-		item.draw.numInstances = numInstances;
-		item.draw.params.indexed.indexType = GL_UNSIGNED_SHORT;
-		item.draw.params.indexed.firstIndex = 0;
-		item.draw.params.indexed.numIndices = drawIndices;
-		item.draw.params.indexed.baseVertex = baseVertex;
-
-		tess.externalIBO = surf->ibo;
-
+		DrawItemSetVertexAttributes(item, attributes, numAttributes, frameAllocator);
+		DrawItemSetUniformBlockBindings(item, uniformBlockBindings, frameAllocator);
+		item.draw.primitiveType = stripSegments > 0 ? GL_TRIANGLE_STRIP : GL_TRIANGLES;
+		if (culled)
+		{
+			item.draw.type = stripSegments > 0 ? DRAW_COMMAND_ARRAYS_INDIRECT : DRAW_COMMAND_INDEXED_INDIRECT;
+			item.draw.params.indirect.indexType = GL_UNSIGNED_SHORT;
+			item.draw.params.indirect.buffer = culled->indirectBuffer;
+			item.draw.params.indirect.offset = culled->commandOffset + bin * 5 * sizeof(GLuint);
+		}
+		else
+		{
+			item.draw.numInstances = surf->numSprites * numInstances;
+            if (stripSegments > 0)
+            {
+                item.draw.type = DRAW_COMMAND_ARRAYS;
+                item.draw.params.arrays.firstVertex = 0;
+                item.draw.params.arrays.numVertices = 2 * (stripSegments + 1);
+            }
+            else
+            {
+                item.draw.type = DRAW_COMMAND_INDEXED;
+                item.draw.params.indexed.indexType = GL_UNSIGNED_SHORT;
+                item.draw.params.indexed.numIndices = 6;
+            }
+		}
 		uint32_t RB_CreateSortKey(const DrawItem& item, int stage, int layer);
-		uint32_t key = RB_CreateSortKey(item, 0, surf->shader->sort);
+		const uint32_t key = RB_CreateSortKey(item, 0, surf->shader->sort);
 		RB_AddDrawItem(backEndData->currentPass, key, item);
 		backEnd.pc.c_spriteDraws++;
-
-		numDrawIndicesUndrawn -= drawIndices;
-		baseVertex += ((98298 / 6) * 4);
 	}
 }
 

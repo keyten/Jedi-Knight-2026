@@ -318,6 +318,7 @@ R_DestroyGPUBuffers
 void R_DestroyGPUBuffers(void)
 {
 	ri.Printf(PRINT_ALL, "------- R_DestroyGPUBuffers -------\n");
+	R_ShutdownSpriteCull();
 
 	R_BindNullVBO();
 	R_BindNullIBO();

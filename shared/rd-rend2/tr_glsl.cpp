@@ -265,6 +265,11 @@ static uniformInfo_t uniformsInfo[] =
 	{ "u_PlantSkin",         GLSL_VEC4, 1 },
 	{ "u_PlantBones",        GLSL_INT,  1 },
 	{ "u_FoliageInteract",   GLSL_VEC4, 1 },
+	{ "u_SpriteData", GLSL_INT, 1 },
+	{ "u_SpriteCullPlanes", GLSL_VEC4, 6 },
+	{ "u_SpriteCullRange", GLSL_VEC4, 1 },
+	{ "u_SpriteCullLod", GLSL_VEC4, 1 },
+	{ "u_SpriteCullShape", GLSL_VEC4, 1 },
 	{ "u_GrassStrip",        GLSL_VEC4, 1 },
 	{ "u_DiffuseBRDF",    GLSL_INT,  1 },
 	{ "u_SpecularAAParams", GLSL_VEC4, 1 },
@@ -5908,7 +5913,8 @@ static int GLSL_LoadGPUProgramSurfaceSprites(
 	Allocator& scratchAlloc,
 	const GLSL_PermutationFilter& filter = GLSL_ALL_PERMUTATIONS )
 {
-	int numPrograms = 0;
+	int numPrograms = GLSL_LoadComputeProgram(&tr.spriteCullShader, "sprite_cull",
+		fallback_sprite_cullProgram, "", scratchAlloc, MODERN_SSBO) ? 1 : 0;
 	Allocator allocator(scratchAlloc.Base(), scratchAlloc.GetSize());
 
 	char name[64];
@@ -5998,6 +6004,7 @@ static int GLSL_LoadGPUProgramSurfaceSprites(
 		qglUseProgram(program->program);
 		GLSL_SetUniformInt(program, UNIFORM_DIFFUSEMAP, TB_DIFFUSEMAP);
 		GLSL_SetUniformInt(program, UNIFORM_VOLUMETRICLIGHTMAP, 2);
+		GLSL_SetUniformInt(program, UNIFORM_SPRITEDATA, TB_FPLUS_LIGHTS);
 		GLSL_SetFroxelLookupUnits(program);
 		qglUseProgram(0);
 		GLSL_FinishGPUShader(program);
@@ -7186,6 +7193,7 @@ void GLSL_ShutdownGPUShaders(void)
 	GLSL_DeleteGPUShader(&tr.waterFoamFieldShader);
 	GLSL_DeleteGPUShader(&tr.waterInteractionFieldShader);
 	GLSL_DeleteGPUShader(&tr.waterIntersectionComputeShader);
+	GLSL_DeleteGPUShader(&tr.spriteCullShader);
 	GLSL_DeleteGPUShader(&tr.forwardPlusClusterShader);
 	GLSL_DeleteGPUShader(&tr.froxelLightClusterShader);
 	for ( i = 0; i < (int)ARRAY_LEN(tr.rtShadowShader); i++ )

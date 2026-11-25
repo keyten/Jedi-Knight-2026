@@ -4066,14 +4066,16 @@ static void R_CalcVertexLightDirs( world_t *worldData )
 	}
 }
 
+// Four RGBA32F texels, shared by instanced attributes and the GPU list path.
 struct sprite_t
 {
 	vec4_t position;
-	vec3_t normal;
-	vec3_t color;
+	vec4_t normal;
+	vec4_t color;
 	vec2_t widthHeight;
 	vec2_t skew;
 };
+static_assert(sizeof(sprite_t) == 64, "Surface sprite GPU record layout");
 
 static uint32_t UpdateHash( const char *text, uint32_t hash )
 {
@@ -4248,9 +4250,6 @@ static int R_CreateSurfaceSpritesVertexData(
 				sprite.skew[1] = stage->ss->height * stage->ss->vertSkew * flrand(-1.0f, 1.0f);
 
 				sprites->push_back(sprite);
-				sprites->push_back(sprite);
-				sprites->push_back(sprite);
-				sprites->push_back(sprite);
 				++numSprites;
 			}
 		}
@@ -4281,10 +4280,10 @@ static void R_GenerateSurfaceSprites(
 	out->numIndices = out->numSprites * 6;
 	out->fogIndex = fogIndex;
 
-	// anchor bounds padded by the largest card, used by the r_grassCardMode lod
+	// Anchor bounds padded by the largest card, used by legacy surface LOD.
 	ClearBounds(out->spriteMins, out->spriteMaxs);
 	float pad = 0.0f;
-	for (size_t i = out->baseVertex; i < sprites->size(); i += 4)
+	for (size_t i = out->baseVertex; i < sprites->size(); ++i)
 	{
 		const sprite_t &sp = (*sprites)[i];
 		AddPointToBounds(sp.position, out->spriteMins, out->spriteMaxs);
@@ -4441,21 +4440,12 @@ static void R_GenerateSurfaceSprites( const world_t *world, int worldIndex )
 	msurface_t *surfaces = world->surfaces;
 	std::vector<sprite_t> sprites_data;
 	sprites_data.reserve(65535);
-	IBO_t *ibo;
-	{
-		std::vector<uint16_t> sprites_index_data;
-		sprites_index_data.reserve(98298);
-		for (int i = 0; i < 98299; i++)
-		{
-			const uint16_t face_indices[] = { 0, 1, 2, 0, 2, 3 };
-			int vert_index = face_indices[i % 6] + (int(i / 6) * 4);
-			sprites_index_data.push_back(vert_index);
-		}
-		ibo = R_CreateIBO((byte *)sprites_index_data.data(), sprites_index_data.size() * sizeof(uint16_t), VBO_USAGE_STATIC, "Quads");
-	}
+
+    const uint16_t quadIndices[] = { 0, 1, 2, 0, 2, 3 };
+    IBO_t *ibo = R_CreateIBO((byte *)quadIndices, sizeof(quadIndices), VBO_USAGE_STATIC, "SpriteQuad");
 
 	std::vector<srfSprites_t *> currentBatch;
-	currentBatch.reserve(65535); // worst case, theres at least 65535 surfaces with exactly one sprite
+	currentBatch.reserve(65535); // worst case: one plant per surface
 	int numSpriteVbos = 0;
 
 	for ( int i = 0, numSurfaces = world->numsurfaces; i < numSurfaces; ++i )
@@ -4495,15 +4485,17 @@ static void R_GenerateSurfaceSprites( const world_t *world, int worldIndex )
 
 					srfSprites_t *sprite = surf->surfaceSprites + surfaceSpriteNum;
 					int numCurrentSurfaceSprites = R_CountSurfaceSprites(bspSurf, stage->ss->density, stage);
-					if ((sprites_data.size() + numCurrentSurfaceSprites * 4) > 65535)
+					if (!sprites_data.empty() && (sprites_data.size() + numCurrentSurfaceSprites) > 65535)
 					{
 						VBO_t *vbo = R_CreateVBO((byte *)sprites_data.data(),
 							sizeof(sprite_t) * sprites_data.size(), VBO_USAGE_STATIC, va("Sprites_%i", numSpriteVbos));
 						numSpriteVbos++;
+						image_t *spriteImage = R_CreateSpriteDataImage(vbo);
 						for (srfSprites_t *sp : currentBatch)
 						{
 							sp->vbo = vbo;
 							sp->ibo = ibo;
+							sp->spriteDataImage = spriteImage;
 							sp->attributes[0].vbo = vbo;
 							sp->attributes[1].vbo = vbo;
 							sp->attributes[2].vbo = vbo;
@@ -4535,11 +4527,13 @@ static void R_GenerateSurfaceSprites( const world_t *world, int worldIndex )
 	VBO_t *vbo = R_CreateVBO((byte *)sprites_data.data(),
 		sizeof(sprite_t) * sprites_data.size(), VBO_USAGE_STATIC, va("Sprites_%i", numSpriteVbos));
 	numSpriteVbos++;
+	image_t *spriteImage = R_CreateSpriteDataImage(vbo);
 
 	for (srfSprites_t *sp : currentBatch)
 	{
 		sp->vbo = vbo;
 		sp->ibo = ibo;
+		sp->spriteDataImage = spriteImage;
 		sp->attributes[0].vbo = vbo;
 		sp->attributes[1].vbo = vbo;
 		sp->attributes[2].vbo = vbo;

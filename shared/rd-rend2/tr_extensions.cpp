@@ -256,6 +256,8 @@ PFNGLOBJECTLABELPROC qglObjectLabel;
 PFNGLOBJECTPTRLABELPROC qglObjectPtrLabel;
 
 // Optional OpenGL 4.3 entry points
+PFNGLDRAWELEMENTSINDIRECTPROC qglDrawElementsIndirect;
+PFNGLDRAWARRAYSINDIRECTPROC qglDrawArraysIndirect;
 PFNGLDISPATCHCOMPUTEPROC qglDispatchCompute;
 PFNGLTEXTUREVIEWPROC qglTextureView;
 PFNGLPATCHPARAMETERIPROC qglPatchParameteri;
@@ -826,6 +828,8 @@ void GLimp_InitModernFunctions()
 {
 	// Clear optional functions and limits on every new context, including a
 	// vid_restart from a modern driver to the baseline or forced legacy mode.
+	qglDrawElementsIndirect = nullptr;
+	qglDrawArraysIndirect = nullptr;
 	qglDispatchCompute = nullptr;
 	qglDispatchComputeIndirect = nullptr;
 	qglMemoryBarrier = nullptr;
@@ -860,6 +864,8 @@ void GLimp_InitModernFunctions()
 		(glRefConfig.glslMajorVersion == 4 && glRefConfig.glslMinorVersion >= 30);
 	if ( gl43 && glsl430 )
 	{
+		GetGLFunction(qglDrawElementsIndirect, "glDrawElementsIndirect", qfalse);
+		GetGLFunction(qglDrawArraysIndirect, "glDrawArraysIndirect", qfalse);
 		const bool barrier = GetGLFunction(qglMemoryBarrier, "glMemoryBarrier", qfalse) != qfalse;
 		bool compute = GetGLFunction(qglDispatchCompute, "glDispatchCompute", qfalse) != qfalse;
 		compute = GetGLFunction(qglDispatchComputeIndirect, "glDispatchComputeIndirect", qfalse) && compute;

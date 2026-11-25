@@ -40,6 +40,7 @@ set(SPRend2Files
 	"${SharedDir}/rd-rend2/tr_material_classification.cpp"
 	"${SharedDir}/rd-rend2/tr_detail_texture.cpp"
 	"${SharedDir}/rd-rend2/tr_foliage.cpp"
+	"${SharedDir}/rd-rend2/tr_spritecull.cpp"
 	"${SharedDir}/rd-rend2/tr_leafflutter.cpp"
 	"${SharedDir}/rd-rend2/tr_foliageinteract.cpp"
 	"${SharedDir}/rd-rend2/tr_foliagefield.cpp"
@@ -149,6 +150,7 @@ list(APPEND SPRend2GLSLFiles
 	"${SharedDir}/rd-rend2/glsl/water_interaction_field.glsl"
 	"${SharedDir}/rd-rend2/glsl/water_intersection.glsl"
 	"${SharedDir}/rd-rend2/glsl/fplus_cluster.glsl"
+	"${SharedDir}/rd-rend2/glsl/sprite_cull.glsl"
 	"${SharedDir}/rd-rend2/glsl/rt_shadows.glsl"
 	"${SharedDir}/rd-rend2/glsl/phong.glsl"
 	"${SharedDir}/rd-rend2/glsl/phong_interface.glsl")

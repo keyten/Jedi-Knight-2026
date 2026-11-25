@@ -3,19 +3,23 @@
 Stock Jedi Academy surface sprite grass is drawn as world-stable cross or tri-card tufts.
 BSP, shader scripts, textures and PK3s are unchanged. `r_grassCardMode 0` (the default) is the legacy path.
 
-## Current pipeline (legacy, unchanged)
+## Current pipeline
 
 * **Map load** (`tr_bsp.cpp`, `R_CreateSurfaceSpritesVertexData`): anchors are placed at random barycentric
   points on every triangle of a surface that has a `surfaceSprites` stage. Positions are generated once and
-  never rebuilt. Each sprite is stored as **4 identical `sprite_t` records**:
+  never rebuilt. Each sprite is stored as **one compact `sprite_t` record**:
   * `attr_Position.xyz`: the world anchor.
   * `attr_Position.w`: a stable random value in [0, 1].
   * `attr_Normal`: a random horizontal unit direction.
   * `attr_Position2`: width, height and skew (from `ssVariance` and `ssVertSkew`; height is negated for `ssFaceDown`).
   * `attr_Color`: the vertex colour of the emitting surface.
 
-  The records are packed into static VBOs of up to 65535 vertices. All surfaces share one "Quads" IBO
-  (`0,1,2, 0,2,3` + 4k). There is one `srfSprites_t` per (BSP surface, sprite stage), and it is culled with its surface.
+  Records are 64 bytes (four RGBA32F texels) and contain one plant each, including on GL 3.2.
+  Cards use one shared six-index quad (`0,1,2,0,2,3`) with the record advancing per plant.
+  This replaces the former four 56-byte copies per plant and preserves the original four unique vertices,
+  triangle diagonal and interpolation. There is one `srfSprites_t` per (BSP surface, sprite stage).
+  The optional [compute path](rend2-grass-culling.md) culls individual plants and assigns their LOD before
+  any vegetation vertex shader runs.
 * **Draw** (`tr_surface.cpp`, `RB_SurfaceSprites`): chooses an `SSDEF_*` program:
   * `ORIENTED` → `FACE_CAMERA`
   * `FLATTENED`
@@ -24,8 +28,8 @@ BSP, shader scripts, textures and PK3s are unchanged. `r_grassCardMode 0` (the d
   * `ssFaceUp` → `FACE_UP`
   * plus the additive, fog and velocity flags
 
-  It adds one `DrawItem` per surface with `numInstances = 1`. The backend already issues
-  `glDrawElementsInstancedBaseVertex`. The same function serves the depth/velocity prepass, the sun cascades
+  The direct path adds one `DrawItem` per surface, with one instance per plant/card.
+  The GPU path adds indirect LOD-bin draws. The baseline uses `glDrawElementsInstancedBaseVertex`. The same function serves the depth/velocity prepass, the sun cascades
   (which use the refdef view vectors so the sprites match the camera) and the colour pass.
 * **Shader** (`glsl/surface_sprites.glsl`): the corner comes from `gl_VertexID % 4`.
   * `FACE_CAMERA` uses the view left/up vectors.
@@ -46,7 +50,7 @@ The classifier runs per draw on the CPU. A stage qualifies when all of these hol
 Effect, weather, flattened and face-up sprites are never touched.
 
 A qualifying draw uses the `SSDEF_AUTO_GRASS` program (`#define AUTO_GRASS`, 4 extra programs: ± fog, ± velocity)
-with `numInstances = n`. No CPU data is duplicated: all instances read the same four vertices.
+with `numInstances = n`. No CPU data is duplicated: all cards read the same compact plant record.
 
 ```
 old:  d = normalize(attr_Normal.xy + 2 * viewLeft.xy)          // turns with the camera
@@ -78,8 +82,7 @@ new:  d_k = rotate(normalize(attr_Normal.xy), k * 180deg / n)  // k = gl_Instanc
 
 ### Instance count and the adaptive mode
 
-A `DrawItem` has one instance count per surface, so the count cannot vary per sprite inside one draw.
-Mode 3 combines two mechanisms:
+With `r_surfaceSpritesCompute 0` or `1`, adaptive card LOD combines two mechanisms:
 * **Per surface (CPU, one AABB distance):** 3 instances when the view origin is within `lodDist × 1.33` of the
   surface's padded sprite bounds (`srfSprites_t::spriteMins/Maxs`, computed at load), otherwise 2.
 * **Per sprite (vertex shader):** the third card multiplies `var_Alpha` by
@@ -139,3 +142,8 @@ denser, though. If a map looks too thick, lower `r_grassCardWidth` to about 0.8 
 | 1 cross |  |  |  |  |  |
 | 2 tri |  |  |  |  |  |
 | 3 adaptive |  |  |  |  |  |
+
+`r_surfaceSpritesCompute 2` assigns surviving plants to quad/strip and card-count lists. It removes the
+third card only after the existing per-plant fade has completed, retaining the same 60-degree layout.
+Bend LOD uses distance to each plant's conservative deformation sphere: every plant whose sphere reaches
+`r_grassBendLodDist` keeps the full configured strip detail. See [GPU culling and LOD](rend2-grass-culling.md).

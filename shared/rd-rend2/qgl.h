@@ -630,6 +630,8 @@ extern PFNGLOBJECTLABELPROC qglObjectLabel;
 extern PFNGLOBJECTPTRLABELPROC qglObjectPtrLabel;
 
 // Optional OpenGL 4.3 entry points. Gate calls with R_HasModernFeatures.
+extern PFNGLDRAWELEMENTSINDIRECTPROC qglDrawElementsIndirect;
+extern PFNGLDRAWARRAYSINDIRECTPROC qglDrawArraysIndirect;
 extern PFNGLDISPATCHCOMPUTEPROC qglDispatchCompute;
 extern PFNGLDISPATCHCOMPUTEINDIRECTPROC qglDispatchComputeIndirect;
 extern PFNGLMEMORYBARRIERPROC qglMemoryBarrier;
