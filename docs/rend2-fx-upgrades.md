@@ -59,6 +59,13 @@ primitives (`RT_SPRITE`, `RT_ORIENTED_QUAD`, `RT_LINE`, `RT_ELECTRICITY`,
 Only active with Forward+ (`R_ForwardPlusActive`), where many cheap lights are
 affordable.
 
+| Before | After |
+| --- | --- |
+| ![](rend2-fx-upgrades/lights-before.jpg) | ![](rend2-fx-upgrades/lights-after.jpg) |
+
+vjun2, stock `effects/env/fire`, `r_fxLightsCompare 2` / 0 in the same frozen frame (`timescale 0.02`): the walls take the fire's light.
+
+
 ## 2. Heat haze / distortion (`r_fxDistortion`)
 
 Front end: FX primitives whose material name marks them as fire / flame / burn
@@ -84,6 +91,13 @@ every transparent surface):
 The existing `RF_DISTORTION` / `useDistortion` refraction fill path is left as
 it is: it refracts per surface (glass, force effects); this pass is a
 screen-space field for FX without geometry.
+
+| Before | After |
+| --- | --- |
+| ![](rend2-fx-upgrades/distortion-before.jpg) | ![](rend2-fx-upgrades/distortion-after.jpg) |
+
+Stock `effects/env/small_fire` over a floor seam, `r_fxDistortionCompare 2` / on with `r_fxDistortionStrength 2.5` (the default 1 is subtler): the seam wobbles through the heat. The flames differ because the effect kept animating.
+
 
 ## 3. GPU secondary particles (`r_fxGpuParticles`)
 
@@ -113,11 +127,18 @@ printed, and the feature does nothing.
   the soft particles do). Dispatch and draw are skipped once every spawned
   particle has died.
 
+| Before | After |
+| --- | --- |
+| ![](rend2-fx-upgrades/gpu-particles-before.jpg) | ![](rend2-fx-upgrades/gpu-particles-after.jpg) |
+
+Stock `effects/explosions/explosion1`, `r_fxGpuParticlesCompare 2` / 0, a few frames after the blast: embers rising around the fireball.
+
+
 ## 4. Auto layering (`r_fxLayering`)
 
 `shared/fx/FxLayering.h` classifies an effect by its path (impact metal / stone
 / energy, explosion, muzzle, fire, sparks; screen, water, rain, saber, force and
-blood effects are never touched) and records what its template already contains:
+blood, flesh and glass effects are never touched) and records what its template already contains:
 a `Light`, a `Decal`, spark streaks (`Line` / `Tail` / `Electricity` or a
 `spark` group), dust / smoke / debris groups, a `Cylinder` or shock group. Only
 missing layers are added:
@@ -133,6 +154,13 @@ missing layers are added:
 Sparks and dust use the GPU pool (GL 4.3), lights the Forward+ list
 (unshadowed, quadratic fade), the ring the distortion pass, scorch marks the
 renderer's decal system (`gfx/damage/burnmark4`, else `burnmark1`).
+
+| Before | After |
+| --- | --- |
+| ![](rend2-fx-upgrades/layering-before.jpg) | ![](rend2-fx-upgrades/layering-after.jpg) |
+
+Stock `effects/blaster/wall_impact`, separate runs with `r_fxLayering 0` / 1: the impact gets a spray of sparks and a light.
+
 
 ### Event API
 
@@ -155,5 +183,8 @@ are unaffected).
   and stays in front of it, gravity, life countdown.
 - Defaults: every path is gated by the cvars; the only always-present change is
   the zero-initialised `dlight_t::noShadow` and two uniform table entries.
-- In game: see the status at the end of the hand-over notes; visual tuning
-  (light scale, distortion strength, spark counts) has not been judged in play.
+- Hidden SP runs on vjun2 (NVIDIA, 1280x720, all four on): every program compiled,
+  no GL errors, the screenshots above. A first run found a false "could not create
+  the particle pool" warning (a stale `glGetError`); fixed. Flesh and glass impacts
+  are excluded from layering (they would have got sparks and scorch marks).
+- Not done: MP run, Intel in-game run, tuning of the default amounts by play.

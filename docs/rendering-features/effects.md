@@ -2,7 +2,7 @@
 
 [All rendering settings](../rendering-features.md)
 
-Smoke, dust and explosions from game effects: real 3D volume, lighting, and glowing gas. Everything here builds on [volumetric fog](fog.md#volumetric-fog) (`r_volumetricFog 2`).
+Smoke, dust and explosions from game effects: real 3D volume, lighting, glowing gas, and light, heat haze and extra detail for sparks, fire and explosions. The smoke and gas sections build on [volumetric fog](fog.md#volumetric-fog) (`r_volumetricFog 2`).
 
 ## Volumetric smoke
 
@@ -89,3 +89,65 @@ Lets fog and smoke glow by themselves: luminous gas, a fireball volume, hot smok
 **Debug**
 
 - `r_volumetricFogDebug 30..34` — scattered light, glow, both, integrated glow, history.
+
+## Light from sparks and fire
+
+Sparks, blaster bolts, fire and flashes in stock effects are bright on screen, but most of them light nothing around them. With this, glowing effect sprites become short-lived lights: a fire tints the wall next to it, a shower of sparks flickers on the floor. Nearby sprites share one light, only the brightest are kept, and these lights cast no shadows, so they stay cheap. Effects that already carry their own light are left alone. Needs `r_forwardPlus 1`.
+
+**Cost:** light (a few extra lights in the Forward+ list).
+
+- `r_fxLights 0` — 1 on.
+- `r_fxLightsMax 16` — most effect lights at once.
+- `r_fxLightsScale 7` — how far the light reaches for a given glow.
+- `r_fxLightsMerge 64` — sprites closer than this (in units) share one light.
+
+**Compare:** `r_fxLightsCompare` — 2 off (no split screen: a light reaches both sides).
+
+**How it works.** Every frame the glowing (additive) effect sprites are collected, their brightness is estimated from color and size (stock fires use measured values from the effect tables), sprites close to each other are merged, and the brightest groups become point lights whose reach grows with the square root of their power.
+
+Design notes: [rend2-fx-upgrades.md](../rend2-fx-upgrades.md#1-fx-lights-r_fxlights).
+
+## Heat haze
+
+Hot air above fire, explosions and muzzle flashes bends what is behind it, and explosions with a shock ring push a ripple through the scene. Stock effects have no such layer; this adds it to effects recognized as fire, explosions, flashes and shock waves. The haze is weaker far away and doesn't show through walls.
+
+**Cost:** light (one half-resolution pass and one full-screen pass when such effects are on screen).
+
+- `r_fxDistortion 0` — 1 on; needs `vid_restart`.
+- `r_fxDistortionStrength 1` — amount of distortion.
+- `r_fxDistortionMax 96` — most distorting sprites at once.
+
+**Compare:** `r_fxDistortionCompare` — 1 split screen, 2 off.
+
+**How it works.** The recognized sprites draw a field of small screen offsets (rising noise for heat, an expanding ring for shock waves) into a half-resolution buffer; one pass then shifts the image by that field.
+
+Design notes: [rend2-fx-upgrades.md](../rend2-fx-upgrades.md#2-heat-haze--distortion-r_fxdistortion).
+
+## Extra sparks and embers
+
+Blaster impacts on metal, explosions and spark showers throw extra sparks that fly, fall, bounce off floors and walls and stretch with their speed; explosions and fires release glowing embers that drift up and swirl. The original effect is still drawn as before; this adds detail on top. The particles run on the graphics card, so thousands cost little. Needs a GL 4.3 card and `r_gl43 1`; otherwise the setting does nothing.
+
+**Cost:** light.
+
+- `r_fxGpuParticles 0` — 1 on; needs `vid_restart`.
+- `r_fxGpuParticlesDensity 1` — amount of extra particles, 0–4.
+
+**Compare:** `r_fxGpuParticlesCompare` — 1 split screen, 2 off.
+
+**How it works.** When an effect is played, the game tells the renderer what kind of effect it is. The renderer adds new particles to a pool of 8192 on the graphics card, which moves them with gravity, drag and swirling turbulence and bounces them off whatever is visible on screen.
+
+Design notes: [rend2-fx-upgrades.md](../rend2-fx-upgrades.md#3-gpu-secondary-particles-r_fxgpuparticles).
+
+## Fuller impacts and explosions
+
+Many stock impacts and explosions are missing parts a modern game would show: a blaster hit on metal has no sparks, a hit on stone raises no dust, an explosion lights nothing and leaves no mark. This recognizes stock impacts and explosions and adds only what each one lacks: sparks, dust kicked up from the surface, a short flash of light, a shock ripple and a scorch mark. Flesh, water, glass, saber and Force effects are never changed. Sparks and dust need a GL 4.3 card (`r_gl43 1`), the light needs `r_forwardPlus 1`.
+
+**Cost:** light.
+
+- `r_fxLayering 0` — 1 on; needs `vid_restart`. Works in single player and multiplayer.
+
+**Compare:** `r_fxLayeringCompare` — 2 off (no split screen: lights and marks belong to the whole scene).
+
+**How it works.** Effects are recognized by their file names (for example `blaster/wall_impact` or `explosions/explosion1`), and the effect's own parts are checked, so a layer is added only when the effect doesn't have one already. The added parts use the same systems as [extra sparks](#extra-sparks-and-embers), [heat haze](#heat-haze), [light from sparks and fire](#light-from-sparks-and-fire) and the game's decals.
+
+Design notes: [rend2-fx-upgrades.md](../rend2-fx-upgrades.md#4-auto-layering-r_fxlayering).

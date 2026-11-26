@@ -879,7 +879,10 @@ static void RunParticles(bool depthValid)
 	s_ringHead = (s_ringHead + numSpawn) % FX_POOL;
 	s_spawn.clear();
 
-	// draw: emissive (added) then dust (premultiplied over)
+	// draw: emissive (added) then dust (premultiplied over); r_fxGpuParticlesCompare 2
+	// hides the pool unless the layering also uses it
+	if (R_CompareOff(RC_FXGPUPARTICLES) && !LayeringActive())
+		return;
 	shaderProgram_t *draw = &tr.fxParticleShader;
 	GLSL_BindProgram(draw);
 	GLSL_SetUniformMatrix4x4(draw, UNIFORM_FXMATRIX, m[0], 2);

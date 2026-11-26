@@ -48,7 +48,7 @@ A value a renderer cvar can't take — a word where it needs a number, a value o
 - [Characters](rendering-features/characters.md) (light across the body, sun on characters, skin, hair, softer ragdolls)
 - [Reflections](rendering-features/reflections.md) (screen-space reflections, rough reflections, fog in reflections)
 - [Fog and light beams](rendering-features/fog.md) (volumetric fog, ground haze, thick smoke)
-- [Smoke and effects](rendering-features/effects.md) (volumetric smoke from effects, lit smoke sprites)
+- [Smoke and effects](rendering-features/effects.md) (volumetric smoke from effects, lit smoke sprites, light, heat haze and extra sparks from effects)
 - [Sky](rendering-features/sky.md) (distance haze, computed sky, 3D clouds)
 - [Weather](rendering-features/weather.md) (rain streaks and haze, wet surfaces, puddles, splashes, lens water)
 - [Water](rendering-features/water.md) (reflective water, underwater fog, waves, ripples, foam, waterfalls)

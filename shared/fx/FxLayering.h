@@ -55,7 +55,8 @@ inline Class Classify(const char *effect) {
 	// never touch screen / view / environment ambience effects
 	if (Contains(effect, "screen") || Contains(effect, "rain") || Contains(effect, "snow") ||
 		Contains(effect, "water") || Contains(effect, "splash") || Contains(effect, "steam") ||
-		Contains(effect, "saber") || Contains(effect, "force/") || Contains(effect, "blood"))
+		Contains(effect, "saber") || Contains(effect, "force/") || Contains(effect, "blood") ||
+		Contains(effect, "flesh") || Contains(effect, "glass"))
 		return ClassNone;
 	if (Contains(effect, "muzzle") || Contains(effect, "flash.efx")) return ClassMuzzle;
 	if (Contains(effect, "explosion") || Contains(effect, "explode") || Contains(effect, "detpack") ||
