@@ -78,7 +78,7 @@ def main():
         receipts.append(dict(**item,original_sha256=hashes))
     value=cards.read_text(encoding='utf-8')
     assert 'MEDIA = {\n' in value
-    cards.write_text(value.replace('MEDIA = {\n','MEDIA = {\n'+'\n'.join(media)+'\n',1),encoding='utf-8')
+    cards.write_text(value.replace('\nMEDIA = {\n','\nMEDIA = {\n'+'\n'.join(media)+'\n',1),encoding='utf-8')
     coverage_path.write_text(json.dumps(coverage,indent=2),encoding='utf-8')
     (ROOT/'tools/rend2/feature_gallery'/('batch-'+a.batch+'.json')).write_text(json.dumps(receipts,indent=2))
     print('Prepared ten reviewed comparisons; build and inspect before commit/push.')
