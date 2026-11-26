@@ -43,5 +43,5 @@ console-line limit; the helper now forwards only essential context/cache control
 keeps filesystem arguments first and asserts the command limit before launching.
 
 [Smoke receipt](rend2-enabled-batching-defaults-validation.json) contains the private
-launch settings and binary/capture hashes. The final integration report records
+launch settings and binary/capture hashes. The [final integration report](rend2-performance-defaults-and-lightall-integration.md) records
 merged-main builds and preservation separately.

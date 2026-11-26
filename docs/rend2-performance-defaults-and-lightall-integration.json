@@ -1,0 +1,295 @@
+{
+  "date": "2026-11-26",
+  "implementation_head": "d1c5ff8a5e8a13a3044e66fc8325c4180fe5eadb",
+  "base_preserved": "ee768b73640be3071e0f48953f1501f749e06a7d",
+  "merges": {
+    "defaults": "000e270ec",
+    "shader7": "df17352ec",
+    "independent_runtime": "d1c5ff8a5"
+  },
+  "defaults": {
+    "r_worldSurfaceList": 1,
+    "r_surfaceSpritesCompute": 2,
+    "r_modelOcclusion": 1,
+    "r_md3Instancing": 1,
+    "r_lightallSpecialize": 1
+  },
+  "archived_values": "Existing explicit archived values keep priority; installed configuration untouched; every0 path retained.",
+  "build": {
+    "SP_Release": "PASS exit0",
+    "MP_Release": "PASS exit0",
+    "targets": "Renderer DLLs plus existing4CPUtests only; engines/game reused",
+    "source_provenance": "Merged HEAD plus preserved pre-existing dirty main shader/volumetric files; no unrelated source edits made",
+    "DLL_SHA256": {
+      "rdsp-rend2_x86_64.dll": "71e020e32335f61962da0808d280a306dda564bf8ff9c6cf83d69d1bd2218df7",
+      "rd-rend2_x86_64.dll": "7a90139278e5d460dfe201bb572bc77e0128fa25e6c4f092d22d273300e5c4e2",
+      "rend2_glslc.exe": "cd713d257f501c8a88e25241fe91fb1f05931890c8ec68ccd11908890cd18259"
+    }
+  },
+  "tests": {
+    "source_defaults_contract": "PASS SP/MP/archive/off controls",
+    "ctest": "4/4PASS world surface list, character cull, sprite allocator, MD3 grouping/policy",
+    "merged_runtime": {
+      "capture_channel_differences": {
+        "defaults/defaults_repeat": 0,
+        "defaults/restored": 0
+      },
+      "md3_sampled_frames": [
+        [
+          40,
+          155,
+          2,
+          40,
+          38,
+          0,
+          21504
+        ],
+        [
+          40,
+          155,
+          2,
+          40,
+          38,
+          0,
+          21504
+        ],
+        [
+          40,
+          155,
+          2,
+          40,
+          38,
+          0,
+          21504
+        ]
+      ],
+      "sprite_sampled_frames": [
+        [
+          5852,
+          774,
+          5078,
+          1858,
+          13312,
+          28,
+          7
+        ]
+      ],
+      "far_model_queries": [
+        [
+          48,
+          8,
+          72,
+          0,
+          0
+        ],
+        [
+          228,
+          38,
+          342,
+          3,
+          4062
+        ],
+        [
+          216,
+          36,
+          324,
+          0,
+          0
+        ],
+        [
+          276,
+          46,
+          414,
+          0,
+          0
+        ]
+      ],
+      "near_model_queries": [],
+      "initialized": [
+        "sun cascades",
+        "fused velocity"
+      ],
+      "character_cull": 1,
+      "enabled_defaults_smoke": true,
+      "lightall_specialize": 1,
+      "correctness_only": true,
+      "head": "d1c5ff8a5e8a13a3044e66fc8325c4180fe5eadb"
+    },
+    "run_metadata": {
+      "foreign_before": [],
+      "performance_isolated": true,
+      "correctness_only": true,
+      "launch": [
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\sprite-cull-runtime\\defaults7-merged-26\\openjk_sp.x86_64.exe",
+        "+set",
+        "fs_basepath",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK\\build-rend2",
+        "+set",
+        "fs_homepath",
+        "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK-rend2\\build\\sprite-cull-runtime\\defaults7-merged-26\\home",
+        "+set",
+        "fs_game",
+        "OpenJK",
+        "+set",
+        "r_shaderProgramCache",
+        "1",
+        "+set",
+        "cl_renderer",
+        "rdsp-rend2",
+        "+set",
+        "r_mode",
+        "-1",
+        "+set",
+        "r_customwidth",
+        "640",
+        "+set",
+        "r_customheight",
+        "360",
+        "+set",
+        "r_fullscreen",
+        "0",
+        "+set",
+        "in_mouse",
+        "0",
+        "+set",
+        "s_initsound",
+        "0",
+        "+set",
+        "logfile",
+        "2",
+        "+set",
+        "r_gl43",
+        "1",
+        "+set",
+        "r_offscreenPresent",
+        "1",
+        "+set",
+        "r_hdr",
+        "1",
+        "+set",
+        "r_shaderProgramLazy",
+        "1",
+        "+set",
+        "r_shaderCompileProcesses",
+        "0"
+      ],
+      "sun_shadows_initialized": true,
+      "velocity_initialized": true,
+      "character_cull": 1
+    },
+    "actualGL": "Both Intel and RTX:7 program pairs compile/ABI;6 rendered pairs exact color/screen/depth. Successful suites reused; see shader receipt.",
+    "independent_runtime": "1280sameDLL:6 strict image pairs exact;8lights changed1667580channels;removal restored exact; actual specialized/full bindings verified.",
+    "optional640": "Dropped after foreign OpenJK preflight; untouched. No resolution attribution."
+  },
+  "performance_scope": {
+    "unit": "GPU nanoseconds per submitted fragment; actual production shader programs, not frame/FPS",
+    "Intel": {
+      "lightmap_LTC_shadow": [
+        97.674,
+        8.891
+      ],
+      "grid_sun_shadow": [
+        66.787,
+        8.075
+      ],
+      "SSR_SSGI_specAA": [
+        84.605,
+        9.48
+      ]
+    },
+    "RTX": {
+      "lightmap_LTC_shadow_clock_drift": [
+        6.393,
+        3.616
+      ],
+      "grid_sun_shadow": [
+        2.079,
+        1.638
+      ],
+      "SSR_SSGI_specAA": [
+        3.206,
+        2.864
+      ]
+    },
+    "limitations": "Background CPU load and unchanged-pass drift prevent net frame-time claims. Full user-quality diagnostic never reached active MainView within bounds and was rejected. RTX lightmap aggregate medians mix clock regimes; approximately43% paired reduction is supported.",
+    "default_choice": "User explicitly requested all3-6 on despite prior unestablished net timings."
+  },
+  "preservation": {
+    "files": 82,
+    "bytes_before": 1446990,
+    "unchanged_immediately_after_merge": 82,
+    "unchanged_at_final_snapshot": 81,
+    "concurrent_later_edits_preserved": [
+      {
+        "path": "tools/rend2/relight_probe/gridsun.py",
+        "before": "bc22af065ce8b1b351bfc507fdac2719980fbb8a50357c0b933063bf4331e85f",
+        "after": "1bfff58845747e33eafc2e93980e59a3a537eda15cd174485725cd81006ef4d8",
+        "classification": "Concurrent unrelated edit during build/runtime; this integration never wrote this file."
+      }
+    ],
+    "concurrent_edits_in_fresh_before_snapshot": [
+      "tools/rend2/relight_probe/gridsun.py",
+      "tools/rend2/relight_probe/solve.py"
+    ],
+    "staged_before": 0,
+    "staged_after_merge": 0,
+    "before_snapshot_SHA256": "b0f1f2b838a15f30522a5136fd0216823d29288b6605390c466b5c481613a08a",
+    "after_snapshot_SHA256": "0283d3edc0793247d2e838616eb1a34bdbc7e1f22482cc94b42858de52821bd9",
+    "new_FX_commits_retained": [
+      "f7f105891",
+      "ee768b736"
+    ],
+    "installed_assets": "Read-only; no installed DLL/config writes, deploy or push.",
+    "runtime": "Owned final process exited normally; foreign_before empty. Foreign processes never stopped."
+  },
+  "artifact_SHA256": {
+    "pixel7-combined-configure.log": {
+      "sha256": "618552809bdd77540c7dfac953312d8cf3533d5b2a918b2d58ff09ff3bf79e8e",
+      "bytes": 4318
+    },
+    "pixel7-combined-build.log": {
+      "sha256": "5fd7087935b7e54447fd7a82b9b6835e5059880f241406ca0de9fecdd9cec2f3",
+      "bytes": 16272
+    },
+    "pixel7-combined-ctest.log": {
+      "sha256": "d596b8ed44d8a52ca6dfd119d0b9558b43a4e1e7c8bc9b23315992217a617b59",
+      "bytes": 561
+    },
+    "pixel7-merged-smoke.log": {
+      "sha256": "4c52a0815a1611c40ef5262df11ab1d5fded414a0eba3d27afe3e6fbf01c4676",
+      "bytes": 1134
+    },
+    "screenshots/batch_defaults.tga": {
+      "sha256": "1331c1b74c2179b735efe8e17064bc0efeabe0afb6c90204a4e49abf1c40d987",
+      "bytes": 691218
+    },
+    "screenshots/batch_defaults_repeat.tga": {
+      "sha256": "1331c1b74c2179b735efe8e17064bc0efeabe0afb6c90204a4e49abf1c40d987",
+      "bytes": 691218
+    },
+    "screenshots/batch_off.tga": {
+      "sha256": "1331c1b74c2179b735efe8e17064bc0efeabe0afb6c90204a4e49abf1c40d987",
+      "bytes": 691218
+    },
+    "screenshots/batch_restored.tga": {
+      "sha256": "1331c1b74c2179b735efe8e17064bc0efeabe0afb6c90204a4e49abf1c40d987",
+      "bytes": 691218
+    },
+    "merged-smoke/launch.log": {
+      "sha256": "67c9778bbfc60d0efc37a4f9acc1bebdb193afe2e2b0dceb90d6e81246bcb61d",
+      "bytes": 31060
+    },
+    "merged-smoke/home/OpenJK/qconsole.log": {
+      "sha256": "4430bb8699d44a57a027980640aa277e6606436d868001e00ec45f4681504eb8",
+      "bytes": 28970
+    },
+    "merged-smoke/run-meta.json": {
+      "sha256": "5149584115ecb45ccc597cd972ab8aa9110ba0cbbdeb4b6ed2669e2a5dd52010",
+      "bytes": 1259
+    },
+    "merged-smoke/results.json": {
+      "sha256": "f3740214f91fcb5d831ff38e4ca8ac178ab8e5de50cd2f02271b52c27905e664",
+      "bytes": 1132
+    }
+  }
+}
