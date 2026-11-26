@@ -159,11 +159,15 @@
       </div>
       <div class="topic" id="topic-effects">
         <h3>Smoke and effects</h3>
-        <p class="topic-intro">Smoke, dust and explosions from game effects: real 3D volume, lighting, and glowing gas. Everything here builds on <a href="#f/fog/volumetric-fog">volumetric fog</a> (<code>r_volumetricFog 2</code>).</p>
+        <p class="topic-intro">Smoke, dust and explosions from game effects: real 3D volume, lighting, glowing gas, and light, heat haze and extra detail for sparks, fire and explosions. The smoke and gas sections build on <a href="#f/fog/volumetric-fog">volumetric fog</a> (<code>r_volumetricFog 2</code>).</p>
         <div class="grid">
           <article class="card" data-feature="effects/volumetric-smoke" tabindex="0" role="button" aria-haspopup="dialog"><h4>Volumetric smoke</h4><p>Smoke from effects becomes real volume in the fog, lit and shadowed by it.</p><code>r_volumetricParticles</code></article>
           <article class="card" data-feature="effects/lit-smoke-sprites" tabindex="0" role="button" aria-haspopup="dialog"><h4>Lit smoke sprites</h4><p>Ordinary smoke sprites take the light of the place they are in.</p><code>r_particleLighting</code></article>
           <article class="card" data-feature="effects/glowing-gas" tabindex="0" role="button" aria-haspopup="dialog"><h4>Glowing gas</h4><p>Fog and smoke that glow by themselves.</p><code>r_volumetricEmission</code></article>
+          <article class="card" data-feature="effects/light-from-sparks-and-fire" tabindex="0" role="button" aria-haspopup="dialog"><h4>Light from sparks and fire</h4><p>Sparks, bolts, fire and flashes light the walls and floor around them.</p><code>r_fxLights</code></article>
+          <article class="card" data-feature="effects/heat-haze" tabindex="0" role="button" aria-haspopup="dialog"><h4>Heat haze</h4><p>Hot air above fire and explosions bends what is behind it; shock waves ripple the scene.</p><code>r_fxDistortion</code></article>
+          <article class="card" data-feature="effects/extra-sparks-and-embers" tabindex="0" role="button" aria-haspopup="dialog"><h4>Extra sparks and embers</h4><p>Impacts and explosions throw bouncing sparks and drifting embers, simulated on the GPU.</p><code>r_fxGpuParticles</code></article>
+          <article class="card" data-feature="effects/fuller-impacts-and-explosions" tabindex="0" role="button" aria-haspopup="dialog"><h4>Fuller impacts and explosions</h4><p>Stock impacts and explosions get the sparks, dust, light and scorch marks they lack.</p><code>r_fxLayering</code></article>
         </div>
       </div>
       <div class="topic" id="topic-sky">
@@ -215,7 +219,7 @@
       </div>
       <div class="topic" id="topic-foliage">
         <h3>Grass, plants and wind</h3>
-        <p class="topic-intro">Grass and plants that look fuller, sway in a shared breeze, bend when you walk through them, and react to the Force and to sabers. Two kinds of vegetation exist in JKA:</p>
+        <p class="topic-intro">Grass and plants that look fuller, sway in a shared breeze, bend when you walk through them, and react to the Force and to sabers. Everything here moves geometry or simulates plants for the whole world, so the compare cvars have no split screen: <code>2</code> switches a feature off without touching its setting. Two kinds of vegetation exist in JKA:</p>
         <div class="grid">
           <article class="card" data-feature="foliage/recognizing-stock-plants" tabindex="0" role="button" aria-haspopup="dialog"><h4>Recognizing stock plants</h4><p>Finds leaves, fronds and stems in stock plant models for the features below.</p><code>r_autoFoliage</code></article>
           <article class="card" data-feature="foliage/fuller-grass" tabindex="0" role="button" aria-haspopup="dialog"><h4>Fuller grass</h4><p>Grass as fixed crossed cards that don't swivel with the camera.</p><code>r_grassCardMode</code></article>
@@ -229,7 +233,7 @@
       </div>
       <div class="topic" id="topic-loading">
         <h3>Loading, OpenGL and diagnostics</h3>
-        <p class="topic-intro">Settings that change how fast the game starts and loads maps, which OpenGL paths are used, and tools for testing. None of them change how a finished frame looks. The defaults are the recommended values.</p>
+        <p class="topic-intro">Settings that change how fast the game starts and loads maps, which OpenGL paths are used, and tools for testing. None of them change how a finished frame looks, so they have no compare cvars. They are <strong>off by default</strong>, as in stock Rend2; turning them on is recommended:</p>
         <div class="grid">
           <article class="card" data-feature="loading/shader-compilation" tabindex="0" role="button" aria-haspopup="dialog"><h4>Shader compilation</h4><p>Shader programs are cached on disk and built only when a level needs them.</p><code>r_shaderProgramCache</code></article>
           <article class="card" data-feature="loading/map-loading" tabindex="0" role="button" aria-haspopup="dialog"><h4>Map loading</h4><p>Textures are decoded ahead on worker threads, and slow load steps are cached or deferred.</p><code>r_loadPrefetch</code></article>

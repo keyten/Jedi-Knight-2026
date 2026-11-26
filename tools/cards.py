@@ -86,6 +86,10 @@ PAGES = [
         ("Volumetric smoke", "Smoke from effects becomes real volume in the fog, lit and shadowed by it.", "r_volumetricParticles"),
         ("Lit smoke sprites", "Ordinary smoke sprites take the light of the place they are in.", "r_particleLighting"),
         ("Glowing gas", "Fog and smoke that glow by themselves.", "r_volumetricEmission"),
+        ("Light from sparks and fire", "Sparks, bolts, fire and flashes light the walls and floor around them.", "r_fxLights"),
+        ("Heat haze", "Hot air above fire and explosions bends what is behind it; shock waves ripple the scene.", "r_fxDistortion"),
+        ("Extra sparks and embers", "Impacts and explosions throw bouncing sparks and drifting embers, simulated on the GPU.", "r_fxGpuParticles"),
+        ("Fuller impacts and explosions", "Stock impacts and explosions get the sparks, dust, light and scorch marks they lack.", "r_fxLayering"),
     ]),
     ("sky", [
         ("Atmosphere", "Distant scenery fades into bluish air, and the sky can be computed from the sun.", "r_atmosphere"),
@@ -142,7 +146,24 @@ PAGES = [
 # Doc sections deliberately left off the site.
 SKIP = {"loading": ["Testing and internal flags"]}
 
-MEDIA = {}
+MEDIA = {
+    "effects/light-from-sparks-and-fire": [
+        {"type": "image", "src": "assets/media/fx/lights-before.jpg", "caption": "Before: the fire lights nothing"},
+        {"type": "image", "src": "assets/media/fx/lights-after.jpg", "caption": "After: the walls and floor take its light"},
+    ],
+    "effects/heat-haze": [
+        {"type": "image", "src": "assets/media/fx/distortion-before.jpg", "caption": "Before"},
+        {"type": "image", "src": "assets/media/fx/distortion-after.jpg", "caption": "After (r_fxDistortionStrength 2.5): the floor seam wobbles through the heat"},
+    ],
+    "effects/extra-sparks-and-embers": [
+        {"type": "image", "src": "assets/media/fx/gpu-particles-before.jpg", "caption": "Before: stock explosion"},
+        {"type": "image", "src": "assets/media/fx/gpu-particles-after.jpg", "caption": "After: embers rising around the fireball"},
+    ],
+    "effects/fuller-impacts-and-explosions": [
+        {"type": "image", "src": "assets/media/fx/layering-before.jpg", "caption": "Before: stock blaster impact"},
+        {"type": "image", "src": "assets/media/fx/layering-after.jpg", "caption": "After: added sparks and light"},
+    ],
+}
 
 FORCE = [
     dict(id="force/telekinesis", title="Telekinesis", color="blue", cvar="setForceTelekinesis 3",
