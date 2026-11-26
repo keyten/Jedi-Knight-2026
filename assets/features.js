@@ -9,7 +9,18 @@ window.FEATURES = {
     "html": "<p>The renderer computes light far brighter than a monitor can show: sky, lamps, saber blades. The tone mapper squeezes that range onto your screen and decides how contrasty the image looks and what happens to very bright colors. Pick the look you like; every curve costs the same. Needs <code>r_hdr 1</code> and <code>r_toneMap 1</code>.</p>\n<ul><li><code>r_toneMapMode 0</code> — <strong>0</strong> Rend2's original filmic curve. <strong>1</strong> ACES, the film look of many modern games: stronger contrast; very bright colored lights can shift hue. <strong>2</strong> AgX-like: gentler contrast; bright colored lights fade to white without changing hue.</li></ul>\n<p><strong>Compare:</strong> <code>r_toneMapCompare</code> — 1 split screen (original curve left, <code>r_toneMapMode</code> right), 2 original curve, 3 three strips: original / ACES / AgX.</p>\n<h4>Debug</h4>\n<ul><li><code>r_toneMapDebug 1..3</code> — raw HDR image, image after exposure, exposure in false color.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-tonemapping.md\" target=\"_blank\" rel=\"noopener\">rend2-tonemapping.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/post-processing/tone-mapping-before.jpg",
+    "caption": "Before: Original Rend2 filmic curve (academy1)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/post-processing/tone-mapping-after.jpg",
+    "caption": "After: ACES fitted curve (academy1)"
+   }
+  ]
  },
  "post-processing/brightness-and-exposure": {
   "group": "Image and camera",
@@ -21,7 +32,18 @@ window.FEATURES = {
     "html": "<p>Like your eyes, the renderer adapts to the scene: dark rooms are brightened, sunny exteriors darkened. This is on by default. Everything in this section needs <code>r_hdr 1</code> and <code>r_toneMap 1</code>; without them brightness is fixed.</p>\n<ul><li><code>r_autoExposure 1</code> — 0 fixed brightness, 1 adapt to the scene.</li><li><code>r_exposureCompensation 0</code> — the simplest brightness control, in stops: <code>1</code> is twice as bright, <code>-1</code> half. Works in every mode below.</li></ul>\n<h3 class=\"sub\">Physical camera (optional)</h3>\n<p>Instead of the original adaptation you can use real camera settings, mostly useful for screenshots and fixed shots.</p>\n<ul><li><code>r_cameraMode 0</code> — <strong>0</strong> original exposure (above). <strong>1</strong> manual camera: brightness comes from ISO, aperture and shutter time. <strong>2</strong> automatic camera: meters the scene and adapts within the limits below.</li><li><code>r_cameraISO 100</code>, <code>r_cameraAperture 16</code>, <code>r_cameraShutterSeconds 0.008</code> — mode 1. Higher ISO, a smaller f-number or a longer shutter make the image brighter. The aperture does not blur anything: there is no depth of field yet.</li><li><code>r_cameraAutoEVMin -6</code> — mode 2: the darkest scene it fully adapts to. Raise it to keep dark areas dark.</li><li><code>r_cameraAutoEVMax 20</code> — mode 2: the brightest scene it fully adapts to. Lower it to keep bright areas bright.</li><li><code>r_motionBlurPhysicalShutter 0</code> — 1: in modes 1–2, <a href=\"#f/post-processing/motion-blur\">motion blur</a> length follows <code>r_cameraShutterSeconds</code> instead of the shutter angle.</li></ul>\n<p><strong>Compare:</strong> <code>r_cameraCompare 2</code> — the original exposure. No split screen: the scene is metered once for the whole view.</p>\n<div class=\"how\"><h3>How it works</h3><p>Manual mode converts ISO, aperture and shutter into an exposure value (EV100), as a light meter would. Automatic mode measures the average scene brightness and moves toward it, clamped to the EV range. Exposure compensation is applied on top.</p></div>\n<ul><li><code>r_cameraExposure 0</code> — mode 0 only: a fixed gain in stops.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_cameraDebug 1</code> — print the camera and meter state once per second.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-physical-camera.md\" target=\"_blank\" rel=\"noopener\">rend2-physical-camera.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/post-processing/brightness-and-exposure-before.jpg",
+    "caption": "Before: Exposure compensation 0 (hoth3)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/post-processing/brightness-and-exposure-after.jpg",
+    "caption": "After: Exposure compensation +1 stop (hoth3)"
+   }
+  ]
  },
  "post-processing/bloom": {
   "group": "Image and camera",
@@ -45,7 +67,18 @@ window.FEATURES = {
     "html": "<p>Applies a color filter to the whole image — warmer, colder, faded, more contrast — from a LUT file (<code>.cube</code>), the format photo and video editors export. Stock maps have no LUT, so nothing changes until you provide one. Needs <code>r_hdr 1</code> and <code>r_toneMap 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_colorGrading 0</code> — 1 on; does nothing without a LUT.</li><li><code>r_colorGradingLUT \"\"</code> — a <code>.cube</code> file in the game data, for example <code>luts/warm.cube</code> in <code>base/</code> or a pk3. Empty uses the map's own LUT if it has one; <code>*identity</code> is neutral.</li><li><code>r_colorGradingIntensity 1</code> — 0 original colors … 1 the full LUT.</li></ul>\n<p><strong>Compare:</strong> <code>r_colorGradingCompare</code> — 1 split screen (ungraded left), 2 ungraded.</p>\n<p class=\"mod\"><strong>Mod authors:</strong> put <code>maps/&lt;map&gt;.cube</code> next to the <code>.bsp</code>; it loads with the map unless the player sets <code>r_colorGradingLUT</code>.</p>\n<div class=\"how\"><h3>How it works</h3><p>A 3D LUT is a table that gives an output color for every input color. The renderer looks up each pixel of the final image in it and blends the result with the original by <code>r_colorGradingIntensity</code>.</p></div>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/post-processing/color-grading-before.jpg",
+    "caption": "Before: No LUT grading (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/post-processing/color-grading-after.jpg",
+    "caption": "After: Warm example LUT (yavin1b)"
+   }
+  ]
  },
  "post-processing/motion-blur": {
   "group": "Image and camera",
@@ -69,7 +102,18 @@ window.FEATURES = {
     "html": "<p>Smooths jagged geometry edges.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_smaa 0</code> <em>(restart)</em> — <strong>1</strong> SMAA 1x. <strong>2</strong> SMAA T2x: also smooths over two frames, with a slight camera jitter.</li><li><code>r_smaaQuality 2</code> <em>(restart)</em> — 0 low, 1 medium, 2 high, 3 ultra.</li></ul>\n<p><strong>Compare:</strong> <code>r_smaaCompare</code> — 1 split screen (no anti-aliasing left; <code>r_smaa 1</code> only, T2x jitters the whole view), 2 off.</p>\n<div class=\"how\"><h3>How it works</h3><p>SMAA finds edges in the finished image and blends pixels along them. It does not fix shimmering of very thin moving details, such as distant fences or grass.</p></div>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/post-processing/anti-aliasing-smaa-before.jpg",
+    "caption": "Before: No SMAA (mp/ffa3)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/post-processing/anti-aliasing-smaa-after.jpg",
+    "caption": "After: SMAA 1x, ultra quality (mp/ffa3)"
+   }
+  ]
  },
  "post-processing/linear-lighting-experimental": {
   "group": "Image and camera",
@@ -117,7 +161,18 @@ window.FEATURES = {
     "html": "<p>Close walls, armor, cloth and wood gain small pits, brushing, scratches, pores or weave selected by their material. The original texture keeps its larger pattern. Needs <code>r_materialClassification 1</code> and per-pixel lighting (normal or specular mapping enabled); unsupported materials and cards without enough texture units keep their original look.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium on close surfaces.</p>\n<ul><li><code>r_detailTextureSynthesis 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_detailTextureMicro 0</code> <em>(restart)</em> — extra detail for very close views, strength 0–2.</li><li><code>r_detailTexturePBR 1</code> — strength of the small roughness changes, 0–2.</li></ul>\n<p>No compare cvar: change the enable switch with <code>vid_restart</code>.</p>\n<div class=\"how\"><h3>How it works</h3><p>Seamless material tiles add normal and roughness detail near the camera and fade out with distance. Optional analytic microdetail adds finer shapes when magnifying the surface. Unknown, water, sky, effect and blended materials are skipped; uncertain classifications weaken the detail.</p></div>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-material-classification.md#detail-texture-synthesis\" target=\"_blank\" rel=\"noopener\">detail synthesis</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/materials/fine-material-detail-before.jpg",
+    "caption": "Before: Synthesized detail off (t1_sour)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/materials/fine-material-detail-after.jpg",
+    "caption": "After: Synthesized detail on (t1_sour)"
+   }
+  ]
  },
  "materials/stone-joints-and-relief": {
   "group": "Materials and surface detail",
@@ -261,7 +316,18 @@ window.FEATURES = {
     "html": "<p>Darkens corners, wall joints, the ground under feet and crates, and small recesses, so objects look grounded instead of evenly lit. The map's baked lighting already has some of this, but it can't follow moving characters or props. GTAO is a more accurate replacement for Rend2's original SSAO, with fewer halos.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium.</p>\n<ul><li><code>r_aoMode -1</code> — <strong>-1</strong> follow the original <code>r_ssao</code> setting (off unless <code>r_ssao 1</code>). <strong>0</strong> off. <strong>1</strong> original SSAO. <strong>2</strong> GTAO. Turning it on from off needs <code>vid_restart</code>.</li><li><code>r_gtaoQuality 2</code> — 0 low, 1 medium, 2 high, 3 ultra.</li><li><code>r_gtaoRadius 32</code> — how far an object reaches to darken its surroundings, in world units (a player is about 64 tall).</li><li><code>r_gtaoPower 1.5</code> — strength; higher is darker.</li></ul>\n<p><strong>Compare:</strong> <code>r_aoCompare</code> — 1 split screen (left the original AO: Rend2's SSAO with <code>r_ssao 1</code>, none with <code>r_ssao 0</code>), 2 the original AO.</p>\n<div class=\"how\"><h3>How it works</h3><p>For each pixel the shader looks around in the depth image to estimate how much of the surrounding sky of light is blocked by nearby geometry. It only knows what is on screen, so occlusion from objects just outside the view is missing. GTAO darkens only indirect light (ambient light, the indirect share of baked light and reflections), not direct sun or lamps, as in reality.</p></div>\n<ul><li><code>r_gtaoHalfRes 1</code> <em>(restart)</em> — compute at half resolution; 0 full resolution, sharper and slower.</li><li><code>r_gtaoFalloff 0.6</code> — how quickly occlusion fades toward the radius.</li><li><code>r_gtaoThickness 0.2</code> — treat objects as thin, so things in front of a wall don't darken it as much (fewer dark halos around characters).</li><li><code>r_gtaoDenoise 2</code> — smoothing passes, 0–3.</li><li><code>r_gtaoBentNormals 1</code> — also tilt ambient light toward the open direction; 0 off, up to 1 full.</li><li><code>r_aoApply -1</code> — <strong>-1</strong> automatic. <strong>0</strong> original: darken ambient light and reflections. <strong>1</strong> physically based: darken only indirect light.</li><li><code>r_aoMultiBounce 1</code> — bright surfaces keep more light in creases, as light bounces inside them.</li><li><code>r_aoLightmapFraction 0.5</code> — share of baked lighting treated as indirect and therefore darkened by AO.</li><li><code>r_aoSpecOcclusion -1</code> — how AO darkens reflections: <strong>-1</strong> automatic, <strong>0</strong> plain AO, <strong>1</strong> from AO, roughness and view angle, <strong>2</strong> from the bent-normal cone.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_aoDebug 1..12</code> — original SSAO, raw / denoised GTAO, normals, depth, contact shadows, cascade shadows, sun visibility, ambient visibility, final AO, bent normals, reflection occlusion.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-ambient-occlusion.md\" target=\"_blank\" rel=\"noopener\">rend2-ambient-occlusion.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/lighting/ambient-occlusion-gtao-before.jpg",
+    "caption": "Before: Original AO setting (off) (mp/ffa3)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/lighting/ambient-occlusion-gtao-after.jpg",
+    "caption": "After: GTAO (mp/ffa3)"
+   }
+  ]
  },
  "lighting/many-dynamic-lights-forward": {
   "group": "Lighting",
@@ -561,7 +627,18 @@ window.FEATURES = {
     "html": "<p>Low mist that is thick near the ground and thins with height, on any map, without fog brushes. A simple way to get visible beams on maps without fog. Needs <code>r_volumetricFog 2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_volumetricFogHeight 0</code> — 1 on.</li><li><code>r_volumetricFogHeightOpaqueDistance 3000</code> — at ground level, the distance where the haze becomes opaque. Lower is thicker.</li><li><code>r_volumetricFogHeightFalloff 256</code> — how quickly it thins with height; larger means a taller layer.</li><li><code>r_volumetricFogHeightColor \"0.7 0.75 0.8\"</code> — haze color.</li><li><code>r_volumetricFogHeightBase auto</code> — world height of the ground; auto picks the lowest floor (a map's <code>env.json</code> can override it).</li><li><code>r_volumetricFogHeightMaxDensity 1</code> — density cap below the base height.</li><li><code>r_volumetricFogHeightTopHeight 0</code> — height where the haze fades out completely; 0 never.</li></ul>\n<p><strong>Compare:</strong> <code>r_volumetricFogHeightCompare</code> — 1 split screen, 2 off.</p>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 12</code> — ground-haze density.</li></ul>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/fog/ground-haze-before.jpg",
+    "caption": "Before: Ground haze off (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/fog/ground-haze-after.jpg",
+    "caption": "After: Ground haze on (yavin1b)"
+   }
+  ]
  },
  "fog/uneven-fog": {
   "group": "Fog and light beams",
@@ -1023,7 +1100,18 @@ window.FEATURES = {
     "html": "<p>Stock water is a scrolling texture with a fixed tint. Modern water reflects its surroundings, bends the view of the bottom, is clear where shallow and darker where deep, and gets the brighter reflections at grazing angles that real water has. Stock water and slime are found automatically; nothing has to be edited.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium; high reflection quality can make it heavy.</p>\n<ul><li><code>r_waterSurface 0</code> <em>(restart)</em> — 1 on; 0 restores the original water.</li><li><code>r_waterSurfaceSSR 1</code> — weight of on-screen reflections over cubemap reflections; 0 cubemap only. Independent of <code>r_ssr</code>.</li><li><code>r_waterSurfaceRoughness 0.06</code> — smaller gives sharper highlights and reflections.</li><li><code>r_waterSurfaceAbsorption 1</code> — how fast water gets darker with depth (shared with <a href=\"#f/water/underwater-fog\">underwater fog</a>).</li><li><code>r_waterBodyOptics 0</code> <em>(restart)</em> — 1: local water reflection captures and depth-dependent scattering by suspended matter and advected bubbles; shallows stay clearer and waterfall receiving pools become cloudier. See <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-water-body-optics.md\" target=\"_blank\" rel=\"noopener\">body optics</a> for costs and limits.</li><li><code>r_waterSurfaceReflection 1</code>, <code>r_waterSurfaceRefraction 1</code> — strength of reflection and of bending; 1 physically correct.</li><li><code>r_waterSurfaceNormal 1</code> — strength of small ripples; 0 removes them.</li><li><code>r_waterSurfaceExperimental 0</code> — 1: also treat surfaces with water-like shader names (<code>pool</code>, <code>lake</code>, <code>river</code>…) as water, for maps where detection misses some.</li></ul>\n<p><strong>Compare:</strong> <code>r_waterSurfaceCompare</code> — 1 split screen (the original water shaders left; waterfalls split with it), 2 the original water.</p>\n<p class=\"mod\"><strong>Mod authors:</strong> water-body and <code>Liquids</code> rules in <code>cubemaps/&lt;map&gt;/env.json</code> choose which surfaces form one body and its look and motion; see the design notes.</p>\n<div class=\"how\"><h3>How it works</h3><p>At map load water surfaces are found from map contents and grouped into bodies. When drawn, reflection (on-screen tracing, falling back to cubemaps) is mixed with refraction by the viewing angle (Fresnel); the depth image behind the water gives its thickness and so how much light it absorbs.</p></div>\n<ul><li><code>r_waterSurfaceIOR 1.333</code> — refractive index of the liquid.</li><li><code>r_waterSurfaceDepthScale 1</code> — scale of the measured water thickness.</li><li><code>r_waterSurfaceDepthReject 1</code> — refraction never shows objects in front of the water.</li><li><code>r_waterSSROptimize 7</code> — reflection speed-ups, add bits: <strong>1</strong> coarser geometry in the reflection pre-pass, <strong>2</strong> skip hidden water, <strong>4</strong> simpler pre-pass shader. 0 turns them off for comparison.</li><li><code>r_waterSSRWaveReprojection 0</code> <em>(restart)</em> — 1: use exact previous-frame wave geometry for frame-averaged reflections.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterSurfaceDebug 1..8</code>, <code>10</code>, <code>11</code> — classification, normals, reflection, depth, refraction, roughness (the old split 9 is <code>r_waterSurfaceCompare 1</code>).</li><li><code>r_waterMotionDebug 1..10</code> — water motion and history validity.</li><li><code>r_waterInfo</code> — list modern-water surfaces. <code>r_waterBodies</code> — bodies and profiles. <code>r_waterOverride</code> — inspect or override classification (run without arguments for syntax).</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-water-bodies.md\" target=\"_blank\" rel=\"noopener\">rend2-water-bodies.md</a>, <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-water-surface.md\" target=\"_blank\" rel=\"noopener\">rend2-water-surface.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/modern-water-before.jpg",
+    "caption": "Before: Original scrolling water shader (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/modern-water-after.jpg",
+    "caption": "After: Modern water surface (yavin1b)"
+   }
+  ]
  },
  "water/underwater-fog": {
   "group": "Water, waves and waterfalls",
@@ -1047,7 +1135,18 @@ window.FEATURES = {
     "html": "<p>From below, the world above is visible only through a bright circle overhead (Snell's window); at flatter angles the surface turns into a mirror reflecting the underwater scene. Needs modern water.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium.</p>\n<ul><li><code>r_waterSnell 0</code> — 1 on.</li><li><code>r_waterSnellOptics 0</code> <em>(restart)</em> — <strong>0</strong> basic, <strong>1</strong> sunlight passes through the surface, <strong>2</strong> also the atmosphere along the path above.</li></ul>\n<p><strong>Compare:</strong> <code>r_waterSnellCompare 2</code> — the plain surface from below. No split screen: Snell's window is a water program of its own.</p>\n<div class=\"how\"><h3>How it works</h3><p>Light bends when crossing the water surface (Snell's law); beyond a critical angle it can't leave and reflects back (total internal reflection).</p></div>\n<h4>Debug</h4>\n<ul><li><code>r_waterSnellDebug 1..6</code> — crossing direction, internal reflection, reflection strength, ray direction, source.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-water-realism-followup.md\" target=\"_blank\" rel=\"noopener\">rend2-water-realism-followup.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/looking-up-from-underwater-before.jpg",
+    "caption": "Before: Plain underside of the surface (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/looking-up-from-underwater-after.jpg",
+    "caption": "After: Snell/refraction surface (yavin1b)"
+   }
+  ]
  },
  "water/waves": {
   "group": "Water, waves and waterfalls",
@@ -1155,7 +1254,18 @@ window.FEATURES = {
     "html": "<p>Falling water breaks up into streaks, turns white where it is aerated, throws mist at the base and churns the pool it falls into. Rapids carry white water downstream. Supported stock waterfalls are recognized automatically; others keep their original look. Needs modern water.</p>\n<p>Tall spillways now keep a continuous, irregular foam apron from the falling sheet into the receiving pool, lit from the map's baked lighting. Shore motion and impact foam also follow the moving water surface more closely.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium to heavy with all layers on.</p>\n<ul><li><code>r_waterfall 0</code> <em>(restart)</em> — 1 modern waterfall sheets.</li><li><code>r_waterfallMist 0</code> — 1 spray and mist at the base (best with volumetric fog).</li><li><code>r_waterfallImpact 0</code> — 1 ripples, turbulence and foam where it lands (needs ripples or the foam field).</li><li><code>r_waterWhitewater 0</code> <em>(restart)</em> — 1 white water in rapids and turbulent streams.</li><li><code>r_waterfallQuality 1</code> — 0–2.</li><li><code>r_waterfallEnvironmentReflection 0</code> — 1: local waterfall reflections with <code>r_cubeMapping 1</code>; enable before map load so the probes can be captured. This is separate from ordinary water's <code>r_waterBodyOptics</code>.</li></ul>\n<p><strong>Compare:</strong> <code>r_waterfallCompare 2</code> — the original waterfall shaders (split screen: <code>r_waterSurfaceCompare 1</code>, which splits waterfalls and water together). <code>r_waterWhitewaterCompare</code> — 1 split screen, 2 off.</p>\n<p class=\"mod\"><strong>Mod authors:</strong> <code>Waterfalls</code> data in <code>cubemaps/&lt;map&gt;/env.json</code> selects sheets and places mist and impact points.</p>\n<div class=\"how\"><h3>How it works</h3><p>Each waterfall gets a profile (small, medium, heavy) that drives its breakup, spray and pool disturbance. White water is carried by the flow and decays.</p></div>\n<ul><li><code>r_waterfallSmallStrength 1</code>, <code>r_waterfallMediumStrength 1</code>, <code>r_waterfallHeavyStrength 1</code> — strength per profile.</li><li><code>r_waterfallWhitewater 1</code>, <code>r_waterfallRefraction 1</code> — aeration brightness, sheet refraction.</li><li><code>r_waterfallGeometry 1</code> <em>(restart)</em> — finer waterfall mesh (visual only).</li><li><code>r_waterfallMistBalance 0.65</code> — 0 spray particles only, 1 full fog mist.</li><li><code>r_waterfallMistDensity 1</code>, <code>r_waterfallMistRadius 1</code> — mist density and size.</li><li><code>r_waterfallMistLens 0</code> — 1: nearby spray wets the <a href=\"#f/weather/water-on-the-camera-lens\">camera lens</a>.</li><li><code>r_waterfallImpactImpulse 1</code>, <code>r_waterfallImpactTurbulence 1</code>, <code>r_waterfallImpactFoam 1</code>, <code>r_waterfallImpactRadius 1</code> — pool push, turbulence, foam, area.</li><li><code>r_waterWhitewaterStrength 1</code>, <code>r_waterWhitewaterThreshold 0.45</code>, <code>r_waterWhitewaterDecay 1.1</code>, <code>r_waterWhitewaterFoam 0.35</code> — white water look, how much turbulence starts it, fade speed, foam left behind.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterfallDebug 1..12</code> — classification, flow, motion, refraction, foam, spray, impacts, wireframe.</li><li><code>r_waterfallMistDebug 1</code>, <code>r_waterfallImpactDebug 1</code> — mist emitters, impact areas.</li><li><code>r_waterWhitewaterDebug 1..4</code> — flow, turbulence, white water, foam sources.</li><li><code>r_waterfalls</code> — list waterfall sheets.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-waterfalls.md\" target=\"_blank\" rel=\"noopener\">rend2-waterfalls.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/waterfalls-and-rapids-before.jpg",
+    "caption": "Before: Original scrolling waterfall layers (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/waterfalls-and-rapids-after.jpg",
+    "caption": "After: Modern aerated waterfall sheet (yavin1b)"
+   }
+  ]
  },
  "water/underwater-specks-and-bubbles": {
   "group": "Water, waves and waterfalls",
