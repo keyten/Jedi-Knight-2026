@@ -84,6 +84,8 @@ class Renderer:
         return f"<p{attr}>{self.inline(text)}</p>"
 
     def markdown(self, md):
+        # Strip gallery examples here: the modal already shows the same images in MEDIA.
+        md = re.sub(r"<!-- gallery:.*?<!-- /gallery:[^>]* -->", "", md, flags=re.S)
         out, lines, i = [], md.strip("\n").split("\n"), 0
         para, items = [], []
 
