@@ -6,13 +6,14 @@ Validated together on 2026-11-25, implementation merge HEAD
 | Optimization | Enable / reference | Default |
 |---|---|---|
 | Compact visible BSP list | `r_worldSurfaceList 1`; `2` independently compares membership; `0` original stamps/scan | 1 |
-| Per-sprite GPU culling / LOD | `r_surfaceSpritesCompute 1` same LOD culling; `2` per-plant LOD; `0` direct compact records | 0 |
+| Per-sprite GPU culling / LOD | `r_surfaceSpritesCompute 1` same LOD culling; `2` per-plant LOD; `0` direct compact records | 2 |
 | Current-frame Ghoul2 occlusion | `r_modelOcclusion 1`; `2` queries with matching batching but unconditional colour; `0` original | 1 |
-| Repeated rigid MD3 instance draws | `r_md3Instancing 1`; `0` individual draws | 0 |
+| Repeated rigid MD3 instance draws | `r_md3Instancing 1`; `0` individual draws | 1 |
 
-The GPU sprite and MD3 paths remain opt-in: their implemented reductions are real,
-but the bounded timings did not establish an overall speedup. No FPS improvement
-is claimed. The ordinary shader families do not acquire MD3 instance indexing.
+The later user-selected defaults enable GPU sprite mode 2 and MD3 mode 1 for
+fresh/unset cvars. Existing archived values are preserved. The measured reductions
+are real; the earlier bounded timings did not establish an overall speedup. No FPS
+improvement is inferred from this defaults choice. The ordinary shader families do not acquire MD3 instance indexing.
 
 ## Combined checks
 
@@ -74,3 +75,12 @@ capture/binary hashes and counts. Reproduce the bounded case with
 Implementation detail and limitations are in
 [visible surfaces and queries](rend2-visible-surfaces-occlusion.md),
 [grass culling](rend2-grass-culling.md), and [MD3 instancing](rend2-md3-instancing.md).
+
+
+## User-selected enabled defaults
+
+The subsequent [2026-11-26 defaults update](rend2-enabled-batching-defaults.md) enables
+all four controls as 1 / 2 / 1 / 1 for fresh/unset variables, preserving explicit
+archived values. Its registered-default smoke passed exact repeat/off/restore with
+mode-2 grass and MD3 grouping active. Earlier timing/default receipts above describe
+their original validation snapshot; they are not retroactively changed.

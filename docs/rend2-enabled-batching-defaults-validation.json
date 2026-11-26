@@ -1,0 +1,154 @@
+{
+  "capture_channel_differences": {
+    "defaults/defaults_repeat": 0,
+    "defaults/restored": 0
+  },
+  "md3_sampled_frames": [
+    [
+      40,
+      155,
+      2,
+      40,
+      38,
+      0,
+      21504
+    ],
+    [
+      40,
+      155,
+      2,
+      40,
+      38,
+      0,
+      21504
+    ]
+  ],
+  "sprite_sampled_frames": [
+    [
+      5852,
+      774,
+      5078,
+      1858,
+      13312,
+      28,
+      7
+    ]
+  ],
+  "far_model_queries": [
+    [
+      240,
+      40,
+      360,
+      1,
+      1320
+    ],
+    [
+      276,
+      46,
+      414,
+      0,
+      0
+    ],
+    [
+      432,
+      72,
+      648,
+      0,
+      0
+    ]
+  ],
+  "near_model_queries": [],
+  "initialized": [
+    "sun cascades",
+    "fused velocity"
+  ],
+  "character_cull": 1,
+  "enabled_defaults_smoke": true,
+  "lightall_specialize": 0,
+  "correctness_only": true,
+  "head": "a90a3d5051fbab51456b9f814590d18f98d41d24",
+  "date": "2026-11-26",
+  "factory_defaults": {
+    "r_worldSurfaceList": 1,
+    "r_surfaceSpritesCompute": 2,
+    "r_modelOcclusion": 1,
+    "r_md3Instancing": 1
+  },
+  "renderer_source_commit": "ad5e4de9c",
+  "defaults_source_commit": "88bbe83c1",
+  "purpose": "Registered-default reset/repeat/off/restore correctness; shader specialization fixed off",
+  "timing_claim": false,
+  "run_metadata": {
+    "foreign_before": [],
+    "performance_isolated": true,
+    "correctness_only": true,
+    "launch": [
+      "C:\\Users\\Keyten\\.codex\\worktrees\\rend2-md3-instancing\\OpenJK-rend2\\build\\sprite-cull-runtime\\defaults-on-26\\openjk_sp.x86_64.exe",
+      "+set",
+      "fs_basepath",
+      "C:\\Users\\Keyten\\Desktop\\projects\\OpenJK\\build-rend2",
+      "+set",
+      "fs_homepath",
+      "C:\\Users\\Keyten\\.codex\\worktrees\\rend2-md3-instancing\\OpenJK-rend2\\build\\sprite-cull-runtime\\defaults-on-26\\home",
+      "+set",
+      "fs_game",
+      "OpenJK",
+      "+set",
+      "r_shaderProgramCache",
+      "1",
+      "+set",
+      "cl_renderer",
+      "rdsp-rend2",
+      "+set",
+      "r_mode",
+      "-1",
+      "+set",
+      "r_customwidth",
+      "640",
+      "+set",
+      "r_customheight",
+      "360",
+      "+set",
+      "r_fullscreen",
+      "0",
+      "+set",
+      "in_mouse",
+      "0",
+      "+set",
+      "s_initsound",
+      "0",
+      "+set",
+      "logfile",
+      "2",
+      "+set",
+      "r_gl43",
+      "1",
+      "+set",
+      "r_offscreenPresent",
+      "1",
+      "+set",
+      "r_hdr",
+      "1",
+      "+set",
+      "r_shaderProgramLazy",
+      "1",
+      "+set",
+      "r_shaderCompileProcesses",
+      "0"
+    ],
+    "sun_shadows_initialized": true,
+    "velocity_initialized": true,
+    "character_cull": 1
+  },
+  "sha256": {
+    "rdsp-rend2_x86_64.dll": "3916b17b0dfde4b09de4f7ccfd64a5ffacf97579a40b2156539880eba0327c94",
+    "openjk_sp.x86_64.exe": "1ee8499480c3996bc1385e7d0ad0748a343b23b219a47e354b7daa1b0072e9cb",
+    "jagamex86_64.dll": "29b1e03101f32a2bc221b23e65248aca93be5c6a50de6d5f2e4e431a635d5211",
+    "home\\OpenJK\\autoexec_sp.cfg": "853afa00a1b7d37102040f939146aac8f4fe15dc2d9b37183b931f771c1e3247",
+    "home\\OpenJK\\qconsole.log": "b5d56c942b7f4230d03a88ca7d3cc876625d590c4ea144be7447c27a37306dab",
+    "home\\OpenJK\\screenshots\\batch_defaults.tga": "cc8f137f1b266a37e2883a157bc44ad01d6a3c312ce209cdc1e714d5d162b25a",
+    "home\\OpenJK\\screenshots\\batch_defaults_repeat.tga": "cc8f137f1b266a37e2883a157bc44ad01d6a3c312ce209cdc1e714d5d162b25a",
+    "home\\OpenJK\\screenshots\\batch_off.tga": "cc8f137f1b266a37e2883a157bc44ad01d6a3c312ce209cdc1e714d5d162b25a",
+    "home\\OpenJK\\screenshots\\batch_restored.tga": "cc8f137f1b266a37e2883a157bc44ad01d6a3c312ce209cdc1e714d5d162b25a"
+  }
+}
