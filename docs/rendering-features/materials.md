@@ -55,6 +55,14 @@ No compare cvar: change the enable switch with `vid_restart`.
 
 Design notes: [detail synthesis](../rend2-material-classification.md#detail-texture-synthesis).
 
+<!-- gallery:materials/fine-material-detail -->
+**Before / after:** t1_sour, Close side-lit plaster/stone corridor reveals pores and normal/roughness detail.
+
+![Synthesized detail off](../rendering-gallery/materials/fine-material-detail-before.jpg)
+
+![Synthesized detail on](../rendering-gallery/materials/fine-material-detail-after.jpg)
+<!-- /gallery:materials/fine-material-detail -->
+
 ## Stone joints and relief
 
 Rock and masonry get shallow cracks and recessed painted joints. The pattern follows the existing texture instead of cutting an unrelated grid across it. Needs `r_materialClassification 1` and `r_gl43 1`.

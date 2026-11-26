@@ -1,0 +1,152 @@
+[
+  {
+    "id": "post-processing/tone-mapping",
+    "runtime": "build/feature-gallery/production-01",
+    "map": "academy1",
+    "pose": "-1408 272 772 270",
+    "description": "Bright barred window and sunlit floor against a dark stone hall show highlight/contrast handling.",
+    "before": "Original Rend2 filmic curve",
+    "after": "ACES fitted curve",
+    "reviewed": true,
+    "note": "",
+    "original_sha256": {
+      "before": "46e22e852e8d5047be89cb0c527666460a3559fa7d1feeb3447469e615a09e03",
+      "after": "28c61f25760681781b75df580d7d5f737261989de1454fc3420c35b23dfeccf2"
+    }
+  },
+  {
+    "id": "post-processing/brightness-and-exposure",
+    "runtime": "build/feature-gallery/production-01",
+    "map": "hoth3",
+    "pose": "3464 700 40 90",
+    "description": "Dark clinic and bright display show a fixed exposure change without auto-metering drift.",
+    "before": "Exposure compensation 0",
+    "after": "Exposure compensation +1 stop",
+    "reviewed": true,
+    "note": "",
+    "original_sha256": {
+      "before": "084e0d0cdbed453376a94a937bed9653ffaa4ea1c82fd9258a195a81ecdf4b9a",
+      "after": "5486afd8e42dfb13b66ac59797f7fb72ffd4cee1ed1995a87aafd5993be94120"
+    }
+  },
+  {
+    "id": "post-processing/color-grading",
+    "runtime": "build/feature-gallery/production-01",
+    "map": "yavin1b",
+    "pose": "-80 -4240 900 205",
+    "description": "Foliage, neutral stone and water expose a documented warm example LUT.",
+    "before": "No LUT grading",
+    "after": "Warm example LUT",
+    "reviewed": true,
+    "note": "Example LUT supplied by the capture harness.",
+    "original_sha256": {
+      "before": "7ef6744dfb5513c298f183823db181a1e88882a179327997e9d00061feea83bc",
+      "after": "cbea6e412551b6a9246251f5b02f0be07b5b7e31cfcf3be7eeba389958c670a5"
+    }
+  },
+  {
+    "id": "post-processing/anti-aliasing-smaa",
+    "runtime": "build/feature-gallery/production-01",
+    "map": "mp/ffa3",
+    "pose": "671 -769 -70 290",
+    "description": "Door frame, curved column and fine diagonal floor texture expose edge aliasing.",
+    "before": "No SMAA",
+    "after": "SMAA 1x, ultra quality",
+    "reviewed": true,
+    "note": "",
+    "original_sha256": {
+      "before": "5f68705e8e090e383a1b26baa9606b85811662ea4871e6b7393c5d30f7c61bf5",
+      "after": "8d06ba6356052605b57c5d56dd8658b5dd006965698f0113bebb57300c769ef3"
+    }
+  },
+  {
+    "id": "materials/fine-material-detail",
+    "runtime": "build/feature-gallery/production-01",
+    "map": "t1_sour",
+    "pose": "8852 -4423 412 256",
+    "description": "Close side-lit plaster/stone corridor reveals pores and normal/roughness detail.",
+    "before": "Synthesized detail off",
+    "after": "Synthesized detail on",
+    "reviewed": true,
+    "note": "",
+    "original_sha256": {
+      "before": "d2866d74f463ce07bcdfa03097645c36fdf9bfd97c166b5c1bd7d4fa2d7b2f84",
+      "after": "f2cfae3d887e7f69f55ed9c31a43d54cf49a98be6441d27e9ad16d7964ba3341"
+    }
+  },
+  {
+    "id": "lighting/ambient-occlusion-gtao",
+    "runtime": "build/feature-gallery/production-01",
+    "map": "mp/ffa3",
+    "pose": "671 -769 -70 290",
+    "description": "Column/floor junctions and recessed door expose contact occlusion.",
+    "before": "Original AO setting (off)",
+    "after": "GTAO",
+    "reviewed": true,
+    "note": "",
+    "original_sha256": {
+      "before": "8d06ba6356052605b57c5d56dd8658b5dd006965698f0113bebb57300c769ef3",
+      "after": "19e7462a45a9e525766670de4cb03e78c50e7efa19fdb728dfe21fb149354f99"
+    }
+  },
+  {
+    "id": "fog/ground-haze",
+    "runtime": "build/feature-gallery/production-01",
+    "map": "yavin1b",
+    "pose": "-80 -4240 900 205",
+    "description": "Elevated courtyard view looks across several depth layers toward the river and trees.",
+    "before": "Ground haze off",
+    "after": "Ground haze on",
+    "reviewed": true,
+    "note": "",
+    "original_sha256": {
+      "before": "7ef6744dfb5513c298f183823db181a1e88882a179327997e9d00061feea83bc",
+      "after": "63bbf84c2d9d6716ebf7e10e35db66c2e73fd19da11459a9e162d636a3f64f58"
+    }
+  },
+  {
+    "id": "water/modern-water",
+    "runtime": "build/feature-gallery/reviewed-session-01",
+    "map": "yavin1b",
+    "pose": "-1600 2400 400 270 12",
+    "description": "River basin seen at a shallow downward angle.",
+    "before": "Original scrolling water shader",
+    "after": "Modern water surface",
+    "reviewed": true,
+    "note": "Uses the documented project water preset; camera placed with fxcam.",
+    "original_sha256": {
+      "before": "0bae8acc0c58c575d169c9edd6b1c8e8355fb09754a32991b3da117ba29ecbe6",
+      "after": "aeefdf52b938d53e08e7a3ad1c7b33e282d49c9315e9250628011329de85d982"
+    }
+  },
+  {
+    "id": "water/looking-up-from-underwater",
+    "runtime": "build/feature-gallery/reviewed-session-01",
+    "map": "yavin1b",
+    "pose": "-1600 2400 300 270 -50",
+    "description": "The same river basin viewed upward from below the surface.",
+    "before": "Plain underside of the surface",
+    "after": "Snell/refraction surface",
+    "reviewed": true,
+    "note": "Uses the documented project water preset; camera placed with fxcam.",
+    "original_sha256": {
+      "before": "717e69e574196d4d93057f5ce27f29d684111dd4ce11b753195b70fe5fb8879d",
+      "after": "7545d3d8b7ba7e1d3f3495ea91f368ec0a391b5619535d777a8af270a36c0a74"
+    }
+  },
+  {
+    "id": "water/waterfalls-and-rapids",
+    "runtime": "build/feature-gallery/reviewed-session-01",
+    "map": "yavin1b",
+    "pose": "-1000 2600 480 120 0",
+    "description": "Close view of the second river waterfall, with foliage and rock framing the sheet.",
+    "before": "Original scrolling waterfall layers",
+    "after": "Modern aerated waterfall sheet",
+    "reviewed": true,
+    "note": "Uses the documented project water preset; fxcam holds the same camera and shader time.",
+    "original_sha256": {
+      "before": "3ed1b1badbe21048e094a39a85af5b74fc44515923ff99a04a94410368971e26",
+      "after": "d4064a3667d465904be85bd755cdf06e826eff3cd5a02695c53864ece4e19cf4"
+    }
+  }
+]

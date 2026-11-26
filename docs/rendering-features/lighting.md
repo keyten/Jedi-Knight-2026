@@ -35,6 +35,14 @@ Darkens corners, wall joints, the ground under feet and crates, and small recess
 
 Design notes: [rend2-ambient-occlusion.md](../rend2-ambient-occlusion.md).
 
+<!-- gallery:lighting/ambient-occlusion-gtao -->
+**Before / after:** mp/ffa3, Column/floor junctions and recessed door expose contact occlusion.
+
+![Original AO setting (off)](../rendering-gallery/lighting/ambient-occlusion-gtao-before.jpg)
+
+![GTAO](../rendering-gallery/lighting/ambient-occlusion-gtao-after.jpg)
+<!-- /gallery:lighting/ambient-occlusion-gtao -->
+
 ## Many dynamic lights (Forward+)
 
 Rend2 allows at most 32 dynamic lights per frame — sabers, blaster bolts, explosions, muzzle flashes. In big fights the extra lights are simply dropped. Forward+ raises the limit to 256 and makes every pixel check only the lights that actually reach it. [Lamp-shaped lights](#lamp-shaped-lights-ltc) and [blade-shaped saber light](#saber-light-along-the-blade) need it.

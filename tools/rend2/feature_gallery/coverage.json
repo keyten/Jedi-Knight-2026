@@ -1,0 +1,964 @@
+[
+  {
+    "id": "post-processing/tone-mapping",
+    "title": "Tone mapping",
+    "status": "published-prepared",
+    "reason": "",
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/post-processing/tone-mapping-before.jpg",
+        "caption": "Before: Original Rend2 filmic curve (academy1)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/post-processing/tone-mapping-after.jpg",
+        "caption": "After: ACES fitted curve (academy1)"
+      }
+    ],
+    "location": {
+      "map": "academy1",
+      "pose": "-1408 272 772 270",
+      "description": "Bright barred window and sunlit floor against a dark stone hall show highlight/contrast handling."
+    },
+    "runtime": "production-01",
+    "batch": "01"
+  },
+  {
+    "id": "post-processing/brightness-and-exposure",
+    "title": "Brightness and exposure",
+    "status": "published-prepared",
+    "reason": "",
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/post-processing/brightness-and-exposure-before.jpg",
+        "caption": "Before: Exposure compensation 0 (hoth3)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/post-processing/brightness-and-exposure-after.jpg",
+        "caption": "After: Exposure compensation +1 stop (hoth3)"
+      }
+    ],
+    "location": {
+      "map": "hoth3",
+      "pose": "3464 700 40 90",
+      "description": "Dark clinic and bright display show a fixed exposure change without auto-metering drift."
+    },
+    "runtime": "production-01",
+    "batch": "01"
+  },
+  {
+    "id": "post-processing/bloom",
+    "title": "Bloom",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "post-processing/color-grading",
+    "title": "Color grading",
+    "status": "published-prepared",
+    "reason": "",
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/post-processing/color-grading-before.jpg",
+        "caption": "Before: No LUT grading (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/post-processing/color-grading-after.jpg",
+        "caption": "After: Warm example LUT (yavin1b)"
+      }
+    ],
+    "location": {
+      "map": "yavin1b",
+      "pose": "-80 -4240 900 205",
+      "description": "Foliage, neutral stone and water expose a documented warm example LUT."
+    },
+    "runtime": "production-01",
+    "batch": "01"
+  },
+  {
+    "id": "post-processing/motion-blur",
+    "title": "Motion blur",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "post-processing/anti-aliasing-smaa",
+    "title": "Anti-aliasing (SMAA)",
+    "status": "published-prepared",
+    "reason": "",
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/post-processing/anti-aliasing-smaa-before.jpg",
+        "caption": "Before: No SMAA (mp/ffa3)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/post-processing/anti-aliasing-smaa-after.jpg",
+        "caption": "After: SMAA 1x, ultra quality (mp/ffa3)"
+      }
+    ],
+    "location": {
+      "map": "mp/ffa3",
+      "pose": "671 -769 -70 290",
+      "description": "Door frame, curved column and fine diagonal floor texture expose edge aliasing."
+    },
+    "runtime": "production-01",
+    "batch": "01"
+  },
+  {
+    "id": "post-processing/linear-lighting-experimental",
+    "title": "Linear lighting (experimental)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "post-processing/distortion-color-fringes",
+    "title": "Distortion color fringes",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/material-classification",
+    "title": "Material classification",
+    "status": "excluded",
+    "reason": "Metadata only; no rendered change by itself.",
+    "media": []
+  },
+  {
+    "id": "materials/fine-material-detail",
+    "title": "Fine material detail",
+    "status": "published-prepared",
+    "reason": "",
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/materials/fine-material-detail-before.jpg",
+        "caption": "Before: Synthesized detail off (t1_sour)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/materials/fine-material-detail-after.jpg",
+        "caption": "After: Synthesized detail on (t1_sour)"
+      }
+    ],
+    "location": {
+      "map": "t1_sour",
+      "pose": "8852 -4423 412 256",
+      "description": "Close side-lit plaster/stone corridor reveals pores and normal/roughness detail."
+    },
+    "runtime": "production-01",
+    "batch": "01"
+  },
+  {
+    "id": "materials/stone-joints-and-relief",
+    "title": "Stone joints and relief",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/automatic-materials-from-stock-textures-auto-pbr",
+    "title": "Automatic materials from stock textures (Auto PBR)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/shiny-stock-models-troopers-droids-weapons",
+    "title": "Shiny stock models (troopers, droids, weapons)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/roughness-variation",
+    "title": "Roughness variation",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/glowing-surfaces",
+    "title": "Glowing surfaces",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/stable-highlights",
+    "title": "Stable highlights",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/matte-surfaces",
+    "title": "Matte surfaces",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/physical-light-units",
+    "title": "Physical light units",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/relief-detail-pom",
+    "title": "Relief detail (POM)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/shadows-inside-relief",
+    "title": "Shadows inside relief",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "materials/relief-silhouettes",
+    "title": "Relief silhouettes",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "lighting/ambient-occlusion-gtao",
+    "title": "Ambient occlusion (GTAO)",
+    "status": "published-prepared",
+    "reason": "",
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/lighting/ambient-occlusion-gtao-before.jpg",
+        "caption": "Before: Original AO setting (off) (mp/ffa3)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/lighting/ambient-occlusion-gtao-after.jpg",
+        "caption": "After: GTAO (mp/ffa3)"
+      }
+    ],
+    "location": {
+      "map": "mp/ffa3",
+      "pose": "671 -769 -70 290",
+      "description": "Column/floor junctions and recessed door expose contact occlusion."
+    },
+    "runtime": "production-01",
+    "batch": "01"
+  },
+  {
+    "id": "lighting/many-dynamic-lights-forward",
+    "title": "Many dynamic lights (Forward+)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "lighting/bounced-light-ssgi",
+    "title": "Bounced light (SSGI)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "lighting/lamp-shaped-lights-ltc",
+    "title": "Lamp-shaped lights (LTC)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "lighting/saber-light-along-the-blade",
+    "title": "Saber light along the blade",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "lighting/spot-lights-mod-authors",
+    "title": "Spot lights (mod authors)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "lighting/projected-patterns-mod-authors",
+    "title": "Projected patterns (mod authors)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "shadows/ray-traced-shadows",
+    "title": "Ray traced shadows",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "shadows/sun-shadows",
+    "title": "Sun shadows",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "shadows/character-sun-shadows",
+    "title": "Character sun shadows",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "shadows/contact-shadows",
+    "title": "Contact shadows",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "shadows/dynamic-light-shadows",
+    "title": "Dynamic light shadows",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "characters/distant-offscreen-bodies",
+    "title": "Distant offscreen bodies",
+    "status": "excluded",
+    "reason": "Visibility optimization; offscreen bodies cannot be illustrated in the camera view.",
+    "media": []
+  },
+  {
+    "id": "characters/smoother-cinematic-characters",
+    "title": "Smoother cinematic characters",
+    "status": "needs-better-capture",
+    "reason": "Portrait capture has no character; rejected. Resume simulation through the UI before spawning.",
+    "media": [],
+    "location": {
+      "id": "characters/smoother-cinematic-characters",
+      "map": "mp/ffa3",
+      "pose": "737 -949 -105 110",
+      "reason": "A controlled, front-lit Kyle close-up shows head/shoulder silhouette smoothing; gameplay override is explicit.",
+      "before": [
+        "r_phongTessellationCompare 2"
+      ],
+      "after": [
+        "r_phongTessellationCompare 0"
+      ],
+      "status": "capture-pending"
+    },
+    "runtime": "production-01"
+  },
+  {
+    "id": "characters/light-across-the-body",
+    "title": "Light across the body",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "characters/sun-on-characters",
+    "title": "Sun on characters",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "characters/ambient-light-from-the-surroundings",
+    "title": "Ambient light from the surroundings",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "characters/skin-subsurface-scattering",
+    "title": "Skin (subsurface scattering)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "characters/hair-and-eyes",
+    "title": "Hair and eyes",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "characters/softer-ragdolls",
+    "title": "Softer ragdolls",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "characters/softer-animation-sp",
+    "title": "Softer animation (SP)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "reflections/screen-space-reflections-ssr",
+    "title": "Screen-space reflections (SSR)",
+    "status": "needs-better-capture",
+    "reason": "Current floor comparison is too subtle; select a more reflective surface.",
+    "media": [],
+    "location": {
+      "id": "reflections/screen-space-reflections-ssr",
+      "map": "mp/ffa3",
+      "pose": "671 -769 -105 290",
+      "reason": "Low camera faces the lit door across the reflective floor.",
+      "before": [
+        "r_ssrCompare 2"
+      ],
+      "after": [
+        "r_ssrCompare 0"
+      ],
+      "status": "capture-pending"
+    },
+    "runtime": "production-01"
+  },
+  {
+    "id": "reflections/rough-reflections",
+    "title": "Rough reflections",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "reflections/fog-in-reflections",
+    "title": "Fog in reflections",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "fog/volumetric-fog",
+    "title": "Volumetric fog",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "fog/ground-haze",
+    "title": "Ground haze",
+    "status": "published-prepared",
+    "reason": "",
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/fog/ground-haze-before.jpg",
+        "caption": "Before: Ground haze off (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/fog/ground-haze-after.jpg",
+        "caption": "After: Ground haze on (yavin1b)"
+      }
+    ],
+    "location": {
+      "map": "yavin1b",
+      "pose": "-80 -4240 900 205",
+      "description": "Elevated courtyard view looks across several depth layers toward the river and trees."
+    },
+    "runtime": "production-01",
+    "batch": "01"
+  },
+  {
+    "id": "fog/uneven-fog",
+    "title": "Uneven fog",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "fog/shadows-inside-thick-fog",
+    "title": "Shadows inside thick fog",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "fog/light-bouncing-inside-fog",
+    "title": "Light bouncing inside fog",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "fog/colored-fog-absorption",
+    "title": "Colored fog absorption",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "fog/local-fog-volumes-mod-authors",
+    "title": "Local fog volumes (mod authors)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "fog/different-kinds-of-fog-mod-authors",
+    "title": "Different kinds of fog (mod authors)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "fog/original-rend2-volumetric-fog",
+    "title": "Original Rend2 volumetric fog",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "effects/soft-smoke-contact",
+    "title": "Soft smoke contact",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "effects/smoke-and-glass-ordering",
+    "title": "Smoke and glass ordering",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "effects/volumetric-smoke",
+    "title": "Volumetric smoke",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "effects/lit-smoke-sprites",
+    "title": "Lit smoke sprites",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "effects/glowing-gas",
+    "title": "Glowing gas",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "effects/light-from-sparks-and-fire",
+    "title": "Light from sparks and fire",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "effects/heat-haze",
+    "title": "Heat haze",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "effects/extra-sparks-and-embers",
+    "title": "Extra sparks and embers",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "effects/fuller-impacts-and-explosions",
+    "title": "Fuller impacts and explosions",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "sky/atmosphere",
+    "title": "Atmosphere",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "sky/volumetric-clouds",
+    "title": "Volumetric clouds",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "sky/sky-portal-speed-up",
+    "title": "Sky portal speed-up",
+    "status": "excluded",
+    "reason": "Performance optimization.",
+    "media": []
+  },
+  {
+    "id": "weather/rain-streaks",
+    "title": "Rain streaks",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/rain-haze",
+    "title": "Rain haze",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/distant-rain",
+    "title": "Distant rain",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/wet-surfaces",
+    "title": "Wet surfaces",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/wet-after-the-rain",
+    "title": "Wet after the rain",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/puddles",
+    "title": "Puddles",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/rain-rings-in-puddles",
+    "title": "Rain rings in puddles",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/water-running-down-walls",
+    "title": "Water running down walls",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/rain-splashes",
+    "title": "Rain splashes",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/water-on-the-camera-lens",
+    "title": "Water on the camera lens",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/acid-rain",
+    "title": "Acid rain",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/weather-on-specific-materials-mod-authors",
+    "title": "Weather on specific materials (mod authors)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "weather/rain-culling",
+    "title": "Rain culling",
+    "status": "excluded",
+    "reason": "Performance optimization.",
+    "media": []
+  },
+  {
+    "id": "water/modern-water",
+    "title": "Modern water",
+    "status": "published-prepared",
+    "reason": "",
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/water/modern-water-before.jpg",
+        "caption": "Before: Original scrolling water shader (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/water/modern-water-after.jpg",
+        "caption": "After: Modern water surface (yavin1b)"
+      }
+    ],
+    "location": {
+      "map": "yavin1b",
+      "pose": "-1600 2400 400 270 12",
+      "description": "River basin seen at a shallow downward angle."
+    },
+    "batch": "01"
+  },
+  {
+    "id": "water/underwater-fog",
+    "title": "Underwater fog",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "water/looking-up-from-underwater",
+    "title": "Looking up from underwater",
+    "status": "published-prepared",
+    "reason": "",
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/water/looking-up-from-underwater-before.jpg",
+        "caption": "Before: Plain underside of the surface (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/water/looking-up-from-underwater-after.jpg",
+        "caption": "After: Snell/refraction surface (yavin1b)"
+      }
+    ],
+    "location": {
+      "map": "yavin1b",
+      "pose": "-1600 2400 300 270 -50",
+      "description": "The same river basin viewed upward from below the surface."
+    },
+    "batch": "01"
+  },
+  {
+    "id": "water/waves",
+    "title": "Waves",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "water/wave-geometry",
+    "title": "Wave geometry",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "water/ripples-from-movement-and-impacts",
+    "title": "Ripples from movement and impacts",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "water/splashes-wakes-and-rain-on-water",
+    "title": "Splashes, wakes and rain on water",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "water/flowing-water",
+    "title": "Flowing water",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "water/foam",
+    "title": "Foam",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "water/shorelines",
+    "title": "Shorelines",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "water/underwater-light-patterns-caustics",
+    "title": "Underwater light patterns (caustics)",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "water/waterfalls-and-rapids",
+    "title": "Waterfalls and rapids",
+    "status": "published-prepared",
+    "reason": "Retake with the documented project water preset and a view of the receiving pool.",
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/water/waterfalls-and-rapids-before.jpg",
+        "caption": "Before: Original scrolling waterfall layers (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/water/waterfalls-and-rapids-after.jpg",
+        "caption": "After: Modern aerated waterfall sheet (yavin1b)"
+      }
+    ],
+    "location": {
+      "map": "yavin1b",
+      "pose": "-1000 2600 480 120 0",
+      "description": "Close view of the second river waterfall, with foliage and rock framing the sheet."
+    },
+    "runtime": "production-01",
+    "batch": "01"
+  },
+  {
+    "id": "water/underwater-specks-and-bubbles",
+    "title": "Underwater specks and bubbles",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "foliage/recognizing-stock-plants",
+    "title": "Recognizing stock plants",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "foliage/fuller-grass",
+    "title": "Fuller grass",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "foliage/wind-through-grass",
+    "title": "Wind through grass",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "foliage/leaf-flutter",
+    "title": "Leaf flutter",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "foliage/ferns-and-fronds",
+    "title": "Ferns and fronds",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "foliage/walking-through-vegetation",
+    "title": "Walking through vegetation",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "foliage/force-push-and-pull",
+    "title": "Force push and pull",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "foliage/cutting-plants-with-a-saber",
+    "title": "Cutting plants with a saber",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "loading/rendering-fast-paths",
+    "title": "Rendering fast paths",
+    "status": "excluded",
+    "reason": "Loading, submission or performance control; no useful visual comparison.",
+    "media": []
+  },
+  {
+    "id": "loading/shader-compilation",
+    "title": "Shader compilation",
+    "status": "excluded",
+    "reason": "Loading, submission or performance control; no useful visual comparison.",
+    "media": []
+  },
+  {
+    "id": "loading/map-loading",
+    "title": "Map loading",
+    "status": "excluded",
+    "reason": "Loading, submission or performance control; no useful visual comparison.",
+    "media": []
+  },
+  {
+    "id": "loading/modern-opengl",
+    "title": "Modern OpenGL",
+    "status": "excluded",
+    "reason": "Loading, submission or performance control; no useful visual comparison.",
+    "media": []
+  },
+  {
+    "id": "force/telekinesis",
+    "title": "Telekinesis",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "force/soar",
+    "title": "Soar",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "force/deflect",
+    "title": "Deflect",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  },
+  {
+    "id": "force/chain-lightning",
+    "title": "Chain Lightning",
+    "status": "pending",
+    "reason": "",
+    "media": []
+  }
+]

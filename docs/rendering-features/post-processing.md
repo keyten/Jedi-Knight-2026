@@ -18,6 +18,14 @@ The renderer computes light far brighter than a monitor can show: sky, lamps, sa
 
 Design notes: [rend2-tonemapping.md](../rend2-tonemapping.md).
 
+<!-- gallery:post-processing/tone-mapping -->
+**Before / after:** academy1, Bright barred window and sunlit floor against a dark stone hall show highlight/contrast handling.
+
+![Original Rend2 filmic curve](../rendering-gallery/post-processing/tone-mapping-before.jpg)
+
+![ACES fitted curve](../rendering-gallery/post-processing/tone-mapping-after.jpg)
+<!-- /gallery:post-processing/tone-mapping -->
+
 ## Brightness and exposure
 
 Like your eyes, the renderer adapts to the scene: dark rooms are brightened, sunny exteriors darkened. This is on by default. Everything in this section needs `r_hdr 1` and `r_toneMap 1`; without them brightness is fixed.
@@ -46,6 +54,14 @@ Instead of the original adaptation you can use real camera settings, mostly usef
 - `r_cameraDebug 1` — print the camera and meter state once per second.
 
 Design notes: [rend2-physical-camera.md](../rend2-physical-camera.md).
+
+<!-- gallery:post-processing/brightness-and-exposure -->
+**Before / after:** hoth3, Dark clinic and bright display show a fixed exposure change without auto-metering drift.
+
+![Exposure compensation 0](../rendering-gallery/post-processing/brightness-and-exposure-before.jpg)
+
+![Exposure compensation +1 stop](../rendering-gallery/post-processing/brightness-and-exposure-after.jpg)
+<!-- /gallery:post-processing/brightness-and-exposure -->
 
 ## Bloom
 
@@ -90,6 +106,14 @@ Applies a color filter to the whole image — warmer, colder, faded, more contra
 
 **How it works.** A 3D LUT is a table that gives an output color for every input color. The renderer looks up each pixel of the final image in it and blends the result with the original by `r_colorGradingIntensity`.
 
+<!-- gallery:post-processing/color-grading -->
+**Before / after:** yavin1b, Foliage, neutral stone and water expose a documented warm example LUT. Example LUT supplied by the capture harness.
+
+![No LUT grading](../rendering-gallery/post-processing/color-grading-before.jpg)
+
+![Warm example LUT](../rendering-gallery/post-processing/color-grading-after.jpg)
+<!-- /gallery:post-processing/color-grading -->
+
 ## Motion blur
 
 Fast camera turns and moving characters or sabers leave short streaks, like film. The HUD and menus stay sharp. The original game has no motion blur. Needs `r_hdr 1`.
@@ -129,6 +153,14 @@ Smooths jagged geometry edges.
 **Compare:** `r_smaaCompare` — 1 split screen (no anti-aliasing left; `r_smaa 1` only, T2x jitters the whole view), 2 off.
 
 **How it works.** SMAA finds edges in the finished image and blends pixels along them. It does not fix shimmering of very thin moving details, such as distant fences or grass.
+
+<!-- gallery:post-processing/anti-aliasing-smaa -->
+**Before / after:** mp/ffa3, Door frame, curved column and fine diagonal floor texture expose edge aliasing.
+
+![No SMAA](../rendering-gallery/post-processing/anti-aliasing-smaa-before.jpg)
+
+![SMAA 1x, ultra quality](../rendering-gallery/post-processing/anti-aliasing-smaa-after.jpg)
+<!-- /gallery:post-processing/anti-aliasing-smaa -->
 
 ## Linear lighting (experimental)
 

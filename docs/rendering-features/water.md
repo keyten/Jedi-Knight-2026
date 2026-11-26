@@ -39,6 +39,14 @@ Stock water is a scrolling texture with a fixed tint. Modern water reflects its 
 
 Design notes: [rend2-water-bodies.md](../rend2-water-bodies.md), [rend2-water-surface.md](../rend2-water-surface.md).
 
+<!-- gallery:water/modern-water -->
+**Before / after:** yavin1b, River basin seen at a shallow downward angle. Uses the documented project water preset; camera placed with fxcam.
+
+![Original scrolling water shader](../rendering-gallery/water/modern-water-before.jpg)
+
+![Modern water surface](../rendering-gallery/water/modern-water-after.jpg)
+<!-- /gallery:water/modern-water -->
+
 ## Underwater fog
 
 Underwater the original game tints the whole screen one color. With this, water, slime and lava are real fog inside [volumetric fog](fog.md#volumetric-fog): objects fade with their actual distance through the liquid, red light disappears first, sunlight dims with depth, and a moving light pattern (caustics) plays on the bottom. Needs `r_volumetricFog 2`.
@@ -89,6 +97,14 @@ From below, the world above is visible only through a bright circle overhead (Sn
 - `r_waterSnellDebug 1..6` — crossing direction, internal reflection, reflection strength, ray direction, source.
 
 Design notes: [rend2-water-realism-followup.md](../rend2-water-realism-followup.md).
+
+<!-- gallery:water/looking-up-from-underwater -->
+**Before / after:** yavin1b, The same river basin viewed upward from below the surface. Uses the documented project water preset; camera placed with fxcam.
+
+![Plain underside of the surface](../rendering-gallery/water/looking-up-from-underwater-before.jpg)
+
+![Snell/refraction surface](../rendering-gallery/water/looking-up-from-underwater-after.jpg)
+<!-- /gallery:water/looking-up-from-underwater -->
 
 ## Waves
 
@@ -342,6 +358,14 @@ Tall spillways now keep a continuous, irregular foam apron from the falling shee
 - `r_waterfalls` — list waterfall sheets.
 
 Design notes: [rend2-waterfalls.md](../rend2-waterfalls.md).
+
+<!-- gallery:water/waterfalls-and-rapids -->
+**Before / after:** yavin1b, Close view of the second river waterfall, with foliage and rock framing the sheet. Uses the documented project water preset; fxcam holds the same camera and shader time.
+
+![Original scrolling waterfall layers](../rendering-gallery/water/waterfalls-and-rapids-before.jpg)
+
+![Modern aerated waterfall sheet](../rendering-gallery/water/waterfalls-and-rapids-after.jpg)
+<!-- /gallery:water/waterfalls-and-rapids -->
 
 ## Underwater specks and bubbles
 
