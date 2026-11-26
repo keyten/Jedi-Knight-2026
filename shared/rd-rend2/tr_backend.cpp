@@ -1426,6 +1426,11 @@ static void RB_DrawItems(
 		// the reflection prepass may have a program of its own (r_waterSSROptimize)
 		shaderProgram_t *program = waterReflection ?
 			RB_WaterSurfaceReflectionProgram(drawItem.program) : drawItem.program;
+        // Keep recording, sorting and MD3 eligibility on the original program.
+        // Existing geometry/instancing/POM variants retain their exact fallback.
+        if (drawItem.noLocalLights && r_lightallSpecialize->integer && !waterReflection &&
+            program->program && program->uniforms[UNIFORM_LIGHTMASK] != -1)
+            program = GLSL_GetDrawVariant(program, GLSLV_NO_LOCAL_LIGHTS);
 		GLSL_BindProgram(program);
 
 		GL_VertexAttribPointers(drawItem.numAttributes, drawItem.attributes);

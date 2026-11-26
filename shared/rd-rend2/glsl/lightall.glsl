@@ -3531,6 +3531,11 @@ vec3 CalcDynamicLightContribution(
 	in float materialMask,
 	in vec3 vertexNormal)
 {
+#if defined(USE_NO_LOCAL_LIGHTS)
+    // Selected only for the exact draw inputs which upload u_LightMask = 0.
+    // Removing the inactive loop also removes its register pressure.
+    return vec3(0.0);
+#else
 	vec3 outColor = vec3(0.0);
 
 	DLightSurface s;
@@ -3652,6 +3657,7 @@ vec3 CalcDynamicLightContribution(
 			shadowLayer, rtChannel, spot, spot2, liquidLocal);
 	}
 	return outColor;
+#endif
 }
 #else
 vec3 EvaluateDynamicLightSimple(
@@ -3689,6 +3695,11 @@ vec3 CalcDynamicLightContribution(
 	in vec3 position,
 	in vec3 N )
 {
+#if defined(USE_NO_LOCAL_LIGHTS)
+    // Selected only for the exact draw inputs which upload u_LightMask = 0.
+    // Removing the inactive loop also removes its register pressure.
+    return vec3(0.0);
+#else
 	vec3 outLight = vec3(0.0);
 	if (u_LightMask == 0)
 		return outLight;
@@ -3752,6 +3763,7 @@ vec3 CalcDynamicLightContribution(
 			lightRadius, sourceRadius, spot, spot2, liquidLocal, liquidFootprint);
 	}
 	return outLight;
+#endif
 }
 #endif
 

@@ -1,0 +1,758 @@
+{
+  "date": "2026-11-26",
+  "base_commit": "ce579b0d7fd2f4c739b9feb192f8a81fdcd1b861",
+  "source_sha256": {
+    "shared/rd-rend2/glsl/lightall.glsl": "91c4c107b69fc4e3b2da9f56f36e71f527fabcfae2be42fc067c1f1b3cd9c45b",
+    "shared/rd-rend2/tr_glsl.cpp": "7bbb4afe7e0a2b6571130319857786291aadbb4cb36911ec5bed6b0d5ceccd42",
+    "shared/rd-rend2/tr_backend.cpp": "e04ea790bf6885429ef6d5d0b54f1f7943ee747104dbfcdb28cc73f87dcbb631",
+    "shared/rd-rend2/tr_shade.cpp": "e9399a6a56cf946e814e6de5996f0a97b76becf2a026adbe389713be40aadf64",
+    "shared/rd-rend2/tr_local.h": "4b0014e74271dbba1d7387438822b94c0b12110ca7f96b9fffd1809592b85aed",
+    "code/rd-rend2/tr_init.cpp": "70247a838dcf8638a9cf06e5ef5f5a27800217072c5d38420a2b16e36d6313a7",
+    "codemp/rd-rend2/tr_init.cpp": "590e4a8ee81f3a63156790ef21a1a956c55d261bce7204803eb7990741e52076",
+    "tools/rend2/test_lightall_specialization_gl.py": "bf028255e31764da381b8dc3620fa47a789453c410f1a818f943144021868d86"
+  },
+  "ordinary_shader_baseline_comparison": {
+    "baseline": "ce579b0d7",
+    "vertex_permutations_equal": 7,
+    "fragment_permutations_equal": 7,
+    "method": "GCC preprocessor normalized source equality against git baseline, no specialization macro"
+  },
+  "build": {
+    "configuration": "MSVC 19.27, VS 2019 x64 Release",
+    "targets": [
+      "rdsp-rend2_x86_64",
+      "rd-rend2_x86_64"
+    ],
+    "exit_code": 0,
+    "renderer_sha256": {
+      "rdsp-rend2_x86_64.dll": "3916b17b0dfde4b09de4f7ccfd64a5ffacf97579a40b2156539880eba0327c94",
+      "rd-rend2_x86_64.dll": "755fcc2ba81a4f39dfbaa2d24060024348ebbc942c7b76e5417d8b7dd2f47b35"
+    }
+  },
+  "scope": {
+    "resolution": [
+      512,
+      512
+    ],
+    "query": "GL_TIME_ELAPSED",
+    "draws_per_sample": 5,
+    "samples_per_variant": 5,
+    "interleaved_orders": [
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "local_light_mask": 0,
+    "retained_features": [
+      "baked light",
+      "primary sun",
+      "emission",
+      "shadow code",
+      "material PBR",
+      "SSR/SSGI outputs in screen case"
+    ],
+    "cpu_build_active_during_timing": false,
+    "limitations": [
+      "External CPU-heavy background workloads remained active; no whole-frame/FPS inference.",
+      "Full user-quality baseline did not reach a usable Main View within bounded cold/warm diagnostic startup. No dominant-pass attribution claimed.",
+      "Synthetic submitted-fragment timings include retained material/MRT work; only draws eligible for the exact zero-mask specialization benefit.",
+      "Skeletal permutation is compile/ABI/source-equality tested here; representative game/model coverage is a separate runtime receipt."
+    ]
+  },
+  "adapters": {
+    "intel": {
+      "driver": [
+        "Intel",
+        "Intel(R) UHD Graphics",
+        "3.2.0 - Build 27.20.100.8280"
+      ],
+      "compiled": [
+        {
+          "name": "fast-lmap",
+          "defines": [
+            "USE_LIGHT",
+            "USE_LIGHTMAP",
+            "USE_FAST_LIGHT"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "lmap-shadow",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHTMAP",
+            "USE_DSHADOWS",
+            "USE_LTC",
+            "USE_LTC_SHADOWS",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "grid-sun",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHT_VECTOR",
+            "USE_ENTITY_SUN_SPLIT",
+            "USE_DSHADOWS",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 336,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 336,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "lmap-screen",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHTMAP",
+            "USE_DSHADOWS",
+            "USE_SSR",
+            "USE_SSGI",
+            "USE_SPECULAR_AA",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "lmap-pom",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHTMAP",
+            "USE_PARALLAXMAP",
+            "USE_DSHADOWS",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "grid-skinned",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHT_VECTOR",
+            "USE_SKELETAL_ANIMATION",
+            "USE_ENTITY_SUN_SPLIT",
+            "USE_DSHADOWS",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Bones": 3456,
+            "Camera": 224,
+            "Entity": 336,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Bones": 3456,
+            "Camera": 224,
+            "Entity": 336,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "lmap-rt-debug",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHTMAP",
+            "USE_RT_DSHADOWS",
+            "USE_LIGHTALL_DEBUG",
+            "USE_LTC",
+            "USE_LTC_DEBUG",
+            "USE_FPLUS_DEBUG",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        }
+      ],
+      "cases": [
+        {
+          "name": "fast-lmap",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        },
+        {
+          "name": "lmap-shadow",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        },
+        {
+          "name": "grid-sun",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        },
+        {
+          "name": "lmap-screen",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        },
+        {
+          "name": "lmap-pom",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        },
+        {
+          "name": "lmap-rt-debug",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        }
+      ],
+      "retained_feature_controls": {
+        "emission": 0.10000000894069672,
+        "sun": 0.12721890211105347,
+        "baked": 0.2758323699235916
+      },
+      "benchmark_resolution": [
+        512,
+        512
+      ],
+      "benchmark": [
+        {
+          "name": "lmap-shadow",
+          "ns_per_fragment": [
+            97.67387466430664,
+            8.891319274902344
+          ],
+          "samples": [
+            [
+              88.64843521118163,
+              97.67387466430664,
+              103.14208984375,
+              97.66469268798828,
+              102.67437896728515
+            ],
+            [
+              12.773902130126952,
+              12.80170135498047,
+              8.891319274902344,
+              8.8086181640625,
+              8.673611450195313
+            ]
+          ]
+        },
+        {
+          "name": "grid-sun",
+          "ns_per_fragment": [
+            66.78665618896484,
+            8.074566650390626
+          ],
+          "samples": [
+            [
+              66.78665618896484,
+              66.39784698486328,
+              64.43018112182617,
+              66.7964714050293,
+              72.01018753051758
+            ],
+            [
+              8.45090103149414,
+              8.074566650390626,
+              7.6819580078125,
+              7.807149505615234,
+              8.189436340332032
+            ]
+          ]
+        },
+        {
+          "name": "lmap-screen",
+          "ns_per_fragment": [
+            84.60494613647461,
+            9.48035888671875
+          ],
+          "samples": [
+            [
+              78.66724700927735,
+              83.30167541503906,
+              86.22743301391601,
+              84.60494613647461,
+              87.69724578857422
+            ],
+            [
+              9.623027801513672,
+              9.662225341796875,
+              9.290450286865234,
+              9.48035888671875,
+              8.898158264160156
+            ]
+          ]
+        }
+      ]
+    },
+    "nvidia": {
+      "driver": [
+        "NVIDIA Corporation",
+        "NVIDIA GeForce RTX 2060/PCIe/SSE2",
+        "3.2.0 NVIDIA 616.92"
+      ],
+      "compiled": [
+        {
+          "name": "fast-lmap",
+          "defines": [
+            "USE_LIGHT",
+            "USE_LIGHTMAP",
+            "USE_FAST_LIGHT"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "lmap-shadow",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHTMAP",
+            "USE_DSHADOWS",
+            "USE_LTC",
+            "USE_LTC_SHADOWS",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "grid-sun",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHT_VECTOR",
+            "USE_ENTITY_SUN_SPLIT",
+            "USE_DSHADOWS",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 336,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 336,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "lmap-screen",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHTMAP",
+            "USE_DSHADOWS",
+            "USE_SSR",
+            "USE_SSGI",
+            "USE_SPECULAR_AA",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "lmap-pom",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHTMAP",
+            "USE_PARALLAXMAP",
+            "USE_DSHADOWS",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "grid-skinned",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHT_VECTOR",
+            "USE_SKELETAL_ANIMATION",
+            "USE_ENTITY_SUN_SPLIT",
+            "USE_DSHADOWS",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Bones": 3456,
+            "Camera": 224,
+            "Entity": 336,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Bones": 3456,
+            "Camera": 224,
+            "Entity": 336,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        },
+        {
+          "name": "lmap-rt-debug",
+          "defines": [
+            "USE_LIGHT",
+            "USE_NORMALMAP",
+            "USE_SPECULARMAP",
+            "USE_PHYSICAL_PBR",
+            "USE_LIGHTMAP",
+            "USE_RT_DSHADOWS",
+            "USE_LIGHTALL_DEBUG",
+            "USE_LTC",
+            "USE_LTC_DEBUG",
+            "USE_FPLUS_DEBUG",
+            "USE_SHADOWMAP",
+            "USE_SHADOWS2",
+            "USE_PRIMARY_LIGHT",
+            "r_shadowMapSize 512",
+            "r_shadowCascadeZFar 4096.0"
+          ],
+          "vertex_source_identical": true,
+          "retained_ubo_offsets_equal": true,
+          "original_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          },
+          "specialized_blocks": {
+            "Camera": 224,
+            "Entity": 320,
+            "Lights": 5072,
+            "Scene": 160
+          }
+        }
+      ],
+      "cases": [
+        {
+          "name": "fast-lmap",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        },
+        {
+          "name": "lmap-shadow",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        },
+        {
+          "name": "grid-sun",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        },
+        {
+          "name": "lmap-screen",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        },
+        {
+          "name": "lmap-pom",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        },
+        {
+          "name": "lmap-rt-debug",
+          "max_float_difference": 0.0,
+          "depth_exact": true
+        }
+      ],
+      "retained_feature_controls": {
+        "emission": 0.10000000894069672,
+        "sun": 0.1272544264793396,
+        "baked": 0.275832399725914
+      },
+      "benchmark_resolution": [
+        512,
+        512
+      ],
+      "benchmark": [
+        {
+          "name": "lmap-shadow",
+          "ns_per_fragment": [
+            6.392626953125,
+            3.6161376953125
+          ],
+          "samples": [
+            [
+              6.5832763671875,
+              6.392626953125,
+              6.40234375,
+              2.660986328125,
+              2.6602783203125
+            ],
+            [
+              3.6189453125,
+              3.6161376953125,
+              3.6101806640625,
+              3.616943359375,
+              1.5154052734375
+            ]
+          ],
+          "timing_note": "Absolute LMAP samples changed clock regime mid-run (original about 6.4 to 2.66 ns, specialized about 3.61 to 1.515 ns). Median absolute values mix regimes; same-regime paired reduction remains about 43%. No extra GPU repeat was needed to establish benefit."
+        },
+        {
+          "name": "grid-sun",
+          "ns_per_fragment": [
+            2.07890625,
+            1.6376953125
+          ],
+          "samples": [
+            [
+              2.07890625,
+              2.0784423828125,
+              2.1083251953125,
+              2.0750244140625,
+              2.0831787109375
+            ],
+            [
+              1.6365234375,
+              1.6376953125,
+              1.6456787109375,
+              1.6326904296875,
+              1.64375
+            ]
+          ]
+        },
+        {
+          "name": "lmap-screen",
+          "ns_per_fragment": [
+            3.2062744140625,
+            2.8640625
+          ],
+          "samples": [
+            [
+              3.1973388671875,
+              3.1828369140625,
+              3.2062744140625,
+              3.215234375,
+              3.2140625
+            ],
+            [
+              2.8703369140625,
+              2.8580322265625,
+              2.8640625,
+              2.859375,
+              2.8672119140625
+            ]
+          ]
+        }
+      ]
+    }
+  }
+}

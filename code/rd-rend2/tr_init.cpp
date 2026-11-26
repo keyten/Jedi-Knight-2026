@@ -606,6 +606,7 @@ cvar_t  *r_diffuseIBLDebug;
 cvar_t  *r_shaderProgramCache;
 cvar_t  *r_shaderProgramCacheMaxMB;
 cvar_t  *r_shaderProgramLazy;
+cvar_t  *r_lightallSpecialize;
 cvar_t  *r_shaderCompileProcesses;
 
 cvar_t  *r_forwardPlus;
@@ -2878,6 +2879,8 @@ void R_Register( void )
 	R_CvarRange( r_shaderProgramCache, 0, 1, qtrue );
 	r_shaderProgramCacheMaxMB = R_Cvar( "r_shaderProgramCacheMaxMB", "512", CVAR_ARCHIVE, "Size limit of the GLSL program cache file, least recently used programs are dropped first" );
 	R_CvarRange( r_shaderProgramCacheMaxMB, 16, 4096, qtrue );
+	r_lightallSpecialize = R_Cvar( "r_lightallSpecialize", "1", CVAR_ARCHIVE, "Use an exact lazy lightall program without local-light code for draws whose light mask is zero" );
+	R_CvarRange( r_lightallSpecialize, 0, 1, qtrue );
 	r_shaderProgramLazy = R_Cvar( "r_shaderProgramLazy", "0", CVAR_ARCHIVE | CVAR_LATCH, "Build the lightall / generic / fog / velocity / refraction / surface sprite GLSL permutations when a level or a draw first needs them instead of all at startup" );
 	R_CvarRange( r_shaderProgramLazy, 0, 1, qtrue );
 	r_shaderCompileProcesses = R_Cvar( "r_shaderCompileProcesses", "0", CVAR_ARCHIVE, "Link batches of GLSL programs that are not cached in this many rend2_glslc helper processes (-1 = half the CPU threads, at most 8; 0 = in the game process only)" );

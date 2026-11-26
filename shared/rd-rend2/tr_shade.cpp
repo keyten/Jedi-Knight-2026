@@ -2033,6 +2033,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 		int index = 0;
 		bool useAlphaTestGE192 = false;
 		bool forceRefraction = false;
+		bool noLocalLights = false;
 		vec4_t disintegrationInfo;
 
 		if ( !pStage )
@@ -2591,6 +2592,8 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			else
 				uniformDataWriter.SetUniformInt(UNIFORM_LIGHTMASK, 0);
 
+			noLocalLights = !enableDLights;
+
 			if ((r_lightmap->integer == 1 || r_lightmap->integer == 2) &&
 				(pStage->bundle[0].isLightmap || pStage->bundle[1].isLightmap))
 			{
@@ -2769,6 +2772,7 @@ static void RB_IterateStagesGeneric( shaderCommands_t *input, const VertexArrays
 			backEnd.skinSSSDraws++;
 		item.renderState.depthRange = RB_GetDepthRange(backEnd.currentEntity, input->shader);
 		item.program = sp;
+		item.noLocalLights = noLocalLights && !backEnd.depthFill;
 		item.ibo = input->externalIBO ? input->externalIBO : backEndData->currentFrame->dynamicIbo;
 		item.uniformData = uniformDataWriter.Finish(frameAllocator);
 		item.samplerBindings = samplerBindingsWriter.Finish(
