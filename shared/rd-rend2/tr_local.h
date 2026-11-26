@@ -732,6 +732,7 @@ extern cvar_t  *r_diffuseIBLDebug;
 extern cvar_t  *r_shaderProgramCache;
 extern cvar_t  *r_shaderProgramCacheMaxMB;
 extern cvar_t  *r_shaderProgramLazy;
+extern cvar_t  *r_lightallSpecialize;
 extern cvar_t  *r_shaderCompileProcesses;
 
 extern cvar_t  *r_forwardPlus;
@@ -3222,6 +3223,7 @@ enum glslVariant_t
 	GLSLV_STONE_GEOMETRY,
 	GLSLV_STONE_SURFACE,
 	GLSLV_MD3_INSTANCING,
+	GLSLV_NO_LOCAL_LIGHTS,
 	GLSLV_COUNT
 };
 
@@ -7605,6 +7607,8 @@ struct DrawItem
 	// r_shadowLayered: the item is drawn once per set bit, into that cube face
 	// (gl_Layer, u_CubeFaceViewProj). 0 = an ordinary draw.
 	uint8_t cubeFaceMask;
+	// Exact recorded u_LightMask == 0; select after rigid MD3 grouping.
+	bool noLocalLights;
 	// Eligible rigid MD3 only; every member retains its complete lighting/matrix block.
 	const EntityBlock *md3InstanceEntity;
 };

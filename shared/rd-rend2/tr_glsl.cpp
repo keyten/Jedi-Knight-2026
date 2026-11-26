@@ -2311,6 +2311,13 @@ static permutationResult_t GLSL_LoadPermutation(
         if (filter.variant == GLSLV_MD3_INSTANCING)
             return GLSL_LoadMd3InstanceGPUShader(builder, program, name, attribs,
                 extra, programDesc, fragmentLibrary, vertexLibrary) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
+        if (filter.variant == GLSLV_NO_LOCAL_LIGHTS)
+        {
+            const std::string variantName = std::string(name) + "_NO_LOCAL_LIGHTS";
+            const std::string defines = std::string(extra ? extra : "") + "\n#define USE_NO_LOCAL_LIGHTS\n";
+            return GLSL_LoadGPUShader(builder, program, variantName.c_str(), attribs, xfbVariables,
+                defines.c_str(), programDesc, fragmentLibrary, vertexLibrary) ? PERMUTATION_BUILT : PERMUTATION_FAILED;
+        }
 		if (filter.variant == GLSLV_STONE_SURFACE)
 		{
 			const std::string surfaceName = std::string(name) + "_STONE";
@@ -4531,7 +4538,8 @@ static int GLSL_LoadGPUProgramLightAll(
 			continue;
 		if (result == PERMUTATION_FAILED)
 		{
-            if (filter.variantDestination && filter.variant == GLSLV_MD3_INSTANCING) continue;
+            if (filter.variantDestination && (filter.variant == GLSLV_MD3_INSTANCING ||
+                filter.variant == GLSLV_NO_LOCAL_LIGHTS)) continue;
 			ri.Error(ERR_FATAL, "Could not load lightall shader!");
 		}
 
@@ -6696,7 +6704,7 @@ shaderProgram_t *GLSL_GetDrawVariant(shaderProgram_t *base, glslVariant_t varian
 	if (cached)
 		return cached->program ? cached : base;
 	const int lastFamily = variant == GLSLV_MD3_INSTANCING ? LAZY_GENERIC :
-        variant == GLSLV_STONE_SURFACE ? LAZY_LIGHTALL : LAZY_REFRACTION;
+        (variant == GLSLV_STONE_SURFACE || variant == GLSLV_NO_LOCAL_LIGHTS) ? LAZY_LIGHTALL : LAZY_REFRACTION;
 	for (int f = LAZY_LIGHTALL; f <= lastFamily; ++f)
 	{
 		const lazyFamily_t& family = GLSL_LazyFamily(f);
