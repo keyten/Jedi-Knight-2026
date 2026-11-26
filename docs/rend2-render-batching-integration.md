@@ -75,3 +75,12 @@ capture/binary hashes and counts. Reproduce the bounded case with
 Implementation detail and limitations are in
 [visible surfaces and queries](rend2-visible-surfaces-occlusion.md),
 [grass culling](rend2-grass-culling.md), and [MD3 instancing](rend2-md3-instancing.md).
+
+
+## User-selected enabled defaults
+
+The subsequent [2026-11-26 defaults update](rend2-enabled-batching-defaults.md) enables
+all four controls as 1 / 2 / 1 / 1 for fresh/unset variables, preserving explicit
+archived values. Its registered-default smoke passed exact repeat/off/restore with
+mode-2 grass and MD3 grouping active. Earlier timing/default receipts above describe
+their original validation snapshot; they are not retroactively changed.
