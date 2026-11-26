@@ -1,0 +1,609 @@
+{
+  "date": "2026-11-26",
+  "baseline_head": "ca93345f3dc87521c5ef15b8e518f2d0f0c6fa81",
+  "defaults_review": {
+    "commit": "88bbe83c1bfb6555eb6833687f7e4ea944f0d595",
+    "result": "No correctness issue found. Factory grass=2 and MD3=1 follow explicit user choice; archived settings, off switches and capability fallbacks are preserved."
+  },
+  "shader_review": {
+    "base": "ce579b0d7",
+    "result": "No source correctness blocker found in the seven-file candidate diff.",
+    "checked": [
+      "Per-draw no-local flag uses the exact final enableDLights predicate that uploads LightMask=0, including current-view Forward+ readiness.",
+      "Both CalcDynamicLightContribution overloads already returned zero for this mask; retained sun, baked, emission and screen outputs remain outside the removed code.",
+      "Late selection follows MD3 grouping. Unsupported geometry/instancing/silhouette and water-reflection programs retain the existing program.",
+      "All other DrawItem construction sites are zero-initialized; added field does not alter external entity/history/UBO interfaces.",
+      "New variants are lazy, keyed by a distinct name and source define, cleared with existing variants, and fall back to the base on failure.",
+      "Runtime off switch restores ordinary programs; the ordinary shader preprocessing does not include new heavy code."
+    ],
+    "validated_external_receipts": "tools/rend2/lightall_specialization/validation-2026-11-26.json (shader-agent commit; separate from this runtime receipt)",
+    "runtime_result": "Strict active-scene image equality, light appearance/removal and actual on/off program bindings confirm the draw predicate on this fixture."
+  },
+  "actual_user_profile_attribution": {
+    "result": "Unestablished. No completed active-scene GPU samples; do not infer dominant lightall work or resolution scaling from these attempts.",
+    "reported_resolution_dependence": "Provided by the user; not independently reproduced in the rejected full-profile attempts.",
+    "controls": {
+      "r_gl43": 1,
+      "r_worldSurfaceList": 1,
+      "r_modelOcclusion": 1,
+      "r_surfaceSpritesCompute": 2,
+      "r_md3Instancing": 1,
+      "r_dlightMode": 2,
+      "r_forwardPlus": 1,
+      "r_ltcAreaLights": 1,
+      "r_ltcMaxLights": 0,
+      "r_ssr": 1,
+      "r_volumetricFog": 2,
+      "r_aoMode": 2,
+      "r_autoPBR": 2,
+      "r_parallaxMapping": 1
+    },
+    "attempts": [
+      {
+        "label": "baseline-vjun2-1280",
+        "owned_pid": 36824,
+        "result": "Rejected: bounded cold startup/first-world preparation never reached pass samples; only this verified owned process was stopped. Initial 110 program compilation took 152.64 seconds."
+      },
+      {
+        "label": "baseline-vjun2-1280-warm",
+        "owned_pid": 2804,
+        "result": "Rejected: client-connection wait too short; captures were menu-only and no Main View timer existed. Warm initialization had 114 cache hits, zero compiled, 0.84 seconds."
+      },
+      {
+        "label": "baseline-vjun2-1280-active",
+        "owned_pid": 15552,
+        "result": "Rejected: corrected connection wait, bounded first-world preparation still did not yield active-scene samples; only this verified owned process was stopped."
+      }
+    ],
+    "latched_controls_note": "The first attempt queued SSR/fog/post off labels without a renderer restart. These were never accepted as effect-isolation evidence; later replays removed them.",
+    "cpu_samples": {
+      "count": 64,
+      "mean_system_cpu_percent": 82.29451959100355,
+      "maximum_system_cpu_percent": 100.0
+    },
+    "raw_artifacts": "C:/Users/Keyten/.codex/worktrees/rend2-visible-surfaces-occlusion/OpenJK-rend2/build/pixel-profile"
+  },
+  "runtime_candidate": {
+    "status": "Passed mandatory 1280x720 frozen correctness/usage/light switching checks; optional 640x360 safely blocked before launch and dropped.",
+    "harness": "tools/rend2/test_lightall_specialization_runtime.py",
+    "scope": "Known private Yavin entity fixture, ordinary material settings, 40 rendered MD3 barrels, native grass, initialized sun/velocity. Not the full user quality profile.",
+    "resolution": [
+      1280,
+      720
+    ],
+    "quality_controls": {
+      "r_gl43": "1",
+      "r_hdr": "1",
+      "r_picmip": "1",
+      "r_shaderProgramLazy": "1",
+      "r_captureShaderTime": "1300",
+      "r_depthPrepass": "1",
+      "r_depthPrepassFast": "1",
+      "r_motionBlur": "1",
+      "r_motionBlurShutterAngle": "0",
+      "r_ssr": "0",
+      "r_ssgi": "0",
+      "r_smaa": "0",
+      "r_volumetricFog": "0",
+      "r_volumetricWater": "0",
+      "r_waterSurface": "0",
+      "r_atmosphere": "0",
+      "r_clouds": "0",
+      "r_autoGrass": "0",
+      "r_ssao": "0",
+      "r_aoMode": "0",
+      "r_bloom": "0",
+      "r_skinSSS": "0",
+      "r_sunlightMode": "1",
+      "r_sunShadows": "1",
+      "r_forceSun": "1",
+      "r_sunShadowMode": "1",
+      "r_sunShadowCache": "1",
+      "r_sunShadowAlphaCasters": "1",
+      "r_dlightMode": "1",
+      "r_phongTessellation": "0",
+      "r_characterCull": "0",
+      "r_surfaceSpritesCompute": "2",
+      "r_worldSurfaceList": "1",
+      "r_modelOcclusion": "1",
+      "r_md3Instancing": "1",
+      "r_shadowSinglePass": "1",
+      "r_shadowLayered": "1",
+      "r_skyPortalCull": "1",
+      "r_shadowCache": "0",
+      "r_shadowStaticCache": "0",
+      "r_shaderProgramCache": "1",
+      "r_forwardPlus": "0",
+      "r_ltcAreaLights": "0",
+      "r_autoPBR": "0",
+      "r_parallaxMapping": "0"
+    },
+    "normal_mapping_factory_default": 1,
+    "specular_mapping_factory_default": 1,
+    "freeze": {
+      "ui_menu": "sprite_freeze sets cl_paused=1",
+      "fx_freeze": 1,
+      "r_captureShaderTime": 1300
+    },
+    "entity_fixture": "worldspawn + info_player_start at 1024 -4700 210, angle 90 + 40 static rendered MD3 barrels; original BSP/materials from installed Yavin1 assets.",
+    "binary_sha256": "3916b17b0dfde4b09de4f7ccfd64a5ffacf97579a40b2156539880eba0327c94",
+    "owned_pid": 15656,
+    "foreign_before": [],
+    "foreign_during": [],
+    "foreign_after": [],
+    "cpu": {
+      "samples": 85,
+      "mean_system_percent": 77.93445480179908,
+      "max_system_percent": 100.0
+    },
+    "correctness": {
+      "pair_differing_rgb_channels": {
+        "none_0_0/none_1_1": 0,
+        "none_0_0/none_2_1": 0,
+        "none_0_0/none_3_0": 0,
+        "eight_0_0/eight_1_1": 0,
+        "eight_0_0/eight_2_0": 0,
+        "returned_0_0/returned_1_1": 0
+      },
+      "eight_lights_differing_rgb_channels": 1667580,
+      "removing_lights_restored_reference_differing_rgb_channels": 0
+    },
+    "program_usage": {
+      "none_0_0": [
+        "lightall_GRID_N_MR_SUN_MD3_INSTANCED",
+        "lightall_GRID_N_MR_SUN_SK",
+        "lightall_LMAP_N_MR_SUN",
+        "lightall_SUN",
+        "lightall_SUN_SK",
+        "lightall_SUN_TCGENMOD",
+        "lightall_VERT_N_MR_SUN"
+      ],
+      "none_1_1": [
+        "lightall_GRID_N_MR_SUN_MD3_INSTANCED",
+        "lightall_GRID_N_MR_SUN_SK_NO_LOCAL_LIGHTS",
+        "lightall_LMAP_N_MR_SUN_NO_LOCAL_LIGHTS",
+        "lightall_SUN",
+        "lightall_SUN_SK",
+        "lightall_SUN_TCGENMOD_NO_LOCAL_LIGHTS",
+        "lightall_VERT_N_MR_SUN_NO_LOCAL_LIGHTS"
+      ],
+      "none_2_1": [
+        "lightall_GRID_N_MR_SUN_MD3_INSTANCED",
+        "lightall_GRID_N_MR_SUN_SK_NO_LOCAL_LIGHTS",
+        "lightall_LMAP_N_MR_SUN_NO_LOCAL_LIGHTS",
+        "lightall_SUN",
+        "lightall_SUN_SK",
+        "lightall_SUN_TCGENMOD_NO_LOCAL_LIGHTS",
+        "lightall_VERT_N_MR_SUN_NO_LOCAL_LIGHTS"
+      ],
+      "none_3_0": [
+        "lightall_GRID_N_MR_SUN_MD3_INSTANCED",
+        "lightall_GRID_N_MR_SUN_SK",
+        "lightall_LMAP_N_MR_SUN",
+        "lightall_SUN",
+        "lightall_SUN_SK",
+        "lightall_SUN_TCGENMOD",
+        "lightall_VERT_N_MR_SUN"
+      ],
+      "eight_0_0": [
+        "lightall_GRID_N_MR_SUN",
+        "lightall_GRID_N_MR_SUN_MD3_INSTANCED",
+        "lightall_GRID_N_MR_SUN_SK",
+        "lightall_LMAP_N_MR_SUN",
+        "lightall_SUN",
+        "lightall_SUN_SK",
+        "lightall_SUN_TCGENMOD",
+        "lightall_VERT_N_MR_SUN"
+      ],
+      "eight_1_1": [
+        "lightall_GRID_N_MR_SUN",
+        "lightall_GRID_N_MR_SUN_MD3_INSTANCED",
+        "lightall_GRID_N_MR_SUN_NO_LOCAL_LIGHTS",
+        "lightall_GRID_N_MR_SUN_SK",
+        "lightall_LMAP_N_MR_SUN",
+        "lightall_LMAP_N_MR_SUN_NO_LOCAL_LIGHTS",
+        "lightall_SUN",
+        "lightall_SUN_SK",
+        "lightall_SUN_TCGENMOD_NO_LOCAL_LIGHTS",
+        "lightall_VERT_N_MR_SUN",
+        "lightall_VERT_N_MR_SUN_NO_LOCAL_LIGHTS"
+      ],
+      "eight_2_0": [
+        "lightall_GRID_N_MR_SUN",
+        "lightall_GRID_N_MR_SUN_MD3_INSTANCED",
+        "lightall_GRID_N_MR_SUN_SK",
+        "lightall_LMAP_N_MR_SUN",
+        "lightall_SUN",
+        "lightall_SUN_SK",
+        "lightall_SUN_TCGENMOD",
+        "lightall_VERT_N_MR_SUN"
+      ],
+      "returned_0_0": [
+        "lightall_GRID_N_MR_SUN_MD3_INSTANCED",
+        "lightall_GRID_N_MR_SUN_SK",
+        "lightall_LMAP_N_MR_SUN",
+        "lightall_SUN",
+        "lightall_SUN_SK",
+        "lightall_SUN_TCGENMOD",
+        "lightall_VERT_N_MR_SUN"
+      ],
+      "returned_1_1": [
+        "lightall_GRID_N_MR_SUN_MD3_INSTANCED",
+        "lightall_GRID_N_MR_SUN_SK_NO_LOCAL_LIGHTS",
+        "lightall_LMAP_N_MR_SUN",
+        "lightall_LMAP_N_MR_SUN_NO_LOCAL_LIGHTS",
+        "lightall_SUN",
+        "lightall_SUN_SK",
+        "lightall_SUN_TCGENMOD_NO_LOCAL_LIGHTS",
+        "lightall_VERT_N_MR_SUN",
+        "lightall_VERT_N_MR_SUN_NO_LOCAL_LIGHTS"
+      ]
+    },
+    "gpu_timer_observations": {
+      "none_0_0": {
+        "Sunshadow Cascade 0": {
+          "n": 48,
+          "median_ms": 1.9
+        },
+        "Surface sprite cull": {
+          "n": 1668,
+          "median_ms": 0.022
+        },
+        "Surface sprites": {
+          "n": 288,
+          "median_ms": 0.301
+        },
+        "Sunshadow Cascade 1": {
+          "n": 48,
+          "median_ms": 1.1480000000000001
+        },
+        "Sunshadow Cascade 2": {
+          "n": 48,
+          "median_ms": 1.548
+        },
+        "Main View 3": {
+          "n": 48,
+          "median_ms": 24.402
+        },
+        "Depth prepass": {
+          "n": 48,
+          "median_ms": 2.9785000000000004
+        },
+        "Post processing": {
+          "n": 48,
+          "median_ms": 1.6724999999999999
+        }
+      },
+      "none_1_1": {
+        "Sunshadow Cascade 0": {
+          "n": 48,
+          "median_ms": 1.187
+        },
+        "Surface sprite cull": {
+          "n": 1668,
+          "median_ms": 0.015
+        },
+        "Surface sprites": {
+          "n": 288,
+          "median_ms": 0.194
+        },
+        "Sunshadow Cascade 1": {
+          "n": 48,
+          "median_ms": 0.7264999999999999
+        },
+        "Sunshadow Cascade 2": {
+          "n": 48,
+          "median_ms": 0.9784999999999999
+        },
+        "Main View 3": {
+          "n": 48,
+          "median_ms": 11.250499999999999
+        },
+        "Depth prepass": {
+          "n": 48,
+          "median_ms": 1.4725000000000001
+        },
+        "Post processing": {
+          "n": 48,
+          "median_ms": 1.1985000000000001
+        }
+      },
+      "none_2_1": {
+        "Sunshadow Cascade 0": {
+          "n": 48,
+          "median_ms": 1.0635
+        },
+        "Surface sprite cull": {
+          "n": 1668,
+          "median_ms": 0.013
+        },
+        "Surface sprites": {
+          "n": 288,
+          "median_ms": 0.178
+        },
+        "Sunshadow Cascade 1": {
+          "n": 48,
+          "median_ms": 0.649
+        },
+        "Sunshadow Cascade 2": {
+          "n": 48,
+          "median_ms": 0.881
+        },
+        "Main View 3": {
+          "n": 48,
+          "median_ms": 10.1015
+        },
+        "Depth prepass": {
+          "n": 48,
+          "median_ms": 1.3235000000000001
+        },
+        "Post processing": {
+          "n": 48,
+          "median_ms": 1.0565
+        }
+      },
+      "none_3_0": {
+        "Sunshadow Cascade 0": {
+          "n": 48,
+          "median_ms": 0.9984999999999999
+        },
+        "Surface sprite cull": {
+          "n": 1668,
+          "median_ms": 0.012
+        },
+        "Surface sprites": {
+          "n": 288,
+          "median_ms": 0.169
+        },
+        "Sunshadow Cascade 1": {
+          "n": 48,
+          "median_ms": 0.614
+        },
+        "Sunshadow Cascade 2": {
+          "n": 48,
+          "median_ms": 0.8414999999999999
+        },
+        "Main View 3": {
+          "n": 48,
+          "median_ms": 9.7265
+        },
+        "Depth prepass": {
+          "n": 48,
+          "median_ms": 1.254
+        },
+        "Post processing": {
+          "n": 48,
+          "median_ms": 1.0425
+        }
+      },
+      "eight_0_0": {
+        "Sunshadow Cascade 0": {
+          "n": 48,
+          "median_ms": 1.0345
+        },
+        "Surface sprite cull": {
+          "n": 1668,
+          "median_ms": 0.013
+        },
+        "Surface sprites": {
+          "n": 288,
+          "median_ms": 0.176
+        },
+        "Sunshadow Cascade 1": {
+          "n": 48,
+          "median_ms": 0.6475
+        },
+        "Sunshadow Cascade 2": {
+          "n": 48,
+          "median_ms": 0.891
+        },
+        "Main View 3": {
+          "n": 48,
+          "median_ms": 13.8935
+        },
+        "Depth prepass": {
+          "n": 48,
+          "median_ms": 1.322
+        },
+        "Post processing": {
+          "n": 48,
+          "median_ms": 1.1465
+        }
+      },
+      "eight_1_1": {
+        "Sunshadow Cascade 0": {
+          "n": 48,
+          "median_ms": 1.0135
+        },
+        "Surface sprite cull": {
+          "n": 1668,
+          "median_ms": 0.013
+        },
+        "Surface sprites": {
+          "n": 288,
+          "median_ms": 0.169
+        },
+        "Sunshadow Cascade 1": {
+          "n": 48,
+          "median_ms": 0.6194999999999999
+        },
+        "Sunshadow Cascade 2": {
+          "n": 48,
+          "median_ms": 0.8565
+        },
+        "Main View 3": {
+          "n": 48,
+          "median_ms": 13.014
+        },
+        "Depth prepass": {
+          "n": 48,
+          "median_ms": 1.261
+        },
+        "Post processing": {
+          "n": 48,
+          "median_ms": 1.1175000000000002
+        }
+      },
+      "eight_2_0": {
+        "Sunshadow Cascade 0": {
+          "n": 48,
+          "median_ms": 1.126
+        },
+        "Surface sprite cull": {
+          "n": 1668,
+          "median_ms": 0.014
+        },
+        "Surface sprites": {
+          "n": 288,
+          "median_ms": 0.188
+        },
+        "Sunshadow Cascade 1": {
+          "n": 48,
+          "median_ms": 0.69
+        },
+        "Sunshadow Cascade 2": {
+          "n": 48,
+          "median_ms": 0.9504999999999999
+        },
+        "Main View 3": {
+          "n": 48,
+          "median_ms": 14.370000000000001
+        },
+        "Depth prepass": {
+          "n": 48,
+          "median_ms": 1.3984999999999999
+        },
+        "Post processing": {
+          "n": 48,
+          "median_ms": 1.153
+        }
+      },
+      "returned_0_0": {
+        "Sunshadow Cascade 0": {
+          "n": 48,
+          "median_ms": 1.56
+        },
+        "Surface sprite cull": {
+          "n": 1668,
+          "median_ms": 0.02
+        },
+        "Surface sprites": {
+          "n": 288,
+          "median_ms": 0.262
+        },
+        "Sunshadow Cascade 1": {
+          "n": 48,
+          "median_ms": 0.9644999999999999
+        },
+        "Sunshadow Cascade 2": {
+          "n": 48,
+          "median_ms": 1.279
+        },
+        "Main View 3": {
+          "n": 48,
+          "median_ms": 14.931000000000001
+        },
+        "Depth prepass": {
+          "n": 48,
+          "median_ms": 1.9500000000000002
+        },
+        "Post processing": {
+          "n": 48,
+          "median_ms": 1.5015
+        }
+      },
+      "returned_1_1": {
+        "Sunshadow Cascade 0": {
+          "n": 48,
+          "median_ms": 1.4075
+        },
+        "Surface sprite cull": {
+          "n": 1668,
+          "median_ms": 0.018
+        },
+        "Surface sprites": {
+          "n": 288,
+          "median_ms": 0.2335
+        },
+        "Sunshadow Cascade 1": {
+          "n": 48,
+          "median_ms": 0.859
+        },
+        "Sunshadow Cascade 2": {
+          "n": 48,
+          "median_ms": 1.1644999999999999
+        },
+        "Main View 3": {
+          "n": 48,
+          "median_ms": 13.674
+        },
+        "Depth prepass": {
+          "n": 48,
+          "median_ms": 1.779
+        },
+        "Post processing": {
+          "n": 48,
+          "median_ms": 1.411
+        }
+      }
+    },
+    "frame_interval_observations": {
+      "none_0_0": {
+        "frames": 90.0,
+        "mean_ms": 25.063,
+        "median_ms": 18.9543,
+        "p95_ms": 58.5697
+      },
+      "none_1_1": {
+        "frames": 90.0,
+        "mean_ms": 21.5667,
+        "median_ms": 17.0646,
+        "p95_ms": 48.1512
+      },
+      "none_2_1": {
+        "frames": 90.0,
+        "mean_ms": 15.7421,
+        "median_ms": 15.6824,
+        "p95_ms": 19.7878
+      },
+      "none_3_0": {
+        "frames": 90.0,
+        "mean_ms": 15.4475,
+        "median_ms": 14.9959,
+        "p95_ms": 20.1717
+      }
+    },
+    "timing_interpretation": "Inconclusive for net frame benefit: initial no-light ABBA Main View medians were 24.402/11.2505/10.1015/9.7265 ms and unchanged sun/prepass/post timings drifted too. Complete 90-frame interval medians 18.9543/17.0646/15.6824/14.9959 ms likewise drifted. No causal full-frame speedup or FPS improvement is claimed.",
+    "timer_scope_note": "Main View includes nested work and is not added to its inner timers. Repeated surface-sprite/cull samples represent individual timer occurrences, not whole-frame totals.",
+    "raw_artifacts": "C:\\Users\\Keyten\\.codex\\worktrees\\rend2-visible-surfaces-occlusion\\OpenJK-rend2\\build\\sprite-cull-runtime\\lightall7-yavin-1280",
+    "artifact_sha256": {
+      "launch.log": "22d28c563364c4627ea131519329a01b0d0834148eb20dbc7eedb490561d893a",
+      "results.json": "2a76df0aa95adc9140d3246ff1d7500e8593aa944cd47fe2657ed1f19d17d64b",
+      "run-meta.json": "1bd95c4f60714d0ca93e96180914154af7f07c2d2d91b6f0d1ed3f7a6a2d066e"
+    },
+    "capture_sha256": {
+      "lightall_eight_0_0.tga": "36323f4fbb947eda56c86bb6ba61784fe3abd57db2a6872b49c933b677d7af0c",
+      "lightall_eight_1_1.tga": "36323f4fbb947eda56c86bb6ba61784fe3abd57db2a6872b49c933b677d7af0c",
+      "lightall_eight_2_0.tga": "36323f4fbb947eda56c86bb6ba61784fe3abd57db2a6872b49c933b677d7af0c",
+      "lightall_none_0_0.tga": "d6f1be0ee4f3e2576821637fe6946d05c6e7b67c5e189a1ae06259c662830cc9",
+      "lightall_none_1_1.tga": "d6f1be0ee4f3e2576821637fe6946d05c6e7b67c5e189a1ae06259c662830cc9",
+      "lightall_none_2_1.tga": "d6f1be0ee4f3e2576821637fe6946d05c6e7b67c5e189a1ae06259c662830cc9",
+      "lightall_none_3_0.tga": "d6f1be0ee4f3e2576821637fe6946d05c6e7b67c5e189a1ae06259c662830cc9",
+      "lightall_returned_0_0.tga": "d6f1be0ee4f3e2576821637fe6946d05c6e7b67c5e189a1ae06259c662830cc9",
+      "lightall_returned_1_1.tga": "d6f1be0ee4f3e2576821637fe6946d05c6e7b67c5e189a1ae06259c662830cc9"
+    },
+    "optional_640": {
+      "status": "Not launched; preflight rejected a foreign process. Dropped by root after mandatory 1280 correctness passed.",
+      "foreign_pid": 7560,
+      "foreign_start_local": "2026-11-26 13:48:05 Australia/Sydney",
+      "foreign_executable": "C:/Users/Keyten/AppData/Local/Temp/claude/726e81882009a3a1/ac9d93c8-5bc9-4382-8f28-8382a1789def/scratchpad/run/openjk_sp.x86_64.exe",
+      "foreign_process_untouched": true
+    }
+  },
+  "claims": {
+    "full_game_fps_speedup": false,
+    "actual_user_profile_bottleneck_identified": false,
+    "shader_scoped_gpu_benefit": "Separately measured by real-source GL harness on Intel UHD and RTX2060; independent receipt review confirmed exact float images/depth and retained feature controls. Runtime frame benefit remains unestablished."
+  },
+  "no_deployment": true
+}
