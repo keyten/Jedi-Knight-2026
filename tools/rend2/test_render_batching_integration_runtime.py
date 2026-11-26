@@ -18,6 +18,7 @@ def main():
  p.add_argument('--label',default='combined-yavin')
  p.add_argument('--lightall-specialize',type=int,choices=(0,1),default=0,help='Fix shader specialization independently of batching defaults')
  p.add_argument('--enabled-defaults-smoke',action='store_true',help='Reset only the four batching cvars to registered defaults and test repeat/off/restore')
+ p.add_argument('--allow-foreign-correctness',action='store_true',help='Allow functional captures only with other OpenJK processes; never timing evidence')
  p.add_argument('--run',action='store_true');p.add_argument('--analyze-only',action='store_true')
  a=p.parse_args()
  config=SimpleNamespace(**vars(a),map='yavin1',pose='1024 -4700 210 90',gl43=1,cards=3,
@@ -62,14 +63,22 @@ def main():
   # Apply the private fixture's latched controls before the first GL context.
   # This avoids compiling an unused startup configuration and a second restart.
   settings='set r_shaderProgramCache "1"\n'+settings
+  # SP accepts at most 32 startup console lines. Keep filesystem arguments
+  # first and forward only context/cache controls; all other settings remain
+  # in the private autoexec. Truncating the filesystem arguments fails before
+  # logging, which can leave a hidden fatal-error dialog.
+  early={'cl_renderer','r_gl43','r_shaderProgramLazy','r_shaderProgramCache',
+         'r_shaderCompileProcesses','r_mode','r_customwidth','r_customheight',
+         'r_fullscreen','r_offscreenPresent','r_hdr','logfile','s_initsound','in_mouse'}
   startup=[]
   for name,value in re.findall(r'^set (\S+) "([^"\n]*)"',settings,re.M):
-   startup+=['+set',name,value]
-  launch[1:1]=startup
+   if name in early: startup+=['+set',name,value]
+  launch+=startup
+  assert launch.count('+set') < 31
  cfg.write_text(settings+'\n'.join(commands)+'\n')
  if a.run:
-  foreign=foreign_games();assert not foreign,foreign
-  (run/'run-meta.json').write_text(json.dumps({'foreign_before':foreign,'launch':launch,'sun_shadows_initialized':True,'velocity_initialized':True,'character_cull':1},indent=2))
+  foreign=foreign_games();assert not foreign or a.allow_foreign_correctness,foreign
+  (run/'run-meta.json').write_text(json.dumps({'foreign_before':foreign,'performance_isolated':not foreign,'correctness_only':True,'launch':launch,'sun_shadows_initialized':True,'velocity_initialized':True,'character_cull':1},indent=2))
   si=subprocess.STARTUPINFO();si.dwFlags|=subprocess.STARTF_USESHOWWINDOW;si.wShowWindow=0
   with (run/'launch.log').open('w') as out:
    proc=subprocess.Popen(launch,cwd=run,startupinfo=si,stdout=out,stderr=out)
@@ -102,6 +111,6 @@ def main():
  if a.enabled_defaults_smoke:
   for name,value in [('r_worldSurfaceList',1),('r_modelOcclusion',1),('r_md3Instancing',1),('r_surfaceSpritesCompute',2)]:
    assert re.search(re.escape(name)+r'[^\n]*default \"'+str(value)+r'\"',log),('wrong registered default',name)
- report={'capture_channel_differences':differences,'md3_sampled_frames':md3,'sprite_sampled_frames':sprites,'far_model_queries':far_models,'near_model_queries':near_models,'initialized':['sun cascades','fused velocity'],'character_cull':1,'enabled_defaults_smoke':a.enabled_defaults_smoke,'lightall_specialize':a.lightall_specialize,'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT).decode().strip()}
+ report={'capture_channel_differences':differences,'md3_sampled_frames':md3,'sprite_sampled_frames':sprites,'far_model_queries':far_models,'near_model_queries':near_models,'initialized':['sun cascades','fused velocity'],'character_cull':1,'enabled_defaults_smoke':a.enabled_defaults_smoke,'lightall_specialize':a.lightall_specialize,'correctness_only':True,'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT).decode().strip()}
  (run/'results.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
 if __name__=='__main__':main()
