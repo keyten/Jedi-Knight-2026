@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jedi Academy 2026</title>
-<meta name="description" content="An OpenJK fork for Jedi Academy and Jedi Outcast: rend2 rendering features, new Force powers, physics objects and per-map scripts. Everything is off until enabled.">
+<meta name="description" content="An OpenJK fork for Jedi Academy and Jedi Outcast: rend2 rendering features, new Force powers, physics objects and per-map scripts. Optional visual features, improved smoke contact and enabled rendering fast paths.">
 <meta name="theme-color" content="#05070d">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,7 +22,7 @@
     <a href="#force">Force powers</a>
     <a href="#physics">Physics</a>
     <a href="#scripts">Map scripts</a>
-    <a href="https://github.com/keyten/BetterJK">Source</a>
+    <a href="https://github.com/keyten/Jedi-Knight-2026">Source</a>
   </nav>
   <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>
 </header>
@@ -36,8 +36,8 @@
       <p>A fully compatible fork of OpenJK for Jedi Academy and Jedi Outcast.</p>
       <p>It adds rendering features to rend2, a few new Force powers and higher levels for existing ones, physical objects, and a way for mods to run scripts per map. Most of the work targets single player; some rendering changes apply to multiplayer as well.</p>
       <div class="links">
-        <a class="btn btn-primary" href="https://github.com/keyten/BetterJK">Source on GitHub</a>
-        <a class="btn" href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rendering-features.md">Rendering reference</a>
+        <a class="btn btn-primary" href="https://github.com/keyten/Jedi-Knight-2026">Source on GitHub</a>
+        <a class="btn" href="https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rendering-features.md">Rendering reference</a>
       </div>
     </div>
   </section>
@@ -45,7 +45,7 @@
   <section class="section" id="graphics">
     <div class="wrap">
       <h2>Graphics</h2>
-      <p class="sub">Nearly every feature is off by default, so the game looks like stock Rend2 until you enable it. Type the commands in the console (<code>~</code>) or put them in a <code>.cfg</code> file. Open a card for what it changes, its settings with their defaults, and how it works. The same text is in the <a href="https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/rendering-features.md" target="_blank" rel="noopener">rendering settings</a> docs.</p>
+      <p class="sub">Most visual features are opt-in. Soft smoke contact and transparency ordering, distant offscreen body culling and reviewed rendering fast paths are already enabled; existing saved settings keep priority. Type the commands in the console (<code>~</code>) or put them in a <code>.cfg</code> file. Open a card for what it changes, its settings with their defaults, and how it works. Reviewed through 26 November 2026. The same text is in the <a href="https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rendering-features.md" target="_blank" rel="noopener">rendering settings</a> docs.</p>
 
       <!-- cards:graphics -->
       <nav class="topics" aria-label="Graphics topics">
@@ -85,6 +85,9 @@
         <h3>Materials and surface detail</h3>
         <p class="topic-intro">How surfaces reflect light: metal vs cloth vs plastic, glossy highlights, glowing parts and depth in flat textures.</p>
         <div class="grid">
+          <article class="card" data-feature="materials/material-classification" tabindex="0" role="button" aria-haspopup="dialog"><h4>Material classification</h4><p>Identifies surface types for procedural details; classification alone leaves the picture unchanged.</p><code>r_materialClassification</code></article>
+          <article class="card" data-feature="materials/fine-material-detail" tabindex="0" role="button" aria-haspopup="dialog"><h4>Fine material detail</h4><p>Close surfaces gain pits, brushing, grain or weave chosen for their material.</p><code>r_detailTextureSynthesis</code></article>
+          <article class="card" data-feature="materials/stone-joints-and-relief" tabindex="0" role="button" aria-haspopup="dialog"><h4>Stone joints and relief</h4><p>Recesses painted stone joints and adds shallow cracks, with optional close-range displacement.</p><code>r_voronoiFracturing</code></article>
           <article class="card" data-feature="materials/automatic-materials-from-stock-textures-auto-pbr" tabindex="0" role="button" aria-haspopup="dialog"><h4>Automatic materials from stock textures (Auto PBR)</h4><p>Guesses metal, leather, cloth, skin and other materials from stock texture names.</p><code>r_autoPBR</code></article>
           <article class="card" data-feature="materials/shiny-stock-models-troopers-droids-weapons" tabindex="0" role="button" aria-haspopup="dialog"><h4>Shiny stock models (troopers, droids, weapons)</h4><p>Moves the old shiny effect of about 130 stock shaders to per-pixel lighting.</p><code>r_autoPBRConvert</code></article>
           <article class="card" data-feature="materials/roughness-variation" tabindex="0" role="button" aria-haspopup="dialog"><h4>Roughness variation</h4><p>Glossiness that varies across a texture instead of one value per surface.</p><code>r_autoPBRRoughness</code></article>
@@ -114,8 +117,9 @@
         <h3>Shadows</h3>
         <p class="topic-intro">Realtime shadows from the sun and from dynamic lights, and the small contact shadows between them. The map's baked shadows are always there; these settings add shadows that move.</p>
         <div class="grid">
+          <article class="card" data-feature="shadows/ray-traced-shadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Ray traced shadows</h4><p>Triangle-traced sun and dynamic-light shadows, with soft edges and shadow-map fallback coverage.</p><code>r_sunShadowMode 2</code></article>
           <article class="card" data-feature="shadows/sun-shadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Sun shadows</h4><p>Realtime sun shadows, sharp at contact and softer with distance, without crawling as the camera moves.</p><code>r_forceSun</code></article>
-          <article class="card" data-feature="shadows/character-sun-shadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Character sun shadows</h4><p>Characters and models get their own sharp shadow layer, combined with softer scenery shadows.</p><code>r_sunShadowSplit</code></article>
+          <article class="card" data-feature="shadows/character-sun-shadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Character sun shadows</h4><p>Characters and models get their own sharp shadow layer, combined with softer scenery shadows.</p><code>r_sunShadowModelLayer</code></article>
           <article class="card" data-feature="shadows/contact-shadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Contact shadows</h4><p>Small sun shadows under feet and behind small props, where shadow maps are too coarse.</p><code>r_contactShadows</code></article>
           <article class="card" data-feature="shadows/dynamic-light-shadows" tabindex="0" role="button" aria-haspopup="dialog"><h4>Dynamic light shadows</h4><p>Sabers, explosions and other dynamic lights cast realtime shadows.</p><code>r_dlightMode</code></article>
         </div>
@@ -124,11 +128,13 @@
         <h3>Characters and animation</h3>
         <p class="topic-intro">How characters, NPCs and other models are lit, skin and hair materials, and how bodies move at joint limits.</p>
         <div class="grid">
+          <article class="card" data-feature="characters/distant-offscreen-bodies" tabindex="0" role="button" aria-haspopup="dialog"><h4>Distant offscreen bodies</h4><p>Skips distant offscreen NPC bodies and shadows, keeping nearby and cinematic bodies.</p><code>r_characterCull</code></article>
+          <article class="card" data-feature="characters/smoother-cinematic-characters" tabindex="0" role="button" aria-haspopup="dialog"><h4>Smoother cinematic characters</h4><p>Smooths nearby character outlines in scripted scenes; gameplay has a separate switch.</p><code>r_phongTessellation</code></article>
           <article class="card" data-feature="characters/light-across-the-body" tabindex="0" role="button" aria-haspopup="dialog"><h4>Light across the body</h4><p>Characters are lit at several points of the body or per pixel instead of one point.</p><code>r_entityLightGrid</code></article>
-          <article class="card" data-feature="characters/sun-on-characters" tabindex="0" role="button" aria-haspopup="dialog"><h4>Sun on characters</h4><p>Characters are lit from the real sun direction, matching their shadow on the ground.</p><code>r_entitySunSplit</code></article>
+          <article class="card" data-feature="characters/sun-on-characters" tabindex="0" role="button" aria-haspopup="dialog"><h4>Sun on characters</h4><p>Characters are lit from the real sun direction, matching their shadow on the ground.</p><code>r_entitySunLight</code></article>
           <article class="card" data-feature="characters/ambient-light-from-the-surroundings" tabindex="0" role="button" aria-haspopup="dialog"><h4>Ambient light from the surroundings</h4><p>Ambient light on characters differs by side, taken from nearby reflections.</p><code>r_diffuseIBL</code></article>
           <article class="card" data-feature="characters/skin-subsurface-scattering" tabindex="0" role="button" aria-haspopup="dialog"><h4>Skin (subsurface scattering)</h4><p>Light scatters under the skin, softening faces and hands.</p><code>r_skinSSS</code></article>
-          <article class="card" data-feature="characters/hair-and-eyes" tabindex="0" role="button" aria-haspopup="dialog"><h4>Hair and eyes</h4><p>Strand-shaped highlights on hair and a wet shine on eyes.</p></article>
+          <article class="card" data-feature="characters/hair-and-eyes" tabindex="0" role="button" aria-haspopup="dialog"><h4>Hair and eyes</h4><p>Strand-shaped highlights on hair and a wet shine on eyes.</p><code>r_materialModels</code></article>
           <article class="card" data-feature="characters/softer-ragdolls" tabindex="0" role="button" aria-haspopup="dialog"><h4>Softer ragdolls</h4><p>Ragdoll joints slow down near their limits instead of stopping dead.</p><code>r_ragSoftLimits</code></article>
           <article class="card" data-feature="characters/softer-animation-sp" tabindex="0" role="button" aria-haspopup="dialog"><h4>Softer animation (SP)</h4><p>Limbs ease in and rebound slightly at the end of their movement.</p><code>r_animSoftLimits</code></article>
         </div>
@@ -159,8 +165,10 @@
       </div>
       <div class="topic" id="topic-effects">
         <h3>Smoke and effects</h3>
-        <p class="topic-intro">Smoke, dust and explosions from game effects: real 3D volume, lighting, glowing gas, and light, heat haze and extra detail for sparks, fire and explosions. The smoke and gas sections build on <a href="#f/fog/volumetric-fog">volumetric fog</a> (<code>r_volumetricFog 2</code>).</p>
+        <p class="topic-intro">Smoke, dust and explosions from game effects: softer contact and better transparency, optional 3D volume and lighting, glowing gas, light, heat haze and extra sparks. Volumetric smoke, lit smoke and glowing gas build on <a href="#f/fog/volumetric-fog">volumetric fog</a> (<code>r_volumetricFog 2</code>); soft contact and ordering work without it.</p>
         <div class="grid">
+          <article class="card" data-feature="effects/soft-smoke-contact" tabindex="0" role="button" aria-haspopup="dialog"><h4>Soft smoke contact</h4><p>Smoke fades into walls, floors and the near camera, with rounded billboard thickness.</p><code>r_softParticles</code></article>
+          <article class="card" data-feature="effects/smoke-and-glass-ordering" tabindex="0" role="button" aria-haspopup="dialog"><h4>Smoke and glass ordering</h4><p>Depth-orders compatible smoke and glass passes and batches neighboring sprite draws.</p><code>r_transparencySort</code></article>
           <article class="card" data-feature="effects/volumetric-smoke" tabindex="0" role="button" aria-haspopup="dialog"><h4>Volumetric smoke</h4><p>Smoke from effects becomes real volume in the fog, lit and shadowed by it.</p><code>r_volumetricParticles</code></article>
           <article class="card" data-feature="effects/lit-smoke-sprites" tabindex="0" role="button" aria-haspopup="dialog"><h4>Lit smoke sprites</h4><p>Ordinary smoke sprites take the light of the place they are in.</p><code>r_particleLighting</code></article>
           <article class="card" data-feature="effects/glowing-gas" tabindex="0" role="button" aria-haspopup="dialog"><h4>Glowing gas</h4><p>Fog and smoke that glow by themselves.</p><code>r_volumetricEmission</code></article>
@@ -233,8 +241,9 @@
       </div>
       <div class="topic" id="topic-loading">
         <h3>Loading, OpenGL and diagnostics</h3>
-        <p class="topic-intro">Settings that change how fast the game starts and loads maps, which OpenGL paths are used, and tools for testing. None of them change how a finished frame looks, so they have no compare cvars. They are <strong>off by default</strong>, as in stock Rend2; turning them on is recommended:</p>
+        <p class="topic-intro">Settings that change how fast the game starts and loads maps, which OpenGL paths are used, and tools for testing. Modern OpenGL and the reviewed rendering fast paths are enabled by default; shader caching and the map-loading options below remain opt-in. Existing explicit settings in your config are preserved.</p>
         <div class="grid">
+          <article class="card" data-feature="loading/rendering-fast-paths" tabindex="0" role="button" aria-haspopup="dialog"><h4>Rendering fast paths</h4><p>Enabled submission and shading paths for BSP surfaces, models, grass and repeated props.</p><code>r_worldSurfaceList</code></article>
           <article class="card" data-feature="loading/shader-compilation" tabindex="0" role="button" aria-haspopup="dialog"><h4>Shader compilation</h4><p>Shader programs are cached on disk and built only when a level needs them.</p><code>r_shaderProgramCache</code></article>
           <article class="card" data-feature="loading/map-loading" tabindex="0" role="button" aria-haspopup="dialog"><h4>Map loading</h4><p>Textures are decoded ahead on worker threads, and slow load steps are cached or deferred.</p><code>r_loadPrefetch</code></article>
           <article class="card" data-feature="loading/modern-opengl" tabindex="0" role="button" aria-haspopup="dialog"><h4>Modern OpenGL</h4><p>On OpenGL 4.3, light lists and water tessellation move to compute shaders; older cards fall back.</p><code>r_gl43</code></article>
@@ -310,7 +319,7 @@ make_entity_physical &lt;entity_id&gt; &lt;mass&gt;</pre>
 
 <footer class="footer">
   <div class="wrap">
-    <p>Source on <a href="https://github.com/keyten/BetterJK">GitHub</a>. Based on <a href="https://github.com/JACoders/OpenJK">OpenJK</a>, licensed under GPLv2. Requires the original game; not affiliated with its publishers.</p>
+    <p>Source on <a href="https://github.com/keyten/Jedi-Knight-2026">GitHub</a>. Based on <a href="https://github.com/JACoders/OpenJK">OpenJK</a>, licensed under GPLv2. Requires the original game; not affiliated with its publishers.</p>
   </div>
 </footer>
 

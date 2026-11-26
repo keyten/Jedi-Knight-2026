@@ -2,6 +2,8 @@
 
 Static page for the project, served by GitHub Pages from the root of this `gh-pages` branch.
 
+Last synchronized with the rendering reference through `2c4004f3f` (2026-11-26). The existing layout, modal behavior and FX media are retained. Particle comparisons are controlled stock-texture fixtures from the smoke validation report.
+
 ## Feature cards
 
 The graphics and Force power cards and their modal windows are generated. The graphics part follows

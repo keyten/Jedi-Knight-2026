@@ -31,6 +31,9 @@ PAGES = [
         ("Distortion color fringes", "Force push and refractive effects split colors slightly at their edges.", "r_refractionChromaticAberration"),
     ]),
     ("materials", [
+        ("Material classification", "Identifies surface types for procedural details; classification alone leaves the picture unchanged.", "r_materialClassification"),
+        ("Fine material detail", "Close surfaces gain pits, brushing, grain or weave chosen for their material.", "r_detailTextureSynthesis"),
+        ("Stone joints and relief", "Recesses painted stone joints and adds shallow cracks, with optional close-range displacement.", "r_voronoiFracturing"),
         ("Automatic materials from stock textures (Auto PBR)", "Guesses metal, leather, cloth, skin and other materials from stock texture names.", "r_autoPBR"),
         ("Shiny stock models (troopers, droids, weapons)", "Moves the old shiny effect of about 130 stock shaders to per-pixel lighting.", "r_autoPBRConvert"),
         ("Roughness variation", "Glossiness that varies across a texture instead of one value per surface.", "r_autoPBRRoughness"),
@@ -52,17 +55,20 @@ PAGES = [
         ("Projected patterns (mod authors)", "A spot light projects an image, such as a grate or colored glass, onto walls and fog.", "r_spotLightCookies"),
     ]),
     ("shadows", [
+        ("Ray traced shadows", "Triangle-traced sun and dynamic-light shadows, with soft edges and shadow-map fallback coverage.", "r_sunShadowMode 2"),
         ("Sun shadows", "Realtime sun shadows, sharp at contact and softer with distance, without crawling as the camera moves.", "r_forceSun"),
-        ("Character sun shadows", "Characters and models get their own sharp shadow layer, combined with softer scenery shadows.", "r_sunShadowSplit"),
+        ("Character sun shadows", "Characters and models get their own sharp shadow layer, combined with softer scenery shadows.", "r_sunShadowModelLayer"),
         ("Contact shadows", "Small sun shadows under feet and behind small props, where shadow maps are too coarse.", "r_contactShadows"),
         ("Dynamic light shadows", "Sabers, explosions and other dynamic lights cast realtime shadows.", "r_dlightMode"),
     ]),
     ("characters", [
+        ("Distant offscreen bodies", "Skips distant offscreen NPC bodies and shadows, keeping nearby and cinematic bodies.", "r_characterCull"),
+        ("Smoother cinematic characters", "Smooths nearby character outlines in scripted scenes; gameplay has a separate switch.", "r_phongTessellation"),
         ("Light across the body", "Characters are lit at several points of the body or per pixel instead of one point.", "r_entityLightGrid"),
-        ("Sun on characters", "Characters are lit from the real sun direction, matching their shadow on the ground.", "r_entitySunSplit"),
+        ("Sun on characters", "Characters are lit from the real sun direction, matching their shadow on the ground.", "r_entitySunLight"),
         ("Ambient light from the surroundings", "Ambient light on characters differs by side, taken from nearby reflections.", "r_diffuseIBL"),
         ("Skin (subsurface scattering)", "Light scatters under the skin, softening faces and hands.", "r_skinSSS"),
-        ("Hair and eyes", "Strand-shaped highlights on hair and a wet shine on eyes.", None),
+        ("Hair and eyes", "Strand-shaped highlights on hair and a wet shine on eyes.", "r_materialModels"),
         ("Softer ragdolls", "Ragdoll joints slow down near their limits instead of stopping dead.", "r_ragSoftLimits"),
         ("Softer animation (SP)", "Limbs ease in and rebound slightly at the end of their movement.", "r_animSoftLimits"),
     ]),
@@ -83,6 +89,8 @@ PAGES = [
         ("Original Rend2 volumetric fog", "The original Rend2 volumetric fog, lit by baked light only.", "r_volumetricFog 1"),
     ]),
     ("effects", [
+        ("Soft smoke contact", "Smoke fades into walls, floors and the near camera, with rounded billboard thickness.", "r_softParticles"),
+        ("Smoke and glass ordering", "Depth-orders compatible smoke and glass passes and batches neighboring sprite draws.", "r_transparencySort"),
         ("Volumetric smoke", "Smoke from effects becomes real volume in the fog, lit and shadowed by it.", "r_volumetricParticles"),
         ("Lit smoke sprites", "Ordinary smoke sprites take the light of the place they are in.", "r_particleLighting"),
         ("Glowing gas", "Fog and smoke that glow by themselves.", "r_volumetricEmission"),
@@ -137,6 +145,7 @@ PAGES = [
         ("Cutting plants with a saber", "Saber attacks cut fern fronds and plant cards.", "r_foliageSaberCut"),
     ]),
     ("loading", [
+        ("Rendering fast paths", "Enabled submission and shading paths for BSP surfaces, models, grass and repeated props.", "r_worldSurfaceList"),
         ("Shader compilation", "Shader programs are cached on disk and built only when a level needs them.", "r_shaderProgramCache"),
         ("Map loading", "Textures are decoded ahead on worker threads, and slow load steps are cached or deferred.", "r_loadPrefetch"),
         ("Modern OpenGL", "On OpenGL 4.3, light lists and water tessellation move to compute shaders; older cards fall back.", "r_gl43"),
@@ -147,6 +156,14 @@ PAGES = [
 SKIP = {"loading": ["Testing and internal flags"]}
 
 MEDIA = {
+    "effects/soft-smoke-contact": [
+        {"type": "image", "src": "assets/media/particles/floor-before.png", "caption": "Before: flat smoke contact (controlled stock-texture fixture)"},
+        {"type": "image", "src": "assets/media/particles/floor-after.png", "caption": "After: rounded billboard contact, same fixture"},
+    ],
+    "effects/smoke-and-glass-ordering": [
+        {"type": "image", "src": "assets/media/particles/glass-before.png", "caption": "Before: late glass reflection over smoke (controlled fixture)"},
+        {"type": "image", "src": "assets/media/particles/glass-after.png", "caption": "After: glass passes kept in their depth-ordered packet"},
+    ],
     "effects/light-from-sparks-and-fire": [
         {"type": "image", "src": "assets/media/fx/lights-before.jpg", "caption": "Before: the fire lights nothing"},
         {"type": "image", "src": "assets/media/fx/lights-after.jpg", "caption": "After: the walls and floor take its light"},

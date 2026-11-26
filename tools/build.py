@@ -18,7 +18,7 @@ from cards import FORCE, MEDIA, PAGES, SKIP
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DOCS = ROOT.parent / "OpenJK-rend2" / "docs"
-DOCS_URL = "https://github.com/keyten/BetterJK/blob/rend2-unified-wip/docs/"
+DOCS_URL = "https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/"
 
 
 def slug(title):
