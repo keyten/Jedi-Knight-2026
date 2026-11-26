@@ -7,24 +7,24 @@ This mod aims to:
 
 into Jedi Academy / Outcast. Most changes here are aiming to SP, but there can occasional MP improvements (mostly rend2, I guess) as side effects.
 
-Visual and gameplay extensions remain opt-in to preserve compatibility with the game and mods. The [reviewed rendering optimizations](docs/rend2-optimization-defaults.md) are enabled by default with capability and correctness fallbacks; explicit settings in existing configs are preserved.
+Most visual and gameplay extensions remain opt-in. Soft particle contact, transparency ordering and distant offscreen body culling are enabled, alongside the [reviewed rendering optimizations](docs/rend2-optimization-defaults.md) and [batching defaults](docs/rend2-enabled-batching-defaults.md), with capability and correctness fallbacks. Explicit settings in existing configs are preserved.
 
 This is a fork of SomaZ/OpenJK:rend2-unified-wip.
 
 
 ## Graphics
 
-For the complete rendering feature and cvar reference, see [docs/rendering-features.md](docs/rendering-features.md).
+For the complete rendering feature and cvar reference, see [docs/rendering-features.md](docs/rendering-features.md), reviewed through 2026-11-26. The [changes page](docs/rendering-features/changes.md) tracks additions and default changes since the original audit.
 
 ### Tone mapper improvement
 
 If the map is rendered in HDR, its pixels have to be translated back into SDR monitor. Jedi Academy 2026 introduces two translators (so, works only with `r_hdr 1`).
 
-- `r_toneMapMode 0` - legacy rend2 tone mapper (make sure you have `r_exposureCompensation 0). Removes parts that are too bright (unlike other tone mappers).
+- `r_toneMapMode 0` - legacy rend2 tone mapper (make sure you have `r_exposureCompensation 0`). Removes parts that are too bright (unlike other tone mappers).
 - `r_toneMapMode 1` - ACES fitted, gives some cinematic effect (recommended with `r_exposureCompensation 1`).
 - `r_toneMapMode 2` - AgX, similar to legacy but more correct (recommended with `r_exposureCompensation 0.5`).
 
-Also you can try `r_toneMapDebug 0 | 1 | 2 | 3 | 4 | 5` to see the difference.
+Use `r_toneMapCompare 1` for split screen or `r_toneMapCompare 3` to compare tone mappers. `r_toneMapDebug 1 | 2 | 3` shows diagnostic views.
 
 Doesn't require `vid_restart`.
 
@@ -66,7 +66,7 @@ r_gtaoDenoise
 
 Debugging:
 r_aoDebug 0-10
-r_aoCompare - split-screen comparison, SSAO/GTAO.
+r_aoCompare 1 - split screen against the original `r_ssao` setting; 2 disables AO live.
 
 Contact shadows:
 r_contactShadows
@@ -98,7 +98,7 @@ Creates true reflections for glassy surfaces.
 
 - r_ssr 0/1
 - r_ssrQuality 0–3, r_ssrSteps, r_ssrRefineSteps, r_ssrMaxDistance, r_ssrThickness, r_ssrMaxRoughness, r_ssrEdgeFade, r_ssrHalfRes, r_ssrHiZ, r_ssrTemporal (latch), r_ssrTemporalWeight, r_ssrBlendStrength.
-- compare: r_ssrCompare, r_ssrDebug 1–11.
+- compare: r_ssrCompare 1 (split screen), 2 (off); r_ssrDebug 1–11 for diagnostic views.
 - support lightsaber and effects reflections: r_ssrEmitters 0/1, r_ssrEmitterIntensity, r_ssrEmitterMaxRoughness
 
 ## Map-specific scripts

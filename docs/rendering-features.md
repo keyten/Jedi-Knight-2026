@@ -2,7 +2,9 @@
 
 How to set up the graphics of this build's Rend2 renderer: what each feature changes in the game, how to turn it on, what it costs and which settings are worth touching.
 
-Every new feature is **off by default**, so the game looks and behaves like stock Rend2 until you enable it. That includes the speed-ups (shader cache, faster loading, shadow caches, OpenGL 4.3 paths): they don't change the picture, but they are also off until you turn them on ([Loading](rendering-features/loading.md)). Settings inside a feature keep their recommended values, so turning a feature on gives its intended look. Type the commands in the console (`~`), or put them in a `.cfg` file and `exec` it.
+Most visual features are **off by default**: enable the ones you want. Soft smoke intersections, near-camera fading and transparency ordering are already on, as are distant offscreen character culling and the reviewed rendering optimizations. Shader caching and faster map-loading options still need enabling. Existing saved settings take priority over new defaults. See [Smoke and effects](rendering-features/effects.md), [Characters](rendering-features/characters.md) and [Loading](rendering-features/loading.md) for the switches and fallbacks. Type the commands in the console (`~`), or put them in a `.cfg` file and `exec` it.
+
+Reviewed against committed source through `2c4004f3f` (2026-11-26). Settings inside an optional feature keep their recommended values, so turning it on gives its intended look.
 
 ## Reading the pages
 
@@ -17,7 +19,7 @@ Every new feature is **off by default**, so the game looks and behaves like stoc
 
 ## Comparing with the original
 
-Every feature has one compare cvar named after it: `r_ssrCompare`, `r_volumetricFogHeightCompare`, `r_waterWavesCompare`… They are not saved, and none needs `vid_restart`.
+Features with live comparison use one compare cvar named after the feature: `r_ssrCompare`, `r_volumetricFogHeightCompare`, `r_waterWavesCompare`… They are not saved, and none needs `vid_restart`. Features that must reload resources instead explain how to compare them with a restart.
 
 - `0` — normal: the feature as its own settings configure it.
 - `1` — split screen: left of the line the original Rend2 picture, right the feature. `r_compareSplit 0.5` moves the line (0 left edge … 1 right edge of the view).
@@ -54,6 +56,6 @@ A value a renderer cvar can't take — a word where it needs a number, a value o
 - [Water](rendering-features/water.md) (reflective water, underwater fog, waves, ripples, foam, waterfalls)
 - [Grass and plants](rendering-features/foliage.md) (fuller grass, wind, walking through plants, Force and saber interaction)
 - [Loading and OpenGL](rendering-features/loading.md) (shader cache, faster loading, OpenGL 4.3 paths)
-- [Lighting reconstruction](rendering-features/lighting-tools.md) (offline research tools, no effect on the game)
-- [Changes since the 2026-10-28 audit](rendering-features/changes.md) (including the compare cvars, renamed and removed cvars, and the defaults that changed to off)
+- [Lighting reconstruction](rendering-features/lighting-tools.md) (offline research, gated sun and model-lighting consumers)
+- [Changes since the 2026-10-28 audit](rendering-features/changes.md) (feature additions, current defaults, renamed and removed controls)
 - [Cvar and command provenance](rendering-cvar-audit.md)

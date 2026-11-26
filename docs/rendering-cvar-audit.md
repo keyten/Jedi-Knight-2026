@@ -1,7 +1,7 @@
 # Rendering cvar and console-command provenance
 
 This is the original 2026-10-28 provenance snapshot accompanying [rendering features](rendering-features.md).
-For the later history, see [changes since this audit](rendering-features/changes.md).
+For the later history, see [changes since this audit](rendering-features/changes.md) and the [November registration update](rendering-control-updates-2026-11.md), reviewed through `2c4004f3f` (2026-11-26).
 The human-readable controls now live on the linked topic pages; defaults below remain pinned to the original audited commit. It compares
 currently registered engine/game/renderer names in this source snapshot against
 the **local** `rend2` branch. Names are case-insensitive and deduplicated across

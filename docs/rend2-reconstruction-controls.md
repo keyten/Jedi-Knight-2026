@@ -8,11 +8,11 @@ remain independent. These canonical flags have no legacy aliases.
 
 ## Cvars and activation
 
-All **12** new cvars default to **`0`**, use **`CVAR_ARCHIVE`**, and have integer
+All **12** cvars default to **`0`**, use **`CVAR_ARCHIVE`**, and have integer
 range checks. `r_lightReconBuild` accepts `0..3`; all others accept `0..1`.
 SP and MP include the same registration list, `tr_lightrecon_cvars.inc`, through
-`tr_lightrecon_register.inc`. SP's three-argument `Cvar_Get` does not support
-descriptions; MP's four-argument API receives the descriptions in that list.
+`tr_lightrecon_register.inc`. Both renderer registration wrappers receive the
+descriptions from that list; `r_help` exposes them in SP and MP.
 
 | Cvar | Meaning / minimum data gate |
 | --- | --- |

@@ -2,7 +2,27 @@
 
 [All rendering settings](../rendering-features.md)
 
-Reviewed range: `0387b3281..9787e7945`. This page describes committed work through that snapshot.
+Current review: committed source through `2c4004f3f`, 2026-11-26. The last full player-reference rewrite was 2026-11-02 (`8683fe247`, `f63356ef3`), followed by the compare/help/default pass (`64a6e48d8`). Later edits were feature-specific; the most recent before this review added the FX upgrades on 2026-11-26 (`ee768b736`).
+
+## November feature updates (2026-11-03–26)
+
+- **Materials:** semantic surface classification, generated close-range material detail, and texture-guided stone joints/relief with optional experimental displacement. All remain opt-in. [Controls](materials.md#material-classification).
+- **Characters:** cinematic Phong smoothing with a separate gameplay override; distant offscreen body/shadow culling enabled by default, with nearby, cinematic and special-view exceptions. The latter is a distant-shadow approximation. [Controls](characters.md).
+- **Ray traced shadows:** software triangle/BVH tracing for sun and selected dynamic lights, soft accumulation, hybrid sun edges and an optional compacted GL 4.3 compute path. Shadow maps retain unsupported coverage. Off until the sun/light mode is selected. [Controls](shadows.md#ray-traced-shadows).
+- **Water:** more continuous tall-spillway foam and baked lighting across the sheet/pool join, improved shoreline/contact motion, optional local waterfall reflections and ordinary-water body optics. Water tessellation remains opt-in; its target edge length is now 48 pixels and finest-detail distance 192 units. [Controls](water.md).
+- **Smoke:** soft opaque contact, rounded billboard thickness, smooth near-camera fading, conservative FX bounds and depth ordering for compatible smoke/glass packets are enabled. Sprite batching and demand-only scene-depth copies reduce submission work. All ten feature controls are latched; a complete legacy preset remains available. [Controls and presets](effects.md#soft-smoke-contact).
+- **Stock FX:** optional light from sparks/fire, heat haze, extra GPU sparks/embers and layered impact/explosion detail. These remain off; flesh and glass impacts are excluded from automatic layering. [Controls](effects.md#light-from-sparks-and-fire).
+- **Lighting research:** reusable fields, persistent preparation, adaptive probes and in-game diagnostics; gated physical-sun and authored model-irradiance adapters. Stock source discovery still supplies no validated original-stock physical field. [Status and controls](lighting-tools.md).
+
+## Enabled rendering paths (2026-11-25–26)
+
+Fresh settings now select `r_worldSurfaceList 1`, `r_surfaceSpritesCompute 2`, `r_modelOcclusion 1`, `r_md3Instancing 1` and `r_lightallSpecialize 1`. They retain their reference/off paths and hardware/material fallbacks. Per-plant LOD intentionally changes distant geometry. Exact no-local-light specialization retains all baked/sun/material terms and switches live. Existing archived settings keep priority.
+
+These choices do not establish a net frame-time benefit in every scene. The [batching defaults report](../rend2-enabled-batching-defaults.md) and [merged validation](../rend2-performance-defaults-and-lightall-integration.md) keep correctness evidence separate from timing claims. See [Loading](loading.md#rendering-fast-paths) for current switches and the [registration update](../rendering-control-updates-2026-11.md) for added controls and default changes.
+
+## Original follow-up range (2026-10-28–30)
+
+Reviewed range: `0387b3281..9787e7945`. The following list records that historical snapshot.
 
 - **Vegetation:** standing contact is steadier; Force push/pull bends plants and leaves; attacking sabers cut supported plants into attached and falling pieces. [Controls](foliage.md).
 - **Characters:** soft ragdoll limits in SP/MP and optional soft animation limits in SP. [Controls](characters.md).

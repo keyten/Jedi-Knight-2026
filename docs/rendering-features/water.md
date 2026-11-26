@@ -128,7 +128,7 @@ Lets waves actually move the water surface, so its outline rises and falls again
 
 - `r_waterGeometry 0` *(restart)* — 1: split water into a fine mesh.
 - `r_waterTessellation 0` *(restart)* — 1: let the GPU add detail near the camera and less far away (OpenGL 4.3). Faster and finer than the fixed mesh alone.
-- `r_waterTessPixels 96` — tessellation: target edge length on screen; smaller is denser and slower.
+- `r_waterTessPixels 48` — tessellation: target edge length on screen; smaller is denser and slower.
 - `r_waterGeometryEdge 64` *(restart)* — fixed mesh: longest edge in world units.
 
 **Compare:** `r_waterGeometryCompare 2` — a flat surface (the mesh stays, the waves don't move it). No split screen: the mesh moves for the whole view.
@@ -137,7 +137,7 @@ Lets waves actually move the water surface, so its outline rises and falls again
 
 - `r_waterGeometryBodyVerts 250000`, `r_waterGeometryMapVerts 1000000` *(restart)* — vertex budgets per body and per map.
 - `r_waterTessMax 16` *(restart)* — maximum tessellation level (8, 16, 32); the base mesh is that much coarser.
-- `r_waterTessLodDistance 0` — distance with the finest detail.
+- `r_waterTessLodDistance 192` — distance with the finest detail.
 - `r_waterTessMinEdge 0` — shortest edge in world units; 0 lets `r_waterTessMax` decide.
 - `r_waterlineHysteresis 1.5` — the waterline tolerance band.
 
@@ -308,6 +308,8 @@ Design notes: [rend2-surface-caustics.md](../rend2-surface-caustics.md).
 
 Falling water breaks up into streaks, turns white where it is aerated, throws mist at the base and churns the pool it falls into. Rapids carry white water downstream. Supported stock waterfalls are recognized automatically; others keep their original look. Needs modern water.
 
+Tall spillways now keep a continuous, irregular foam apron from the falling sheet into the receiving pool, lit from the map's baked lighting. Shore motion and impact foam also follow the moving water surface more closely.
+
 **Cost:** medium to heavy with all layers on.
 
 - `r_waterfall 0` *(restart)* — 1 modern waterfall sheets.
@@ -315,6 +317,7 @@ Falling water breaks up into streaks, turns white where it is aerated, throws mi
 - `r_waterfallImpact 0` — 1 ripples, turbulence and foam where it lands (needs ripples or the foam field).
 - `r_waterWhitewater 0` *(restart)* — 1 white water in rapids and turbulent streams.
 - `r_waterfallQuality 1` — 0–2.
+- `r_waterfallEnvironmentReflection 0` — 1: local waterfall reflections with `r_cubeMapping 1`; enable before map load so the probes can be captured. This is separate from ordinary water's `r_waterBodyOptics`.
 
 **Compare:** `r_waterfallCompare 2` — the original waterfall shaders (split screen: `r_waterSurfaceCompare 1`, which splits waterfalls and water together). `r_waterWhitewaterCompare` — 1 split screen, 2 off.
 

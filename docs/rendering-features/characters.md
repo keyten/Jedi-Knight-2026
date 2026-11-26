@@ -14,6 +14,10 @@ Cinematics and portal/mirror scenes retain the full path. Set `r_characterCull 0
 for exact legacy behavior. This is an approximation for distant shadows; see
 [policy and validation](../rend2-character-render-culling.md).
 
+**Debug**
+
+- `r_characterCullStats 1` — culling counts; 2 per-body details.
+
 ## Light across the body
 
 Characters aren't lit by the map's lightmaps. Instead the map stores a 3D grid of light samples (the light grid), each with an ambient color, a main light color and that light's direction. The original game picks **one** sample at the character's position and lights the whole body with it, so a character walking through a doorway changes brightness all at once, and an arm in a beam of light is no brighter than the rest.
@@ -114,6 +118,29 @@ Hair gets a stretched highlight shaped by the strand direction, like real hair, 
 - `r_materialModelDebug 1..7` — type, tangent, bitangent, hair direction, hair highlight, eye highlight, mask.
 
 Design notes: [rend2-hair-eye-materials.md](../rend2-hair-eye-materials.md).
+
+## Smoother cinematic characters
+
+Close player and NPC bodies in scripted SP cinematics get smoother outlines, reducing visible triangle corners on heads and shoulders. It follows the original normals; it adds no sculpted detail and changes no collision or animation. Needs `r_gl43 1` and GPU tessellation support.
+
+**Cost:** medium to heavy; grows quickly with the subdivision level and number of selected characters.
+
+- `r_phongTessellation 0` — 1 on.
+- `r_phongTessMaxCharacters 1` — nearest visible bodies to smooth; 0 disables selection.
+- `r_phongTessDistance 160` — maximum camera distance in game units; fades over the last quarter.
+- `r_phongTessGameplay 0` *(restart)* — 1 also during gameplay. MP needs this because it has no SP scripted-camera signal.
+- `r_phongTessLevel 4` — subdivisions per edge, 2–16.
+- `r_phongTessStrength 0.5`, `r_phongTessMaxDisplacement 1` — smoothing strength and displacement limit in world units.
+
+**Compare:** `r_phongTessellationCompare` — 1 split screen, 2 off.
+
+**How it works.** Triangles are subdivided after skinning and projected toward their vertex tangent planes. Creases and material seams are preserved. Color, depth and motion use the same shape; shadow maps keep the original mesh. Unsupported material effects and view models keep their original path. SP needs the updated game DLL as well as the renderer; MP needs the updated cgame.
+
+**Debug**
+
+- `r_phongTessDebug 1..3` — selection statistics, selected bodies, displacement.
+
+Design notes: [rend2-phong-tessellation.md](../rend2-phong-tessellation.md).
 
 ## Softer ragdolls
 

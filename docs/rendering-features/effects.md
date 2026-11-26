@@ -2,7 +2,48 @@
 
 [All rendering settings](../rendering-features.md)
 
-Smoke, dust and explosions from game effects: real 3D volume, lighting, glowing gas, and light, heat haze and extra detail for sparks, fire and explosions. The smoke and gas sections build on [volumetric fog](fog.md#volumetric-fog) (`r_volumetricFog 2`).
+Smoke, dust and explosions from game effects: softer contact and better transparency, optional 3D volume and lighting, glowing gas, light, heat haze and extra sparks. Volumetric smoke, lit smoke and glowing gas build on [volumetric fog](fog.md#volumetric-fog) (`r_volumetricFog 2`); soft contact and ordering work without it.
+
+## Soft smoke contact
+
+Smoke fades into walls and floors instead of ending in a hard rectangle, and disappears smoothly near the camera. Simple smoke billboards get rounded view-depth thickness while retaining their stock texture. This is already enabled; it does not simulate a 3D cloud or change effect assets.
+
+**Cost:** light to medium; large overlapping clouds cost more.
+
+All settings in this section need `vid_restart`:
+
+- `r_softParticles 1` — **0** hard intersections, **1** soften alpha sprites, **2** also additive sprites.
+- `r_softParticleDistance 8` — maximum contact-fade distance in world units; 0 disables contact fading.
+- `r_particleVolume 1` — rounded thickness on supported alpha billboards; 0 flat contact fading. Oriented quads and complex materials keep the flat fallback.
+- `r_particleSoftScale 0.1` — flat-fallback fade distance as a fraction of sprite radius, capped by `r_softParticleDistance`; 0 uses that fixed distance.
+- `r_particleNearFade 1` — smooth fading near the camera.
+- `r_particleCulling 1` — conservative near-camera FX bounds; 0 restores legacy culling independently of the shader fade.
+
+No compare cvar: use the [modern](../samples/particles-modern.cfg) and [legacy](../samples/particles-legacy.cfg) presets, then `vid_restart`, for a complete comparison.
+
+**How it works.** Alpha sprites read opaque scene depth and fade over their visible thickness. Simple billboards use a rounded depth interval; complex or modified materials retain their existing UVs and flat fallback. It cannot solve collisions or arbitrary intersecting transparent meshes.
+
+Design notes: [particle rendering](../rend2-particles.md), [smoke benchmark and screenshots](../rend2-smoke-volume-benchmark.md).
+
+## Smoke and glass ordering
+
+Supported smoke, glass and translucent surface passes draw in depth order, so nearer smoke no longer disappears behind the reflection pass of stock glass. Each material's passes stay together. Compatible adjacent sprites also share draw calls. These settings are already enabled.
+
+All four settings need `vid_restart`:
+
+- `r_transparencySort 1` — depth-order compatible translucent world/model surfaces and particles within each authored render layer.
+- `r_particleSort 1` — particle-only depth ordering when `r_transparencySort 0`.
+- `r_particleBatching 1` — batch adjacent compatible single-pass sprites after sorting.
+- `r_particleDepthOnDemand 1` — copy scene depth only when a particle draw needs it.
+
+No compare cvar: the legacy preset above switches all particle changes off. Center-depth sorting cannot correctly order every intersecting mesh; refraction, depth-writing, deformed and other special materials retain their existing paths.
+
+**Debug**
+
+- `r_particleProfile 1` — main-pass CPU and sorting/submission records. Mode 2 buffers records until `r_particleTest profile-dump` to keep log output outside measured frames.
+- `r_particleTest` — controlled smoke fixtures with `developer 1`; `r_particleTest 0` removes them.
+
+Design notes: [particle rendering](../rend2-particles.md), [measured costs and limitations](../rend2-smoke-volume-benchmark.md).
 
 ## Volumetric smoke
 

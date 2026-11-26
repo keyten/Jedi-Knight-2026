@@ -44,6 +44,31 @@ Bias settings fix two opposite artifacts: dark speckles on lit surfaces ("acne")
 
 Design notes: [rend2-shadows2.md](../rend2-shadows2.md), [cache validation](../rend2-sun-shadow-cache-validation.md).
 
+## Ray traced shadows
+
+Sun and selected dynamic lights can trace the scene's real triangles for shadow edges, including rigid props and skinned characters. This is a software BVH tracer using OpenGL shaders; it does not need an RTX card. Shadow maps still cover fog, water and unsupported casters. Enable realtime sun first for sun shadows (`r_forceSun 1` on stock maps).
+
+**Cost:** heavy; depends on resolution, scene complexity, character count and traced lights.
+
+- `r_sunShadowMode 0` *(restart)* — 2 ray traced sun; 1 is the stabilized shadow-map mode above.
+- `r_dlightMode 1` *(restart)* — 3 ray traced dynamic-light shadows; unselected lights retain shadow cubes.
+- `r_rtShadowsSoft 1` — soft edges with frame accumulation/filtering; 0 hard shadows.
+- `r_rtShadowsHybrid 1` — sun: trace near shadow-map edges and let cascades decide clear areas. Faster, but very thin casters can be missed there; 0 traces every pixel.
+- `r_rtShadowsCompute 1` — use compacted GL 4.3 compute work where available; 0 uses the GL 3.2 full-screen path.
+- `r_rtShadowsHalfRes 0` *(restart)* — 1 trace one pixel per 2×2 block; soft mode rotates samples over frames.
+- `r_rtShadowsResidual 1` — retain shadow-map shadows for cutouts, plants, moving shaders and characters outside tracing limits. 0 removes those surface shadows.
+- `r_rtShadowsMaxCharacters 8`, `r_rtShadowsCharacterDistance 2048` — nearest characters traced and their camera distance limit.
+- `r_rtShadowsMaxLights 4` — most important dynamic lights to trace, 0–4.
+- `r_rtShadowsLightRadius 4` — light-source radius for soft dynamic shadows. Sun softness uses `r_shadowSunAngularDiameter`.
+- `r_rtShadowsBias 1` — ray-origin offset scale; raise against speckles, lower against detached contact shadows.
+
+**Compare:** `r_rtShadowsCompare 2` — use sun shadow maps instead of traced sun shadows. `r_rtLightShadowsCompare 2` — use dynamic-light shadow cubes instead of tracing. Neither supports split screen; both switch live while their traced mode stays enabled.
+
+**Debug**
+
+- `r_rtShadowsStats 1` — traced instances, skinned triangles, dropped models and CPU cost.
+- `r_rtShadowsDebug 1..5` — sun visibility, light visibility, this frame's rays, BVH traversal, hybrid decisions.
+
 ## Character sun shadows
 
 A soft shadow that suits a building makes a character's shadow look blurry and detached, and broad scenery shadows wash out a character's own contact shadow. Characters and other models can be drawn into a separate sharp shadow layer and combined with the softer scenery shadows. Needs `r_sunShadowMode 1`.

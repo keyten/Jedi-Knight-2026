@@ -24,6 +24,54 @@ Textures that already come with material maps (PBR texture packs) are never chan
 
 Design notes: [rend2-auto-pbr.md](../rend2-auto-pbr.md).
 
+## Material classification
+
+The renderer can identify rock, masonry, metal, wood, fabric and other surface types from shader tags, authored material maps and conservative name hints. This is metadata: classification alone does not change the picture or replace Auto PBR. It lets the detail features below choose a suitable pattern. Uncertain surfaces stay unknown.
+
+- `r_materialClassification 0` *(restart)* — 1 classify materials.
+
+**Mod authors:** `surfaceMaterial <type>` at shader scope overrides inference, including `surfaceMaterial unknown`. It is separate from the lit-stage `materialType hair|eye` keyword.
+
+**Debug**
+
+- `r_materialClassificationDebug 1` — colors by surface type.
+- `r_materialClassificationDump` — list the result and its evidence.
+
+Design notes: [rend2-material-classification.md](../rend2-material-classification.md).
+
+## Fine material detail
+
+Close walls, armor, cloth and wood gain small pits, brushing, scratches, pores or weave selected by their material. The original texture keeps its larger pattern. Needs `r_materialClassification 1` and per-pixel lighting (normal or specular mapping enabled); unsupported materials and cards without enough texture units keep their original look.
+
+**Cost:** light to medium on close surfaces.
+
+- `r_detailTextureSynthesis 0` *(restart)* — 1 on.
+- `r_detailTextureMicro 0` *(restart)* — extra detail for very close views, strength 0–2.
+- `r_detailTexturePBR 1` — strength of the small roughness changes, 0–2.
+
+No compare cvar: change the enable switch with `vid_restart`.
+
+**How it works.** Seamless material tiles add normal and roughness detail near the camera and fade out with distance. Optional analytic microdetail adds finer shapes when magnifying the surface. Unknown, water, sky, effect and blended materials are skipped; uncertain classifications weaken the detail.
+
+Design notes: [detail synthesis](../rend2-material-classification.md#detail-texture-synthesis).
+
+## Stone joints and relief
+
+Rock and masonry get shallow cracks and recessed painted joints. The pattern follows the existing texture instead of cutting an unrelated grid across it. Needs `r_materialClassification 1` and `r_gl43 1`.
+
+**Cost:** medium nearby; heavier with geometry displacement.
+
+- `r_voronoiFracturing 0` *(restart)* — 1 on.
+- `r_voronoiFracturingGeometry 0` — 1 also displaces close stone geometry (experimental).
+
+**Compare:** `r_voronoiFracturingCompare` — 1 split screen, 2 off.
+
+**How it works.** A relief map derived at material load supplies small normal changes and cavity shading. Optional tessellation displaces the mesh near the camera, fading along original triangle edges and with distance. Collision geometry is unchanged. Eligible opaque single-pass BSP rock/masonry is supported; mixed materials, marble, silhouette POM and special stages keep their original path.
+
+**Mod authors:** `stoneRelief auto|masonry|strata|rock|off` at shader scope chooses the relief profile; eligibility checks still apply.
+
+Design notes: [rend2-voronoi-fracturing.md](../rend2-voronoi-fracturing.md).
+
 ## Shiny stock models (troopers, droids, weapons)
 
 In Rend2, about 130 stock shaders that use the original "shiny" effect are still drawn the old way, with lighting computed only at mesh vertices: every stormtrooper and droid, Boba Fett, most weapons, vehicles and some map objects. They get no normal maps, no sun shadows on themselves and no reflections, which is why they look flat next to everything else. This option converts them to the modern per-pixel path, and their old highlight mask decides which parts are glossy or metallic.
