@@ -1,0 +1,1055 @@
+[
+  {
+    "map": "yavin1b",
+    "start": [
+      {
+        "angle": "100",
+        "origin": "296 -4848 456",
+        "classname": "info_player_start"
+      }
+    ],
+    "candidate_shaders": [
+      {
+        "surface": 805,
+        "shader": "textures/yavin/ground_grasssprite_Phong_vertex",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          736.8,
+          -4627.4,
+          260.8
+        ],
+        "distance_from_start": 530
+      },
+      {
+        "surface": 127,
+        "shader": "models/map_objects/yavin/vines",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          -174.7,
+          -4725.4,
+          746.9
+        ],
+        "distance_from_start": 567
+      },
+      {
+        "surface": 124,
+        "shader": "models/map_objects/yavin/vines",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          -224.7,
+          -4677.7,
+          772.7
+        ],
+        "distance_from_start": 633
+      },
+      {
+        "surface": 126,
+        "shader": "models/map_objects/yavin/vines",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          -224.7,
+          -4677.7,
+          779.5
+        ],
+        "distance_from_start": 636
+      },
+      {
+        "surface": 125,
+        "shader": "models/map_objects/yavin/vines",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          -266.0,
+          -4696.4,
+          772.7
+        ],
+        "distance_from_start": 663
+      },
+      {
+        "surface": 803,
+        "shader": "textures/yavin/ground_grasssprite_Phong_vertex",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          1028.5,
+          -4912.0,
+          621.0
+        ],
+        "distance_from_start": 754
+      },
+      {
+        "surface": 108,
+        "shader": "models/map_objects/yavin/grass_b",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          -400.0,
+          -4712.0,
+          741.6
+        ],
+        "distance_from_start": 765
+      },
+      {
+        "surface": 105,
+        "shader": "models/map_objects/yavin/plant",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          -423.7,
+          -4664.9,
+          732.4
+        ],
+        "distance_from_start": 792
+      },
+      {
+        "surface": 106,
+        "shader": "models/map_objects/yavin/plant",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          -463.7,
+          -4408.9,
+          732.4
+        ],
+        "distance_from_start": 920
+      },
+      {
+        "surface": 811,
+        "shader": "textures/yavin/ground_grasssprite_Phong_vertex",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          -533.4,
+          -4864.0,
+          853.4
+        ],
+        "distance_from_start": 920
+      },
+      {
+        "surface": 107,
+        "shader": "models/map_objects/yavin/grass_b",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          -464.0,
+          -4384.0,
+          741.6
+        ],
+        "distance_from_start": 935
+      },
+      {
+        "surface": 104,
+        "shader": "models/map_objects/yavin/plant",
+        "tags": [
+          "plants"
+        ],
+        "center": [
+          608.3,
+          -3744.9,
+          340.4
+        ],
+        "distance_from_start": 1152
+      }
+    ],
+    "asset_counts": {
+      "water": 24,
+      "metal": 29,
+      "plants": 39,
+      "glow": 12
+    },
+    "policy": "Candidates only; actual player locomotion and visual review decide the final location."
+  },
+  {
+    "map": "t3_hevil",
+    "start": [
+      {
+        "classname": "info_player_start",
+        "origin": "296 -2304 -744",
+        "angle": "75",
+        "target": "t1111118269"
+      }
+    ],
+    "candidate_shaders": [
+      {
+        "surface": 5237,
+        "shader": "textures/h_evil/floorlarge2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          112.0,
+          -2304.0,
+          -800.0
+        ],
+        "distance_from_start": 192
+      },
+      {
+        "surface": 5236,
+        "shader": "textures/h_evil/floorlarge2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          212.0,
+          -2004.0,
+          -800.0
+        ],
+        "distance_from_start": 317
+      },
+      {
+        "surface": 5238,
+        "shader": "textures/h_evil/floorlarge2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          212.0,
+          -2604.0,
+          -800.0
+        ],
+        "distance_from_start": 317
+      },
+      {
+        "surface": 5202,
+        "shader": "textures/h_evil/floorlarge2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          512.0,
+          -1904.0,
+          -800.0
+        ],
+        "distance_from_start": 458
+      },
+      {
+        "surface": 5203,
+        "shader": "textures/h_evil/floorlarge2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          512.0,
+          -2704.0,
+          -800.0
+        ],
+        "distance_from_start": 458
+      },
+      {
+        "surface": 5098,
+        "shader": "textures/h_evil/floorlarge2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          812.0,
+          -2004.0,
+          -800.0
+        ],
+        "distance_from_start": 599
+      },
+      {
+        "surface": 5099,
+        "shader": "textures/h_evil/floorlarge2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          812.0,
+          -2604.0,
+          -800.0
+        ],
+        "distance_from_start": 599
+      },
+      {
+        "surface": 5093,
+        "shader": "textures/h_evil/floorlarge2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          912.0,
+          -2304.0,
+          -800.0
+        ],
+        "distance_from_start": 619
+      },
+      {
+        "surface": 7277,
+        "shader": "textures/h_evil/light3",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          384.0,
+          -1664.0,
+          -752.0
+        ],
+        "distance_from_start": 646
+      },
+      {
+        "surface": 7278,
+        "shader": "textures/h_evil/light3",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          384.0,
+          -1664.0,
+          -912.0
+        ],
+        "distance_from_start": 668
+      },
+      {
+        "surface": 7253,
+        "shader": "textures/h_evil/light3",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          640.0,
+          -1664.0,
+          -752.0
+        ],
+        "distance_from_start": 727
+      },
+      {
+        "surface": 7254,
+        "shader": "textures/h_evil/light3",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          640.0,
+          -1664.0,
+          -912.0
+        ],
+        "distance_from_start": 746
+      }
+    ],
+    "asset_counts": {
+      "metal": 513,
+      "water": 17,
+      "glass": 28,
+      "glow": 794
+    },
+    "policy": "Candidates only; actual player locomotion and visual review decide the final location."
+  },
+  {
+    "map": "t1_rail",
+    "start": [
+      {
+        "target": "t1051",
+        "classname": "info_player_start",
+        "angle": "360",
+        "origin": "-3184 -184 24"
+      }
+    ],
+    "candidate_shaders": [
+      {
+        "surface": 12069,
+        "shader": "textures/factory/darkmetal",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3200.0,
+          -100.0,
+          -4.0
+        ],
+        "distance_from_start": 90
+      },
+      {
+        "surface": 5967,
+        "shader": "textures/rail/roundplate2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3264.2,
+          -119.7,
+          0.0
+        ],
+        "distance_from_start": 106
+      },
+      {
+        "surface": 5954,
+        "shader": "textures/rail/roundplate2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3124.0,
+          -298.0,
+          8.0
+        ],
+        "distance_from_start": 130
+      },
+      {
+        "surface": 5961,
+        "shader": "textures/rail/roundplate2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3333.7,
+          -169.2,
+          8.0
+        ],
+        "distance_from_start": 151
+      },
+      {
+        "surface": 5951,
+        "shader": "textures/rail/roundplate2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3051.0,
+          -258.0,
+          8.0
+        ],
+        "distance_from_start": 153
+      },
+      {
+        "surface": 12064,
+        "shader": "textures/factory/darkmetal",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3051.0,
+          -258.0,
+          0.0
+        ],
+        "distance_from_start": 154
+      },
+      {
+        "surface": 5945,
+        "shader": "textures/rail/roundplate2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3044.2,
+          -238.2,
+          74.3
+        ],
+        "distance_from_start": 158
+      },
+      {
+        "surface": 5964,
+        "shader": "textures/rail/roundplate2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3339.4,
+          -159.8,
+          8.0
+        ],
+        "distance_from_start": 158
+      },
+      {
+        "surface": 5948,
+        "shader": "textures/rail/roundplate2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3048.0,
+          -253.0,
+          73.5
+        ],
+        "distance_from_start": 160
+      },
+      {
+        "surface": 5941,
+        "shader": "textures/rail/roundplate2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3033.8,
+          -225.8,
+          65.6
+        ],
+        "distance_from_start": 161
+      },
+      {
+        "surface": 80,
+        "shader": "textures/rail/rail_pipe_noclip",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3037.1,
+          -252.0,
+          24.0
+        ],
+        "distance_from_start": 162
+      },
+      {
+        "surface": 5969,
+        "shader": "textures/rail/roundplate2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -3344.0,
+          -159.4,
+          8.0
+        ],
+        "distance_from_start": 163
+      }
+    ],
+    "asset_counts": {
+      "metal": 7415,
+      "glow": 207,
+      "plants": 4,
+      "glass": 443
+    },
+    "policy": "Candidates only; actual player locomotion and visual review decide the final location."
+  },
+  {
+    "map": "vjun1",
+    "start": [
+      {
+        "target": "introRunner",
+        "angle": "270",
+        "origin": "-7002 7044 856",
+        "classname": "info_player_start"
+      }
+    ],
+    "candidate_shaders": [
+      {
+        "surface": 6427,
+        "shader": "textures/vjun/o_floor1",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7118.5,
+          6632.7,
+          832.0
+        ],
+        "distance_from_start": 428
+      },
+      {
+        "surface": 11111,
+        "shader": "textures/vjun/o_basemetal1",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7372.0,
+          6668.0,
+          836.0
+        ],
+        "distance_from_start": 528
+      },
+      {
+        "surface": 11118,
+        "shader": "textures/vjun/o_basemetal1",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7412.0,
+          6708.0,
+          836.0
+        ],
+        "distance_from_start": 530
+      },
+      {
+        "surface": 11110,
+        "shader": "textures/vjun/o_basemetal1",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7368.0,
+          6656.0,
+          836.0
+        ],
+        "distance_from_start": 534
+      },
+      {
+        "surface": 11113,
+        "shader": "textures/vjun/o_basemetal1",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7384.0,
+          6672.0,
+          836.0
+        ],
+        "distance_from_start": 534
+      },
+      {
+        "surface": 11116,
+        "shader": "textures/vjun/o_basemetal1",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7408.0,
+          6696.0,
+          836.0
+        ],
+        "distance_from_start": 535
+      },
+      {
+        "surface": 11120,
+        "shader": "textures/vjun/o_basemetal1",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7424.0,
+          6712.0,
+          836.0
+        ],
+        "distance_from_start": 537
+      },
+      {
+        "surface": 11114,
+        "shader": "textures/vjun/o_basemetal1",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7378.7,
+          6656.0,
+          840.0
+        ],
+        "distance_from_start": 541
+      },
+      {
+        "surface": 8661,
+        "shader": "textures/vjun/o_basemetal2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7385.3,
+          6660.0,
+          853.3
+        ],
+        "distance_from_start": 543
+      },
+      {
+        "surface": 8662,
+        "shader": "textures/vjun/o_basemetal2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7382.0,
+          6656.0,
+          860.0
+        ],
+        "distance_from_start": 543
+      },
+      {
+        "surface": 11122,
+        "shader": "textures/vjun/o_basemetal1",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7424.0,
+          6701.3,
+          840.0
+        ],
+        "distance_from_start": 544
+      },
+      {
+        "surface": 8667,
+        "shader": "textures/vjun/o_basemetal2",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          -7420.0,
+          6694.7,
+          853.3
+        ],
+        "distance_from_start": 545
+      }
+    ],
+    "asset_counts": {
+      "metal": 6086,
+      "glow": 900,
+      "water": 1,
+      "glass": 152
+    },
+    "policy": "Candidates only; actual player locomotion and visual review decide the final location."
+  },
+  {
+    "map": "t2_rogue",
+    "start": [
+      {
+        "target": "t430",
+        "angle": "90",
+        "origin": "1872 -1984 -552",
+        "classname": "info_player_start"
+      }
+    ],
+    "candidate_shaders": [
+      {
+        "surface": 5778,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          1736.0,
+          -1928.0,
+          -568.0
+        ],
+        "distance_from_start": 148
+      },
+      {
+        "surface": 5780,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          1712.0,
+          -1936.0,
+          -568.0
+        ],
+        "distance_from_start": 168
+      },
+      {
+        "surface": 5779,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          1704.0,
+          -1920.0,
+          -568.0
+        ],
+        "distance_from_start": 180
+      },
+      {
+        "surface": 5769,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          2104.0,
+          -1928.0,
+          -568.0
+        ],
+        "distance_from_start": 239
+      },
+      {
+        "surface": 5770,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          2128.0,
+          -1936.0,
+          -568.0
+        ],
+        "distance_from_start": 261
+      },
+      {
+        "surface": 5765,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          2136.0,
+          -1920.0,
+          -568.0
+        ],
+        "distance_from_start": 272
+      },
+      {
+        "surface": 5773,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          1744.0,
+          -1736.0,
+          -568.0
+        ],
+        "distance_from_start": 280
+      },
+      {
+        "surface": 5788,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          1584.0,
+          -1962.0,
+          -568.0
+        ],
+        "distance_from_start": 289
+      },
+      {
+        "surface": 5787,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          1584.0,
+          -1944.0,
+          -568.0
+        ],
+        "distance_from_start": 291
+      },
+      {
+        "surface": 5777,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          1728.0,
+          -1728.0,
+          -568.0
+        ],
+        "distance_from_start": 294
+      },
+      {
+        "surface": 5771,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          2096.0,
+          -1720.0,
+          -568.0
+        ],
+        "distance_from_start": 347
+      },
+      {
+        "surface": 5757,
+        "shader": "textures/rooftop/light_trim",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          2256.0,
+          -1962.0,
+          -568.0
+        ],
+        "distance_from_start": 385
+      }
+    ],
+    "asset_counts": {
+      "glow": 483,
+      "glass": 633,
+      "metal": 796
+    },
+    "policy": "Candidates only; actual player locomotion and visual review decide the final location."
+  },
+  {
+    "map": "t3_stamp",
+    "start": [
+      {
+        "target": "set_cranes",
+        "angle": "135",
+        "origin": "1193 576 88",
+        "classname": "info_player_start"
+      }
+    ],
+    "candidate_shaders": [
+      {
+        "surface": 5356,
+        "shader": "textures/factory/env_pipe",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          1361.0,
+          608.0,
+          191.0
+        ],
+        "distance_from_start": 200
+      },
+      {
+        "surface": 5355,
+        "shader": "textures/factory/env_pipe",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          1376.0,
+          601.0,
+          191.0
+        ],
+        "distance_from_start": 211
+      },
+      {
+        "surface": 2986,
+        "shader": "textures/imperial/light_hanger",
+        "tags": [
+          "glow"
+        ],
+        "center": [
+          1376.0,
+          608.0,
+          190.0
+        ],
+        "distance_from_start": 212
+      },
+      {
+        "surface": 5354,
+        "shader": "textures/factory/env_pipe",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          1376.0,
+          615.0,
+          191.0
+        ],
+        "distance_from_start": 214
+      },
+      {
+        "surface": 5341,
+        "shader": "textures/factory/env_pipe",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          1391.0,
+          608.0,
+          191.0
+        ],
+        "distance_from_start": 225
+      },
+      {
+        "surface": 10490,
+        "shader": "textures/impgarrison/metal_lg_dk",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          1038.0,
+          768.0,
+          64.0
+        ],
+        "distance_from_start": 248
+      },
+      {
+        "surface": 10495,
+        "shader": "textures/factory/darkmetal",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          1027.2,
+          748.8,
+          281.6
+        ],
+        "distance_from_start": 308
+      },
+      {
+        "surface": 10497,
+        "shader": "textures/factory/darkmetal",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          988.8,
+          748.8,
+          281.6
+        ],
+        "distance_from_start": 330
+      },
+      {
+        "surface": 10494,
+        "shader": "textures/factory/darkmetal",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          1027.2,
+          787.2,
+          281.6
+        ],
+        "distance_from_start": 331
+      },
+      {
+        "surface": 10491,
+        "shader": "textures/impgarrison/metal_lg_dk",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          912.0,
+          768.0,
+          64.0
+        ],
+        "distance_from_start": 341
+      },
+      {
+        "surface": 10496,
+        "shader": "textures/factory/darkmetal",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          988.8,
+          787.2,
+          281.6
+        ],
+        "distance_from_start": 352
+      },
+      {
+        "surface": 10499,
+        "shader": "textures/factory/darkmetal",
+        "tags": [
+          "metal"
+        ],
+        "center": [
+          931.2,
+          748.8,
+          281.6
+        ],
+        "distance_from_start": 369
+      }
+    ],
+    "asset_counts": {
+      "metal": 4506,
+      "glow": 174,
+      "glass": 51
+    },
+    "policy": "Candidates only; actual player locomotion and visual review decide the final location."
+  }
+]

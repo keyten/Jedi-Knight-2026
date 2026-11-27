@@ -1,0 +1,25 @@
+{
+  "label": "yavin-fern-far-side",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_yawspeed 60",
+    "+forward",
+    "wait 38",
+    "-forward",
+    "wait 40",
+    "viewpos",
+    "+left",
+    "wait 75",
+    "-left",
+    "centerview",
+    "wait 40",
+    "viewpos",
+    "screenshot_tga walk-yavin-fern-far-side",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "walk-yavin-fern-far-side"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "label": "yavin-fern-bank",
+  "commands": [
+    "uimenu gallery_resume",
+    "fx_freeze 0",
+    "cl_yawspeed 60",
+    "+right",
+    "wait 45",
+    "-right",
+    "wait 10",
+    "+forward",
+    "+moveup",
+    "wait 12",
+    "-moveup",
+    "wait 30",
+    "-forward",
+    "wait 75",
+    "viewpos",
+    "screenshot_tga walk-yavin-fern-bank",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "walk-yavin-fern-bank"
+  ]
+}

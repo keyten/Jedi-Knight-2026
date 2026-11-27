@@ -13,6 +13,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('selection',type=Path)
     p.add_argument('--batch',required=True)
+    p.add_argument('--replace',action='store_true',help='Replace a reviewed gallery group, retaining the same URLs')
     a=p.parse_args()
     selection=json.loads(a.selection.read_text())
     assert len(selection)==10,'Publication batches contain ten reviewed features'
@@ -43,7 +44,8 @@ def main():
         site_dir=site/'assets/media/gallery'/page;site_dir.mkdir(parents=True,exist_ok=True)
         entries=[];hashes={}
         for label in ('before','after'):
-            source=ROOT/item['runtime']/'home/OpenJK/screenshots'/(item.get('name',slug)+'-'+label+'.tga')
+            still=item.get('stills',{}).get(label,item.get('name',slug)+'-'+label+'.tga')
+            source=ROOT/item['runtime']/'home/OpenJK/screenshots'/still
             image=Image.open(source).convert('RGB')
             assert image.size==(1920,1080),'Use native full HD captures'
             name=slug+'-'+label+'.jpg'
@@ -53,18 +55,31 @@ def main():
             hashes[label]=hashlib.sha256(source.read_bytes()).hexdigest()
             entries.append(dict(type='image',src='assets/media/gallery/'+page+'/'+name,
                 caption=label.capitalize()+': '+item[label]+' ('+item['map']+')'))
+        animation_md=''
+        if item.get('animation'):
+            source=ROOT/item['animation'];name=slug+'-comparison.gif'
+            assert Image.open(source).is_animated
+            shutil.copy2(source,directory/name);shutil.copy2(source,site_dir/name)
+            entries.append(dict(type='image',src='assets/media/gallery/'+page+'/'+name,
+                caption='Animated comparison: before left, after right ('+item['map']+')'))
+            animation_md='\n![Animated before / after](../rendering-gallery/'+page+'/'+name+')\n'
         media.append('    '+repr(fid)+': '+repr(entries)+',')
         doc=ROOT/'docs/rendering-features'/(page+'.md')
         text=doc.read_text(encoding='utf-8')
         title=next(x['title'] for x in coverage if x['id']==fid)
         heading='## '+title+'\n'
         assert heading in text
-        example=('\n<!-- gallery:'+fid+' -->\n'
-            '**Before / after:** '+item['map']+', '+item['description']+' '+item.get('note','').strip()+'\n\n'
+        example=('\n<!-- gallery:'+fid+' -->\n'+
+            ('**Before / after:** '+item['map']+', '+item['description']+' '+item.get('note','')).rstrip()+'\n\n'
             '!['+item['before']+'](../rendering-gallery/'+page+'/'+slug+'-before.jpg)\n\n'
             '!['+item['after']+'](../rendering-gallery/'+page+'/'+slug+'-after.jpg)\n'
-            '<!-- /gallery:'+fid+' -->\n')
-        assert '<!-- gallery:'+fid+' -->' not in text,'Already published'
+            +animation_md+'<!-- /gallery:'+fid+' -->\n')
+        marker='<!-- gallery:'+fid+' -->'
+        if marker in text:
+            assert a.replace,'Already published; use --replace for a reviewed retake'
+            pattern=r'\n?<!-- gallery:'+re.escape(fid)+r' -->.*?<!-- /gallery:'+re.escape(fid)+r' -->\n?'
+            text,n=re.subn(pattern,'\n',text,flags=re.S)
+            assert n==1,'Duplicate gallery markers'
         # Put examples after the section prose, preserving its existing structure.
         start=text.index(heading)+len(heading)
         end=text.find('\n## ',start)
@@ -74,10 +89,16 @@ def main():
         for row in coverage:
             if row['id']==fid:
                 row.update(status='published-prepared',media=entries,location=dict(map=item['map'],
-                    pose=item['pose'],description=item['description']),batch=a.batch)
+                    pose=item['pose'],description=item['description']),batch=a.batch,
+                    runtime=item['runtime'],retake_required=False,
+                    grounded=True,route_steps=item.get('route_steps',[]))
         receipts.append(dict(**item,original_sha256=hashes))
     value=cards.read_text(encoding='utf-8')
     assert 'MEDIA = {\n' in value
+    if a.replace:
+        for item in selection:
+            pattern=r'^    '+re.escape(repr(item['id']))+r': .*\n'
+            value=re.sub(pattern,'',value,flags=re.M)
     cards.write_text(value.replace('\nMEDIA = {\n','\nMEDIA = {\n'+'\n'.join(media)+'\n',1),encoding='utf-8')
     coverage_path.write_text(json.dumps(coverage,indent=2),encoding='utf-8')
     (ROOT/'tools/rend2/feature_gallery'/('batch-'+a.batch+'.json')).write_text(json.dumps(receipts,indent=2))

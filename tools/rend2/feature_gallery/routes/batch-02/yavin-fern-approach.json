@@ -1,0 +1,36 @@
+{
+  "label": "yavin-fern-approach",
+  "commands": [
+    "uimenu gallery_resume",
+    "fx_freeze 0",
+    "cl_yawspeed 60",
+    "+right",
+    "wait 35",
+    "-right",
+    "wait 10",
+    "+forward",
+    "wait 40",
+    "-forward",
+    "wait 30",
+    "viewpos",
+    "screenshot_tga walk-yavin-around-rock",
+    "wait 20",
+    "+left",
+    "wait 35",
+    "-left",
+    "wait 10",
+    "+forward",
+    "wait 60",
+    "-forward",
+    "wait 45",
+    "viewpos",
+    "screenshot_tga walk-yavin-fern-approach",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "walk-yavin-around-rock",
+    "walk-yavin-fern-approach"
+  ]
+}

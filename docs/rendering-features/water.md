@@ -40,9 +40,9 @@ Stock water is a scrolling texture with a fixed tint. Modern water reflects its 
 Design notes: [rend2-water-bodies.md](../rend2-water-bodies.md), [rend2-water-surface.md](../rend2-water-surface.md).
 
 <!-- gallery:water/modern-water -->
-**Before / after:** yavin1b, River basin seen at a shallow downward angle. Uses the documented project water preset; camera placed with fxcam.
+**Before / after:** yavin1b, The shallow stream beside the crashed ship, reached on foot from the map start. Retakes the earlier free-camera comparison using the ordinary player camera.
 
-![Original scrolling water shader](../rendering-gallery/water/modern-water-before.jpg)
+![Original scrolling water](../rendering-gallery/water/modern-water-before.jpg)
 
 ![Modern water surface](../rendering-gallery/water/modern-water-after.jpg)
 <!-- /gallery:water/modern-water -->

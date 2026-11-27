@@ -36,6 +36,14 @@ Original grass sprites always turn to face the camera, so they swivel as you wal
 
 - `r_grassCardDebug 1..6` — color by card or direction, force 1/2/3 cards, distance level.
 
+<!-- gallery:foliage/fuller-grass -->
+**Before / after:** yavin1b, Grass on the walkable bank beside the crashed ship, viewed at normal standing height. Reached from the spawn by turning and walking; the camera is the player view.
+
+![Original camera-facing sprites](../rendering-gallery/foliage/fuller-grass-before.jpg)
+
+![Fixed crossed grass cards](../rendering-gallery/foliage/fuller-grass-after.jpg)
+<!-- /gallery:foliage/fuller-grass -->
+
 ## Wind through grass
 
 Original grass sways each tuft in its own small circle, all in step. With this, gusts roll across a field: neighbouring grass leans together and waves of wind travel downwind. Works on stock grass.
@@ -54,6 +62,16 @@ Original grass sways each tuft in its own small circle, all in step. With this, 
 - `r_foliageWindDebug 1..4` — exaggerated motion, color by bend, freeze time, show large gusts.
 
 Design notes: [rend2-foliage-wind.md](../rend2-foliage-wind.md).
+
+<!-- gallery:foliage/wind-through-grass -->
+**Before / after:** yavin1b, Grass beside the crashed ship on a bank reached by normal player movement. The paired animation shows the native motion from the same standing player position.
+
+![Original individual sway](../rendering-gallery/foliage/wind-through-grass-before.jpg)
+
+![Shared wind and gusts, default strength](../rendering-gallery/foliage/wind-through-grass-after.jpg)
+
+![Animated before / after](../rendering-gallery/foliage/wind-through-grass-comparison.gif)
+<!-- /gallery:foliage/wind-through-grass -->
 
 ## Leaf flutter
 
@@ -96,6 +114,16 @@ Ferns and similar plants bend frond by frond in the wind and swing back naturall
 
 - `r_plantDebug <bits>` — 1 frond lines, 2 color by segment, 4 by bone, 8 by contact side, 16 print cost, 32 saber cut steps.
 - `r_plantSimInfo` — list simulated plants, cut plants and fallen pieces.
+
+<!-- gallery:foliage/ferns-and-fronds -->
+**Before / after:** yavin1b, The stock fern on the walkable bank beyond the crashed ship; the whole plant is framed from the path. Grass motion is frozen to make the separate fern motion easier to inspect. The player camera stays on the ground.
+
+![Frond wind disabled](../rendering-gallery/foliage/ferns-and-fronds-before.jpg)
+
+![Frond wind at its default strength](../rendering-gallery/foliage/ferns-and-fronds-after.jpg)
+
+![Animated before / after](../rendering-gallery/foliage/ferns-and-fronds-comparison.gif)
+<!-- /gallery:foliage/ferns-and-fronds -->
 
 ## Walking through vegetation
 
@@ -147,6 +175,16 @@ A Force push or pull, by you or an NPC, sweeps a wave through plants, grass and 
 **Debug**
 
 - `r_foliageInteractionDebug 1` — wave front and reach: orange push, magenta pull.
+
+<!-- gallery:foliage/force-push-and-pull -->
+**Before / after:** yavin1b, A normal Force push toward the fern beside the path beyond the crashed ship. Both sides cast the same gameplay power; the animation shows the extra movement of the fronds.
+
+![Force push with plant response disabled](../rendering-gallery/foliage/force-push-and-pull-before.jpg)
+
+![Force push with plant response enabled](../rendering-gallery/foliage/force-push-and-pull-after.jpg)
+
+![Animated before / after](../rendering-gallery/foliage/force-push-and-pull-comparison.gif)
+<!-- /gallery:foliage/force-push-and-pull -->
 
 ## Cutting plants with a saber
 

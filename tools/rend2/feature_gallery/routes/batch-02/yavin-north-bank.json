@@ -1,0 +1,26 @@
+{
+  "label": "yavin-north-bank",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_yawspeed 60",
+    "cl_pitchspeed 60",
+    "r_ssgiDebug 0",
+    "+left",
+    "wait 30",
+    "-left",
+    "wait 15",
+    "+forward",
+    "wait 90",
+    "-forward",
+    "wait 15",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga walk-yavin-north-bank-location",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "walk-yavin-north-bank-location"
+  ]
+}

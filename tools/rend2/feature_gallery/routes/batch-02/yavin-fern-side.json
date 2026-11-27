@@ -1,0 +1,26 @@
+{
+  "label": "yavin-fern-side",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_yawspeed 60",
+    "+moveleft",
+    "wait 14",
+    "-moveleft",
+    "wait 20",
+    "+right",
+    "wait 20",
+    "-right",
+    "wait 40",
+    "viewpos",
+    "screenshot_tga walk-yavin-fern-side",
+    "wait 20",
+    "developer 1",
+    "r_autoFoliageList fern",
+    "r_plantSimInfo"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "walk-yavin-fern-side"
+  ]
+}

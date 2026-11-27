@@ -1,0 +1,228 @@
+[
+  {
+    "id": "post-processing/bloom",
+    "name": "bloom",
+    "runtime": "build/feature-gallery/grounded-02",
+    "map": "yavin1b",
+    "pose": "690 -4303 188 349",
+    "description": "Fire beside the crashed ship, seen from the shallow stream reached on foot from the start.",
+    "before": "Original dynamic glow",
+    "after": "HDR bloom",
+    "reviewed": true,
+    "note": "Ordinary first-person player view; no noclip, teleport or free camera. Exposure compensation +1.",
+    "route_steps": [
+      "yavin-walk-01",
+      "yavin-east2",
+      "yavin-ship-pairs"
+    ],
+    "original_sha256": {
+      "before": "c8feea3166c6b653ceb3997b6a16ba002d050af9c6e57d4c55c96e5c520b4dc8",
+      "after": "55fd6ce2af0521c4b5583890e8dae56a02c9664aa29e696a9fec6481496911be"
+    }
+  },
+  {
+    "id": "water/modern-water",
+    "name": "modern-water-grounded",
+    "runtime": "build/feature-gallery/grounded-02",
+    "map": "yavin1b",
+    "pose": "690 -4303 188 349",
+    "description": "The shallow stream beside the crashed ship, reached on foot from the map start.",
+    "before": "Original scrolling water",
+    "after": "Modern water surface",
+    "reviewed": true,
+    "note": "Retakes the earlier free-camera comparison using the ordinary player camera.",
+    "route_steps": [
+      "yavin-walk-01",
+      "yavin-east2",
+      "yavin-ship-pairs"
+    ],
+    "original_sha256": {
+      "before": "3a55e7394050edc63cd501ad95a877aab8ac72c0359913913ec56718d867fc77",
+      "after": "efe51d11a3b7640a3efe137a42bc56dcff07624bf2407f19d29276d7059fae51"
+    }
+  },
+  {
+    "id": "foliage/fuller-grass",
+    "name": "fuller-grass",
+    "runtime": "build/feature-gallery/grounded-02",
+    "map": "yavin1b",
+    "pose": "713 -4657 392 26",
+    "description": "Grass on the walkable bank beside the crashed ship, viewed at normal standing height.",
+    "before": "Original camera-facing sprites",
+    "after": "Fixed crossed grass cards",
+    "reviewed": true,
+    "note": "Reached from the spawn by turning and walking; the camera is the player view.",
+    "route_steps": [
+      "yavin-grass-route",
+      "yavin-grass-pair"
+    ],
+    "original_sha256": {
+      "before": "ed01b3e95b869349bada8cc6cbe24c23c83e217526a9ea206481444e71d6685b",
+      "after": "2d1a327ffcf15e6492f7edeab9d3b26a7dab1c3805abde7a6c866dab157355e3"
+    }
+  },
+  {
+    "id": "foliage/wind-through-grass",
+    "name": "wind-through-grass",
+    "stills": {
+      "before": "wind-through-grass-before-00.tga",
+      "after": "wind-through-grass-after-00.tga"
+    },
+    "animation": "build/feature-gallery/grounded-02/wind-through-grass-comparison.gif",
+    "runtime": "build/feature-gallery/grounded-02",
+    "map": "yavin1b",
+    "pose": "713 -4657 392 26",
+    "description": "Grass beside the crashed ship on a bank reached by normal player movement.",
+    "before": "Original individual sway",
+    "after": "Shared wind and gusts, default strength",
+    "reviewed": true,
+    "note": "The paired animation shows the native motion from the same standing player position.",
+    "route_steps": [
+      "yavin-grass-route",
+      "yavin-grass-pair",
+      "yavin-wind-animation"
+    ],
+    "original_sha256": {
+      "before": "3a866827933f08877b4c5554a071fa32eb6d0ee7e432304631624e8bdc695911",
+      "after": "59c9b0693776c733c92e9773f25091d8329a7dbbbed8653a3905f7dcf3015f84"
+    }
+  },
+  {
+    "id": "foliage/ferns-and-fronds",
+    "name": "ferns-and-fronds-v2",
+    "stills": {
+      "before": "ferns-and-fronds-v2-before-00.tga",
+      "after": "ferns-and-fronds-v2-after-00.tga"
+    },
+    "animation": "build/feature-gallery/grounded-02/ferns-and-fronds-v2-comparison.gif",
+    "runtime": "build/feature-gallery/grounded-02",
+    "map": "yavin1b",
+    "pose": "1553 -3560 329 186",
+    "description": "The stock fern on the walkable bank beyond the crashed ship; the whole plant is framed from the path.",
+    "before": "Frond wind disabled",
+    "after": "Frond wind at its default strength",
+    "reviewed": true,
+    "note": "Grass motion is frozen to make the separate fern motion easier to inspect. The player camera stays on the ground.",
+    "route_steps": [
+      "yavin-grass-route",
+      "yavin-north-bank",
+      "yavin-fern-approach",
+      "yavin-fern-bank",
+      "yavin-fern-view",
+      "yavin-fern-side",
+      "yavin-fern-far-side",
+      "yavin-fern-framed",
+      "yavin-fern-close",
+      "yavin-frond-animation-v2"
+    ],
+    "original_sha256": {
+      "before": "7033f76d99b27c21140db7cf794b806ce9ec66733e21bf1a81aa9606ae9ca38e",
+      "after": "8ee69afbfe8dc3469c819c81867fe534ab17121217d83c1ed43994ac3812e532"
+    }
+  },
+  {
+    "id": "foliage/force-push-and-pull",
+    "name": "force-push-and-pull",
+    "stills": {
+      "before": "force-push-and-pull-before-08.tga",
+      "after": "force-push-and-pull-after-08.tga"
+    },
+    "animation": "build/feature-gallery/grounded-02/force-push-and-pull-comparison.gif",
+    "runtime": "build/feature-gallery/grounded-02",
+    "map": "yavin1b",
+    "pose": "1553 -3560 329 186",
+    "description": "A normal Force push toward the fern beside the path beyond the crashed ship.",
+    "before": "Force push with plant response disabled",
+    "after": "Force push with plant response enabled",
+    "reviewed": true,
+    "note": "Both sides cast the same gameplay power; the animation shows the extra movement of the fronds.",
+    "route_steps": [
+      "yavin-fern-close",
+      "yavin-force-animation"
+    ],
+    "original_sha256": {
+      "before": "ef65e4aa312d27403ff333b3cae643b669f993a258ccb410dc05f4e9be1216d4",
+      "after": "244fd1ccc6ad8301209e26c7a36fd5bc60ff2be44718f563eae9b5e61f463551"
+    }
+  },
+  {
+    "id": "post-processing/color-grading",
+    "name": "lut-grounded",
+    "runtime": "build/feature-gallery/grounded-03",
+    "map": "yavin1b",
+    "pose": "506 -4615 391 51",
+    "description": "The wooded bank and stream beside the crashed ship show the warm LUT against neutral colors.",
+    "before": "No color grading",
+    "after": "Example warm LUT",
+    "note": "An illustrative LUT supplied by the capture tool; stock maps do not include one. Exposure compensation +1. Ordinary player camera on a bank reached on foot.",
+    "reviewed": true,
+    "route_steps": [
+      "resume-grass",
+      "bank-pairs"
+    ],
+    "original_sha256": {
+      "before": "6e7b9b6a14b2882efcb135214b830d7e0ab95e6d02d9257ef9581de9a5963c52",
+      "after": "f660812016d77f34c3b7921cec1180273c6e4be216e34a3c0be2b0cf150ca7ff"
+    }
+  },
+  {
+    "id": "fog/ground-haze",
+    "name": "haze-grounded-v2",
+    "runtime": "build/feature-gallery/grounded-03",
+    "map": "yavin1b",
+    "pose": "506 -4615 391 51",
+    "description": "Low mist gathers over the stream beneath the bank.",
+    "before": "Height fog disabled",
+    "after": "Height fog enabled",
+    "note": "Illustrative height fog: base 180, opaque distance 6000; stock yavin1b does not enable this atmosphere. Ordinary player camera on a bank reached on foot.",
+    "reviewed": true,
+    "route_steps": [
+      "resume-grass",
+      "refined-pairs"
+    ],
+    "original_sha256": {
+      "before": "297be1826222b385c8979ac7cb79b6086ace60ea6a5f28c9b7c2a0c18340b016",
+      "after": "745eb333019944b799f665170fdd47e099946c482d78d5a8b826f7afc14c4ae6"
+    }
+  },
+  {
+    "id": "lighting/ambient-occlusion-gtao",
+    "name": "ao-grounded-v2",
+    "runtime": "build/feature-gallery/grounded-03",
+    "map": "yavin1b",
+    "pose": "506 -4615 391 51",
+    "description": "Rock contacts and the bank beside the shallow stream show local occlusion.",
+    "before": "Ambient occlusion disabled",
+    "after": "GTAO enabled",
+    "note": "Other fog and color grading are disabled for this comparison. Exposure compensation +1. Ordinary player camera on a bank reached on foot.",
+    "reviewed": true,
+    "route_steps": [
+      "resume-grass",
+      "refined-pairs"
+    ],
+    "original_sha256": {
+      "before": "9af5b224b4cffb45a921a5df517e2ab1364852cccbd4c68a24fde6c1844217b9",
+      "after": "abe2c7fc2beea0fc847638c8e2498b48d587a25892c5f4ae79dfacc9661c98b6"
+    }
+  },
+  {
+    "id": "post-processing/tone-mapping",
+    "name": "tone-grounded-v2",
+    "runtime": "build/feature-gallery/grounded-03",
+    "map": "yavin1b",
+    "pose": "506 -4615 391 51",
+    "description": "Bright sky above the crashed ship contrasts with the shaded stone bank.",
+    "before": "Original Rend2 filmic curve",
+    "after": "ACES fitted curve",
+    "note": "Height fog and color grading are disabled. Exposure compensation +1. Ordinary player camera on a bank reached on foot.",
+    "reviewed": true,
+    "route_steps": [
+      "resume-grass",
+      "refined-pairs"
+    ],
+    "original_sha256": {
+      "before": "2208ae7d8cc79bf20723fca3f83222f023346bfbbed40bab04b3d2c608169450",
+      "after": "b00ae47c9537f5b7a1186a38ab0b0a463b3f2f8f8e831114923a3ae648fd08b5"
+    }
+  }
+]

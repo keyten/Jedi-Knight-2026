@@ -19,7 +19,7 @@ The renderer computes light far brighter than a monitor can show: sky, lamps, sa
 Design notes: [rend2-tonemapping.md](../rend2-tonemapping.md).
 
 <!-- gallery:post-processing/tone-mapping -->
-**Before / after:** academy1, Bright barred window and sunlit floor against a dark stone hall show highlight/contrast handling.
+**Before / after:** yavin1b, Bright sky above the crashed ship contrasts with the shaded stone bank. Height fog and color grading are disabled. Exposure compensation +1. Ordinary player camera on a bank reached on foot.
 
 ![Original Rend2 filmic curve](../rendering-gallery/post-processing/tone-mapping-before.jpg)
 
@@ -90,6 +90,14 @@ Original glow (`r_bloom -1`):
 
 Design notes: [rend2-bloom.md](../rend2-bloom.md).
 
+<!-- gallery:post-processing/bloom -->
+**Before / after:** yavin1b, Fire beside the crashed ship, seen from the shallow stream reached on foot from the start. Ordinary first-person player view; no noclip, teleport or free camera. Exposure compensation +1.
+
+![Original dynamic glow](../rendering-gallery/post-processing/bloom-before.jpg)
+
+![HDR bloom](../rendering-gallery/post-processing/bloom-after.jpg)
+<!-- /gallery:post-processing/bloom -->
+
 ## Color grading
 
 Applies a color filter to the whole image — warmer, colder, faded, more contrast — from a LUT file (`.cube`), the format photo and video editors export. Stock maps have no LUT, so nothing changes until you provide one. Needs `r_hdr 1` and `r_toneMap 1`.
@@ -107,11 +115,11 @@ Applies a color filter to the whole image — warmer, colder, faded, more contra
 **How it works.** A 3D LUT is a table that gives an output color for every input color. The renderer looks up each pixel of the final image in it and blends the result with the original by `r_colorGradingIntensity`.
 
 <!-- gallery:post-processing/color-grading -->
-**Before / after:** yavin1b, Foliage, neutral stone and water expose a documented warm example LUT. Example LUT supplied by the capture harness.
+**Before / after:** yavin1b, The wooded bank and stream beside the crashed ship show the warm LUT against neutral colors. An illustrative LUT supplied by the capture tool; stock maps do not include one. Exposure compensation +1. Ordinary player camera on a bank reached on foot.
 
-![No LUT grading](../rendering-gallery/post-processing/color-grading-before.jpg)
+![No color grading](../rendering-gallery/post-processing/color-grading-before.jpg)
 
-![Warm example LUT](../rendering-gallery/post-processing/color-grading-after.jpg)
+![Example warm LUT](../rendering-gallery/post-processing/color-grading-after.jpg)
 <!-- /gallery:post-processing/color-grading -->
 
 ## Motion blur

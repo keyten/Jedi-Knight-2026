@@ -63,11 +63,11 @@ Low mist that is thick near the ground and thins with height, on any map, withou
 - `r_volumetricFogDebug 12` — ground-haze density.
 
 <!-- gallery:fog/ground-haze -->
-**Before / after:** yavin1b, Elevated courtyard view looks across several depth layers toward the river and trees.
+**Before / after:** yavin1b, Low mist gathers over the stream beneath the bank. Illustrative height fog: base 180, opaque distance 6000; stock yavin1b does not enable this atmosphere. Ordinary player camera on a bank reached on foot.
 
-![Ground haze off](../rendering-gallery/fog/ground-haze-before.jpg)
+![Height fog disabled](../rendering-gallery/fog/ground-haze-before.jpg)
 
-![Ground haze on](../rendering-gallery/fog/ground-haze-after.jpg)
+![Height fog enabled](../rendering-gallery/fog/ground-haze-after.jpg)
 <!-- /gallery:fog/ground-haze -->
 
 ## Uneven fog

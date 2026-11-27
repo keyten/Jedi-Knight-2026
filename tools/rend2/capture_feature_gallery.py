@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--cache-from', type=Path)
     parser.add_argument('--spec', type=Path, help='Settings and full command stream for a reviewed scene batch')
     parser.add_argument('--stock-only', action='store_true', help='Read only original assets0-3; excludes replacement PBR packs')
+    parser.add_argument('--installation',type=Path,help='Existing read-only game asset root')
     parser.add_argument('--interactive', action='store_true', help='Keep one hidden game alive; review each map before queuing the next')
     args = parser.parse_args()
     runtime = ROOT / 'build/feature-gallery' / args.label
@@ -31,7 +32,7 @@ def main():
     (home / 'ui/ingame.txt').write_text('loadmenu { "ui/gallery.menu" }\n')
     (home / 'shaders').mkdir()
     (home / 'shaders/gallery.shader').write_text('gallery/transparent\n{\n {\n map $whiteimage\n blendFunc GL_ZERO GL_ONE\n }\n}\n')
-    (home / 'ui/gallery.menu').write_text('assetGlobalDef { cursor "gallery/transparent" }\nmenuDef { name "gallery_freeze" rect 0 0 0 0 fullScreen 0 visible 1 onOpen { setcvar "cl_paused" "1"; } }\nmenuDef { name "gallery_resume" rect 0 0 0 0 fullScreen 0 visible 1 onOpen { setcvar "cl_paused" "0"; } }\n')
+    (home / 'ui/gallery.menu').write_text('assetGlobalDef { cursor "gallery/transparent" }\nmenuDef { name "gallery_freeze" rect 0 0 0 0 fullScreen 0 visible 1 onOpen { setcvar "cl_paused" "1"; } }\nmenuDef { name "gallery_resume" rect 0 0 0 0 fullScreen 0 visible 1 onOpen { uiScript closeingame ; } }\n')
     binaries = ROOT / 'build/msvc/Release'
     for name in ('rdsp-rend2_x86_64.dll', 'rend2_glslc.exe'):
         shutil.copy2(binaries / name, runtime / name)
@@ -85,11 +86,11 @@ def main():
     if spec:
         commands = spec['commands'] + ['echo GALLERY_CAPTURE_DONE','wait 10','quit']
     if args.interactive:
-        (home/'gallery-loop.cfg').write_text('wait 60\nexec gallery-queue.cfg\nexec gallery-loop.cfg\n')
+        (home/'gallery-loop.cfg').write_text('wait 60\nexecq gallery-queue.cfg\nexecq gallery-loop.cfg\n')
         (home/'gallery-queue.cfg').write_text('')
         commands = ['wait 120','r_norefresh 1','echo GALLERY_SESSION_READY','exec gallery-loop.cfg']
     (home/'autoexec_sp.cfg').write_text('\n'.join(f'set {k} "{v}"' for k,v in settings.items())+'\n'+'\n'.join(commands)+'\n')
-    installation=ROOT.parent/'OpenJK/build-rend2'
+    installation=args.installation.resolve() if args.installation else ROOT.parent/'OpenJK/build-rend2'
     if args.stock_only:
         stock=runtime/'stock/base';stock.mkdir(parents=True)
         for i in range(4):

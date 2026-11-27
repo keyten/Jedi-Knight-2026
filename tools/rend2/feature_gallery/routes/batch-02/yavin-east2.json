@@ -1,0 +1,28 @@
+{
+  "label": "yavin-east2",
+  "commands": [
+    "ui_load",
+    "uimenu gallery_resume",
+    "r_exposureCompensation 1",
+    "cl_yawspeed 60",
+    "cl_pitchspeed 60",
+    "r_ssgiDebug 0",
+    "+right",
+    "wait 45",
+    "-right",
+    "wait 15",
+    "+forward",
+    "wait 50",
+    "-forward",
+    "wait 15",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga walk-yavin-east2-location",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "walk-yavin-east2-location"
+  ]
+}

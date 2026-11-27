@@ -36,11 +36,11 @@ Darkens corners, wall joints, the ground under feet and crates, and small recess
 Design notes: [rend2-ambient-occlusion.md](../rend2-ambient-occlusion.md).
 
 <!-- gallery:lighting/ambient-occlusion-gtao -->
-**Before / after:** mp/ffa3, Column/floor junctions and recessed door expose contact occlusion.
+**Before / after:** yavin1b, Rock contacts and the bank beside the shallow stream show local occlusion. Other fog and color grading are disabled for this comparison. Exposure compensation +1. Ordinary player camera on a bank reached on foot.
 
-![Original AO setting (off)](../rendering-gallery/lighting/ambient-occlusion-gtao-before.jpg)
+![Ambient occlusion disabled](../rendering-gallery/lighting/ambient-occlusion-gtao-before.jpg)
 
-![GTAO](../rendering-gallery/lighting/ambient-occlusion-gtao-after.jpg)
+![GTAO enabled](../rendering-gallery/lighting/ambient-occlusion-gtao-after.jpg)
 <!-- /gallery:lighting/ambient-occlusion-gtao -->
 
 ## Many dynamic lights (Forward+)

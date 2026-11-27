@@ -1,0 +1,28 @@
+{
+  "label": "yavin-fern-framed",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_yawspeed 60",
+    "cl_pitchspeed 60",
+    "+left",
+    "wait 40",
+    "-left",
+    "wait 10",
+    "+back",
+    "wait 20",
+    "-back",
+    "wait 40",
+    "+lookup",
+    "wait 6",
+    "-lookup",
+    "wait 30",
+    "viewpos",
+    "screenshot_tga walk-yavin-fern-framed",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "walk-yavin-fern-framed"
+  ]
+}

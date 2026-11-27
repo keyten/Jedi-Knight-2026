@@ -2,32 +2,60 @@
   {
     "id": "post-processing/tone-mapping",
     "title": "Tone mapping",
-    "status": "published-prepared",
+    "status": "published",
     "reason": "",
     "media": [
       {
         "type": "image",
         "src": "assets/media/gallery/post-processing/tone-mapping-before.jpg",
-        "caption": "Before: Original Rend2 filmic curve (academy1)"
+        "caption": "Before: Original Rend2 filmic curve (yavin1b)"
       },
       {
         "type": "image",
         "src": "assets/media/gallery/post-processing/tone-mapping-after.jpg",
-        "caption": "After: ACES fitted curve (academy1)"
+        "caption": "After: ACES fitted curve (yavin1b)"
       }
     ],
     "location": {
-      "map": "academy1",
-      "pose": "-1408 272 772 270",
-      "description": "Bright barred window and sunlit floor against a dark stone hall show highlight/contrast handling."
+      "map": "yavin1b",
+      "pose": "506 -4615 391 51",
+      "description": "Bright sky above the crashed ship contrasts with the shaded stone bank."
     },
-    "runtime": "production-01",
-    "batch": "01"
+    "runtime": "build/feature-gallery/grounded-03",
+    "batch": "02",
+    "publication": {
+      "main": "91ac3cb35",
+      "site": "5d00a4f95"
+    },
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "previous_camera_floor_review": {
+      "height": 704.0,
+      "eye_gap": 68.0,
+      "brush": 23,
+      "normal": [
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "retake_required": false,
+    "grounded": true,
+    "route_steps": [
+      "resume-grass",
+      "refined-pairs"
+    ]
   },
   {
     "id": "post-processing/brightness-and-exposure",
     "title": "Brightness and exposure",
-    "status": "published-prepared",
+    "status": "published-needs-grounded-review",
     "reason": "",
     "media": [
       {
@@ -47,51 +75,141 @@
       "description": "Dark clinic and bright display show a fixed exposure change without auto-metering drift."
     },
     "runtime": "production-01",
-    "batch": "01"
+    "batch": "01",
+    "publication": {
+      "main": "91ac3cb35",
+      "site": "5d00a4f95"
+    },
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "previous_camera_floor_review": {
+      "height": -0.0,
+      "eye_gap": 40.0,
+      "brush": 3159,
+      "normal": [
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "retake_required": true
   },
   {
     "id": "post-processing/bloom",
     "title": "Bloom",
-    "status": "pending",
+    "status": "published",
     "reason": "",
-    "media": []
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/post-processing/bloom-before.jpg",
+        "caption": "Before: Original dynamic glow (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/post-processing/bloom-after.jpg",
+        "caption": "After: HDR bloom (yavin1b)"
+      }
+    ],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "location": {
+      "map": "yavin1b",
+      "pose": "690 -4303 188 349",
+      "description": "Fire beside the crashed ship, seen from the shallow stream reached on foot from the start."
+    },
+    "batch": "02",
+    "runtime": "build/feature-gallery/grounded-02",
+    "retake_required": false,
+    "grounded": true,
+    "route_steps": [
+      "yavin-walk-01",
+      "yavin-east2",
+      "yavin-ship-pairs"
+    ]
   },
   {
     "id": "post-processing/color-grading",
     "title": "Color grading",
-    "status": "published-prepared",
+    "status": "published",
     "reason": "",
     "media": [
       {
         "type": "image",
         "src": "assets/media/gallery/post-processing/color-grading-before.jpg",
-        "caption": "Before: No LUT grading (yavin1b)"
+        "caption": "Before: No color grading (yavin1b)"
       },
       {
         "type": "image",
         "src": "assets/media/gallery/post-processing/color-grading-after.jpg",
-        "caption": "After: Warm example LUT (yavin1b)"
+        "caption": "After: Example warm LUT (yavin1b)"
       }
     ],
     "location": {
       "map": "yavin1b",
-      "pose": "-80 -4240 900 205",
-      "description": "Foliage, neutral stone and water expose a documented warm example LUT."
+      "pose": "506 -4615 391 51",
+      "description": "The wooded bank and stream beside the crashed ship show the warm LUT against neutral colors."
     },
-    "runtime": "production-01",
-    "batch": "01"
+    "runtime": "build/feature-gallery/grounded-03",
+    "batch": "02",
+    "publication": {
+      "main": "91ac3cb35",
+      "site": "5d00a4f95"
+    },
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "previous_camera_floor_review": {
+      "height": 446.102,
+      "eye_gap": 453.898,
+      "brush": 949,
+      "normal": [
+        -0.03827879577875137,
+        -0.5258962512016296,
+        0.8496869206428528
+      ]
+    },
+    "retake_required": false,
+    "grounded": true,
+    "route_steps": [
+      "resume-grass",
+      "bank-pairs"
+    ]
   },
   {
     "id": "post-processing/motion-blur",
     "title": "Motion blur",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "post-processing/anti-aliasing-smaa",
     "title": "Anti-aliasing (SMAA)",
-    "status": "published-prepared",
+    "status": "published-needs-grounded-review",
     "reason": "",
     "media": [
       {
@@ -111,21 +229,60 @@
       "description": "Door frame, curved column and fine diagonal floor texture expose edge aliasing."
     },
     "runtime": "production-01",
-    "batch": "01"
+    "batch": "01",
+    "publication": {
+      "main": "91ac3cb35",
+      "site": "5d00a4f95"
+    },
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "previous_camera_floor_review": {
+      "height": -144.0,
+      "eye_gap": 74.0,
+      "brush": 2735,
+      "normal": [
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "retake_required": true
   },
   {
     "id": "post-processing/linear-lighting-experimental",
     "title": "Linear lighting (experimental)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "post-processing/distortion-color-fringes",
     "title": "Distortion color fringes",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/material-classification",
@@ -137,7 +294,7 @@
   {
     "id": "materials/fine-material-detail",
     "title": "Fine material detail",
-    "status": "published-prepared",
+    "status": "published-needs-grounded-review",
     "reason": "",
     "media": [
       {
@@ -157,186 +314,389 @@
       "description": "Close side-lit plaster/stone corridor reveals pores and normal/roughness detail."
     },
     "runtime": "production-01",
-    "batch": "01"
+    "batch": "01",
+    "publication": {
+      "main": "91ac3cb35",
+      "site": "5d00a4f95"
+    },
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "previous_camera_floor_review": {
+      "height": 0.0,
+      "eye_gap": 412.0,
+      "brush": 2255,
+      "normal": [
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "retake_required": true
   },
   {
     "id": "materials/stone-joints-and-relief",
     "title": "Stone joints and relief",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/automatic-materials-from-stock-textures-auto-pbr",
     "title": "Automatic materials from stock textures (Auto PBR)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/shiny-stock-models-troopers-droids-weapons",
     "title": "Shiny stock models (troopers, droids, weapons)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/roughness-variation",
     "title": "Roughness variation",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/glowing-surfaces",
     "title": "Glowing surfaces",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/stable-highlights",
     "title": "Stable highlights",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/matte-surfaces",
     "title": "Matte surfaces",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/physical-light-units",
     "title": "Physical light units",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/relief-detail-pom",
     "title": "Relief detail (POM)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/shadows-inside-relief",
     "title": "Shadows inside relief",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "materials/relief-silhouettes",
     "title": "Relief silhouettes",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "lighting/ambient-occlusion-gtao",
     "title": "Ambient occlusion (GTAO)",
-    "status": "published-prepared",
+    "status": "published",
     "reason": "",
     "media": [
       {
         "type": "image",
         "src": "assets/media/gallery/lighting/ambient-occlusion-gtao-before.jpg",
-        "caption": "Before: Original AO setting (off) (mp/ffa3)"
+        "caption": "Before: Ambient occlusion disabled (yavin1b)"
       },
       {
         "type": "image",
         "src": "assets/media/gallery/lighting/ambient-occlusion-gtao-after.jpg",
-        "caption": "After: GTAO (mp/ffa3)"
+        "caption": "After: GTAO enabled (yavin1b)"
       }
     ],
     "location": {
-      "map": "mp/ffa3",
-      "pose": "671 -769 -70 290",
-      "description": "Column/floor junctions and recessed door expose contact occlusion."
+      "map": "yavin1b",
+      "pose": "506 -4615 391 51",
+      "description": "Rock contacts and the bank beside the shallow stream show local occlusion."
     },
-    "runtime": "production-01",
-    "batch": "01"
+    "runtime": "build/feature-gallery/grounded-03",
+    "batch": "02",
+    "publication": {
+      "main": "91ac3cb35",
+      "site": "5d00a4f95"
+    },
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "previous_camera_floor_review": {
+      "height": -144.0,
+      "eye_gap": 74.0,
+      "brush": 2735,
+      "normal": [
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "retake_required": false,
+    "grounded": true,
+    "route_steps": [
+      "resume-grass",
+      "refined-pairs"
+    ]
   },
   {
     "id": "lighting/many-dynamic-lights-forward",
     "title": "Many dynamic lights (Forward+)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "lighting/bounced-light-ssgi",
     "title": "Bounced light (SSGI)",
-    "status": "pending",
-    "reason": "",
-    "media": []
+    "status": "needs-better-capture",
+    "reason": "Crashed-ship fire on yavin1b has an A/B mean of only 0.002 display codes. Debug source/indirect views and full-frame comparison reviewed; scene rejected for SSGI.",
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "lighting/lamp-shaped-lights-ltc",
     "title": "Lamp-shaped lights (LTC)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "lighting/saber-light-along-the-blade",
     "title": "Saber light along the blade",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "lighting/spot-lights-mod-authors",
     "title": "Spot lights (mod authors)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "lighting/projected-patterns-mod-authors",
     "title": "Projected patterns (mod authors)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "shadows/ray-traced-shadows",
     "title": "Ray traced shadows",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "shadows/sun-shadows",
     "title": "Sun shadows",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "shadows/character-sun-shadows",
     "title": "Character sun shadows",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "shadows/contact-shadows",
     "title": "Contact shadows",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "shadows/dynamic-light-shadows",
     "title": "Dynamic light shadows",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "characters/distant-offscreen-bodies",
@@ -364,56 +724,112 @@
       ],
       "status": "capture-pending"
     },
-    "runtime": "production-01"
+    "runtime": "production-01",
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "characters/light-across-the-body",
     "title": "Light across the body",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "characters/sun-on-characters",
     "title": "Sun on characters",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "characters/ambient-light-from-the-surroundings",
     "title": "Ambient light from the surroundings",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "characters/skin-subsurface-scattering",
     "title": "Skin (subsurface scattering)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "characters/hair-and-eyes",
     "title": "Hair and eyes",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "characters/softer-ragdolls",
     "title": "Softer ragdolls",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "characters/softer-animation-sp",
     "title": "Softer animation (SP)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "academy1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "reflections/screen-space-reflections-ssr",
@@ -434,179 +850,367 @@
       ],
       "status": "capture-pending"
     },
-    "runtime": "production-01"
+    "runtime": "production-01",
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "reflections/rough-reflections",
     "title": "Rough reflections",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "reflections/fog-in-reflections",
     "title": "Fog in reflections",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "fog/volumetric-fog",
     "title": "Volumetric fog",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "vjun1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "fog/ground-haze",
     "title": "Ground haze",
-    "status": "published-prepared",
+    "status": "published",
     "reason": "",
     "media": [
       {
         "type": "image",
         "src": "assets/media/gallery/fog/ground-haze-before.jpg",
-        "caption": "Before: Ground haze off (yavin1b)"
+        "caption": "Before: Height fog disabled (yavin1b)"
       },
       {
         "type": "image",
         "src": "assets/media/gallery/fog/ground-haze-after.jpg",
-        "caption": "After: Ground haze on (yavin1b)"
+        "caption": "After: Height fog enabled (yavin1b)"
       }
     ],
     "location": {
       "map": "yavin1b",
-      "pose": "-80 -4240 900 205",
-      "description": "Elevated courtyard view looks across several depth layers toward the river and trees."
+      "pose": "506 -4615 391 51",
+      "description": "Low mist gathers over the stream beneath the bank."
     },
-    "runtime": "production-01",
-    "batch": "01"
+    "runtime": "build/feature-gallery/grounded-03",
+    "batch": "02",
+    "publication": {
+      "main": "91ac3cb35",
+      "site": "5d00a4f95"
+    },
+    "location_search": {
+      "maps": [
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "previous_camera_floor_review": {
+      "height": 446.102,
+      "eye_gap": 453.898,
+      "brush": 949,
+      "normal": [
+        -0.03827879577875137,
+        -0.5258962512016296,
+        0.8496869206428528
+      ]
+    },
+    "retake_required": false,
+    "grounded": true,
+    "route_steps": [
+      "resume-grass",
+      "refined-pairs"
+    ]
   },
   {
     "id": "fog/uneven-fog",
     "title": "Uneven fog",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "fog/shadows-inside-thick-fog",
     "title": "Shadows inside thick fog",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "fog/light-bouncing-inside-fog",
     "title": "Light bouncing inside fog",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "fog/colored-fog-absorption",
     "title": "Colored fog absorption",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "fog/local-fog-volumes-mod-authors",
     "title": "Local fog volumes (mod authors)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "fog/different-kinds-of-fog-mod-authors",
     "title": "Different kinds of fog (mod authors)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "fog/original-rend2-volumetric-fog",
     "title": "Original Rend2 volumetric fog",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "effects/soft-smoke-contact",
     "title": "Soft smoke contact",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "effects/smoke-and-glass-ordering",
     "title": "Smoke and glass ordering",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "effects/volumetric-smoke",
     "title": "Volumetric smoke",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "effects/lit-smoke-sprites",
     "title": "Lit smoke sprites",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "effects/glowing-gas",
     "title": "Glowing gas",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "effects/light-from-sparks-and-fire",
     "title": "Light from sparks and fire",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "effects/heat-haze",
     "title": "Heat haze",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "effects/extra-sparks-and-embers",
     "title": "Extra sparks and embers",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "effects/fuller-impacts-and-explosions",
     "title": "Fuller impacts and explosions",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t2_rogue"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "sky/atmosphere",
     "title": "Atmosphere",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "vjun1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "sky/volumetric-clouds",
     "title": "Volumetric clouds",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "sky/sky-portal-speed-up",
@@ -620,84 +1224,169 @@
     "title": "Rain streaks",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t1_rail"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/rain-haze",
     "title": "Rain haze",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t1_rail"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/distant-rain",
     "title": "Distant rain",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t1_rail"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/wet-surfaces",
     "title": "Wet surfaces",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "vjun1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/wet-after-the-rain",
     "title": "Wet after the rain",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "vjun1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/puddles",
     "title": "Puddles",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "vjun1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/rain-rings-in-puddles",
     "title": "Rain rings in puddles",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "vjun1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/water-running-down-walls",
     "title": "Water running down walls",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t1_rail"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/rain-splashes",
     "title": "Rain splashes",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t1_rail"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/water-on-the-camera-lens",
     "title": "Water on the camera lens",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t1_rail"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/acid-rain",
     "title": "Acid rain",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "vjun1"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/weather-on-specific-materials-mod-authors",
     "title": "Weather on specific materials (mod authors)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "weather/rain-culling",
@@ -709,13 +1398,13 @@
   {
     "id": "water/modern-water",
     "title": "Modern water",
-    "status": "published-prepared",
+    "status": "published",
     "reason": "",
     "media": [
       {
         "type": "image",
         "src": "assets/media/gallery/water/modern-water-before.jpg",
-        "caption": "Before: Original scrolling water shader (yavin1b)"
+        "caption": "Before: Original scrolling water (yavin1b)"
       },
       {
         "type": "image",
@@ -725,22 +1414,60 @@
     ],
     "location": {
       "map": "yavin1b",
-      "pose": "-1600 2400 400 270 12",
-      "description": "River basin seen at a shallow downward angle."
+      "pose": "690 -4303 188 349",
+      "description": "The shallow stream beside the crashed ship, reached on foot from the map start."
     },
-    "batch": "01"
+    "batch": "02",
+    "publication": {
+      "main": "91ac3cb35",
+      "site": "5d00a4f95"
+    },
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "previous_camera_floor_review": {
+      "height": 367.797,
+      "eye_gap": 32.203,
+      "brush": 4948,
+      "normal": [
+        -0.3014313876628876,
+        -0.9339203238487244,
+        0.19217689335346222
+      ]
+    },
+    "retake_required": false,
+    "runtime": "build/feature-gallery/grounded-02",
+    "grounded": true,
+    "route_steps": [
+      "yavin-walk-01",
+      "yavin-east2",
+      "yavin-ship-pairs"
+    ]
   },
   {
     "id": "water/underwater-fog",
     "title": "Underwater fog",
-    "status": "pending",
-    "reason": "",
-    "media": []
+    "status": "needs-better-capture",
+    "reason": "Yavin1b basin underside exposed unsupported/empty geometry and no useful medium difference; rejected.",
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "water/looking-up-from-underwater",
     "title": "Looking up from underwater",
-    "status": "published-prepared",
+    "status": "published-needs-grounded-review",
     "reason": "",
     "media": [
       {
@@ -759,68 +1486,155 @@
       "pose": "-1600 2400 300 270 -50",
       "description": "The same river basin viewed upward from below the surface."
     },
-    "batch": "01"
+    "batch": "01",
+    "publication": {
+      "main": "91ac3cb35",
+      "site": "5d00a4f95"
+    },
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "previous_camera_floor_review": {
+      "height": -192.0,
+      "eye_gap": 492.0,
+      "brush": 11049,
+      "normal": [
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "retake_required": true
   },
   {
     "id": "water/waves",
     "title": "Waves",
-    "status": "pending",
-    "reason": "",
-    "media": []
+    "status": "needs-better-capture",
+    "reason": "Yavin1b basin has only a subtle difference in this fixed view; choose a clearer shoreline or animation.",
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "water/wave-geometry",
     "title": "Wave geometry",
-    "status": "pending",
-    "reason": "",
-    "media": []
+    "status": "needs-better-capture",
+    "reason": "Yavin1b basin has only a subtle difference in this fixed view; choose a clearer shoreline or animation.",
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "water/ripples-from-movement-and-impacts",
     "title": "Ripples from movement and impacts",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "water/splashes-wakes-and-rain-on-water",
     "title": "Splashes, wakes and rain on water",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "water/flowing-water",
     "title": "Flowing water",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "water/foam",
     "title": "Foam",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "water/shorelines",
     "title": "Shorelines",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "water/underwater-light-patterns-caustics",
     "title": "Underwater light patterns (caustics)",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "water/waterfalls-and-rapids",
     "title": "Waterfalls and rapids",
-    "status": "published-prepared",
+    "status": "published-needs-grounded-review",
     "reason": "Retake with the documented project water preset and a view of the receiving pool.",
     "media": [
       {
@@ -840,70 +1654,270 @@
       "description": "Close view of the second river waterfall, with foliage and rock framing the sheet."
     },
     "runtime": "production-01",
-    "batch": "01"
+    "batch": "01",
+    "publication": {
+      "main": "91ac3cb35",
+      "site": "5d00a4f95"
+    },
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "previous_camera_floor_review": {
+      "height": 416.3,
+      "eye_gap": 63.7,
+      "brush": 5184,
+      "normal": [
+        -0.1507015824317932,
+        0.02419649250805378,
+        0.9882831573486328
+      ]
+    },
+    "retake_required": true
   },
   {
     "id": "water/underwater-specks-and-bubbles",
     "title": "Underwater specks and bubbles",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_hevil",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "foliage/recognizing-stock-plants",
     "title": "Recognizing stock plants",
-    "status": "pending",
-    "reason": "",
+    "status": "excluded",
+    "reason": "Classification only; it has no independent visual effect. Demonstrate the consumers on recognized plants.",
     "media": []
   },
   {
     "id": "foliage/fuller-grass",
     "title": "Fuller grass",
-    "status": "pending",
+    "status": "published",
     "reason": "",
-    "media": []
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/fuller-grass-before.jpg",
+        "caption": "Before: Original camera-facing sprites (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/fuller-grass-after.jpg",
+        "caption": "After: Fixed crossed grass cards (yavin1b)"
+      }
+    ],
+    "location_search": {
+      "maps": [
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "location": {
+      "map": "yavin1b",
+      "pose": "713 -4657 392 26",
+      "description": "Grass on the walkable bank beside the crashed ship, viewed at normal standing height."
+    },
+    "batch": "02",
+    "runtime": "build/feature-gallery/grounded-02",
+    "retake_required": false,
+    "grounded": true,
+    "route_steps": [
+      "yavin-grass-route",
+      "yavin-grass-pair"
+    ]
   },
   {
     "id": "foliage/wind-through-grass",
     "title": "Wind through grass",
-    "status": "pending",
+    "status": "published",
     "reason": "",
-    "media": []
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/wind-through-grass-before.jpg",
+        "caption": "Before: Original individual sway (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/wind-through-grass-after.jpg",
+        "caption": "After: Shared wind and gusts, default strength (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/wind-through-grass-comparison.gif",
+        "caption": "Animated comparison: before left, after right (yavin1b)"
+      }
+    ],
+    "location_search": {
+      "maps": [
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "location": {
+      "map": "yavin1b",
+      "pose": "713 -4657 392 26",
+      "description": "Grass beside the crashed ship on a bank reached by normal player movement."
+    },
+    "batch": "02",
+    "runtime": "build/feature-gallery/grounded-02",
+    "retake_required": false,
+    "grounded": true,
+    "route_steps": [
+      "yavin-grass-route",
+      "yavin-grass-pair",
+      "yavin-wind-animation"
+    ]
   },
   {
     "id": "foliage/leaf-flutter",
     "title": "Leaf flutter",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "foliage/ferns-and-fronds",
     "title": "Ferns and fronds",
-    "status": "pending",
+    "status": "published",
     "reason": "",
-    "media": []
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/ferns-and-fronds-before.jpg",
+        "caption": "Before: Frond wind disabled (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/ferns-and-fronds-after.jpg",
+        "caption": "After: Frond wind at its default strength (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/ferns-and-fronds-comparison.gif",
+        "caption": "Animated comparison: before left, after right (yavin1b)"
+      }
+    ],
+    "location_search": {
+      "maps": [
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "location": {
+      "map": "yavin1b",
+      "pose": "1553 -3560 329 186",
+      "description": "The stock fern on the walkable bank beyond the crashed ship; the whole plant is framed from the path."
+    },
+    "batch": "02",
+    "runtime": "build/feature-gallery/grounded-02",
+    "retake_required": false,
+    "grounded": true,
+    "route_steps": [
+      "yavin-grass-route",
+      "yavin-north-bank",
+      "yavin-fern-approach",
+      "yavin-fern-bank",
+      "yavin-fern-view",
+      "yavin-fern-side",
+      "yavin-fern-far-side",
+      "yavin-fern-framed",
+      "yavin-fern-close",
+      "yavin-frond-animation-v2"
+    ]
   },
   {
     "id": "foliage/walking-through-vegetation",
     "title": "Walking through vegetation",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "foliage/force-push-and-pull",
     "title": "Force push and pull",
-    "status": "pending",
+    "status": "published",
     "reason": "",
-    "media": []
+    "media": [
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/force-push-and-pull-before.jpg",
+        "caption": "Before: Force push with plant response disabled (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/force-push-and-pull-after.jpg",
+        "caption": "After: Force push with plant response enabled (yavin1b)"
+      },
+      {
+        "type": "image",
+        "src": "assets/media/gallery/foliage/force-push-and-pull-comparison.gif",
+        "caption": "Animated comparison: before left, after right (yavin1b)"
+      }
+    ],
+    "location_search": {
+      "maps": [
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    },
+    "location": {
+      "map": "yavin1b",
+      "pose": "1553 -3560 329 186",
+      "description": "A normal Force push toward the fern beside the path beyond the crashed ship."
+    },
+    "batch": "02",
+    "runtime": "build/feature-gallery/grounded-02",
+    "retake_required": false,
+    "grounded": true,
+    "route_steps": [
+      "yavin-fern-close",
+      "yavin-force-animation"
+    ]
   },
   {
     "id": "foliage/cutting-plants-with-a-saber",
     "title": "Cutting plants with a saber",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "loading/rendering-fast-paths",
@@ -938,27 +1952,59 @@
     "title": "Telekinesis",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "force/soar",
     "title": "Soar",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "force/deflect",
     "title": "Deflect",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   },
   {
     "id": "force/chain-lightning",
     "title": "Chain Lightning",
     "status": "pending",
     "reason": "",
-    "media": []
+    "media": [],
+    "location_search": {
+      "maps": [
+        "t3_stamp",
+        "yavin1b"
+      ],
+      "policy": "Ordinary player route from map start; standing first-person view. No noclip, teleport, or free camera. Inspect assets and debug views before selecting a final scene.",
+      "status": "pending-grounded-scout"
+    }
   }
 ]

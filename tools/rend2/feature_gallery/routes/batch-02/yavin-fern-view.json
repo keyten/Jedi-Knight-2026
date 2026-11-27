@@ -1,0 +1,26 @@
+{
+  "label": "yavin-fern-view",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_yawspeed 60",
+    "cl_pitchspeed 60",
+    "r_ssgiDebug 0",
+    "+lookup",
+    "wait 8",
+    "-lookup",
+    "wait 15",
+    "+forward",
+    "wait 10",
+    "-forward",
+    "wait 15",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga walk-yavin-fern-view-location",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "walk-yavin-fern-view-location"
+  ]
+}

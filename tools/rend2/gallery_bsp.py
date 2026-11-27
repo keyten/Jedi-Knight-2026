@@ -36,3 +36,22 @@ class World:
                     inside=False;break
             if inside:solid.append(number)
         return dict(cluster=leaf[0],solid_brushes=solid,free=leaf[0]>=0 and not solid)
+
+    def floor_below(self,point,max_distance=2048):
+        """Nearest solid brush top directly below a point; scouting evidence, not a path proof."""
+        best=None
+        for number,(first,count,shader) in enumerate(self.brushes):
+            if not (self.shaders[shader][2]&1):continue
+            low=float('-inf');high=float('inf');normal=None
+            for side in self.sides[first:first+count]:
+                nx,ny,nz,d=self.planes[side[0]]
+                rem=d-nx*point[0]-ny*point[1]
+                if abs(nz)<1e-8:
+                    if rem<-.01:low=1;high=0;break
+                elif nz>0:
+                    if rem/nz<high:high=rem/nz;normal=(nx,ny,nz)
+                else:low=max(low,rem/nz)
+            if low>high or high>point[2]+.01 or point[2]-high>max_distance:continue
+            if best is None or high>best['height']:
+                best=dict(height=round(high,3),eye_gap=round(point[2]-high,3),brush=number,normal=normal)
+        return best

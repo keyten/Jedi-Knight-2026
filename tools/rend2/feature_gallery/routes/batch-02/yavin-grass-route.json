@@ -1,0 +1,35 @@
+{
+  "label": "yavin-grass-route",
+  "commands": [
+    "uimenu gallery_resume",
+    "devmap yavin1b",
+    "wait 180",
+    "exitview",
+    "cam_disable",
+    "lock_disable",
+    "god",
+    "notarget",
+    "give all",
+    "weapon 3",
+    "wait 60",
+    "cg_thirdPerson 0",
+    "r_exposureCompensation 1",
+    "cl_yawspeed 60",
+    "+right",
+    "wait 30",
+    "-right",
+    "wait 10",
+    "+forward",
+    "wait 45",
+    "-forward",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga walk-yavin-grass-route",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "walk-yavin-grass-route"
+  ]
+}
