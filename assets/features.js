@@ -13,12 +13,12 @@ window.FEATURES = {
    {
     "type": "image",
     "src": "assets/media/gallery/post-processing/tone-mapping-before.jpg",
-    "caption": "Before: Original Rend2 filmic curve (academy1)"
+    "caption": "Before: Original Rend2 filmic curve (yavin1b)"
    },
    {
     "type": "image",
     "src": "assets/media/gallery/post-processing/tone-mapping-after.jpg",
-    "caption": "After: ACES fitted curve (academy1)"
+    "caption": "After: ACES fitted curve (yavin1b)"
    }
   ]
  },
@@ -55,7 +55,18 @@ window.FEATURES = {
     "html": "<p>A soft halo around sabers, lamps and glowing panels. The original JKA \"dynamic glow\" blurs only surfaces whose shader is marked as glowing, with the same strength whatever their brightness. HDR bloom works from actual brightness: a brighter light glows more, and the halo is wider and smoother.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_bloom -1</code> — <strong>-1</strong> original dynamic glow (switched by the original <code>r_dynamicGlow</code>). <strong>0</strong> off. <strong>1</strong> HDR bloom; needs <code>r_hdr 1</code> and <code>r_toneMap 1</code>.</li></ul>\n<p>HDR bloom (<code>r_bloom 1</code>):</p>\n<ul><li><code>r_bloomIntensity 0.15</code> — strength of the halo.</li><li><code>r_bloomScatter 0.7</code> — how wide it spreads.</li><li><code>r_bloomSceneIntensity 0</code> — by default only glowing materials bloom. Raise it to let any very bright pixel bloom too: sun glints, bright sky, lit fog.</li></ul>\n<p>Original glow (<code>r_bloom -1</code>):</p>\n<ul><li><code>r_dynamicGlowBloom 0.0</code> — also let bright parts of the scene glow, not only glow-marked surfaces.</li></ul>\n<p><strong>Compare:</strong> <code>r_bloomCompare</code> — 1 split screen (original glow left, HDR bloom right), 2 the original glow. The original glow is what <code>r_dynamicGlow</code> sets; with <code>r_dynamicGlow 0</code> the original side has none.</p>\n<div class=\"how\"><h3>How it works</h3><p>HDR bloom takes the image before tone mapping, blurs progressively smaller copies of its bright parts and adds them back. Glowing materials always contribute; other pixels contribute only above a brightness threshold, scaled by <code>r_bloomSceneIntensity</code>.</p></div>\n<ul><li><code>r_bloomThreshold 2.0</code> — brightness where scene bloom starts.</li><li><code>r_bloomKnee 0.5</code> — how softly it fades in around the threshold.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-bloom.md\" target=\"_blank\" rel=\"noopener\">rend2-bloom.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/post-processing/bloom-before.jpg",
+    "caption": "Before: Original dynamic glow (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/post-processing/bloom-after.jpg",
+    "caption": "After: HDR bloom (yavin1b)"
+   }
+  ]
  },
  "post-processing/color-grading": {
   "group": "Image and camera",
@@ -71,12 +82,12 @@ window.FEATURES = {
    {
     "type": "image",
     "src": "assets/media/gallery/post-processing/color-grading-before.jpg",
-    "caption": "Before: No LUT grading (yavin1b)"
+    "caption": "Before: No color grading (yavin1b)"
    },
    {
     "type": "image",
     "src": "assets/media/gallery/post-processing/color-grading-after.jpg",
-    "caption": "After: Warm example LUT (yavin1b)"
+    "caption": "After: Example warm LUT (yavin1b)"
    }
   ]
  },
@@ -320,12 +331,12 @@ window.FEATURES = {
    {
     "type": "image",
     "src": "assets/media/gallery/lighting/ambient-occlusion-gtao-before.jpg",
-    "caption": "Before: Original AO setting (off) (mp/ffa3)"
+    "caption": "Before: Ambient occlusion disabled (yavin1b)"
    },
    {
     "type": "image",
     "src": "assets/media/gallery/lighting/ambient-occlusion-gtao-after.jpg",
-    "caption": "After: GTAO (mp/ffa3)"
+    "caption": "After: GTAO enabled (yavin1b)"
    }
   ]
  },
@@ -631,12 +642,12 @@ window.FEATURES = {
    {
     "type": "image",
     "src": "assets/media/gallery/fog/ground-haze-before.jpg",
-    "caption": "Before: Ground haze off (yavin1b)"
+    "caption": "Before: Height fog disabled (yavin1b)"
    },
    {
     "type": "image",
     "src": "assets/media/gallery/fog/ground-haze-after.jpg",
-    "caption": "After: Ground haze on (yavin1b)"
+    "caption": "After: Height fog enabled (yavin1b)"
    }
   ]
  },
@@ -1104,7 +1115,7 @@ window.FEATURES = {
    {
     "type": "image",
     "src": "assets/media/gallery/water/modern-water-before.jpg",
-    "caption": "Before: Original scrolling water shader (yavin1b)"
+    "caption": "Before: Original scrolling water (yavin1b)"
    },
    {
     "type": "image",
@@ -1301,7 +1312,18 @@ window.FEATURES = {
     "html": "<p>Original grass sprites always turn to face the camera, so they swivel as you walk and look thin from above. This draws each tuft as two or three fixed, crossing cards, so grass stays put and looks like a clump of blades from every angle.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium in dense grass (more geometry and overdraw).</p>\n<ul><li><code>r_grassCardMode 0</code> — <strong>0</strong> original camera-facing sprites, <strong>1</strong> two crossed cards, <strong>2</strong> three cards, <strong>3</strong> three near, two far.</li><li><code>r_grassCardWidth 1</code> — card width.</li><li><code>r_grassCardLodDist 600</code> — mode 3: distance where the third card fades out.</li></ul>\n<p><strong>Compare:</strong> <code>r_grassCardCompare 2</code> — the original sprites.</p>\n<h4>Debug</h4>\n<ul><li><code>r_grassCardDebug 1..6</code> — color by card or direction, force 1/2/3 cards, distance level.</li></ul>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/fuller-grass-before.jpg",
+    "caption": "Before: Original camera-facing sprites (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/fuller-grass-after.jpg",
+    "caption": "After: Fixed crossed grass cards (yavin1b)"
+   }
+  ]
  },
  "foliage/wind-through-grass": {
   "group": "Grass, plants and wind",
@@ -1313,7 +1335,23 @@ window.FEATURES = {
     "html": "<p>Original grass sways each tuft in its own small circle, all in step. With this, gusts roll across a field: neighbouring grass leans together and waves of wind travel downwind. Works on stock grass.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_foliageWind 0</code> — 1 on.</li><li><code>r_foliageWindStrength 1</code> — sway strength.</li><li><code>r_foliageWindSpeed 1</code> — gust speed.</li><li><code>r_foliageWindDirection 30</code> — wind direction in degrees (0 = world +X). Plants use the same direction and speed.</li></ul>\n<p><strong>Compare:</strong> <code>r_foliageWindCompare 2</code> — the original sway.</p>\n<h4>Debug</h4>\n<ul><li><code>r_foliageWindDebug 1..4</code> — exaggerated motion, color by bend, freeze time, show large gusts.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-foliage-wind.md\" target=\"_blank\" rel=\"noopener\">rend2-foliage-wind.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/wind-through-grass-before.jpg",
+    "caption": "Before: Original individual sway (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/wind-through-grass-after.jpg",
+    "caption": "After: Shared wind and gusts, default strength (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/wind-through-grass-comparison.gif",
+    "caption": "Animated comparison: before left, after right (yavin1b)"
+   }
+  ]
  },
  "foliage/leaf-flutter": {
   "group": "Grass, plants and wind",
@@ -1337,7 +1375,23 @@ window.FEATURES = {
     "html": "<p>Ferns and similar plants bend frond by frond in the wind and swing back naturally after being pushed, instead of moving as one rigid model. Needs <code>r_autoFoliage 1</code> or <code>2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium (CPU) near many plants.</p>\n<ul><li><code>r_plantWind 0</code> — 1 wind on fronds.</li><li><code>r_plantWindStrength 1</code> — wind strength, 0–4.</li><li><code>r_plantStiffness 1</code> — higher is stiffer, with a faster swing.</li></ul>\n<p><strong>Compare:</strong> <code>r_plantWindCompare 2</code> — no wind on fronds.</p>\n<div class=\"how\"><h3>How it works</h3><p>Each recognized plant gets a short chain of segments per frond, simulated on the CPU like a springy rod and used to bend the model and its shadow. Near plants get a full simulation, farther ones a coarse one, distant ones stay still.</p></div>\n<ul><li><code>r_plantSimDistance 1500</code> — full simulation within this distance.</li><li><code>r_plantWindDistance 3000</code> — beyond this, plants don't move.</li><li><code>r_plantSimMaxPlants 96</code> — plants simulated per frame (touched plants always are).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_plantDebug &lt;bits&gt;</code> — 1 frond lines, 2 color by segment, 4 by bone, 8 by contact side, 16 print cost, 32 saber cut steps.</li><li><code>r_plantSimInfo</code> — list simulated plants, cut plants and fallen pieces.</li></ul>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/ferns-and-fronds-before.jpg",
+    "caption": "Before: Frond wind disabled (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/ferns-and-fronds-after.jpg",
+    "caption": "After: Frond wind at its default strength (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/ferns-and-fronds-comparison.gif",
+    "caption": "Animated comparison: before left, after right (yavin1b)"
+   }
+  ]
  },
  "foliage/walking-through-vegetation": {
   "group": "Grass, plants and wind",
@@ -1361,7 +1415,23 @@ window.FEATURES = {
     "html": "<p>A Force push or pull, by you or an NPC, sweeps a wave through plants, grass and leaves in front of the caster: away for push, toward for pull, then they settle. Plants behind the caster or out of reach don't move. Needs <code>r_foliageInteraction 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_foliageForceWaves 0</code> — 1 on.</li></ul>\n<p><strong>Compare:</strong> <code>r_foliageForceWavesCompare 2</code> — plants ignore the Force.</p>\n<ul><li><code>r_foliageForceWaveStrength 1</code> — strength, 0–4.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_foliageInteractionDebug 1</code> — wave front and reach: orange push, magenta pull.</li></ul>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/force-push-and-pull-before.jpg",
+    "caption": "Before: Force push with plant response disabled (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/force-push-and-pull-after.jpg",
+    "caption": "After: Force push with plant response enabled (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/force-push-and-pull-comparison.gif",
+    "caption": "Animated comparison: before left, after right (yavin1b)"
+   }
+  ]
  },
  "foliage/cutting-plants-with-a-saber": {
   "group": "Grass, plants and wind",
