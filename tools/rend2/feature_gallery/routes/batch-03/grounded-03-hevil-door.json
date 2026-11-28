@@ -1,0 +1,21 @@
+{
+  "label": "hevil-door",
+  "commands": [
+    "uimenu gallery_resume",
+    "+forward",
+    "wait 120",
+    "-forward",
+    "+use",
+    "wait 15",
+    "-use",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga hevil-door",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-door"
+  ]
+}

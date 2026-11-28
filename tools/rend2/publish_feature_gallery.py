@@ -85,7 +85,7 @@ def main():
         end=text.find('\n## ',start)
         if end<0:end=len(text)
         text=text[:end].rstrip()+'\n'+example+'\n'+text[end:].lstrip('\n')
-        doc.write_text(text,encoding='utf-8')
+        doc.write_text(text.rstrip()+'\n',encoding='utf-8')
         for row in coverage:
             if row['id']==fid:
                 row.update(status='published-prepared',media=entries,location=dict(map=item['map'],

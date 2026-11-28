@@ -1,0 +1,29 @@
+{
+  "label": "fern-return",
+  "commands": [
+    "uimenu gallery_resume",
+    "cg_thirdPerson 0",
+    "cg_thirdPersonAlpha 0",
+    "cg_thirdPersonRange 0",
+    "cg_thirdPersonVertOffset 0",
+    "cg_thirdPersonPitchOffset 0",
+    "cg_fov 90",
+    "weapon 3",
+    "centerview",
+    "+left",
+    "wait 14",
+    "-left",
+    "+forward",
+    "wait 90",
+    "-forward",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga fern-return-stream",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "fern-return-stream"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "label": "hevil-underwater-pair",
+  "map": "t3_hevil",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_yawspeed 60",
+    "cl_pitchspeed 60",
+    "r_ssgiDebug 0",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga hevil-underwater-location",
+    "wait 20",
+    "uimenu gallery_freeze",
+    "fx_freeze 1",
+    "r_volumetricWaterCompare 2",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga underwater-fog-grounded-before",
+    "wait 20",
+    "r_volumetricWaterCompare 0",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga underwater-fog-grounded-after",
+    "wait 20",
+    "r_volumetricWaterCompare 2",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga underwater-fog-grounded-repeat",
+    "wait 20",
+    "r_volumetricWaterCompare 0"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-underwater-location",
+    "underwater-fog-grounded-before",
+    "underwater-fog-grounded-after",
+    "underwater-fog-grounded-repeat"
+  ]
+}

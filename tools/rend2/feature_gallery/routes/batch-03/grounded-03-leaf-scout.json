@@ -1,0 +1,30 @@
+{
+  "label": "leaf-scout",
+  "commands": [
+    "uimenu gallery_resume",
+    "cg_thirdPerson 0",
+    "cg_fov 60",
+    "cl_yawspeed 60",
+    "cl_pitchspeed 60",
+    "+right",
+    "wait 35",
+    "-right",
+    "+lookup",
+    "wait 20",
+    "-lookup",
+    "wait 90",
+    "viewpos",
+    "r_autoFoliageDebug 1",
+    "screenshot_tga leaf-class-scout",
+    "wait 20",
+    "r_autoFoliageDebug 0",
+    "screenshot_tga leaf-clean-scout",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "leaf-class-scout",
+    "leaf-clean-scout"
+  ]
+}

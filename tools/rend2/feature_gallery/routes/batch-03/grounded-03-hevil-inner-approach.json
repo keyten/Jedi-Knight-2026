@@ -1,0 +1,29 @@
+{
+  "label": "hevil-inner-approach",
+  "commands": [
+    "uimenu gallery_resume",
+    "r_voronoiFracturingGeometry 0",
+    "r_voronoiFracturingCompare 0",
+    "r_waterFoamCompare 0",
+    "cg_fov 90",
+    "centerview",
+    "+back",
+    "wait 40",
+    "-back",
+    "+right",
+    "wait 45",
+    "-right",
+    "+forward",
+    "wait 70",
+    "-forward",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga hevil-inner-approach",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-inner-approach"
+  ]
+}

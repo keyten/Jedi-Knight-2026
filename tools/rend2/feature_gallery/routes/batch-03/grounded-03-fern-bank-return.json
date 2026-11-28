@@ -1,0 +1,21 @@
+{
+  "label": "fern-bank-return",
+  "commands": [
+    "uimenu gallery_resume",
+    "+moveright",
+    "wait 28",
+    "-moveright",
+    "+forward",
+    "wait 50",
+    "-forward",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga fern-bank-return",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "fern-bank-return"
+  ]
+}

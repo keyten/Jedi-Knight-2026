@@ -1,0 +1,25 @@
+{
+  "label": "hevil-guard-route",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_paused 0",
+    "notarget",
+    "+left",
+    "wait 20",
+    "-left",
+    "wait 180",
+    "+forward",
+    "wait 90",
+    "-forward",
+    "wait 90",
+    "viewpos",
+    "r_foliageInteractionList",
+    "screenshot_tga hevil-guard-route",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-guard-route"
+  ]
+}

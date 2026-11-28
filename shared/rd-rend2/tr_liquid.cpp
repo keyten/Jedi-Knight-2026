@@ -502,7 +502,7 @@ programs then see an empty Liquids block).
 */
 int R_LiquidClassMask( void )
 {
-	if ( !R_LiquidsAvailable() || !tr.world )
+	if ( R_CompareOff(RC_VOLUMETRICWATER) || !R_LiquidsAvailable() || !tr.world )
 		return 0;
 	return r_volumetricWater->integer & tr.world->liquidClassMask & ((1 << LIQUID_CLASSES) - 1);
 }

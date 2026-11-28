@@ -1,0 +1,18 @@
+{
+  "label": "hevil-clean-view",
+  "commands": [
+    "uimenu gallery_resume",
+    "give all",
+    "wait 30",
+    "weapon 3",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga hevil-clean-view",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-clean-view"
+  ]
+}

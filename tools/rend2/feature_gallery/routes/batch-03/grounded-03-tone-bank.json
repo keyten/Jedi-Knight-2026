@@ -1,0 +1,39 @@
+{
+  "label": "tone-bank",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_yawspeed 60",
+    "cl_pitchspeed 60",
+    "r_ssgiDebug 0",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga tone-bank-location",
+    "wait 20",
+    "uimenu gallery_freeze",
+    "fx_freeze 1",
+    "r_toneMapCompare 2",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga tone-grounded-before",
+    "wait 20",
+    "r_toneMapCompare 0",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga tone-grounded-after",
+    "wait 20",
+    "r_toneMapCompare 2",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga tone-grounded-repeat",
+    "wait 20",
+    "r_toneMapCompare 0"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "tone-bank-location",
+    "tone-grounded-before",
+    "tone-grounded-after",
+    "tone-grounded-repeat"
+  ]
+}

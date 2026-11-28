@@ -1,0 +1,26 @@
+{
+  "label": "saber-crouch",
+  "commands": [
+    "uimenu gallery_resume",
+    "r_foliageSaberCutCompare 0",
+    "+forward",
+    "wait 4",
+    "-forward",
+    "+movedown",
+    "wait 60",
+    "+attack",
+    "wait 30",
+    "-attack",
+    "wait 90",
+    "r_plantSimInfo",
+    "viewpos",
+    "screenshot_tga saber-crouch-result",
+    "wait 20",
+    "-movedown"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "saber-crouch-result"
+  ]
+}

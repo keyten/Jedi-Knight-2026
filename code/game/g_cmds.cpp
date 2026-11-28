@@ -676,8 +676,8 @@ void Cmd_SetViewpos_f( gentity_t *ent ) {
 		gi.SendServerCommand( ent-g_entities, va("print \"Cheats are not enabled on this server.\n\""));
 		return;
 	}
-	if ( gi.argc() != 5 ) {
-		gi.SendServerCommand( ent-g_entities, va("print \"usage: setviewpos x y z yaw\n\""));
+	if ( gi.argc() != 5 && gi.argc() != 6 ) {
+		gi.SendServerCommand( ent-g_entities, va("print \"usage: setviewpos x y z yaw [pitch]\n\""));
 		return;
 	}
 
@@ -688,6 +688,9 @@ void Cmd_SetViewpos_f( gentity_t *ent ) {
 	origin[2] -= 25;	//acount for eye height from viewpos cmd
 
 	angles[YAW] = atof( gi.argv( 4 ) );
+	if ( gi.argc() == 6 ) {
+		angles[PITCH] = Com_Clamp( -89.0f, 89.0f, atof( gi.argv( 5 ) ) );
+	}
 
 	TeleportPlayer( ent, origin, angles );
 }

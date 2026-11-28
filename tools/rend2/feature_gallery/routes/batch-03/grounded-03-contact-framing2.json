@@ -1,0 +1,24 @@
+{
+  "label": "contact-framing2",
+  "commands": [
+    "uimenu gallery_resume",
+    "cg_thirdPerson 1",
+    "cg_thirdPersonAlpha 1",
+    "cg_thirdPersonRange 90",
+    "cg_thirdPersonVertOffset 16",
+    "cg_thirdPersonPitchOffset 18",
+    "cg_fov 90",
+    "+right",
+    "wait 17",
+    "-right",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga contact-framing2",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "contact-framing2"
+  ]
+}

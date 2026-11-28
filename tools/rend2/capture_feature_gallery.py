@@ -20,6 +20,7 @@ def main():
     parser.add_argument('--stock-only', action='store_true', help='Read only original assets0-3; excludes replacement PBR packs')
     parser.add_argument('--installation',type=Path,help='Existing read-only game asset root')
     parser.add_argument('--interactive', action='store_true', help='Keep one hidden game alive; review each map before queuing the next')
+    parser.add_argument('--resume-from', type=Path, help='Resume a private checkpoint in an interactive session')
     args = parser.parse_args()
     runtime = ROOT / 'build/feature-gallery' / args.label
     runtime.mkdir(parents=True, exist_ok=False)
@@ -34,6 +35,10 @@ def main():
     (home / 'shaders/gallery.shader').write_text('gallery/transparent\n{\n {\n map $whiteimage\n blendFunc GL_ZERO GL_ONE\n }\n}\n')
     (home / 'ui/gallery.menu').write_text('assetGlobalDef { cursor "gallery/transparent" }\nmenuDef { name "gallery_freeze" rect 0 0 0 0 fullScreen 0 visible 1 onOpen { setcvar "cl_paused" "1"; } }\nmenuDef { name "gallery_resume" rect 0 0 0 0 fullScreen 0 visible 1 onOpen { uiScript closeingame ; } }\n')
     binaries = ROOT / 'build/msvc/Release'
+    if args.resume_from:
+        assert args.interactive, '--resume-from requires --interactive'
+        (home / 'saves').mkdir()
+        shutil.copy2(args.resume_from, home / 'saves/gallery_resume.sav')
     for name in ('rdsp-rend2_x86_64.dll', 'rend2_glslc.exe'):
         shutil.copy2(binaries / name, runtime / name)
     shutil.copy2(binaries / 'openjk_sp.x86_64.exe', runtime / 'openjk_sp.x86_64.exe')
@@ -47,7 +52,9 @@ def main():
         r_textureMode='GL_LINEAR_MIPMAP_LINEAR', r_shaderProgramCache=1,
         r_shaderProgramLazy=1, r_shaderCompileProcesses=0, r_swapInterval=0,
         com_maxfps=60, com_maxfpsUnfocused=60, com_maxfpsMinimized=60,
-        com_bootlogo=0, logfile=2, developer=0, cg_draw2D=0, cg_drawGun=0,
+        com_bootlogo=0, logfile=2, developer=0, cg_draw2D=1, cg_drawGun=0,
+        cg_drawStatus=0, cg_drawHUD=0, cg_drawCrosshair=0, cg_drawAmmoWarning=0,
+        cg_missionInfoFlashTime=0, cg_subtitles=0,
         con_notifytime=-1, r_autoExposure=0, r_toneMap=1, r_toneMapMode=1,
         cg_thirdPersonCameraDamp=1,cg_thirdPersonTargetDamp=1,cg_thirdPersonRange=0,
         cg_thirdPersonVertOffset=0,cg_thirdPersonAlpha=0,r_autoEmissive=1,
@@ -89,6 +96,11 @@ def main():
         (home/'gallery-loop.cfg').write_text('wait 60\nexecq gallery-queue.cfg\nexecq gallery-loop.cfg\n')
         (home/'gallery-queue.cfg').write_text('')
         commands = ['wait 120','r_norefresh 1','echo GALLERY_SESSION_READY','exec gallery-loop.cfg']
+        if args.resume_from:
+            # load clears the command buffer; activeAction rearms the queue
+            # after the first active snapshot without taking keyboard focus.
+            (home/'gallery-resume.cfg').write_text('wait 240\nuimenu gallery_resume\ncl_paused 0\nr_norefresh 1\necho GALLERY_SESSION_READY\nexec gallery-loop.cfg\n')
+            commands = ['wait 120','r_norefresh 0','set activeAction "exec gallery-resume.cfg"','load gallery_resume']
     (home/'autoexec_sp.cfg').write_text('\n'.join(f'set {k} "{v}"' for k,v in settings.items())+'\n'+'\n'.join(commands)+'\n')
     installation=args.installation.resolve() if args.installation else ROOT.parent/'OpenJK/build-rend2'
     if args.stock_only:
@@ -111,6 +123,7 @@ def main():
     stop=threading.Event()
     def acknowledge_queue():
         last=''
+        saved=set()
         while not stop.wait(.2):
             path=home/'qconsole.log'
             if not path.exists():continue
@@ -121,6 +134,18 @@ def main():
                 last=matches[-1]
                 (home/'gallery-queue.cfg').write_text('')
                 (runtime/'queue-status.json').write_text(json.dumps(dict(acknowledged=last)))
+            completed=re.findall(r'GALLERY_DONE_([a-zA-Z0-9_-]+)',log)
+            if completed and completed[-1] not in saved:
+                label=completed[-1]
+                checkpoint=home/'saves/gallery_checkpoint.sav'
+                if checkpoint.exists():
+                    try:
+                        destination=runtime/'checkpoints'
+                        destination.mkdir(exist_ok=True)
+                        shutil.copy2(checkpoint,destination/(label+'.sav'))
+                    except OSError:
+                        continue
+                saved.add(label)
     if args.interactive:
         threading.Thread(target=acknowledge_queue,daemon=True).start()
     try:

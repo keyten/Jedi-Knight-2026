@@ -1,0 +1,14 @@
+{
+  "label": "foliage-audit",
+  "commands": [
+    "r_autoFoliageList tree",
+    "r_autoFoliageList leaf",
+    "r_plantWindDebug 1",
+    "wait 10",
+    "r_plantWindDebug 0",
+    "wait 10"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": []
+}

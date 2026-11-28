@@ -1,0 +1,27 @@
+{
+  "label": "contact-center",
+  "commands": [
+    "uimenu gallery_resume",
+    "+moveright",
+    "wait 13",
+    "-moveright",
+    "+forward",
+    "wait 11",
+    "-forward",
+    "wait 90",
+    "viewpos",
+    "r_foliageInteractionList",
+    "screenshot_tga grass-contact-scout3",
+    "r_foliageInteractionDebug 8",
+    "wait 30",
+    "screenshot_tga grass-contact-heat3",
+    "r_foliageInteractionDebug 0",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "grass-contact-scout3",
+    "grass-contact-heat3"
+  ]
+}

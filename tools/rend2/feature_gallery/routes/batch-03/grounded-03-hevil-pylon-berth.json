@@ -1,0 +1,24 @@
+{
+  "label": "hevil-pylon-berth",
+  "commands": [
+    "uimenu gallery_resume",
+    "+back",
+    "+moveright",
+    "wait 40",
+    "-back",
+    "wait 40",
+    "-moveright",
+    "+forward",
+    "wait 100",
+    "-forward",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga hevil-pylon-berth",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-pylon-berth"
+  ]
+}

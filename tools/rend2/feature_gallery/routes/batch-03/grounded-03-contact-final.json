@@ -1,0 +1,39 @@
+{
+  "label": "contact-final",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_yawspeed 60",
+    "cl_pitchspeed 60",
+    "r_ssgiDebug 0",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga contact-final-location",
+    "wait 20",
+    "uimenu gallery_freeze",
+    "fx_freeze 1",
+    "r_foliageInteractionCompare 2",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga walking-grass-framed-before",
+    "wait 20",
+    "r_foliageInteractionCompare 0",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga walking-grass-framed-after",
+    "wait 20",
+    "r_foliageInteractionCompare 2",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga walking-grass-framed-repeat",
+    "wait 20",
+    "r_foliageInteractionCompare 0"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "contact-final-location",
+    "walking-grass-framed-before",
+    "walking-grass-framed-after",
+    "walking-grass-framed-repeat"
+  ]
+}

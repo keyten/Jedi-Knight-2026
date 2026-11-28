@@ -1,0 +1,24 @@
+{
+  "label": "hevil-right-passage",
+  "commands": [
+    "uimenu gallery_resume",
+    "+forward",
+    "wait 20",
+    "-forward",
+    "+moveright",
+    "wait 40",
+    "-moveright",
+    "+forward",
+    "wait 70",
+    "-forward",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga hevil-right-passage",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-right-passage"
+  ]
+}

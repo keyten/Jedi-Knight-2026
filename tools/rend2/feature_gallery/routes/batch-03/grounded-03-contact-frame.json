@@ -1,0 +1,40 @@
+{
+  "label": "contact-frame",
+  "commands": [
+    "uimenu gallery_resume",
+    "cg_thirdPerson 1",
+    "cg_thirdPersonAlpha 1",
+    "cg_thirdPersonRange 110",
+    "cg_thirdPersonVertOffset -24",
+    "cg_fov 80",
+    "centerview",
+    "+left",
+    "wait 35",
+    "-left",
+    "wait 90",
+    "r_foliageWindDebug 3",
+    "uimenu gallery_freeze",
+    "fx_freeze 1",
+    "r_foliageInteractionCompare 2",
+    "wait 120",
+    "screenshot_tga walking-grass-close-before",
+    "wait 20",
+    "r_foliageInteractionCompare 0",
+    "wait 120",
+    "screenshot_tga walking-grass-close-after",
+    "wait 20",
+    "r_foliageInteractionCompare 2",
+    "wait 120",
+    "screenshot_tga walking-grass-close-repeat",
+    "wait 20",
+    "r_foliageInteractionList",
+    "viewpos"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "walking-grass-close-before",
+    "walking-grass-close-after",
+    "walking-grass-close-repeat"
+  ]
+}

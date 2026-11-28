@@ -1,0 +1,21 @@
+{
+  "label": "hevil-west-view",
+  "commands": [
+    "uimenu gallery_resume",
+    "+left",
+    "wait 40",
+    "-left",
+    "+lookdown",
+    "wait 12",
+    "-lookdown",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga hevil-west-view",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-west-view"
+  ]
+}

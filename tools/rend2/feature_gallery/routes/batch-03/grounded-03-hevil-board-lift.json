@@ -1,0 +1,21 @@
+{
+  "label": "hevil-board-lift",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_paused 0",
+    "+forward",
+    "+moveup",
+    "wait 40",
+    "-moveup",
+    "-forward",
+    "wait 600",
+    "viewpos",
+    "screenshot_tga hevil-board-lift",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-board-lift"
+  ]
+}

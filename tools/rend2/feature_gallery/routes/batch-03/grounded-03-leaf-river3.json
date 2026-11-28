@@ -1,0 +1,22 @@
+{
+  "label": "leaf-river3",
+  "commands": [
+    "uimenu gallery_resume",
+    "r_exposureCompensation 1.5",
+    "+right",
+    "wait 16",
+    "-right",
+    "+lookup",
+    "wait 14",
+    "-lookup",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga leaf-river3",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "leaf-river3"
+  ]
+}

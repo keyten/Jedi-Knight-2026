@@ -1,0 +1,34 @@
+{
+  "label": "fern-contact-pair",
+  "commands": [
+    "uimenu gallery_resume",
+    "r_foliageSaberCutReset",
+    "r_foliageSaberCutCompare 2",
+    "r_plantWindCompare 2",
+    "r_foliageWindDebug 3",
+    "wait 90",
+    "uimenu gallery_freeze",
+    "fx_freeze 1",
+    "r_foliageInteractionCompare 2",
+    "wait 120",
+    "screenshot_tga fern-contact-before",
+    "wait 20",
+    "r_foliageInteractionCompare 0",
+    "wait 120",
+    "screenshot_tga fern-contact-after",
+    "wait 20",
+    "r_foliageInteractionCompare 2",
+    "wait 120",
+    "screenshot_tga fern-contact-repeat",
+    "wait 20",
+    "r_plantSimInfo",
+    "viewpos"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "fern-contact-before",
+    "fern-contact-after",
+    "fern-contact-repeat"
+  ]
+}

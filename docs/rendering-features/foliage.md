@@ -92,6 +92,16 @@ Leaves and vines on plant models tremble slightly in the air while trunks and br
 
 Design notes: [rend2-leaf-flutter.md](../rend2-leaf-flutter.md).
 
+<!-- gallery:foliage/leaf-flutter -->
+**Before / after:** yavin1b, Low tree leaves on the hillside, viewed upward from the shallow stream beside the crashed ship. 45 degree field of view; default flutter strength. Exposure compensation +1.5.
+
+![Leaf flutter disabled](../rendering-gallery/foliage/leaf-flutter-before.jpg)
+
+![Leaf flutter at default strength](../rendering-gallery/foliage/leaf-flutter-after.jpg)
+
+![Animated before / after](../rendering-gallery/foliage/leaf-flutter-comparison.gif)
+<!-- /gallery:foliage/leaf-flutter -->
+
 ## Ferns and fronds
 
 Ferns and similar plants bend frond by frond in the wind and swing back naturally after being pushed, instead of moving as one rigid model. Needs `r_autoFoliage 1` or `2`.
@@ -161,6 +171,14 @@ Grass and ferns bend where your body or an NPC touches them and spring back afte
 
 Design notes: [rend2-foliage-interaction.md](../rend2-foliage-interaction.md).
 
+<!-- gallery:foliage/walking-through-vegetation -->
+**Before / after:** yavin1b, The character standing among fern fronds on the bank beyond the crashed ship. Frond wind is disabled to isolate character contact. Exposure compensation +1.5.
+
+![Character contact disabled](../rendering-gallery/foliage/walking-through-vegetation-before.jpg)
+
+![Fronds bending away from the character](../rendering-gallery/foliage/walking-through-vegetation-after.jpg)
+<!-- /gallery:foliage/walking-through-vegetation -->
+
 ## Force push and pull
 
 A Force push or pull, by you or an NPC, sweeps a wave through plants, grass and leaves in front of the caster: away for push, toward for pull, then they settle. Plants behind the caster or out of reach don't move. Needs `r_foliageInteraction 1`.
@@ -203,3 +221,13 @@ Attacking with a saber cuts fern fronds and plant cards it sweeps through. A par
 - `r_foliageSaberCutReset` — restore all cut plants.
 - `r_foliageSaberCutTest [height] [partial]` — cut the nearest plant; height is a fraction, default 0.5.
 - `r_plantDebug 32` — recent blade sweeps; red ones cut.
+
+<!-- gallery:foliage/cutting-plants-with-a-saber -->
+**Before / after:** yavin1b, A normal saber combo through the fern on the bank beyond the crashed ship. The normal saber combo starts crouched and finishes standing. Exposure compensation +1.5.
+
+![The same attacks with plant cuts disabled](../rendering-gallery/foliage/cutting-plants-with-a-saber-before.jpg)
+
+![Cut fronds and fallen pieces](../rendering-gallery/foliage/cutting-plants-with-a-saber-after.jpg)
+
+![Animated before / after](../rendering-gallery/foliage/cutting-plants-with-a-saber-comparison.gif)
+<!-- /gallery:foliage/cutting-plants-with-a-saber -->

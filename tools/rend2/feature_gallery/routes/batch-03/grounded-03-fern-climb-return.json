@@ -1,0 +1,24 @@
+{
+  "label": "fern-climb-return",
+  "commands": [
+    "uimenu gallery_resume",
+    "+right",
+    "wait 50",
+    "-right",
+    "+forward",
+    "+moveup",
+    "wait 12",
+    "-moveup",
+    "wait 35",
+    "-forward",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga fern-climb-return",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "fern-climb-return"
+  ]
+}

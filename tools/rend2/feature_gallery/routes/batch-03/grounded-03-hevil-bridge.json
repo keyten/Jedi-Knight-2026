@@ -1,0 +1,22 @@
+{
+  "label": "hevil-bridge",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_yawspeed 60",
+    "cl_pitchspeed 60",
+    "r_ssgiDebug 0",
+    "+forward",
+    "wait 35",
+    "-forward",
+    "wait 15",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga hevil-bridge-location",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-bridge-location"
+  ]
+}

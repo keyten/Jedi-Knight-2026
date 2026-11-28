@@ -1,0 +1,373 @@
+[
+  {
+    "id": "foliage/walking-through-vegetation",
+    "name": "fern-contact",
+    "runtime": "build/feature-gallery/grounded-03",
+    "map": "yavin1b",
+    "pose": "1207 -3579 397 3",
+    "description": "The character standing among fern fronds on the bank beyond the crashed ship.",
+    "before": "Character contact disabled",
+    "after": "Fronds bending away from the character",
+    "reviewed": true,
+    "note": "Frond wind is disabled to isolate character contact. Exposure compensation +1.5.",
+    "route_steps": [
+      "resume-grass",
+      "bank-pairs",
+      "tone-bank",
+      "refined-pairs",
+      "contact-grass",
+      "contact-step",
+      "contact-center",
+      "grass-contact3",
+      "leaf-scout",
+      "contact-frame",
+      "foliage-audit",
+      "contact-framing2",
+      "contact-final",
+      "fern-return",
+      "leaf-river",
+      "leaf-river2",
+      "leaf-river3",
+      "leaf-animation",
+      "fern-return2",
+      "fern-bank-return",
+      "fern-climb-return",
+      "fern-on-bank",
+      "saber-setup",
+      "saber-comparison",
+      "saber-crouch",
+      "saber-crouch-pair",
+      "saber-nearer",
+      "saber-strong",
+      "saber-strong-pair",
+      "fern-contact-pair"
+    ],
+    "original_sha256": {
+      "before": "2288799a3db9dd2bbd4f6d061d6ad7f2894c55d4c79e211365a6214083fb7bec",
+      "after": "c3ed2f2bee59d0e0963b0e8ff72b6a4a2c05d0d58d94ca6e1d3a764b6b6e7bf7"
+    }
+  },
+  {
+    "id": "foliage/leaf-flutter",
+    "name": "leaf-flutter",
+    "stills": {
+      "before": "leaf-flutter-before-08.tga",
+      "after": "leaf-flutter-after-08.tga"
+    },
+    "animation": "build/feature-gallery/grounded-03/leaf-flutter-comparison.gif",
+    "runtime": "build/feature-gallery/grounded-03",
+    "map": "yavin1b",
+    "pose": "826 -4191 188 318",
+    "description": "Low tree leaves on the hillside, viewed upward from the shallow stream beside the crashed ship.",
+    "before": "Leaf flutter disabled",
+    "after": "Leaf flutter at default strength",
+    "reviewed": true,
+    "note": "45 degree field of view; default flutter strength. Exposure compensation +1.5.",
+    "route_steps": [
+      "resume-grass",
+      "contact-grass",
+      "contact-step",
+      "contact-center",
+      "leaf-scout",
+      "contact-frame",
+      "contact-framing2",
+      "contact-final",
+      "fern-return",
+      "leaf-river",
+      "leaf-river2",
+      "leaf-river3",
+      "leaf-animation"
+    ],
+    "original_sha256": {
+      "before": "f842d86a6f8313e3e392969120a2d51800b5cc6fa3b27ee0d7f57d4333840a6d",
+      "after": "37c2d199ff323f186f61bea9468af710e3993597d178d3450605b8a19fb72195"
+    }
+  },
+  {
+    "id": "foliage/cutting-plants-with-a-saber",
+    "name": "saber-strong",
+    "animation": "build/feature-gallery/grounded-03/saber-strong-comparison.gif",
+    "runtime": "build/feature-gallery/grounded-03",
+    "map": "yavin1b",
+    "pose": "1207 -3579 397 3",
+    "description": "A normal saber combo through the fern on the bank beyond the crashed ship.",
+    "before": "The same attacks with plant cuts disabled",
+    "after": "Cut fronds and fallen pieces",
+    "reviewed": true,
+    "note": "The normal saber combo starts crouched and finishes standing. Exposure compensation +1.5.",
+    "route_steps": [
+      "resume-grass",
+      "fern-return",
+      "fern-return2",
+      "fern-bank-return",
+      "fern-climb-return",
+      "fern-on-bank",
+      "saber-setup",
+      "saber-crouch",
+      "saber-nearer",
+      "saber-strong",
+      "saber-strong-pair"
+    ],
+    "original_sha256": {
+      "before": "8f94605e56aa5512e937c339edc840caa7a8b25e437d1b10e149496defff9c03",
+      "after": "3ebfd579b5322a637df2d886bf37bab49948d6088c4e6f5cf5d203ca2f7879db"
+    }
+  },
+  {
+    "id": "water/waterfalls-and-rapids",
+    "name": "waterfalls-grounded",
+    "stills": {
+      "before": "waterfalls-grounded-before-08.tga",
+      "after": "waterfalls-grounded-after-08.tga"
+    },
+    "animation": "build/feature-gallery/grounded-03/waterfalls-grounded-comparison.gif",
+    "runtime": "build/feature-gallery/grounded-03",
+    "map": "t3_hevil",
+    "pose": "157 -1906 -691 131",
+    "description": "The western spillways viewed from the low stone edging of the playable entry bridge.",
+    "before": "Original scrolling waterfall sheets",
+    "after": "Modern aerated sheets and impact apron",
+    "reviewed": true,
+    "note": "Uses the documented project water preset.",
+    "route_steps": [
+      "hevil-start",
+      "hevil-bridge",
+      "hevil-west-view",
+      "hevil-clean-view",
+      "hevil-edge",
+      "hevil-edge-walk",
+      "hevil-lip",
+      "hevil-fall-pair"
+    ],
+    "original_sha256": {
+      "before": "38a3e1e68e00e94e1d5a851451759608cdd55b4c6b75ecf5ad4ecee286ba3cb0",
+      "after": "14818009829868f5f29f0abfd57a6d3c0268518320b05997ae36ebf2e8757857"
+    }
+  },
+  {
+    "id": "water/foam",
+    "name": "foam-grounded",
+    "stills": {
+      "before": "foam-grounded-before-08.tga",
+      "after": "foam-grounded-after-08.tga"
+    },
+    "animation": "build/feature-gallery/grounded-03/foam-grounded-comparison.gif",
+    "runtime": "build/feature-gallery/grounded-03",
+    "map": "t3_hevil",
+    "pose": "157 -1906 -691 131",
+    "description": "Persistent foam spreading across the receiving pool beneath the western spillways, viewed from the entry bridge.",
+    "before": "Foam disabled",
+    "after": "Persistent foam field enabled",
+    "reviewed": true,
+    "note": "Grounded first-person view from the stone bridge edging, with a 60 degree field of view. Uses the documented project water preset.",
+    "route_steps": [
+      "hevil-start",
+      "hevil-bridge",
+      "hevil-west-view",
+      "hevil-clean-view",
+      "hevil-edge",
+      "hevil-edge-walk",
+      "hevil-lip",
+      "hevil-fall-pair",
+      "hevil-foam-scout",
+      "hevil-foam-pair"
+    ],
+    "original_sha256": {
+      "before": "3af6a41cecdf8a57646234f67df55cb80299861c1389f57333ff8168b84d4c69",
+      "after": "17be11e9523da98c57677269cde9a20b012772d3abf0f5f4da0450cf84421ac8"
+    }
+  },
+  {
+    "id": "water/underwater-fog",
+    "name": "underwater-fog-final",
+    "runtime": "build\\feature-gallery\\grounded-03",
+    "map": "t3_hevil",
+    "pose": "-27 200 -451 179",
+    "description": "Stone walls and lit vents seen from the floor of the upper courtyard pool.",
+    "before": "Original full-screen water tint",
+    "after": "Distance-based underwater fog",
+    "reviewed": true,
+    "note": "Exposure compensation +1.5.",
+    "route_steps": [
+      "resume-grass",
+      "bank-pairs",
+      "tone-bank",
+      "refined-pairs",
+      "contact-grass",
+      "contact-step",
+      "contact-center",
+      "grass-contact3",
+      "leaf-scout",
+      "contact-frame",
+      "foliage-audit",
+      "contact-framing2",
+      "contact-final",
+      "fern-return",
+      "leaf-river",
+      "leaf-river2",
+      "leaf-river3",
+      "leaf-animation",
+      "fern-return2",
+      "fern-bank-return",
+      "fern-climb-return",
+      "fern-on-bank",
+      "saber-setup",
+      "saber-comparison",
+      "saber-crouch",
+      "saber-crouch-pair",
+      "saber-nearer",
+      "saber-strong",
+      "saber-strong-pair",
+      "fern-contact-pair",
+      "hevil-start",
+      "hevil-bridge",
+      "hevil-west-view",
+      "hevil-clean-view",
+      "hevil-edge",
+      "hevil-edge-walk",
+      "hevil-lip",
+      "hevil-fall-pair",
+      "hevil-foam-scout",
+      "hevil-foam-pair",
+      "hevil-stone-pair",
+      "hevil-stone-geometry",
+      "hevil-inner-approach",
+      "hevil-door",
+      "hevil-enter",
+      "hevil-right-passage",
+      "hevil-around-pylon",
+      "hevil-unlock-passage",
+      "hevil-pylon-berth",
+      "hevil-unpause-probe",
+      "hevil-guard-route",
+      "hevil-diagonal-passage",
+      "hevil-north-pylon",
+      "hevil-north-door",
+      "hevil-exit-core",
+      "hevil-door-align",
+      "hevil-rear-hall",
+      "hevil-lift",
+      "hevil-call-lift",
+      "hevil-board-lift",
+      "hevil-lift-center",
+      "hevil-upper-exit",
+      "hevil-upper-center",
+      "hevil-courtyard",
+      "hevil-west-bank",
+      "hevil-water-clean",
+      "hevil-underwater-pair",
+      "hevil-reload-renderer",
+      "hevil-underwater-fixed",
+      "hevil-particles-scout",
+      "hevil-underwater-final"
+    ],
+    "renderer_sha256": "58f145747286c623b58cb05d58f1f7828ee771ddda88cac620c12bfbab68accc",
+    "review_evidence": {
+      "liquid_mask_before": 0,
+      "liquid_mask_after": 1,
+      "liquid_mask_repeat": 0,
+      "repeat_mean_rgb": [
+        0,
+        0,
+        0
+      ],
+      "mean_absolute_rgb": [
+        15.743423,
+        17.712322,
+        48.843481
+      ]
+    },
+    "original_sha256": {
+      "before": "a83b10663b5ad40df87091012a22eded8b39c0694ba55bcde82a73793448de1a",
+      "after": "ac7553ef3c7242f3fa344b22847238516638701829c08702558fa4c23b6a5f0b"
+    }
+  },
+  {
+    "id": "water/waves",
+    "name": "waves-visible",
+    "runtime": "build/feature-gallery/landed-02",
+    "map": "t3_hevil",
+    "pose": "355 200 -98 -180",
+    "description": "A low crouched view across the upper courtyard pool from its sloping stone bank.",
+    "before": "Coherent waves disabled",
+    "after": "Coherent waves enabled",
+    "note": "Wave amplitude 2, quality 2; exposure compensation +2.5.",
+    "reviewed": true,
+    "placement": "teleported then landed on playable ground",
+    "route_steps": [
+      "fast-water",
+      "water-motion"
+    ],
+    "animation": "build/feature-gallery/landed-02/waves-visible-comparison.gif",
+    "stills": {
+      "before": "waves-visible-before-08.tga",
+      "after": "waves-visible-after-08.tga"
+    },
+    "original_sha256": {
+      "before": "77f0ec7a05f49a62e29cacab33ca35578f71658bf894129ea785ea65fd1514ac",
+      "after": "889332e749f49e28d562045c829bb11b1dcefcbbbad99e449b5c5ff6f1908a59"
+    }
+  },
+  {
+    "id": "water/wave-geometry",
+    "name": "geometry-stable",
+    "runtime": "build/feature-gallery/landed-02",
+    "map": "t3_hevil",
+    "pose": "339 200 -95 -180",
+    "description": "A crouched player supported by the shallow stone bank, close to the water surface.",
+    "before": "Flat surface mesh",
+    "after": "Displaced wave mesh",
+    "note": "Wave amplitude 2, quality 2; exposure compensation +2.5.",
+    "reviewed": true,
+    "placement": "teleported then landed on playable ground",
+    "route_steps": [
+      "fast-water",
+      "geometry-stable"
+    ],
+    "animation": "build/feature-gallery/landed-02/geometry-stable-comparison.gif",
+    "original_sha256": {
+      "before": "f36ce1ff55ab11cb7e0147b803c9b95d74fe9fe72113530333fa57645642c907",
+      "after": "f1bdafba795ea8f57fb44ce986e35a9e97818354859d852956a1284e83f1b996"
+    }
+  },
+  {
+    "id": "water/shorelines",
+    "name": "shore-final",
+    "runtime": "build/feature-gallery/landed-02",
+    "map": "t3_hevil",
+    "pose": "384 200 -91 -120",
+    "description": "The water edge seen diagonally along the stone walkway in the upper courtyard.",
+    "before": "Hard water edge and no wet band",
+    "after": "Soft shoreline and wet band",
+    "note": "Crouched view; compare the lower edge of the bank. Exposure compensation +1.5.",
+    "reviewed": true,
+    "placement": "teleported then landed on playable ground",
+    "route_steps": [
+      "fast-water"
+    ],
+    "original_sha256": {
+      "before": "e85a5c19930c046f4efb1831530893a04181113ccc28a577ca1ce153ce827504",
+      "after": "7b3ef35028705f5504a596321886ad3ee7fc59f6e49a258c7dc823f8d6d68646"
+    }
+  },
+  {
+    "id": "water/looking-up-from-underwater",
+    "name": "snell-final",
+    "runtime": "build/feature-gallery/landed-02",
+    "map": "t3_hevil",
+    "pose": "-600 400 -451 -180",
+    "description": "Looking straight up from the floor of the open courtyard pool.",
+    "before": "Plain underside of the surface",
+    "after": "Critical-angle reflection and Snell window",
+    "note": "130 degree field of view includes the surrounding reflection. Exposure compensation +1.5.",
+    "reviewed": true,
+    "placement": "teleported then landed on playable ground",
+    "route_steps": [
+      "fast-water"
+    ],
+    "original_sha256": {
+      "before": "f73a51e2f0da0fbbdb9ff9c0ee6bb6906dce774557f6bb53ae2b2184314add78",
+      "after": "c4e79162e5a4b8e520470def65f9043ad936aaccd0c5423169c2856079d030a5"
+    }
+  }
+]

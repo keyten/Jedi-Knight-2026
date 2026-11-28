@@ -1,0 +1,20 @@
+{
+  "label": "hevil-lift",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_paused 0",
+    "notarget",
+    "+forward",
+    "wait 120",
+    "-forward",
+    "wait 600",
+    "viewpos",
+    "screenshot_tga hevil-lift",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-lift"
+  ]
+}

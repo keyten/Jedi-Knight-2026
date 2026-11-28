@@ -1,0 +1,42 @@
+{
+  "label": "hevil-start",
+  "commands": [
+    "uimenu gallery_resume",
+    "fx_freeze 0",
+    "r_waterSurfaceCompare 0",
+    "r_waterWavesCompare 0",
+    "r_waterGeometryCompare 0",
+    "r_waterfallCompare 0",
+    "r_waterFlow 1",
+    "r_waterFoamCompare 0",
+    "r_waterIntersectionFoam 1",
+    "r_waterCausticsMode 2",
+    "r_waterParticles 1",
+    "r_exposureCompensation 1",
+    "cg_thirdPerson 0",
+    "cg_thirdPersonAlpha 0",
+    "cg_thirdPersonRange 0",
+    "cg_thirdPersonVertOffset 0",
+    "cg_thirdPersonPitchOffset 0",
+    "cg_fov 90",
+    "devmap t3_hevil",
+    "wait 240",
+    "exitview",
+    "cam_disable",
+    "lock_disable",
+    "god",
+    "notarget",
+    "give all",
+    "weapon 3",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga hevil-start-location",
+    "wait 20",
+    "r_waterfalls"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-start-location"
+  ]
+}

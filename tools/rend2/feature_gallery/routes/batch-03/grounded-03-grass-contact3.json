@@ -1,0 +1,39 @@
+{
+  "label": "grass-contact3",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_yawspeed 60",
+    "cl_pitchspeed 60",
+    "r_ssgiDebug 0",
+    "wait 60",
+    "viewpos",
+    "screenshot_tga grass-contact3-location",
+    "wait 20",
+    "uimenu gallery_freeze",
+    "fx_freeze 1",
+    "r_foliageInteractionCompare 2",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga walking-grass-before",
+    "wait 20",
+    "r_foliageInteractionCompare 0",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga walking-grass-after",
+    "wait 20",
+    "r_foliageInteractionCompare 2",
+    "wait 120",
+    "viewpos",
+    "screenshot_tga walking-grass-repeat",
+    "wait 20",
+    "r_foliageInteractionCompare 0"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "grass-contact3-location",
+    "walking-grass-before",
+    "walking-grass-after",
+    "walking-grass-repeat"
+  ]
+}

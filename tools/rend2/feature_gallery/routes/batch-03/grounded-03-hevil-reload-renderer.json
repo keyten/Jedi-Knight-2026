@@ -1,0 +1,25 @@
+{
+  "label": "hevil-reload-renderer",
+  "map": "t3_hevil",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_paused 0",
+    "cl_renderer rdsp-gallery",
+    "vid_restart",
+    "wait 240",
+    "ui_load",
+    "uimenu gallery_resume",
+    "cl_paused 0",
+    "r_volumetricWaterCompare 0",
+    "wait 180",
+    "viewpos",
+    "screenshot_tga underwater-patched-default",
+    "wait 20",
+    "r_liquids"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "underwater-patched-default"
+  ]
+}

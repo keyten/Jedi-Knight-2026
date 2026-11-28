@@ -1,0 +1,42 @@
+{
+  "label": "hevil-stone-pair",
+  "commands": [
+    "uimenu gallery_resume",
+    "cg_fov 60",
+    "+speed",
+    "+back",
+    "wait 15",
+    "-back",
+    "-speed",
+    "centerview",
+    "+lookdown",
+    "wait 38",
+    "-lookdown",
+    "wait 90",
+    "viewpos",
+    "screenshot_tga hevil-stone-location",
+    "wait 20",
+    "uimenu gallery_freeze",
+    "fx_freeze 1",
+    "r_voronoiFracturingCompare 2",
+    "wait 120",
+    "screenshot_tga stone-joints-before",
+    "wait 20",
+    "r_voronoiFracturingCompare 0",
+    "wait 120",
+    "screenshot_tga stone-joints-after",
+    "wait 20",
+    "r_voronoiFracturingCompare 2",
+    "wait 120",
+    "screenshot_tga stone-joints-repeat",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-stone-location",
+    "stone-joints-before",
+    "stone-joints-after",
+    "stone-joints-repeat"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "label": "hevil-stone-geometry",
+  "commands": [
+    "uimenu gallery_resume",
+    "cg_fov 45",
+    "r_voronoiFracturingGeometry 1",
+    "wait 90",
+    "viewpos",
+    "uimenu gallery_freeze",
+    "fx_freeze 1",
+    "r_voronoiFracturingCompare 2",
+    "wait 120",
+    "screenshot_tga stone-relief-before",
+    "wait 20",
+    "r_voronoiFracturingCompare 0",
+    "wait 120",
+    "screenshot_tga stone-relief-after",
+    "wait 20",
+    "r_voronoiFracturingCompare 2",
+    "wait 120",
+    "screenshot_tga stone-relief-repeat",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "stone-relief-before",
+    "stone-relief-after",
+    "stone-relief-repeat"
+  ]
+}

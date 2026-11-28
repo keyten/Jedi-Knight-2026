@@ -79,6 +79,14 @@ Underwater the original game tints the whole screen one color. With this, water,
 
 Design notes: [rend2-volumetric-fog.md](../rend2-volumetric-fog.md#underwater-medium-r_volumetricwater).
 
+<!-- gallery:water/underwater-fog -->
+**Before / after:** t3_hevil, Stone walls and lit vents seen from the floor of the upper courtyard pool. Exposure compensation +1.5.
+
+![Original full-screen water tint](../rendering-gallery/water/underwater-fog-before.jpg)
+
+![Distance-based underwater fog](../rendering-gallery/water/underwater-fog-after.jpg)
+<!-- /gallery:water/underwater-fog -->
+
 ## Looking up from underwater
 
 From below, the world above is visible only through a bright circle overhead (Snell's window); at flatter angles the surface turns into a mirror reflecting the underwater scene. Needs modern water.
@@ -99,11 +107,11 @@ From below, the world above is visible only through a bright circle overhead (Sn
 Design notes: [rend2-water-realism-followup.md](../rend2-water-realism-followup.md).
 
 <!-- gallery:water/looking-up-from-underwater -->
-**Before / after:** yavin1b, The same river basin viewed upward from below the surface. Uses the documented project water preset; camera placed with fxcam.
+**Before / after:** t3_hevil, Looking straight up from the floor of the open courtyard pool. 130 degree field of view includes the surrounding reflection. Exposure compensation +1.5.
 
 ![Plain underside of the surface](../rendering-gallery/water/looking-up-from-underwater-before.jpg)
 
-![Snell/refraction surface](../rendering-gallery/water/looking-up-from-underwater-after.jpg)
+![Critical-angle reflection and Snell window](../rendering-gallery/water/looking-up-from-underwater-after.jpg)
 <!-- /gallery:water/looking-up-from-underwater -->
 
 ## Waves
@@ -136,6 +144,16 @@ Coherent waves roll across the water instead of a scrolling texture. Wind can tu
 
 Design notes: [rend2-water-waves.md](../rend2-water-waves.md).
 
+<!-- gallery:water/waves -->
+**Before / after:** t3_hevil, A low crouched view across the upper courtyard pool from its sloping stone bank. Wave amplitude 2, quality 2; exposure compensation +2.5.
+
+![Coherent waves disabled](../rendering-gallery/water/waves-before.jpg)
+
+![Coherent waves enabled](../rendering-gallery/water/waves-after.jpg)
+
+![Animated before / after](../rendering-gallery/water/waves-comparison.gif)
+<!-- /gallery:water/waves -->
+
 ## Wave geometry
 
 Lets waves actually move the water surface, so its outline rises and falls against shores and objects, and the camera crossing the surface follows the moving waterline. Needs modern water.
@@ -164,6 +182,16 @@ Lets waves actually move the water surface, so its outline rises and falls again
 - `r_waterlineDebug 1..2` — waterline state, and its height graph.
 
 Design notes: [rend2-water-geometry.md](../rend2-water-geometry.md).
+
+<!-- gallery:water/wave-geometry -->
+**Before / after:** t3_hevil, A crouched player supported by the shallow stone bank, close to the water surface. Wave amplitude 2, quality 2; exposure compensation +2.5.
+
+![Flat surface mesh](../rendering-gallery/water/wave-geometry-before.jpg)
+
+![Displaced wave mesh](../rendering-gallery/water/wave-geometry-after.jpg)
+
+![Animated before / after](../rendering-gallery/water/wave-geometry-comparison.gif)
+<!-- /gallery:water/wave-geometry -->
 
 ## Ripples from movement and impacts
 
@@ -273,6 +301,16 @@ White foam where water meets objects, along shores, behind wakes and under water
 
 Design notes: [rend2-water-intersection-foam.md](../rend2-water-intersection-foam.md).
 
+<!-- gallery:water/foam -->
+**Before / after:** t3_hevil, Persistent foam spreading across the receiving pool beneath the western spillways, viewed from the entry bridge. Grounded first-person view from the stone bridge edging, with a 60 degree field of view. Uses the documented project water preset.
+
+![Foam disabled](../rendering-gallery/water/foam-before.jpg)
+
+![Persistent foam field enabled](../rendering-gallery/water/foam-after.jpg)
+
+![Animated before / after](../rendering-gallery/water/foam-comparison.gif)
+<!-- /gallery:water/foam -->
+
 ## Shorelines
 
 With wave geometry, the water edge moves up and down the shore. This softens the hard line where water meets ground, calms waves near rigid banks, and leaves a wet band that dries as the water pulls back. Needs `r_waterGeometry 1`.
@@ -292,6 +330,14 @@ With wave geometry, the water edge moves up and down the shore. This softens the
 - `r_waterShoreDebug 1..9` — depth, shore distance, wave reduction, contact, wet edges, foam.
 
 Design notes: [rend2-water-shoreline.md](../rend2-water-shoreline.md).
+
+<!-- gallery:water/shorelines -->
+**Before / after:** t3_hevil, The water edge seen diagonally along the stone walkway in the upper courtyard. Crouched view; compare the lower edge of the bank. Exposure compensation +1.5.
+
+![Hard water edge and no wet band](../rendering-gallery/water/shorelines-before.jpg)
+
+![Soft shoreline and wet band](../rendering-gallery/water/shorelines-after.jpg)
+<!-- /gallery:water/shorelines -->
 
 ## Underwater light patterns (caustics)
 
@@ -360,11 +406,13 @@ Tall spillways now keep a continuous, irregular foam apron from the falling shee
 Design notes: [rend2-waterfalls.md](../rend2-waterfalls.md).
 
 <!-- gallery:water/waterfalls-and-rapids -->
-**Before / after:** yavin1b, Close view of the second river waterfall, with foliage and rock framing the sheet. Uses the documented project water preset; fxcam holds the same camera and shader time.
+**Before / after:** t3_hevil, The western spillways viewed from the low stone edging of the playable entry bridge. Uses the documented project water preset.
 
-![Original scrolling waterfall layers](../rendering-gallery/water/waterfalls-and-rapids-before.jpg)
+![Original scrolling waterfall sheets](../rendering-gallery/water/waterfalls-and-rapids-before.jpg)
 
-![Modern aerated waterfall sheet](../rendering-gallery/water/waterfalls-and-rapids-after.jpg)
+![Modern aerated sheets and impact apron](../rendering-gallery/water/waterfalls-and-rapids-after.jpg)
+
+![Animated before / after](../rendering-gallery/water/waterfalls-and-rapids-comparison.gif)
 <!-- /gallery:water/waterfalls-and-rapids -->
 
 ## Underwater specks and bubbles

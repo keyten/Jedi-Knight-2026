@@ -1,0 +1,27 @@
+{
+  "label": "hevil-unpause-probe",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_paused 0",
+    "cl_paused",
+    "exitview",
+    "cam_disable",
+    "lock_disable",
+    "+back",
+    "wait 30",
+    "-back",
+    "+right",
+    "wait 20",
+    "-right",
+    "wait 60",
+    "viewpos",
+    "r_foliageInteractionList",
+    "screenshot_tga hevil-unpause-probe",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-unpause-probe"
+  ]
+}

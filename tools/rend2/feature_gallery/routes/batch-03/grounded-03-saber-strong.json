@@ -1,0 +1,25 @@
+{
+  "label": "saber-strong",
+  "commands": [
+    "uimenu gallery_resume",
+    "r_foliageSaberCutReset",
+    "saberAttackCycle",
+    "wait 60",
+    "+movedown",
+    "+attack",
+    "wait 120",
+    "-movedown",
+    "wait 120",
+    "-attack",
+    "wait 90",
+    "r_plantSimInfo",
+    "viewpos",
+    "screenshot_tga saber-strong-result",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "saber-strong-result"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "label": "hevil-call-lift",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_paused 0",
+    "notarget",
+    "d_npcfreeze 1",
+    "+use",
+    "wait 30",
+    "-use",
+    "+forward",
+    "wait 100",
+    "-forward",
+    "wait 600",
+    "viewpos",
+    "screenshot_tga hevil-call-lift",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-call-lift"
+  ]
+}

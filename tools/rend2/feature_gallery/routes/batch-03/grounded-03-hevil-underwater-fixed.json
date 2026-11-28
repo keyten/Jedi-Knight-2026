@@ -1,0 +1,36 @@
+{
+  "label": "hevil-underwater-fixed",
+  "map": "t3_hevil",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_paused 0",
+    "wait 60",
+    "uimenu gallery_freeze",
+    "fx_freeze 1",
+    "r_volumetricWaterCompare 2",
+    "wait 180",
+    "r_volumetricWaterActive",
+    "viewpos",
+    "screenshot_tga underwater-fog-fixed-before",
+    "wait 20",
+    "r_volumetricWaterCompare 0",
+    "wait 180",
+    "r_volumetricWaterActive",
+    "viewpos",
+    "screenshot_tga underwater-fog-fixed-after",
+    "wait 20",
+    "r_volumetricWaterCompare 2",
+    "wait 180",
+    "r_volumetricWaterActive",
+    "viewpos",
+    "screenshot_tga underwater-fog-fixed-repeat",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "underwater-fog-fixed-before",
+    "underwater-fog-fixed-after",
+    "underwater-fog-fixed-repeat"
+  ]
+}

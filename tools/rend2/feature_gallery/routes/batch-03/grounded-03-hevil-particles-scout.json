@@ -1,0 +1,26 @@
+{
+  "label": "hevil-particles-scout",
+  "map": "t3_hevil",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_paused 0",
+    "r_volumetricWaterCompare 0",
+    "r_waterParticles 1",
+    "r_waterParticlesCompare 0",
+    "r_waterParticlesProfile 2",
+    "r_waterParticlesDebug 3",
+    "wait 120",
+    "screenshot_tga hevil-particles-debug",
+    "wait 20",
+    "r_waterParticlesDebug 0",
+    "wait 60",
+    "screenshot_tga hevil-particles-scout",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-particles-debug",
+    "hevil-particles-scout"
+  ]
+}

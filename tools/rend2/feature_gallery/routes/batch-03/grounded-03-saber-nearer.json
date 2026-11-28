@@ -1,0 +1,29 @@
+{
+  "label": "saber-nearer",
+  "commands": [
+    "uimenu gallery_resume",
+    "+forward",
+    "+moveup",
+    "wait 12",
+    "-moveup",
+    "-forward",
+    "wait 90",
+    "r_foliageSaberCutReset",
+    "+movedown",
+    "wait 30",
+    "+attack",
+    "wait 30",
+    "-attack",
+    "wait 90",
+    "r_plantSimInfo",
+    "viewpos",
+    "screenshot_tga saber-nearer-result",
+    "wait 20",
+    "-movedown"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "saber-nearer-result"
+  ]
+}

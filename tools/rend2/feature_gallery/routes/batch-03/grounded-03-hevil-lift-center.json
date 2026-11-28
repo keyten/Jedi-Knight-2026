@@ -1,0 +1,23 @@
+{
+  "label": "hevil-lift-center",
+  "map": "t3_hevil",
+  "commands": [
+    "uimenu gallery_resume",
+    "cl_paused 0",
+    "+moveleft",
+    "wait 8",
+    "-moveleft",
+    "+forward",
+    "wait 100",
+    "-forward",
+    "wait 600",
+    "viewpos",
+    "screenshot_tga hevil-lift-center",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "hevil-lift-center"
+  ]
+}

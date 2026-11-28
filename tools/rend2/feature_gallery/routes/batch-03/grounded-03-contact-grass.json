@@ -1,0 +1,26 @@
+{
+  "label": "contact-grass",
+  "commands": [
+    "uimenu gallery_resume",
+    "r_volumetricFogHeightCompare 2",
+    "r_colorGradingCompare 2",
+    "r_toneMapCompare 0",
+    "r_foliageInteraction 1",
+    "r_foliageInteractionCompare 0",
+    "r_foliageWindDebug 3",
+    "cg_thirdPerson 1",
+    "cg_thirdPersonRange 100",
+    "cg_thirdPersonVertOffset 16",
+    "fx_freeze 1",
+    "wait 120",
+    "viewpos",
+    "r_foliageInteractionList",
+    "screenshot_tga grass-contact-scout",
+    "wait 20"
+  ],
+  "camera_checks": [],
+  "grounded": true,
+  "screenshots": [
+    "grass-contact-scout"
+  ]
+}
