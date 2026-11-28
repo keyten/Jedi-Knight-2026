@@ -1134,7 +1134,18 @@ window.FEATURES = {
     "html": "<p>Underwater the original game tints the whole screen one color. With this, water, slime and lava are real fog inside <a href=\"#f/fog/volumetric-fog\">volumetric fog</a>: objects fade with their actual distance through the liquid, red light disappears first, sunlight dims with depth, and a moving light pattern (caustics) plays on the bottom. Needs <code>r_volumetricFog 2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium.</p>\n<ul><li><code>r_volumetricWater 0</code> <em>(restart)</em> — which liquids, add: <strong>1</strong> water, <strong>2</strong> slime, <strong>4</strong> lava. 7 for all.</li><li><code>r_volumetricWaterExtinction 0.0014</code> — how fast water hides distant objects.</li><li><code>r_volumetricWaterAlbedo \"0.10 0.45 0.75\"</code> — color of light scattered by water.</li><li><code>r_volumetricWaterColor</code> — relative absorption of red, green and blue; by default red goes first.</li><li><code>r_volumetricWaterCaustics 0.35</code> — strength of the <a href=\"#f/water/underwater-light-patterns-caustics\">caustic pattern</a> from the sun.</li><li><code>cg_underwaterTint 1</code> — the original full-screen tint; skipped automatically for liquids drawn as fog.</li></ul>\n<p><strong>Compare:</strong> <code>r_volumetricWaterCompare 2</code> — the original screen tint. No split screen: the game draws that tint over the whole screen.</p>\n<div class=\"how\"><h3>How it works</h3><p>Liquid brushes add absorption and scattering to the fog cells inside them. Sun and dynamic light lose strength with the distance they travel through the liquid.</p></div>\n<ul><li><code>r_volumetricWaterAnisotropy 0.75</code> — how strongly water glows toward the light.</li><li><code>r_volumetricWaterSunPath 1</code> — dim sun and dynamic light by the path through the liquid.</li><li><code>r_volumetricWaterSurfaces 1</code> <em>(restart)</em> — also dim sunlight and add caustics on underwater surfaces.</li><li><code>r_volumetricWaterCausticScale 160</code>, <code>r_volumetricWaterCausticSpeed 0.06</code>, <code>r_volumetricWaterCausticFocus 48</code> — caustic size, drift speed, depth of full contrast.</li><li><code>r_volumetricSlimeExtinction 0.005</code>, <code>r_volumetricSlimeAlbedo \"0.25 0.7 0.2\"</code>, <code>r_volumetricSlimeColor \"1.6 0.5 0.9\"</code>, <code>r_volumetricSlimeAnisotropy 0.4</code> — the same for slime.</li><li><code>r_volumetricLavaExtinction 0.02</code>, <code>r_volumetricLavaAlbedo \"0.6 0.15 0.02\"</code>, <code>r_volumetricLavaColor \"0.6 1.2 1.2\"</code>, <code>r_volumetricLavaAnisotropy 0.3</code> — the same for lava (no glow).</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_volumetricFogDebug 59..70</code> — liquid density, brushes, camera membership, boundaries, transparency, underwater sun, path length, scattering.</li><li><code>r_liquids</code> — list liquid brushes and profiles.</li><li><code>r_volumetricWaterActive</code> — set by the renderer: which liquids are drawn as fog on this map (read by the game).</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-volumetric-fog.md#underwater-medium-r_volumetricwater\" target=\"_blank\" rel=\"noopener\">rend2-volumetric-fog.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/underwater-fog-before.jpg",
+    "caption": "Before: Original full-screen water tint (t3_hevil)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/underwater-fog-after.jpg",
+    "caption": "After: Distance-based underwater fog (t3_hevil)"
+   }
+  ]
  },
  "water/looking-up-from-underwater": {
   "group": "Water, waves and waterfalls",
@@ -1150,12 +1161,12 @@ window.FEATURES = {
    {
     "type": "image",
     "src": "assets/media/gallery/water/looking-up-from-underwater-before.jpg",
-    "caption": "Before: Plain underside of the surface (yavin1b)"
+    "caption": "Before: Plain underside of the surface (t3_hevil)"
    },
    {
     "type": "image",
     "src": "assets/media/gallery/water/looking-up-from-underwater-after.jpg",
-    "caption": "After: Snell/refraction surface (yavin1b)"
+    "caption": "After: Critical-angle reflection and Snell window (t3_hevil)"
    }
   ]
  },
@@ -1169,7 +1180,23 @@ window.FEATURES = {
     "html": "<p>Coherent waves roll across the water instead of a scrolling texture. Wind can turn and strengthen them outdoors, and shallow water moves less than deep pools. Without <a href=\"#f/water/wave-geometry\">wave geometry</a> the waves change lighting only; the surface itself stays flat.</p>\n<p class=\"cost\"><strong>Cost:</strong> light; medium with wave geometry.</p>\n<ul><li><code>r_waterWaves 0</code> — 1 on.</li><li><code>r_waterWaveAmplitude 1</code>, <code>r_waterWaveLength 1</code>, <code>r_waterWaveSpeed 1</code> — wave height, length and speed.</li><li><code>r_waterWind 0</code> — 1: outdoor waves follow the wind.</li><li><code>r_waterWaveQuality 1</code> — 0, 1, 2: 2, 4 or 8 wave layers.</li></ul>\n<p><strong>Compare:</strong> <code>r_waterWavesCompare</code> — 1 split screen (the original surface left; with wave geometry the shape still moves on both sides), 2 off.</p>\n<div class=\"how\"><h3>How it works</h3><p>A few analytic wave trains are summed to give height and slope. Dispersion makes long waves faster than short ones and all waves slower in shallow water; wind changes are crossfaded.</p></div>\n<ul><li><code>r_waterWaveDispersion 1</code> — <strong>0</strong> all waves the same speed, <strong>1</strong> speed depends on wavelength and depth, <strong>2</strong> physically calibrated (still water only).</li><li><code>r_waterWaveGravity 313.6</code> — gravity for mode 2, in units/s².</li><li><code>r_waterWaveShallow 1</code> — damp waves in shallow bodies.</li><li><code>r_waterWaveMicro 1</code> — fine slope detail, on top of <code>r_waterSurfaceNormal</code>.</li><li><code>r_waterWindScale 1</code> — strength of the wind response.</li><li><code>r_waterWindTransition 4</code> — seconds to blend into a new wind.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterWaveDebug 1..7</code>, <code>9</code>, <code>10</code> — height, normals, profile, depth mask, displacement, multiplier, legacy deform (the old split 8 is <code>r_waterWavesCompare 1</code>).</li><li><code>r_waterWaveTime -1</code> — freeze waves at a time in seconds; -1 running.</li><li><code>r_waterWindDebug 1..4</code> — wind, current and target direction, blend.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-water-waves.md\" target=\"_blank\" rel=\"noopener\">rend2-water-waves.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/waves-before.jpg",
+    "caption": "Before: Coherent waves disabled (t3_hevil)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/waves-after.jpg",
+    "caption": "After: Coherent waves enabled (t3_hevil)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/waves-comparison.gif",
+    "caption": "Animated comparison: before left, after right (t3_hevil)"
+   }
+  ]
  },
  "water/wave-geometry": {
   "group": "Water, waves and waterfalls",
@@ -1181,7 +1208,23 @@ window.FEATURES = {
     "html": "<p>Lets waves actually move the water surface, so its outline rises and falls against shores and objects, and the camera crossing the surface follows the moving waterline. Needs modern water.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium; dense geometry can be heavy.</p>\n<ul><li><code>r_waterGeometry 0</code> <em>(restart)</em> — 1: split water into a fine mesh.</li><li><code>r_waterTessellation 0</code> <em>(restart)</em> — 1: let the GPU add detail near the camera and less far away (OpenGL 4.3). Faster and finer than the fixed mesh alone.</li><li><code>r_waterTessPixels 48</code> — tessellation: target edge length on screen; smaller is denser and slower.</li><li><code>r_waterGeometryEdge 64</code> <em>(restart)</em> — fixed mesh: longest edge in world units.</li></ul>\n<p><strong>Compare:</strong> <code>r_waterGeometryCompare 2</code> — a flat surface (the mesh stays, the waves don't move it). No split screen: the mesh moves for the whole view.</p>\n<div class=\"how\"><h3>How it works</h3><p>The water is subdivided within vertex budgets, and each vertex is moved by the wave height. Waves shorter than the mesh stay in shading only. The waterline uses a small tolerance band so the screen doesn't flicker between above and below water.</p></div>\n<ul><li><code>r_waterGeometryBodyVerts 250000</code>, <code>r_waterGeometryMapVerts 1000000</code> <em>(restart)</em> — vertex budgets per body and per map.</li><li><code>r_waterTessMax 16</code> <em>(restart)</em> — maximum tessellation level (8, 16, 32); the base mesh is that much coarser.</li><li><code>r_waterTessLodDistance 192</code> — distance with the finest detail.</li><li><code>r_waterTessMinEdge 0</code> — shortest edge in world units; 0 lets <code>r_waterTessMax</code> decide.</li><li><code>r_waterlineHysteresis 1.5</code> — the waterline tolerance band.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterGeometryDebug 1</code> — geometry view. <code>r_waterGeometryInfo</code> — meshes and budgets.</li><li><code>r_waterTessForce &lt;level&gt;</code> — force one tessellation level everywhere; 0 by distance.</li><li><code>r_waterlineDebug 1..2</code> — waterline state, and its height graph.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-water-geometry.md\" target=\"_blank\" rel=\"noopener\">rend2-water-geometry.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/wave-geometry-before.jpg",
+    "caption": "Before: Flat surface mesh (t3_hevil)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/wave-geometry-after.jpg",
+    "caption": "After: Displaced wave mesh (t3_hevil)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/wave-geometry-comparison.gif",
+    "caption": "Animated comparison: before left, after right (t3_hevil)"
+   }
+  ]
  },
  "water/ripples-from-movement-and-impacts": {
   "group": "Water, waves and waterfalls",
@@ -1229,7 +1272,23 @@ window.FEATURES = {
     "html": "<p>White foam where water meets objects, along shores, behind wakes and under waterfalls. It drifts with the flow and fades over time. Needs modern water.</p>\n<p class=\"cost\"><strong>Cost:</strong> medium.</p>\n<ul><li><code>r_waterFoamField 0</code> <em>(restart)</em> — 1: foam that persists and moves.</li><li><code>r_waterIntersectionFoam 0</code> — 1: a foam ring where objects stand in shallow water.</li><li><code>r_waterFoamDecay 0.55</code> — how fast foam fades.</li><li><code>r_waterFoamShoreline 1</code>, <code>r_waterFoamWaterfall 1</code>, <code>r_waterFoamImpact 1</code>, <code>r_waterFoamIntersection 1</code>, <code>r_waterFoamSteepness 0</code> — foam from shores, waterfalls, splashes and wakes, objects, steep waves; 0 turns a source off.</li></ul>\n<p><strong>Compare:</strong> <code>r_waterFoamCompare</code> — 1 split screen (no foam left), 2 off; both kinds of foam.</p>\n<div class=\"how\"><h3>How it works</h3><p>Each body has a small foam texture: sources add foam, flow moves it, and it decays. Objects are found where their depth meets the water surface.</p></div>\n<ul><li><code>r_waterFoamResolution 128</code> <em>(restart)</em> — foam texture size.</li><li><code>r_waterFoamAdvection 1</code>, <code>r_waterFoamDiffusion 0.12</code> — drift with the flow, spreading.</li><li><code>r_waterIntersectionFoamStrength 1</code>, <code>r_waterIntersectionFoamWidth 8</code>, <code>r_waterIntersectionFoamPersistence 1.5</code> — object foam strength, width and fade time.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_waterFoamDebug 1..3</code> — amount, velocity, sources.</li><li><code>r_waterIntersectionFoamDebug 1</code> — raw object mask. <code>r_waterIntersectionVerify</code> — check object detection.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-water-intersection-foam.md\" target=\"_blank\" rel=\"noopener\">rend2-water-intersection-foam.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/foam-before.jpg",
+    "caption": "Before: Foam disabled (t3_hevil)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/foam-after.jpg",
+    "caption": "After: Persistent foam field enabled (t3_hevil)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/foam-comparison.gif",
+    "caption": "Animated comparison: before left, after right (t3_hevil)"
+   }
+  ]
  },
  "water/shorelines": {
   "group": "Water, waves and waterfalls",
@@ -1241,7 +1300,18 @@ window.FEATURES = {
     "html": "<p>With wave geometry, the water edge moves up and down the shore. This softens the hard line where water meets ground, calms waves near rigid banks, and leaves a wet band that dries as the water pulls back. Needs <code>r_waterGeometry 1</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium.</p>\n<ul><li><code>r_waterShoreline 0</code> <em>(restart)</em> — 1 on.</li><li><code>r_waterShoreWetStrength 0.8</code>, <code>r_waterShoreWetPersistence 8</code> — wet band strength and drying time in seconds.</li><li><code>r_waterShoreFoam 1</code> — shore foam (needs the foam field).</li><li><code>r_waterShoreAttenuation 96</code> — distance over which waves recover from a bank.</li><li><code>r_waterShoreContactSoftness 6</code> — width of the soft water edge.</li></ul>\n<p><strong>Compare:</strong> <code>r_waterShorelineCompare 2</code> — a hard edge and no wet band. No split screen: the shoreline also lowers the waves of the surface mesh.</p>\n<h4>Debug</h4>\n<ul><li><code>r_waterShoreDebug 1..9</code> — depth, shore distance, wave reduction, contact, wet edges, foam.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-water-shoreline.md\" target=\"_blank\" rel=\"noopener\">rend2-water-shoreline.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/shorelines-before.jpg",
+    "caption": "Before: Hard water edge and no wet band (t3_hevil)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/shorelines-after.jpg",
+    "caption": "After: Soft shoreline and wet band (t3_hevil)"
+   }
+  ]
  },
  "water/underwater-light-patterns-caustics": {
   "group": "Water, waves and waterfalls",
@@ -1269,12 +1339,17 @@ window.FEATURES = {
    {
     "type": "image",
     "src": "assets/media/gallery/water/waterfalls-and-rapids-before.jpg",
-    "caption": "Before: Original scrolling waterfall layers (yavin1b)"
+    "caption": "Before: Original scrolling waterfall sheets (t3_hevil)"
    },
    {
     "type": "image",
     "src": "assets/media/gallery/water/waterfalls-and-rapids-after.jpg",
-    "caption": "After: Modern aerated waterfall sheet (yavin1b)"
+    "caption": "After: Modern aerated sheets and impact apron (t3_hevil)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/water/waterfalls-and-rapids-comparison.gif",
+    "caption": "Animated comparison: before left, after right (t3_hevil)"
    }
   ]
  },
@@ -1363,7 +1438,23 @@ window.FEATURES = {
     "html": "<p>Leaves and vines on plant models tremble slightly in the air while trunks and branches stay still. Needs <code>r_autoFoliage 1</code> or <code>2</code>.</p>\n<p class=\"cost\"><strong>Cost:</strong> light.</p>\n<ul><li><code>r_leafFlutter 0</code> — 1 on.</li><li><code>r_leafFlutterStrength 1</code> — amplitude; 1 is about 1.5 units.</li><li><code>r_leafFlutterSpeed 1</code> — speed.</li><li><code>r_leafFlutterNormal 0.25</code> — let lighting flicker with the motion; 0 motion only.</li></ul>\n<p><strong>Compare:</strong> <code>r_leafFlutterCompare 2</code> — still leaves.</p>\n<h4>Debug</h4>\n<ul><li><code>r_leafFlutterDebug &lt;bits&gt;</code> — 1 exaggerate, 2 freeze, 4 highlight fluttering surfaces, 8 color by displacement.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-leaf-flutter.md\" target=\"_blank\" rel=\"noopener\">rend2-leaf-flutter.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/leaf-flutter-before.jpg",
+    "caption": "Before: Leaf flutter disabled (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/leaf-flutter-after.jpg",
+    "caption": "After: Leaf flutter at default strength (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/leaf-flutter-comparison.gif",
+    "caption": "Animated comparison: before left, after right (yavin1b)"
+   }
+  ]
  },
  "foliage/ferns-and-fronds": {
   "group": "Grass, plants and wind",
@@ -1403,7 +1494,18 @@ window.FEATURES = {
     "html": "<p>Grass and ferns bend where your body or an NPC touches them and spring back after you pass. Grass you stood on stays a little flattened for a few seconds. Plants need <code>r_autoFoliage</code>; grass works as is.</p>\n<p class=\"cost\"><strong>Cost:</strong> light to medium in dense nearby vegetation.</p>\n<ul><li><code>r_foliageInteraction 0</code> — 1 on.</li><li><code>r_foliageInteractionStrength 1</code> — how far stems bend; 1 is about 45° at full contact.</li><li><code>r_foliageInteractionNPCs 1</code> — 0 only you, 1 also nearby NPCs and players.</li><li><code>r_grassTrample 0.25</code> — how much bend trampled grass keeps; 0 none.</li><li><code>r_grassTrampleRecovery 6</code> — seconds for trampled grass to stand up.</li></ul>\n<p><strong>Compare:</strong> <code>r_foliageInteractionCompare 2</code> — plants that don't react.</p>\n<div class=\"how\"><h3>How it works</h3><p>The game sends simple capsule shapes for nearby characters. Plants push their frond chains away from them. Grass uses a small texture around the player that stores how far each spot is bent and lets it spring back; near grass is split into curved blades so it can bend smoothly.</p></div>\n<ul><li><code>r_foliageInteractionRadius 1</code> — size of the character shapes.</li><li><code>r_foliageInteractionMaxInteractors 8</code> — characters per frame, you first.</li><li><code>r_grassBendSegments 4</code> — segments per nearby grass blade; 1 flat cards.</li><li><code>r_grassBendLodDist 800</code> — distance where curved blades become flat cards.</li><li><code>r_foliageBendFieldSize 256</code> <em>(restart)</em> — grass bend texture resolution (64, 128, 256).</li><li><code>r_foliageBendFieldExtent 1024</code> — area it covers around you.</li><li><code>r_foliageBendFieldStrength 1</code> — grass bend strength; 0 grass doesn't react.</li><li><code>r_foliageBendFieldRecoveryTime 0.8</code> — seconds for grass to come back.</li><li><code>r_foliageBendFieldDamping 0.6</code> — 1 no overshoot, lower more sway.</li><li><code>r_foliageBendFieldImpulse 1</code> — extra drag when running through.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_foliageInteractionDebug &lt;bits&gt;</code> — 1 shapes, 2 exaggerate, 4 interaction only, 8 contact heat, 16 freeze, 32 player only.</li><li><code>r_foliageBendFieldDebug &lt;bits&gt;</code> — 1 bend overlay, 2 covered area, 4 freeze, 8 exaggerate.</li><li><code>r_foliageBendFieldClear</code> — reset grass.</li><li><code>r_foliageInteractionList</code> — characters sent, grass state, active Force waves.</li></ul>\n<p class=\"notes\">Design notes: <a href=\"https://github.com/keyten/Jedi-Knight-2026/blob/rend2-unified-wip/docs/rend2-foliage-interaction.md\" target=\"_blank\" rel=\"noopener\">rend2-foliage-interaction.md</a>.</p>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/walking-through-vegetation-before.jpg",
+    "caption": "Before: Character contact disabled (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/walking-through-vegetation-after.jpg",
+    "caption": "After: Fronds bending away from the character (yavin1b)"
+   }
+  ]
  },
  "foliage/force-push-and-pull": {
   "group": "Grass, plants and wind",
@@ -1443,7 +1545,23 @@ window.FEATURES = {
     "html": "<p>Attacking with a saber cuts fern fronds and plant cards it sweeps through. A partial cut stays attached; a severed piece falls, lies on the ground and sinks away. A blade simply resting in a plant doesn't cut. Cuts last until the map changes. Needs moving plants (<code>r_autoFoliage</code> with <code>r_plantWind 1</code> or <code>r_foliageInteraction 1</code>).</p>\n<p class=\"cost\"><strong>Cost:</strong> medium while cutting, limited by the piece count.</p>\n<ul><li><code>r_foliageSaberCut 0</code> — 1 on.</li></ul>\n<p><strong>Compare:</strong> <code>r_foliageSaberCutCompare 2</code> — no new cuts (cut plants stay cut until <code>r_foliageSaberCutReset</code>).</p>\n<ul><li><code>r_foliageSaberCutPieces 48</code> — fallen pieces at once; 0 makes cut parts vanish.</li><li><code>r_foliageSaberCutPieceTime 20</code> — seconds a piece lies on the ground.</li></ul>\n<h4>Debug</h4>\n<ul><li><code>r_foliageSaberCutReset</code> — restore all cut plants.</li><li><code>r_foliageSaberCutTest [height] [partial]</code> — cut the nearest plant; height is a fraction, default 0.5.</li><li><code>r_plantDebug 32</code> — recent blade sweeps; red ones cut.</li></ul>"
    }
   ],
-  "media": []
+  "media": [
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/cutting-plants-with-a-saber-before.jpg",
+    "caption": "Before: The same attacks with plant cuts disabled (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/cutting-plants-with-a-saber-after.jpg",
+    "caption": "After: Cut fronds and fallen pieces (yavin1b)"
+   },
+   {
+    "type": "image",
+    "src": "assets/media/gallery/foliage/cutting-plants-with-a-saber-comparison.gif",
+    "caption": "Animated comparison: before left, after right (yavin1b)"
+   }
+  ]
  },
  "loading/rendering-fast-paths": {
   "group": "Loading, OpenGL and diagnostics",
